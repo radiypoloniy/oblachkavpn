@@ -42,6 +42,7 @@ public static partial class SelfTests
         await HealthChecksAsync(CheckAsync);
         await SubscriptionChecksAsync(CheckAsync);
         await ClientBlockChecksAsync(CheckAsync, root);
+        await HelperLifetimeChecksAsync(CheckAsync, root);
         await File.WriteAllTextAsync(report, JsonSerializer.Serialize(new { Passed = checks.All(c => c.Passed), Network = "Loopback only; no real profiles, system routes or external requests", Checks = checks }, new JsonSerializerOptions { WriteIndented = true }));
         return checks.All(c => c.Passed) ? 0 : 2;
     }

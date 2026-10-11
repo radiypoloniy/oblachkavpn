@@ -37,7 +37,7 @@ public static class CoreConfigurationCheck
             var output = process.StandardOutput.ReadToEndAsync(); var error = process.StandardError.ReadToEndAsync();
             await process.StandardInput.WriteAsync(configuration.ToJsonString().AsMemory(), timeout.Token); process.StandardInput.Close();
             await process.WaitForExitAsync(timeout.Token); await Task.WhenAll(output, error);
-            if (process.ExitCode != 0) throw new UserError("Закреплённое ядро отклонило конфигурацию TUN.");
+            if (process.ExitCode != 0) throw new UserError("Ядро отклонило конфигурацию. Проверь совместимость параметров.");
         }
         finally { try { if (!process.HasExited) process.Kill(); } catch (InvalidOperationException) { } }
     }

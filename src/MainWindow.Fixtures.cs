@@ -25,6 +25,7 @@ public partial class MainWindow
         CheckSubscriptionInput(checks);
         CheckCountryRows(checks);
         LoadPreviewProfiles(); CheckPreviewControls();
+        CheckClientBlocks(checks);
         checks.Add("Synthetic subscription updates picker, actions and tray");
         for (var i = 0; i < 2; i++)
         {
