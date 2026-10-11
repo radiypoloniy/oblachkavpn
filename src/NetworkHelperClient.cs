@@ -1,0 +1,101 @@
+namespace RoutePilot;
+
+public interface INetworkHelperClient : IAsyncDisposable
+{
+    event Action? ConnectionLost;
+    Task AcquireAsync(NetworkLeaseRequest request, CancellationToken token);
+    Task<NetworkSessionState> ReleaseAsync(CancellationToken token);
+}
+
+// Maintains the lease independently of UI timers. Losing the pipe causes server-side recovery.
+public sealed class NetworkHelperClient : INetworkHelperClient
+{
+    private readonly HelperPipeClient pipe;
+    private readonly SemaphoreSlim operations = new(1);
+    private readonly TimeSpan interval;
+    private Guid? lease;
+    private CancellationTokenSource? pulseCancellation;
+    private Task? pulse;
+    private bool disposed;
+    public event Action? ConnectionLost;
+    public NetworkHelperClient(HelperPipeClient pipe, TimeSpan? interval = null)
+    {
+        this.pipe = pipe; this.interval = interval ?? TimeSpan.FromSeconds(3);
+        if (this.interval <= TimeSpan.Zero || this.interval > TimeSpan.FromSeconds(5)) throw new ArgumentOutOfRangeException(nameof(interval));
+    }
+
+    public async Task AcquireAsync(NetworkLeaseRequest request, CancellationToken token)
+    {
+        await operations.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (lease is not null) throw new UserError("Сетевая сессия уже запущена.");
+            if (request.Action != NetworkLeaseAction.Acquire) throw new UserError("Требуется команда Acquire.");
+            NetworkHelperContracts.Validate(request);
+            lease = request.LeaseId; // A lost acknowledgement must not be mistaken for a released lease.
+            var response = await pipe.SendAsync(HelperOperation.Acquire, request, token).ConfigureAwait(false);
+            if (response.Failure != HelperFailure.None || response.State != NetworkSessionState.Applied)
+                throw new UserError("Helper не подтвердил запуск сетевой сессии.");
+            pulseCancellation = new CancellationTokenSource();
+            pulse = PulseAsync(pulseCancellation.Token);
+        }
+        finally { operations.Release(); }
+    }
+
+    public async Task<NetworkSessionState> ReleaseAsync(CancellationToken token)
+    {
+        await operations.WaitAsync(token).ConfigureAwait(false);
+        try { return await ReleaseCoreAsync(token).ConfigureAwait(false); }
+        finally { operations.Release(); }
+    }
+
+    private async Task<NetworkSessionState> ReleaseCoreAsync(CancellationToken token)
+    {
+        pulseCancellation?.Cancel();
+        if (pulse is not null) await pulse.ConfigureAwait(false);
+        pulseCancellation?.Dispose(); pulseCancellation = null; pulse = null;
+        if (lease is null) return NetworkSessionState.Released;
+        var response = await pipe.SendAsync(HelperOperation.Release,
+            new(1, lease.Value, NetworkLeaseAction.Release, 0, Array.Empty<string>()), token).ConfigureAwait(false);
+        if (response.State == NetworkSessionState.RecoveryRequired) return NetworkSessionState.RecoveryRequired;
+        if (response.Failure != HelperFailure.None || response.State != NetworkSessionState.Released)
+            throw new UserError("Helper не подтвердил восстановление сети.");
+        lease = null;
+        return NetworkSessionState.Released;
+    }
+
+    private async Task PulseAsync(CancellationToken token)
+    {
+        try
+        {
+            while (true)
+            {
+                await Task.Delay(interval, token).ConfigureAwait(false);
+                var response = await pipe.SendAsync(HelperOperation.Heartbeat, null, CancellationToken.None).ConfigureAwait(false);
+                if (response.Failure != HelperFailure.None || response.State != NetworkSessionState.Applied)
+                    throw new UserError("Сетевая сессия больше не подтверждена helper.");
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (Exception ex) when (ex is IOException or UserError or OperationCanceledException or ObjectDisposedException)
+        {
+            await pipe.DisposeAsync().ConfigureAwait(false);
+            // Keep callbacks off the heartbeat task: a subscriber may synchronously start cleanup.
+            _ = Task.Run(() => ConnectionLost?.Invoke());
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await operations.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (disposed) return;
+            disposed = true;
+            try { await ReleaseCoreAsync(CancellationToken.None).ConfigureAwait(false); }
+            finally { await pipe.DisposeAsync().ConfigureAwait(false); }
+        }
+        finally { operations.Release(); }
+    }
+}

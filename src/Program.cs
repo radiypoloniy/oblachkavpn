@@ -9,6 +9,12 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Length == 4 && args[0] == "--prepare-vm-tun")
+        {
+            try { return VmTunCommand.PrepareAsync(int.Parse(args[1]), args[2], args[3]).GetAwaiter().GetResult(); }
+            catch { return 2; }
+        }
+        if (args.Length == 2 && args[0] == "--architecture-self-test") return SelfTests.RunArchitectureAsync(args[1]).GetAwaiter().GetResult();
         if (args.Length == 1 && args[0] == "--helper-idle-fixture") { Thread.Sleep(30000); return 0; }
         if (args.Length == 4 && args[0] == "--helper-fixture") return SelfTests.HelperFixtureAsync(args[1], int.Parse(args[2]), args[3]).GetAwaiter().GetResult();
         if (args.Length == 3 && args[0] == "--lab") return LabCommand.RunAsync(args[1], args[2]).GetAwaiter().GetResult();
