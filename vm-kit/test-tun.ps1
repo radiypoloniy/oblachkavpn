@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory = $true)][ValidateRange(1, 65535)][int]$SocksPort,
     [Parameter(Mandatory = $true)][string[]]$PeerAddresses,
     [string]$ApplicationDirectory = '',

@@ -8,6 +8,8 @@ $expected = @(
     'README.md', 'THIRD-PARTY.md', 'docs/NEXT-STEPS.md', 'docs/ARCHITECTURE.md',
     'docs/SYSTEM-TUN-ARCHITECTURE.md',
     'docs/NETWORK-SESSION-0.6.2.md',
+    'docs/HELPER-IPC.md', 'docs/SYSTEM-COORDINATOR.md', 'docs/MILESTONES-0.7.md', 'docs/VALIDATION-0.7.md',
+    'vm-kit/README.md', 'vm-kit/test-tun.ps1',
     'docs/REMNAWAVE.md', 'docs/routepilot-response-rule.example.json',
     'docs/OBLACHKA-IMPLEMENTATION.md', 'docs/LAB.md', 'docs/lab-plan.example.json', 'docs/REDESIGN-0.5.md'
 )
@@ -36,6 +38,7 @@ $process = Start-Process -FilePath (Join-Path $destination 'RoutePilot.exe') -Ar
 if (-not (Test-Path -LiteralPath $reportPath)) { throw 'Проверка распакованного приложения не вернула отчёт.' }
 $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
 if ($process.ExitCode -ne 0 -or -not $report.Passed -or $report.Checks.Count -ne 22) { throw 'Проверка распакованного приложения не прошла.' }
+& (Join-Path $destination 'vm-kit\test-tun.ps1') -SocksPort 10808 -PeerAddresses @('192.0.2.1')
 Write-Host ('Комплект: ' + $expected.Count + ' файлов; SHA256 ядер совпадают; WPF проверок: ' + $report.Checks.Count + '.')
 Write-Host ('Отчёт: ' + $reportPath)
 
