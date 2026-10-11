@@ -12,6 +12,7 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public bool AutoRefresh { get; init; } = true;
     public SubscriptionMetadata? Metadata { get; init; }
     public SiteRule[] RouteRules { get; init; } = Array.Empty<SiteRule>();
+    public ProgramRule[] ProgramRules { get; init; } = Array.Empty<ProgramRule>();
     public ServerMeasurement[] Measurements { get; init; } = Array.Empty<ServerMeasurement>();
 }
 
@@ -91,6 +92,7 @@ public sealed class ClientStateStore(string path)
         }
         RestoreProfiles(snapshot);
         RoutingPlan.Validate(snapshot.RouteRules);
+        ProgramRoutingPlan.Validate(snapshot.ProgramRules);
         if (snapshot.Measurements is null || snapshot.Measurements.Length > Subscriptions.MaxProfiles || snapshot.Measurements.Any(m => m is null ||
             m.Fingerprint is null || m.Fingerprint.Length != 64 || m.Fingerprint.Any(c => !char.IsAsciiHexDigit(c)) || m.Milliseconds < 0))
             throw new UserError("Сохранённые измерения повреждены.");

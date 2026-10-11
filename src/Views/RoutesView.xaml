@@ -2,50 +2,51 @@
   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <StackPanel Margin="32">
       <TextBlock Text="Маршруты" Style="{StaticResource PageTitle}"/>
-      <TextBlock Text="Как программы используют туннель" Style="{StaticResource MutedText}" Margin="0,0,0,22"/>
-      <UniformGrid Columns="3">
-        <Border Style="{StaticResource Card}" Margin="0,0,12,0" Opacity="0.5">
-          <StackPanel>
-            <TextBlock Text="Весь компьютер" FontWeight="SemiBold"/>
-            <TextBlock Text="Появится с системным VPN" Style="{StaticResource MutedText}" Margin="0,10,0,0"/>
+      <TextBlock Text="Сейчас работает локальный SOCKS5 для TCP. Системный режим появится после испытаний TUN." Style="{StaticResource MutedText}" Margin="0,0,0,18"/>
+      <Border Style="{StaticResource Card}" Padding="16" Background="#F5F6F8">
+        <DockPanel>
+          <Button x:Name="CopyEndpointButton" Content="Скопировать" DockPanel.Dock="Right" Background="White" IsEnabled="False" Margin="12,0,0,0"/>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock x:Name="EndpointText" Text="Адрес SOCKS появится после запуска" FontWeight="SemiBold" TextWrapping="Wrap"/>
+            <TextBlock Text="В программе выбери SOCKS5 с передачей имени сайта через прокси" Style="{StaticResource MutedText}" FontSize="12" Margin="0,5,0,0"/>
           </StackPanel>
-        </Border>
-        <Border Style="{StaticResource Card}" Margin="0,0,12,0" Opacity="0.5">
-          <StackPanel>
-            <TextBlock Text="Умный режим" FontWeight="SemiBold"/>
-            <TextBlock Text="Раздельные маршруты добавим позже" Style="{StaticResource MutedText}" Margin="0,10,0,0"/>
-          </StackPanel>
-        </Border>
-        <Border Style="{StaticResource Card}" Background="#F7F9FF" BorderBrush="{StaticResource Blue}">
-          <StackPanel>
-            <TextBlock Text="Только SOCKS5" FontWeight="SemiBold" Foreground="{StaticResource Blue}"/>
-            <TextBlock Text="Для программ с ручной настройкой прокси" Style="{StaticResource MutedText}" Margin="0,10,0,0"/>
-          </StackPanel>
-        </Border>
-      </UniformGrid>
-      <Border Background="#F5F6F8" CornerRadius="18" Padding="24" Margin="0,28,0,0">
-        <StackPanel>
-          <TextBlock Text="Адрес подключения" FontSize="18" FontWeight="SemiBold"/>
-          <TextBlock x:Name="EndpointText" Text="Адрес SOCKS появится после запуска" Style="{StaticResource MutedText}" Margin="0,12,0,18"/>
-          <Button x:Name="CopyEndpointButton" Content="Скопировать адрес" HorizontalAlignment="Left" Background="White" IsEnabled="False"/>
-          <TextBlock Text="Выбери SOCKS5 в нужной программе и передавай имена сайтов через прокси. Не настраивай этот адрес как HTTP-прокси." Style="{StaticResource MutedText}" Margin="0,18,0,0"/>
-        </StackPanel>
+        </DockPanel>
       </Border>
-      <TextBlock Text="Свои правила" FontSize="18" FontWeight="SemiBold" Margin="0,32,0,10"/>
-      <TextBlock Text="Черновик для системного режима. Можно сохранить и проверить, но сейчас правила не применяются. Домен включает поддомены; более точное правило имеет приоритет." Style="{StaticResource MutedText}"/>
-      <ListBox x:Name="RuleList" MaxHeight="180" Margin="0,14,0,12" AutomationProperties.Name="Черновик правил сайтов"/>
-      <Grid>
-        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="160"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <TextBox x:Name="RuleDomain" Tag="example.com" MaxLength="253" AutomationProperties.Name="Домен правила" Margin="0,0,8,0"/>
-        <ComboBox x:Name="RuleAction" Grid.Column="1" SelectedIndex="0" Margin="0,0,8,0" AutomationProperties.Name="Действие правила">
-          <ComboBoxItem Content="Через VPN"/><ComboBoxItem Content="Напрямую"/><ComboBoxItem Content="Блокировать"/>
-        </ComboBox>
-        <Button x:Name="AddRuleButton" Grid.Column="2" Content="Добавить"/>
-      </Grid>
-      <WrapPanel Margin="0,12,0,0">
-        <Button x:Name="RemoveRuleButton" Content="Удалить выбранное" Margin="0,0,8,8"/>
-        <Button x:Name="ValidateRulesButton" Content="Проверить черновик" Margin="0,0,0,8"/>
-      </WrapPanel>
+      <TextBlock Text="Свои правила" FontSize="18" FontWeight="SemiBold" Margin="0,24,0,10"/>
+      <TextBlock Text="Черновик: сохраняется и проверяется ядрами, но пока не применяется к подключению." Style="{StaticResource MutedText}" Margin="0,0,0,14"/>
+      <TabControl BorderThickness="0" Background="Transparent" Padding="0">
+        <TabItem Header="Сайты">
+          <StackPanel Margin="0,12,0,0">
+            <TextBlock Text="Домен включает поддомены. Более точное правило имеет приоритет." Style="{StaticResource MutedText}" FontSize="12"/>
+            <ListBox x:Name="RuleList" MaxHeight="140" Margin="0,10,0,12" AutomationProperties.Name="Черновик правил сайтов"/>
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="160"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <TextBox x:Name="RuleDomain" Tag="example.com" MaxLength="253" AutomationProperties.Name="Домен правила" Margin="0,0,8,0"/>
+              <ComboBox x:Name="RuleAction" Grid.Column="1" SelectedIndex="0" Margin="0,0,8,0" AutomationProperties.Name="Действие правила">
+                <ComboBoxItem Content="Через VPN"/><ComboBoxItem Content="Напрямую"/><ComboBoxItem Content="Блокировать"/>
+              </ComboBox>
+              <Button x:Name="AddRuleButton" Grid.Column="2" Content="Добавить"/>
+            </Grid>
+            <Button x:Name="RemoveRuleButton" Content="Удалить выбранное" HorizontalAlignment="Left" Margin="0,12,0,0"/>
+          </StackPanel>
+        </TabItem>
+        <TabItem Header="Программы">
+          <StackPanel Margin="0,12,0,0">
+            <TextBlock Text="Имя файла .exe без пути. Для будущего TUN; DNS остаётся через туннель." Style="{StaticResource MutedText}" FontSize="12"/>
+            <ListBox x:Name="ProgramList" MaxHeight="140" Margin="0,10,0,12" AutomationProperties.Name="Черновик правил программ"/>
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="160"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <TextBox x:Name="ProgramName" Tag="steam.exe" MaxLength="120" AutomationProperties.Name="Имя программы" Margin="0,0,8,0"/>
+              <ComboBox x:Name="ProgramAction" Grid.Column="1" SelectedIndex="0" Margin="0,0,8,0" AutomationProperties.Name="Действие для программы">
+                <ComboBoxItem Content="Через VPN"/><ComboBoxItem Content="Напрямую"/><ComboBoxItem Content="Блокировать"/>
+              </ComboBox>
+              <Button x:Name="AddProgramButton" Grid.Column="2" Content="Добавить"/>
+            </Grid>
+            <Button x:Name="RemoveProgramButton" Content="Удалить выбранное" HorizontalAlignment="Left" Margin="0,12,0,0"/>
+          </StackPanel>
+        </TabItem>
+      </TabControl>
+      <Button x:Name="ValidateRulesButton" Content="Проверить черновик" HorizontalAlignment="Left" Style="{StaticResource Primary}" Margin="0,16,0,0"/>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

@@ -2,6 +2,7 @@
   <ResourceDictionary.MergedDictionaries>
     <ResourceDictionary Source="PowerStyle.xaml"/>
     <ResourceDictionary Source="ScrollStyles.xaml"/>
+    <ResourceDictionary Source="OptionStyles.xaml"/>
   </ResourceDictionary.MergedDictionaries>
   <SolidColorBrush x:Key="Ink" Color="#18243A"/>
   <SolidColorBrush x:Key="Muted" Color="#6B788E"/>

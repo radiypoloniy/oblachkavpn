@@ -7,6 +7,7 @@ public partial class MainWindow
     private readonly List<SiteRule> siteRules = new();
     private void WireRules()
     {
+        WireProgramRules();
         Routes.AddRuleButton.Click += (_, _) =>
         {
             try
@@ -29,6 +30,7 @@ public partial class MainWindow
                 var adapter = new CoreAdapter(profile.Core, Path.Combine(AppContext.BaseDirectory, "tools", profile.Core == CoreKind.Xray ? "xray.exe" : "sing-box.exe"));
                 var config = RoutingPlan.Compile(adapter, profile, 10808, siteRules);
                 await CoreConfigurationCheck.ValidateAsync(adapter, config, operation.Token);
+                await ValidateProgramDraftAsync(operation.Token);
                 if (!closed) DetailText.Text = "Ядро приняло черновик правил. Текущее подключение не изменялось.";
             }
             catch (OperationCanceledException) { }
@@ -36,5 +38,5 @@ public partial class MainWindow
             finally { operation.Dispose(); operation = null; if (!closed) UpdateControls(); }
         };
     }
-    private void RefreshRules() { Routes.RuleList.ItemsSource = siteRules.ToArray(); }
+    private void RefreshRules() { Routes.RuleList.ItemsSource = siteRules.ToArray(); Routes.ProgramList.ItemsSource = programRules.ToArray(); }
 }

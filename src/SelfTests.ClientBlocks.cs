@@ -4,6 +4,28 @@ public static partial class SelfTests
 {
     private static async Task ClientBlockChecksAsync(Func<string, Func<Task>, Task> check, string root)
     {
+        await check("Server measurements own a separate core and cancel without a second start", async () =>
+        {
+            var calls = new List<string>(); var core = new SessionCore(calls); var samples = new List<ServerMeasurement>();
+            using var cancel = new CancellationTokenSource();
+            try
+            {
+                await ServerMeasurements.MeasureAsync([Profiles.Parse(link), Profiles.Parse(link.Replace("example.com", "example.net"))],
+                    () => core, sample => { samples.Add(sample); cancel.Cancel(); }, cancel.Token);
+                throw new InvalidOperationException("Expected cancellation");
+            }
+            catch (OperationCanceledException) { Assert(samples.Count == 1 && samples[0].Success && core.ProcessId is null && calls.Count(c => c == "core:start") == 1); }
+        });
+        await check("Program routing rejects paths and duplicate names; pinned sing-box validates TUN draft", async () =>
+        {
+            ExpectUserError(() => ProgramRoutingPlan.Create("C:\\private\\steam.exe", SiteAction.Direct));
+            ExpectUserError(() => ProgramRoutingPlan.Create("steam.exe;whoami", SiteAction.Direct));
+            ExpectUserError(() => ProgramRoutingPlan.Validate([new("Steam.exe", SiteAction.Direct), new("steam.exe", SiteAction.Block)]));
+            var config = ProgramRoutingPlan.Compile(NetworkAcquire(), [new("steam.exe", SiteAction.Direct), new("browser.exe", SiteAction.Block)]);
+            Assert(config["route"]!["rules"]![0]!["action"]!.GetValue<string>() == "hijack-dns");
+            Assert(config["route"]!["rules"]![1]!["action"]!.GetValue<string>() == "reject");
+            await CoreConfigurationCheck.ValidateAsync(new(CoreKind.SingBox, Path.Combine(AppContext.BaseDirectory, "tools", "sing-box.exe")), config, CancellationToken.None);
+        });
         await check("Routing drafts reject URLs and duplicates, prioritize subdomains, validate both cores", async () =>
         {
             ExpectUserError(() => RoutingPlan.Create("https://example.com/path", SiteAction.Direct));
@@ -38,8 +60,8 @@ public static partial class SelfTests
         {
             var profile = Profiles.Parse(link); var key = Profiles.Fingerprint(profile); var store = new ClientStateStore(Path.Combine(root, "blocks-state.bin"));
             store.Save(new(1, [new(profile.Name, profile.Outbound)], key, ["https://fixture.invalid/SECRET-token"], 0, false, true)
-                { AutoRefresh = false, Metadata = new(1, 2, 100, null), RouteRules = [new("secret-domain.invalid", SiteAction.Direct)], Measurements = [new(key, DateTimeOffset.UtcNow, true, 12)] });
-            var loaded = store.Load()!; Assert(!loaded.AutoRefresh && loaded.Metadata?.Total == 100 && loaded.RouteRules.Length == 1 && loaded.Measurements[0].Milliseconds == 12);
+                { AutoRefresh = false, Metadata = new(1, 2, 100, null), RouteRules = [new("secret-domain.invalid", SiteAction.Direct)], ProgramRules = [new("steam.exe", SiteAction.Direct)], Measurements = [new(key, DateTimeOffset.UtcNow, true, 12)] });
+            var loaded = store.Load()!; Assert(!loaded.AutoRefresh && loaded.Metadata?.Total == 100 && loaded.RouteRules.Length == 1 && loaded.ProgramRules.Length == 1 && loaded.Measurements[0].Milliseconds == 12);
             var bytes = System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(root, "blocks-state.bin"))); Assert(!bytes.Contains("SECRET-token") && !bytes.Contains("secret-domain"));
         }));
     }
