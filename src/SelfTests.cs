@@ -39,6 +39,7 @@ public static partial class SelfTests
         await TunConfigurationChecksAsync(CheckAsync);
         await SystemSessionChecksAsync(CheckAsync);
         await VmKitChecksAsync(CheckAsync, root);
+        await HealthChecksAsync(CheckAsync);
         await File.WriteAllTextAsync(report, JsonSerializer.Serialize(new { Passed = checks.All(c => c.Passed), Network = "Loopback only; no real profiles, system routes or external requests", Checks = checks }, new JsonSerializerOptions { WriteIndented = true }));
         return checks.All(c => c.Passed) ? 0 : 2;
     }

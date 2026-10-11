@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-$appDirectory = Join-Path $PSScriptRoot 'app-v07'
+$appDirectory = Join-Path $PSScriptRoot 'app-v08'
 $reportPath = Join-Path $appDirectory ('self-test-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.json')
 $testProcess = Start-Process -FilePath (Join-Path $appDirectory 'RoutePilot.exe') -ArgumentList @('--self-test', ('"' + $reportPath + '"')) -WorkingDirectory $appDirectory -WindowStyle Hidden -PassThru -Wait
 if (-not (Test-Path -LiteralPath $reportPath)) { throw 'Контроллер не сформировал отчёт.' }

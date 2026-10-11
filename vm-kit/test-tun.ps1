@@ -7,7 +7,7 @@
 )
 $ErrorActionPreference = 'Stop'
 if ($ApplicationDirectory -eq '') {
-    $projectApp = Join-Path $PSScriptRoot '..\app-v07'
+    $projectApp = Join-Path $PSScriptRoot '..\app-v08'
     $packageApp = Join-Path $PSScriptRoot '..'
     if (Test-Path -LiteralPath (Join-Path $projectApp 'RoutePilot.exe')) { $ApplicationDirectory = $projectApp }
     else { $ApplicationDirectory = $packageApp }

@@ -39,8 +39,9 @@ public partial class MainWindow : Window
         WireViews();
         viewsReady = true;
         Navigate("Connection");
-        presentationTimer.Tick += (_, _) => RefreshPresentation();
+        presentationTimer.Tick += (_, _) => { RefreshPresentation(); PollHealth(); PollSubscription(); };
         presentationTimer.Start();
+        SubscribeLifecycle(persistenceEnabled && isolatedStore is null);
         Closing += OnClosing;
         trayConnect = new Forms.ToolStripMenuItem("Подключить");
         trayStop = new Forms.ToolStripMenuItem("Остановить");
@@ -109,7 +110,7 @@ public partial class MainWindow : Window
     private async void ConnectClick(object sender, RoutedEventArgs args)
     {
         manualStop = false;
-        recoveryWait?.Cancel(); recovery.Reset();
+        recoveryWait?.Cancel(); recovery.Reset(); health.Reset();
         await ConnectCoreAsync();
     }
     private async Task ConnectCoreAsync()
@@ -122,6 +123,7 @@ public partial class MainWindow : Window
         try
         {
             await engine.StartAsync(profile, operation.Token);
+            nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
             if (!closed) DetailText.Text = "Подключение запущено. Проверь туннель в диагностике.";
         }
         catch (OperationCanceledException) { if (!closed) DetailText.Text = "Запуск отменён или истёк срок ожидания. Можно попробовать снова."; }
@@ -201,6 +203,7 @@ public partial class MainWindow : Window
         { args.Cancel = true; Hide(); return; }
         closed = true;
         presentationTimer.Stop();
+        UnsubscribeLifecycle();
         trayPopup?.Close();
         engine.Changed -= EngineChanged;
         operation?.Cancel();

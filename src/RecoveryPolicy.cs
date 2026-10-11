@@ -7,7 +7,7 @@ public sealed class RecoveryPolicy
     {
         while (attempts.Count > 0 && now - attempts.Peek() >= TimeSpan.FromMinutes(2)) attempts.Dequeue();
         if (attempts.Count >= 3) return null;
-        var delay = TimeSpan.FromSeconds(Math.Pow(2, attempts.Count));
+        var delay = TimeSpan.FromSeconds(Math.Pow(2, attempts.Count) + Random.Shared.NextDouble() * 0.5);
         attempts.Enqueue(now); return delay;
     }
     public void Reset() => attempts.Clear();

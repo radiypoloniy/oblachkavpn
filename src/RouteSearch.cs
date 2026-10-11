@@ -3,7 +3,7 @@ namespace RoutePilot;
 public sealed record RouteAttempt(int ProfileIndex, string Outcome, long Milliseconds);
 public sealed record RouteSearchResult(int? ProfileIndex, IReadOnlyList<RouteAttempt> Attempts);
 
-// Explicit, bounded search only. No scheduled probes, hidden node changes or direct traffic fallback.
+// Bounded search shared by manual selection and opt-in health recovery. No direct fallback.
 public sealed class RouteSearch
 {
     public const int MaxAttempts = 6;
