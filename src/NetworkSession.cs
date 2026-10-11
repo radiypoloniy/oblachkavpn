@@ -6,6 +6,8 @@ public sealed class NetworkSession(INetworkSessionJournal journal, INetworkSessi
 {
     private readonly object gate = journal.SyncRoot;
 
+    public NetworkSessionState? State { get { lock (gate) return journal.Load()?.State; } }
+
     public NetworkSessionRecord Acquire(NetworkLeaseRequest request, CancellationToken token = default)
     {
         var lease = NetworkHelperContracts.Validate(request);

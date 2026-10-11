@@ -9,6 +9,8 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Length == 1 && args[0] == "--helper-idle-fixture") { Thread.Sleep(30000); return 0; }
+        if (args.Length == 4 && args[0] == "--helper-fixture") return SelfTests.HelperFixtureAsync(args[1], int.Parse(args[2]), args[3]).GetAwaiter().GetResult();
         if (args.Length == 3 && args[0] == "--lab") return LabCommand.RunAsync(args[1], args[2]).GetAwaiter().GetResult();
         if (args.Length > 0 && args[0] == "--self-test") return SelfTests.RunAsync(args.Length > 1 ? args[1] : Path.Combine(AppContext.BaseDirectory, "self-test.json")).GetAwaiter().GetResult();
         if (args.Length > 1 && args[0] == "--job-child") return SelfTests.JobChildAsync(args[1], args.Length > 2 && args[2] == "sing-box" ? CoreKind.SingBox : CoreKind.Xray).GetAwaiter().GetResult();

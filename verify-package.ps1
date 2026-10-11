@@ -21,7 +21,7 @@ try {
     }
 } finally { $archive.Dispose() }
 # Only our verified whitelist is extracted into a new directory inside dist.
-$destination = Join-Path $PSScriptRoot ('dist\package-check-v062-' + [guid]::NewGuid().ToString('N'))
+$destination = Join-Path $PSScriptRoot ('dist\package-check-v07-' + [guid]::NewGuid().ToString('N'))
 [System.IO.Compression.ZipFile]::ExtractToDirectory((Resolve-Path -LiteralPath $ArchivePath).Path, $destination)
 $hashes = @{
     'tools\xray.exe' = '0D0FC0EA2B05641ACB78C01FC36AD694E7B029861B2D5EB93DA0E3E9FDA9A98F'
@@ -38,4 +38,6 @@ $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
 if ($process.ExitCode -ne 0 -or -not $report.Passed -or $report.Checks.Count -ne 22) { throw 'Проверка распакованного приложения не прошла.' }
 Write-Host ('Комплект: ' + $expected.Count + ' файлов; SHA256 ядер совпадают; WPF проверок: ' + $report.Checks.Count + '.')
 Write-Host ('Отчёт: ' + $reportPath)
+
+
 

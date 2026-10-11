@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-$appDirectory = Join-Path $PSScriptRoot 'app-v062'
+$appDirectory = Join-Path $PSScriptRoot 'app-v07'
 $reportPath = Join-Path $appDirectory ('self-test-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.json')
 $testProcess = Start-Process -FilePath (Join-Path $appDirectory 'RoutePilot.exe') -ArgumentList @('--self-test', ('"' + $reportPath + '"')) -WorkingDirectory $appDirectory -WindowStyle Hidden -PassThru -Wait
 if (-not (Test-Path -LiteralPath $reportPath)) { throw 'Контроллер не сформировал отчёт.' }
@@ -17,4 +17,5 @@ $uiReport = Get-Content -LiteralPath $uiReportPath -Raw | ConvertFrom-Json
 Write-Host ('Проверки интерфейса: ' + $uiReport.Checks.Count + '. Успех: ' + $uiReport.Passed)
 Write-Host ('Отчёт: ' + $uiReportPath)
 if ($uiProcess.ExitCode -ne 0 -or -not $uiReport.Passed) { throw 'Проверки интерфейса не прошли.' }
+
 

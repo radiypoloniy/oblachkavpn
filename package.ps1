@@ -3,18 +3,18 @@ Add-Type -AssemblyName System.IO.Compression
 $projectRoot = $PSScriptRoot
 $packageDirectory = Join-Path $projectRoot 'dist'
 [System.IO.Directory]::CreateDirectory($packageDirectory) | Out-Null
-$archivePath = Join-Path $packageDirectory ('Oblachka-0.6.2-win-x64-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.zip')
+$archivePath = Join-Path $packageDirectory ('Oblachka-0.7.0-win-x64-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.zip')
 $files = [ordered]@{
-    'RoutePilot.exe' = 'app-v062\RoutePilot.exe'
-    'RoutePilot.dll' = 'app-v062\RoutePilot.dll'
-    'RoutePilot.deps.json' = 'app-v062\RoutePilot.deps.json'
-    'RoutePilot.runtimeconfig.json' = 'app-v062\RoutePilot.runtimeconfig.json'
-    'tools/xray.exe' = 'app-v062\tools\xray.exe'
-    'tools/LICENSE-Xray' = 'app-v062\tools\LICENSE-Xray'
-    'tools/sing-box.exe' = 'app-v062\tools\sing-box.exe'
-    'tools/libcronet.dll' = 'app-v062\tools\libcronet.dll'
-    'tools/LICENSE-sing-box' = 'app-v062\tools\LICENSE-sing-box'
-    'tools/COPYING-GPL-3.0' = 'app-v062\tools\COPYING-GPL-3.0'
+    'RoutePilot.exe' = 'app-v07\RoutePilot.exe'
+    'RoutePilot.dll' = 'app-v07\RoutePilot.dll'
+    'RoutePilot.deps.json' = 'app-v07\RoutePilot.deps.json'
+    'RoutePilot.runtimeconfig.json' = 'app-v07\RoutePilot.runtimeconfig.json'
+    'tools/xray.exe' = 'app-v07\tools\xray.exe'
+    'tools/LICENSE-Xray' = 'app-v07\tools\LICENSE-Xray'
+    'tools/sing-box.exe' = 'app-v07\tools\sing-box.exe'
+    'tools/libcronet.dll' = 'app-v07\tools\libcronet.dll'
+    'tools/LICENSE-sing-box' = 'app-v07\tools\LICENSE-sing-box'
+    'tools/COPYING-GPL-3.0' = 'app-v07\tools\COPYING-GPL-3.0'
     'tools/sing-box-provenance.json' = 'vendor\sing-box-1.14.3\provenance.json'
     'README.md' = 'README.md'
     'THIRD-PARTY.md' = 'THIRD-PARTY.md'
@@ -44,4 +44,6 @@ try {
     } finally { $archive.Dispose() }
 } finally { $stream.Dispose() }
 Write-Host $archivePath
+
+
 
