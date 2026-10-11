@@ -29,6 +29,8 @@ public partial class MainWindow
 
     private void WireViews()
     {
+        WireRules();
+        WireMeasurements();
         ConnectButton.Click += ConnectClick;
         StopButton.Click += StopClick;
         ProfilePicker.SelectionChanged += ProfileSelectionChanged;
@@ -53,6 +55,7 @@ public partial class MainWindow
         Onboarding.RememberSubscription.Unchecked += (_, _) => rememberConnections = false;
         Settings.StayInTray.Click += (_, _) => QueueStateSave();
         AutoRecover.Click += (_, _) => QueueStateSave();
+        Settings.AutoRefresh.Click += (_, _) => QueueStateSave();
         Settings.CloseButton.Click += (_, _) => CloseSettings();
         Settings.ManageSubscriptionButton.Click += (_, _) => { CloseSettings(); Navigate("Servers"); };
         Settings.SaveStateButton.Click += SaveStateClick;

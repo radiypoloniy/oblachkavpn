@@ -23,14 +23,14 @@ public partial class MainWindow
     }
     private void ApplyImport(ImportResult result, bool preserveSelection = false)
     {
-        var fingerprint = preserveSelection && profile is not null ? Profiles.Fingerprint(profile) : null;
-        var selection = fingerprint is null ? 0 : result.Profiles.ToList().FindIndex(p => Profiles.Fingerprint(p) == fingerprint);
-        if (selection < 0) selection = 0;
+        var selection = ProfileSelection.Find(result.Profiles, preserveSelection ? profile : null);
+        subscriptionMetadata = result.Metadata;
         ProfilePicker.ItemsSource = result.Profiles;
         importedProfiles = result.Profiles;
         Servers.SearchBox.Clear();
         ProfilePicker.Visibility = Visibility.Visible;
         Servers.SubscriptionSummary.Text = $"Подключений: {result.Profiles.Count}";
+        UpdateSubscriptionSummary();
         ProfilePicker.SelectedIndex = selection;
         profile = result.Profiles[selection];
         routeAttempts = Array.Empty<RouteAttempt>();
@@ -56,7 +56,7 @@ public partial class MainWindow
         var panel = new StackPanel { Margin = new Thickness(24) };
         panel.Children.Add(new TextBlock { Text = "Основной и резервные HTTPS-адреса: каждый с новой строки, до пяти.", Foreground = Foreground, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
         var input = new TextBox { MaxLength = 20 * 1024, AcceptsReturn = true, Height = 110, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Text = string.Join("\n", subscriptionSources) }; panel.Children.Add(input);
-        panel.Children.Add(new TextBlock { Text = "Укажи полные ссылки: токен не переносится на другой домен автоматически. Адреса хранятся только в памяти.", Foreground = Foreground, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 12) });
+        panel.Children.Add(new TextBlock { Text = "Полные ссылки для каждого адреса. При включённом запоминании они сохраняются в зашифрованном виде.", Foreground = Foreground, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 12) });
         var button = new Button { Content = "Загрузить", HorizontalAlignment = HorizontalAlignment.Right }; panel.Children.Add(button);
         string? url = null;
         button.Click += (_, _) => { url = input.Text; input.Clear(); dialog.DialogResult = true; };
@@ -73,12 +73,13 @@ public partial class MainWindow
         Func<IReadOnlyList<string>, int, CancellationToken, Task<MirrorResult>>? loader = null)
     {
         if (operation is not null) return;
-        manualStop = false; recoveryWait?.Cancel();
+        manualStop = false;
         operation = new CancellationTokenSource(); engineOperation = false; UpdateControls();
         DetailText.Text = "Загружаем подписку; при отказе проверим резервные адреса…";
         try
         {
             var result = await (loader ?? SubscriptionMirrors.FetchAsync)(sources, preferred, operation.Token);
+            subscriptionSchedule.Complete(DateTimeOffset.UtcNow, true);
             operation.Token.ThrowIfCancellationRequested();
             if (closed) return;
             subscriptionSources = sources.ToArray(); preferredSource = result.SourceIndex;
@@ -90,7 +91,8 @@ public partial class MainWindow
             else { ApplyImport(result.Import, true); DetailText.Text += $" Загрузка: адрес №{result.SourceIndex + 1}, попыток {result.Attempts}."; }
         }
         catch (OperationCanceledException) { if (!closed) DetailText.Text = "Загрузка отменена. Предыдущий список сохранён."; }
-        catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }
+        catch (SubscriptionAccessDenied ex) { subscriptionSchedule.AccessDenied(); if (!closed) DetailText.Text = ex.Message; }
+        catch (UserError ex) { subscriptionSchedule.Complete(DateTimeOffset.UtcNow, false); if (!closed) DetailText.Text = ex.Message; }
         finally { if (manualStop) engine.Stop(); operation.Dispose(); operation = null; if (!closed) UpdateControls(); }
     }
     private void ImportFileClick(object sender, RoutedEventArgs args)

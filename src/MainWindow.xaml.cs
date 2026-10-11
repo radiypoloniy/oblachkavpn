@@ -22,7 +22,7 @@ public partial class MainWindow : Window
     private IReadOnlyList<RouteAttempt> routeAttempts = Array.Empty<RouteAttempt>();
     private readonly RecoveryPolicy recovery = new();
     private CancellationTokenSource? recoveryWait;
-    private readonly List<object> events = new();
+    private readonly List<ClientEvent> events = new();
     private readonly Forms.NotifyIcon tray;
     private readonly Forms.ToolStripMenuItem trayConnect;
     private readonly Forms.ToolStripMenuItem trayStop;
@@ -64,7 +64,7 @@ public partial class MainWindow : Window
         {
             if (closed) return;
             if (events.Count >= 100) events.RemoveAt(0);
-            events.Add(new { Time = DateTimeOffset.Now, State = state.ToString(), Message = message });
+            events.Add(new(DateTimeOffset.Now, (ClientEventCode)(int)state));
             Diagnostics.EventList.ItemsSource = events.AsEnumerable().Reverse().Take(12).ToArray();
             state = engine.State;
             StatusText.Text = state switch
@@ -101,6 +101,9 @@ public partial class MainWindow : Window
         ProbeUrl.IsEnabled = operation is null;
         CopyEndpointButton.IsEnabled = engine.ProcessId is not null;
         ReconnectButton.IsEnabled = profile is not null && operation is null;
+        Servers.MeasureButton.IsEnabled = profile is not null && !active && operation is null;
+        Servers.BestButton.IsEnabled = Servers.MeasureButton.IsEnabled;
+        Routes.ValidateRulesButton.IsEnabled = profile is not null && operation is null;
         trayConnect.Enabled = ConnectButton.IsEnabled;
         trayStop.Enabled = StopButton.IsEnabled;
         tray.Text = "Облачка — " + StatusText.Text;

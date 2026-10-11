@@ -36,7 +36,7 @@ public partial class MainWindow
         if (dialog.ShowDialog(this) != true) return;
         try
         {
-            File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(new { App = BuildInfo.Label, Core = engine.CoreLabel, Mode = "Local SOCKS TCP", State = engine.State.ToString(), ImportedProfiles = importedProfiles.Count, SubscriptionSources = subscriptionSources.Count, PendingSubscription = pendingImport is not null, RouteAttempts = routeAttempts, Events = events, SystemNetworkModified = false }, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(dialog.FileName, DiagnosticReport.Create(engine.State, importedProfiles.Count, subscriptionSources.Count, events, routeAttempts));
             DetailText.Text = "Отчёт сохранён. Профили, UUID и адреса подписок в него не включены.";
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { DetailText.Text = "Не удалось сохранить отчёт. Выбери доступную папку."; }

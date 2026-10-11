@@ -31,7 +31,9 @@ public partial class MainWindow
     private ClientSnapshot CaptureState() => new(1,
         importedProfiles.Select(p => new SavedProfile(p.Name, (System.Text.Json.Nodes.JsonObject)p.Outbound.DeepClone())).ToArray(),
         profile is null ? null : Profiles.Fingerprint(profile), subscriptionSources.ToArray(), preferredSource,
-        Settings.StayInTray.IsChecked == true, AutoRecover.IsChecked == true);
+        Settings.StayInTray.IsChecked == true, AutoRecover.IsChecked == true)
+        { AutoRefresh = Settings.AutoRefresh.IsChecked == true, Metadata = subscriptionMetadata, RouteRules = siteRules.ToArray(),
+            Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray() };
 
     private void SaveStateClick(object sender, RoutedEventArgs args)
     {
@@ -68,7 +70,10 @@ public partial class MainWindow
         var restored = ClientStateStore.RestoreProfiles(snapshot);
         subscriptionSources = snapshot.SubscriptionSources.ToArray(); preferredSource = snapshot.PreferredSource;
         Settings.StayInTray.IsChecked = snapshot.StayInTray; AutoRecover.IsChecked = snapshot.AutoRecover;
-        ApplyImport(new ImportResult(restored, 0, 0));
+        Settings.AutoRefresh.IsChecked = snapshot.AutoRefresh;
+        siteRules.Clear(); siteRules.AddRange(snapshot.RouteRules); RefreshRules();
+        measurements.Clear(); foreach (var measurement in snapshot.Measurements) measurements[measurement.Fingerprint] = measurement;
+        ApplyImport(new ImportResult(restored, 0, 0) { Metadata = snapshot.Metadata });
         var selected = restored.FirstOrDefault(p => Profiles.Fingerprint(p) == snapshot.SelectedFingerprint);
         if (selected is not null) ProfilePicker.SelectedItem = selected;
     }

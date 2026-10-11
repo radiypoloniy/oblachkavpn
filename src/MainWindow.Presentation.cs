@@ -78,6 +78,7 @@ public partial class MainWindow
         Onboarding.FileButton.IsEnabled = ImportFileButton.IsEnabled;
         if (profile is not null && Onboarding.Visibility == Visibility.Visible) Navigate("Connection");
         RefreshTrayPopup();
+        RefreshMeasurement();
         FlushStateSave();
     }
 

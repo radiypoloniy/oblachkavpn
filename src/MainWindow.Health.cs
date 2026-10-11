@@ -9,10 +9,12 @@ public partial class MainWindow
     private readonly TunnelHealth health = new();
     private DateTimeOffset nextHealthCheck = DateTimeOffset.MaxValue;
     private bool lifecycleSubscribed;
+    private bool backgroundWorkEnabled;
 
     private void SubscribeLifecycle(bool enabled)
     {
         if (!enabled) return;
+        backgroundWorkEnabled = true;
         SystemEvents.PowerModeChanged += PowerChanged;
         System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged += AvailabilityChanged;
         lifecycleSubscribed = true;
@@ -34,7 +36,7 @@ public partial class MainWindow
     }
     private async void PollHealth()
     {
-        if (closed || stateStore is null || operation is not null || recoveryWait is not null || engine.ProcessId is null ||
+        if (closed || !backgroundWorkEnabled || operation is not null || recoveryWait is not null || engine.ProcessId is null ||
             AutoRecover.IsChecked != true || DateTimeOffset.UtcNow < nextHealthCheck) return;
         nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(45);
         operation = new CancellationTokenSource(); engineOperation = true; UpdateControls();

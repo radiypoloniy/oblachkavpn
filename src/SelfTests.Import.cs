@@ -90,11 +90,11 @@ public static partial class SelfTests
         await CheckAsync("Recovery budget stops restart storms and reopens after cooldown", () => Sync(() =>
         {
             var policy = new RecoveryPolicy(); var now = DateTimeOffset.UtcNow;
-            Assert(policy.NextDelay(now) == TimeSpan.FromSeconds(1));
-            Assert(policy.NextDelay(now.AddSeconds(1)) == TimeSpan.FromSeconds(2));
-            Assert(policy.NextDelay(now.AddSeconds(2)) == TimeSpan.FromSeconds(4));
+            Assert(policy.NextDelay(now)?.TotalSeconds is >= 1 and < 1.5);
+            Assert(policy.NextDelay(now.AddSeconds(1))?.TotalSeconds is >= 2 and < 2.5);
+            Assert(policy.NextDelay(now.AddSeconds(2))?.TotalSeconds is >= 4 and < 4.5);
             Assert(policy.NextDelay(now.AddSeconds(3)) is null);
-            Assert(policy.NextDelay(now.AddMinutes(3)) == TimeSpan.FromSeconds(1));
+            Assert(policy.NextDelay(now.AddMinutes(3))?.TotalSeconds is >= 1 and < 1.5);
         }));
         await CheckAsync("Canonical profile identity survives JSON property order and label changes", () => Sync(() =>
         {

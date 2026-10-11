@@ -36,7 +36,7 @@
                   </Border>
                 </StackPanel>
               </Border>
-              <TextBlock Text="Если ядро остановилось" Foreground="{StaticResource Muted}" FontWeight="SemiBold" Margin="12,24,0,10"/>
+              <TextBlock Text="Если связь прервалась" Foreground="{StaticResource Muted}" FontWeight="SemiBold" Margin="12,24,0,10"/>
               <Border Style="{StaticResource Card}">
                 <StackPanel>
                   <Grid>
@@ -45,8 +45,8 @@
                       <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                      <TextBlock Text="Перезапускать автоматически"/>
-                      <TextBlock Text="До трёх попыток за две минуты" Style="{StaticResource MutedText}" FontSize="13"/>
+                      <TextBlock Text="Восстанавливать автоматически"/>
+                      <TextBlock Text="Проверка двух сайтов через SOCKS каждые 45 с; при отказе — подбор сервера" Style="{StaticResource MutedText}" FontSize="13" MaxWidth="400"/>
                     </StackPanel>
                     <CheckBox x:Name="AutoRecover" Grid.Column="1" Style="{StaticResource Switch}" AutomationProperties.Name="Перезапускать ядро при сбое"/>
                   </Grid>
@@ -85,6 +85,8 @@
         <TabItem Header="Подписка">
           <StackPanel Margin="0,24,0,0">
             <TextBlock Text="Список подключений" FontSize="18" FontWeight="SemiBold"/>
+            <TextBlock x:Name="SubscriptionDetails" Text="Сервер не передал срок и остаток трафика." Style="{StaticResource MutedText}" Margin="0,10,0,10"/>
+            <CheckBox x:Name="AutoRefresh" Content="Обновлять каждые 6 часов и после запуска" IsChecked="True" Margin="0,0,0,12"/>
             <TextBlock Text="Обновление сохраняет работающий туннель. Новый список применяется после остановки." Style="{StaticResource MutedText}" Margin="0,12,0,24"/>
             <Button x:Name="ManageSubscriptionButton" Content="Открыть серверы" Style="{StaticResource Primary}"/>
             <TextBlock Text="На этом компьютере" FontSize="18" FontWeight="SemiBold" Margin="0,28,0,12"/>

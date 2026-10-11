@@ -7,7 +7,13 @@ namespace RoutePilot;
 
 public sealed record SavedProfile(string Name, JsonObject Outbound);
 public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string? SelectedFingerprint,
-    string[] SubscriptionSources, int PreferredSource, bool StayInTray, bool AutoRecover);
+    string[] SubscriptionSources, int PreferredSource, bool StayInTray, bool AutoRecover)
+{
+    public bool AutoRefresh { get; init; } = true;
+    public SubscriptionMetadata? Metadata { get; init; }
+    public SiteRule[] RouteRules { get; init; } = Array.Empty<SiteRule>();
+    public ServerMeasurement[] Measurements { get; init; } = Array.Empty<ServerMeasurement>();
+}
 
 // The OS binds the encrypted file to the current Windows user. Never stage plaintext on disk.
 public sealed class ClientStateStore(string path)
@@ -84,5 +90,11 @@ public sealed class ClientStateStore(string path)
                 throw new UserError("Сохранённый адрес подписки повреждён.");
         }
         RestoreProfiles(snapshot);
+        RoutingPlan.Validate(snapshot.RouteRules);
+        if (snapshot.Measurements is null || snapshot.Measurements.Length > Subscriptions.MaxProfiles || snapshot.Measurements.Any(m => m is null ||
+            m.Fingerprint is null || m.Fingerprint.Length != 64 || m.Fingerprint.Any(c => !char.IsAsciiHexDigit(c)) || m.Milliseconds < 0))
+            throw new UserError("Сохранённые измерения повреждены.");
+        if (snapshot.Metadata is { } info && (info.Upload < 0 || info.Download < 0 || info.Total < 0))
+            throw new UserError("Сведения подписки повреждены.");
     }
 }

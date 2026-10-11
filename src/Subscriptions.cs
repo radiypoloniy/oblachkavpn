@@ -5,7 +5,10 @@ using System.Text.Json.Nodes;
 
 namespace RoutePilot;
 
-public sealed record ImportResult(IReadOnlyList<Profile> Profiles, int Unsupported, int Invalid);
+public sealed record ImportResult(IReadOnlyList<Profile> Profiles, int Unsupported, int Invalid)
+{
+    public SubscriptionMetadata? Metadata { get; init; }
+}
 
 public static class Subscriptions
 {
@@ -125,7 +128,8 @@ public static class Subscriptions
                 if (memory.Length + n > Profiles.MaxBytes) throw new UserError("Подписка больше 1 МБ.");
                 memory.Write(buffer, 0, n);
             }
-            return Parse(new UTF8Encoding(false, true).GetString(memory.ToArray()));
+            var imported = Parse(new UTF8Encoding(false, true).GetString(memory.ToArray()));
+            return imported with { Metadata = response.Headers.TryGetValues("subscription-userinfo", out var info) ? SubscriptionMetadata.Parse(info) : null };
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or DecoderFallbackException or IOException)

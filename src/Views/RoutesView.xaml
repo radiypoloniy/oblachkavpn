@@ -32,7 +32,20 @@
         </StackPanel>
       </Border>
       <TextBlock Text="Свои правила" FontSize="18" FontWeight="SemiBold" Margin="0,32,0,10"/>
-      <TextBlock Text="Правила для сайтов и программ добавим вместе с системным режимом. Сейчас импортируем только подключение, без правил и DNS из полного JSON." Style="{StaticResource MutedText}"/>
+      <TextBlock Text="Черновик для системного режима. Можно сохранить и проверить, но сейчас правила не применяются. Домен включает поддомены; более точное правило имеет приоритет." Style="{StaticResource MutedText}"/>
+      <ListBox x:Name="RuleList" MaxHeight="180" Margin="0,14,0,12" AutomationProperties.Name="Черновик правил сайтов"/>
+      <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="160"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBox x:Name="RuleDomain" Tag="example.com" MaxLength="253" AutomationProperties.Name="Домен правила" Margin="0,0,8,0"/>
+        <ComboBox x:Name="RuleAction" Grid.Column="1" SelectedIndex="0" Margin="0,0,8,0" AutomationProperties.Name="Действие правила">
+          <ComboBoxItem Content="Через VPN"/><ComboBoxItem Content="Напрямую"/><ComboBoxItem Content="Блокировать"/>
+        </ComboBox>
+        <Button x:Name="AddRuleButton" Grid.Column="2" Content="Добавить"/>
+      </Grid>
+      <WrapPanel Margin="0,12,0,0">
+        <Button x:Name="RemoveRuleButton" Content="Удалить выбранное" Margin="0,0,8,8"/>
+        <Button x:Name="ValidateRulesButton" Content="Проверить черновик" Margin="0,0,0,8"/>
+      </WrapPanel>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

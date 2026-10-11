@@ -54,7 +54,8 @@
         <Border Background="#F5F6F8" CornerRadius="16" Padding="16" Margin="0,20,0,0">
           <StackPanel>
             <TextBlock Text="Измерения" FontWeight="SemiBold"/>
-            <TextBlock Text="Время запроса доступно в диагностике после проверки. Скорость загрузки и отдачи ещё не измеряем." Style="{StaticResource MutedText}" Margin="0,8,0,0"/>
+            <TextBlock x:Name="MeasurementDetails" Text="Ещё не проверяли" Style="{StaticResource MutedText}" Margin="0,8,0,12"/>
+            <WrapPanel><Button x:Name="MeasureButton" Content="Проверить серверы" Margin="0,0,8,8"/><Button x:Name="BestButton" Content="Выбрать лучший" Margin="0,0,0,8"/></WrapPanel>
           </StackPanel>
         </Border>
         <Button x:Name="UseServerButton" Content="Перейти к подключению" Style="{StaticResource Primary}" Margin="0,26,0,16"/>
