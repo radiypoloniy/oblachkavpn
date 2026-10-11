@@ -1,4 +1,6 @@
+param([string]$SigningKeyPath)
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'release-crypto.ps1')
 Add-Type -AssemblyName System.IO.Compression
 $projectRoot = $PSScriptRoot
 $packageDirectory = Join-Path $projectRoot 'dist'
@@ -17,6 +19,10 @@ $files = [ordered]@{
     'tools/COPYING-GPL-3.0' = 'app-v08\tools\COPYING-GPL-3.0'
     'tools/sing-box-provenance.json' = 'vendor\sing-box-1.14.3\provenance.json'
     'README.md' = 'README.md'
+    'install-package.ps1' = 'install-package.ps1'
+    'rollback-package.ps1' = 'rollback-package.ps1'
+    'launch-package.ps1' = 'launch-package.ps1'
+    'release-crypto.ps1' = 'release-crypto.ps1'
     'THIRD-PARTY.md' = 'THIRD-PARTY.md'
     'docs/NEXT-STEPS.md' = 'docs\NEXT-STEPS.md'
     'docs/ARCHITECTURE.md' = 'docs\ARCHITECTURE.md'
@@ -26,6 +32,10 @@ $files = [ordered]@{
     'docs/SYSTEM-COORDINATOR.md' = 'docs\SYSTEM-COORDINATOR.md'
     'docs/MILESTONES-0.7.md' = 'docs\MILESTONES-0.7.md'
     'docs/VALIDATION-0.7.md' = 'docs\VALIDATION-0.7.md'
+    'docs/DELIVERY-0.8.md' = 'docs\DELIVERY-0.8.md'
+    'docs/VALIDATION-0.8.md' = 'docs\VALIDATION-0.8.md'
+    'docs/CLIENT-BLOCKS-0.8.md' = 'docs\CLIENT-BLOCKS-0.8.md'
+    'vm-kit/START-HERE.md' = 'vm-kit\START-HERE.md'
     'vm-kit/README.md' = 'vm-kit\README.md'
     'vm-kit/test-tun.ps1' = 'vm-kit\test-tun.ps1'
     'docs/REMNAWAVE.md' = 'docs\REMNAWAVE.md'
@@ -38,6 +48,17 @@ $files = [ordered]@{
 foreach ($relativePath in $files.Values) {
     if (-not (Test-Path -LiteralPath (Join-Path $projectRoot $relativePath) -PathType Leaf)) { throw ('Нет файла: ' + $relativePath) }
 }
+$manifest = [ordered]@{ Version = 1; Release = '0.8.0'; Files = @() }
+foreach ($item in $files.GetEnumerator()) {
+    $source = Join-Path $projectRoot $item.Value
+    $manifest.Files += @{ Path = $item.Key; Size = (Get-Item -LiteralPath $source).Length; Sha256 = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash }
+}
+$manifestBytes = [Text.Encoding]::UTF8.GetBytes(($manifest | ConvertTo-Json -Depth 4))
+$signature = $null
+if ($SigningKeyPath) {
+    $rsa = Read-ReleaseRsa $SigningKeyPath -Private
+    try { $signature = [Text.Encoding]::UTF8.GetBytes([Convert]::ToBase64String($rsa.SignData($manifestBytes, [Security.Cryptography.HashAlgorithmName]::SHA256, [Security.Cryptography.RSASignaturePadding]::Pkcs1))) } finally { $rsa.Dispose() }
+}
 $stream = [System.IO.File]::Open($archivePath, [System.IO.FileMode]::CreateNew)
 try {
     $archive = [System.IO.Compression.ZipArchive]::new($stream, [System.IO.Compression.ZipArchiveMode]::Create)
@@ -47,9 +68,15 @@ try {
             $input = [System.IO.File]::OpenRead((Join-Path $projectRoot $item.Value))
             try { $output = $entry.Open(); try { $input.CopyTo($output) } finally { $output.Dispose() } } finally { $input.Dispose() }
         }
+        foreach ($extra in @{ 'release-manifest.json' = $manifestBytes; 'release-manifest.sig' = $signature }.GetEnumerator()) {
+            if ($null -eq $extra.Value) { continue }
+            $entry = $archive.CreateEntry($extra.Key); $output = $entry.Open()
+            try { $output.Write($extra.Value, 0, $extra.Value.Length) } finally { $output.Dispose() }
+        }
     } finally { $archive.Dispose() }
 } finally { $stream.Dispose() }
 Write-Host $archivePath
+Write-Host ('SHA256: ' + (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash)
 
 
 
