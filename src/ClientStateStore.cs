@@ -1,0 +1,88 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
+namespace RoutePilot;
+
+public sealed record SavedProfile(string Name, JsonObject Outbound);
+public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string? SelectedFingerprint,
+    string[] SubscriptionSources, int PreferredSource, bool StayInTray, bool AutoRecover);
+
+// The OS binds the encrypted file to the current Windows user. Never stage plaintext on disk.
+public sealed class ClientStateStore(string path)
+{
+    private const int MaxSize = 2 * 1024 * 1024;
+    private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("Oblachka.ClientState.v1");
+
+    public void Save(ClientSnapshot snapshot)
+    {
+        Validate(snapshot);
+        var plain = JsonSerializer.SerializeToUtf8Bytes(snapshot);
+        try
+        {
+            if (plain.Length > MaxSize) throw new UserError("Список слишком большой для сохранения.");
+            var encrypted = ProtectedData.Protect(plain, Entropy, DataProtectionScope.CurrentUser);
+            var folder = Path.GetDirectoryName(Path.GetFullPath(path))!;
+            Directory.CreateDirectory(folder);
+            var staged = path + ".pending-" + Guid.NewGuid().ToString("N");
+            using (var file = new FileStream(staged, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            { file.Write(encrypted); file.Flush(true); }
+            File.Move(staged, path, true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or CryptographicException)
+        { throw new UserError("Не удалось сохранить подключения. Проверь доступ к папке приложения."); }
+        finally { CryptographicOperations.ZeroMemory(plain); }
+    }
+
+    public ClientSnapshot? Load()
+    {
+        if (!File.Exists(path)) return null;
+        byte[]? plain = null;
+        try
+        {
+            if (new FileInfo(path).Length > MaxSize + 65536) throw new UserError("Сохранённые данные слишком большие.");
+            plain = ProtectedData.Unprotect(File.ReadAllBytes(path), Entropy, DataProtectionScope.CurrentUser);
+            var snapshot = JsonSerializer.Deserialize<ClientSnapshot>(plain) ?? throw new UserError("Сохранённые данные пусты.");
+            Validate(snapshot);
+            return snapshot;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or CryptographicException or JsonException or InvalidOperationException)
+        { throw new UserError("Не удалось открыть сохранённые подключения. Добавь подписку заново; исходный файл сохранён."); }
+        finally { if (plain is not null) CryptographicOperations.ZeroMemory(plain); }
+    }
+
+    public ClientSnapshot? LoadWithMigration(IEnumerable<string> legacyFiles)
+    {
+        var existing = Load();
+        if (existing is not null) return existing;
+        foreach (var legacy in legacyFiles)
+        {
+            if (Path.GetFullPath(legacy).Equals(Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase) || !File.Exists(legacy)) continue;
+            var snapshot = new ClientStateStore(legacy).Load();
+            if (snapshot is null) continue;
+            Save(snapshot);
+            return snapshot;
+        }
+        return null;
+    }
+
+    public static IReadOnlyList<Profile> RestoreProfiles(ClientSnapshot snapshot) => snapshot.Profiles.Select(saved =>
+        Profiles.Parse(saved.Outbound.ToJsonString()) with { Name = saved.Name }).ToArray();
+
+    private static void Validate(ClientSnapshot snapshot)
+    {
+        if (snapshot.Version != 1 || snapshot.Profiles is null || snapshot.Profiles.Length is < 1 or > Subscriptions.MaxProfiles ||
+            snapshot.SubscriptionSources is null || snapshot.SubscriptionSources.Length > 5)
+            throw new UserError("Формат сохранённых подключений не поддерживается.");
+        if (snapshot.Profiles.Any(p => p is null || p.Outbound is null || string.IsNullOrWhiteSpace(p.Name) || p.Name.Length > 80 || p.Name.Any(char.IsControl)))
+            throw new UserError("Сохранённые подключения повреждены.");
+        if (snapshot.SubscriptionSources.Length > 0)
+        {
+            SubscriptionMirrors.ParseSources(string.Join("\n", snapshot.SubscriptionSources));
+            if (snapshot.PreferredSource < 0 || snapshot.PreferredSource >= snapshot.SubscriptionSources.Length)
+                throw new UserError("Сохранённый адрес подписки повреждён.");
+        }
+        RestoreProfiles(snapshot);
+    }
+}

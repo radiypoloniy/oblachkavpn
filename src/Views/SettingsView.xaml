@@ -1,0 +1,105 @@
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="RoutePilot.Views.SettingsView">
+  <Border Style="{StaticResource Card}" Background="#F5F6F9" Padding="26" Width="620" MaxHeight="720" VerticalAlignment="Center" HorizontalAlignment="Center">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+      <DockPanel Margin="0,0,0,20">
+        <Button x:Name="CloseButton" DockPanel.Dock="Right" Content="✕" Width="40" Padding="8" AutomationProperties.Name="Закрыть настройки"/>
+        <TextBlock Text="Настройки" FontSize="28" FontWeight="SemiBold"/>
+      </DockPanel>
+      <TabControl x:Name="SettingsTabs" Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="0">
+        <TabItem Header="Основное">
+          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="0,18,0,0">
+              <TextBlock Text="Запуск" Foreground="{StaticResource Muted}" FontWeight="SemiBold" Margin="12,0,0,10"/>
+              <Border Style="{StaticResource Card}">
+                <StackPanel>
+                  <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Запускать вместе с Windows" VerticalAlignment="Center"/>
+                    <CheckBox Grid.Column="1" Style="{StaticResource Switch}" IsEnabled="False" ToolTip="Добавим после установщика" AutomationProperties.Name="Автозапуск недоступен"/>
+                  </Grid>
+                  <Border BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="0,16">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Text="При закрытии оставаться в трее" VerticalAlignment="Center"/>
+                      <CheckBox x:Name="StayInTray" Grid.Column="1" Style="{StaticResource Switch}" AutomationProperties.Name="При закрытии оставаться в трее"/>
+                    </Grid>
+                  </Border>
+                </StackPanel>
+              </Border>
+              <TextBlock Text="Если ядро остановилось" Foreground="{StaticResource Muted}" FontWeight="SemiBold" Margin="12,24,0,10"/>
+              <Border Style="{StaticResource Card}">
+                <StackPanel>
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                      <TextBlock Text="Перезапускать автоматически"/>
+                      <TextBlock Text="До трёх попыток за две минуты" Style="{StaticResource MutedText}" FontSize="13"/>
+                    </StackPanel>
+                    <CheckBox x:Name="AutoRecover" Grid.Column="1" Style="{StaticResource Switch}" AutomationProperties.Name="Перезапускать ядро при сбое"/>
+                  </Grid>
+                  <Border BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="0,16,0,0" Margin="0,16,0,0">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+                      <StackPanel>
+                        <TextBlock Text="Блокировать интернет без VPN"/>
+                        <TextBlock Text="Появится с системным режимом" Style="{StaticResource MutedText}" FontSize="13"/>
+                      </StackPanel>
+                      <CheckBox Grid.Column="1" Style="{StaticResource Switch}" IsEnabled="False" AutomationProperties.Name="Блокировка интернета недоступна"/>
+                    </Grid>
+                  </Border>
+                </StackPanel>
+              </Border>
+              <TextBlock Text="Интерфейс" Foreground="{StaticResource Muted}" FontWeight="SemiBold" Margin="12,24,0,10"/>
+              <Border Style="{StaticResource Card}">
+                <StackPanel>
+                  <DockPanel>
+                    <TextBlock Text="Светлая" DockPanel.Dock="Right" Foreground="{StaticResource Muted}"/>
+                    <TextBlock Text="Оформление"/>
+                  </DockPanel>
+                  <DockPanel Margin="0,16,0,0">
+                    <TextBlock Text="Русский" DockPanel.Dock="Right" Foreground="{StaticResource Muted}"/>
+                    <TextBlock Text="Язык"/>
+                  </DockPanel>
+                </StackPanel>
+              </Border>
+              <TextBlock Text="Когда включено запоминание подключений, изменения сохраняются автоматически." Style="{StaticResource MutedText}" FontSize="12" Margin="12,18,0,8"/>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+        <TabItem Header="Подписка">
+          <StackPanel Margin="0,24,0,0">
+            <TextBlock Text="Список подключений" FontSize="18" FontWeight="SemiBold"/>
+            <TextBlock Text="Обновление сохраняет работающий туннель. Новый список применяется после остановки." Style="{StaticResource MutedText}" Margin="0,12,0,24"/>
+            <Button x:Name="ManageSubscriptionButton" Content="Открыть серверы" Style="{StaticResource Primary}"/>
+            <TextBlock Text="На этом компьютере" FontSize="18" FontWeight="SemiBold" Margin="0,28,0,12"/>
+            <TextBlock x:Name="StorageStatus" Text="При включённом запоминании подписка сохраняется автоматически. Данные шифруются Windows и доступны вашей учётной записи." Style="{StaticResource MutedText}" Margin="0,0,0,16"/>
+            <Button x:Name="SaveStateButton" Content="Сохранить на этом компьютере" IsEnabled="False"/>
+          </StackPanel>
+        </TabItem>
+        <TabItem Header="Для опытных">
+          <StackPanel Margin="0,24,0,0">
+            <TextBlock Text="Облачка 0.6" FontSize="18" FontWeight="SemiBold"/>
+            <TextBlock Text="Xray 26.9.9 и sing-box 1.14.3. Формат профиля определяет ядро. Туннель работает как локальный SOCKS5 для TCP." Style="{StaticResource MutedText}" Margin="0,12,0,24"/>
+            <Button x:Name="OpenDiagnosticsButton" Content="Открыть диагностику" Style="{StaticResource Primary}"/>
+          </StackPanel>
+        </TabItem>
+      </TabControl>
+    </Grid>
+  </Border>
+</UserControl>

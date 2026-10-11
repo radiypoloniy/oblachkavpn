@@ -1,0 +1,15 @@
+{
+  "name": "RoutePilot Windows",
+  "description": "Xray JSON for the RoutePilot prototype",
+  "enabled": true,
+  "operator": "AND",
+  "conditions": [
+    {
+      "caseSensitive": false,
+      "headerName": "user-agent",
+      "operator": "STARTS_WITH",
+      "value": "RoutePilot/"
+    }
+  ],
+  "responseType": "XRAY_JSON"
+}

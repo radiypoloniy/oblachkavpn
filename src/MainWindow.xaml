@@ -1,0 +1,82 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:views="clr-namespace:RoutePilot.Views" x:Class="RoutePilot.MainWindow" Title="Облачка" Width="1120" Height="780" MinWidth="960" MinHeight="660" WindowStartupLocation="CenterScreen" WindowStyle="SingleBorderWindow" ResizeMode="CanResize" Background="#F2F4F7" FontFamily="Segoe UI" Foreground="#18243A" PreviewKeyDown="WindowKeyDown">
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Theme.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Window.Resources>
+  <Border BorderBrush="#D9DFE8" BorderThickness="1" CornerRadius="12" Background="{StaticResource Canvas}">
+    <Grid>
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition x:Name="SidebarColumn" Width="210"/>
+          <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid x:Name="Sidebar" Margin="14,10,14,18">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+          <StackPanel>
+            <RadioButton x:Name="ConnectionNav" Style="{StaticResource Navigation}" GroupName="Pages" IsChecked="True" Tag="Connection" Checked="NavigationChecked">
+              <StackPanel Orientation="Horizontal">
+                <Path Data="{StaticResource PowerIcon}" Stroke="{StaticResource Ink}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="18" Height="18" Stretch="Uniform" Margin="0,0,10,0"/>
+                <TextBlock Text="Подключение" FontSize="15"/>
+              </StackPanel>
+            </RadioButton>
+            <RadioButton x:Name="ServersNav" Style="{StaticResource Navigation}" GroupName="Pages" Tag="Servers" Checked="NavigationChecked">
+              <StackPanel Orientation="Horizontal">
+                <Path Data="{StaticResource GlobeIcon}" Stroke="{StaticResource Ink}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="18" Height="18" Stretch="Uniform" Margin="0,0,10,0"/>
+                <TextBlock Text="Серверы" FontSize="15"/>
+              </StackPanel>
+            </RadioButton>
+            <RadioButton x:Name="RoutesNav" Style="{StaticResource Navigation}" GroupName="Pages" Tag="Routes" Checked="NavigationChecked">
+              <StackPanel Orientation="Horizontal">
+                <Path Data="{StaticResource RouteIcon}" Stroke="{StaticResource Ink}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="18" Height="18" Stretch="Uniform" Margin="0,0,10,0"/>
+                <TextBlock Text="Маршруты" FontSize="15"/>
+              </StackPanel>
+            </RadioButton>
+            <RadioButton x:Name="DiagnosticsNav" Style="{StaticResource Navigation}" GroupName="Pages" Tag="Diagnostics" Checked="NavigationChecked">
+              <StackPanel Orientation="Horizontal">
+                <Path Data="{StaticResource PulseIcon}" Stroke="{StaticResource Ink}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="18" Height="18" Stretch="Uniform" Margin="0,0,10,0"/>
+                <TextBlock Text="Диагностика" FontSize="15"/>
+              </StackPanel>
+            </RadioButton>
+          </StackPanel>
+          <StackPanel Grid.Row="2">
+            <Border x:Name="MiniStatus" Style="{StaticResource Card}" Padding="16" Margin="0,0,0,16">
+              <StackPanel>
+                <TextBlock x:Name="MiniStatusText" Text="Не подключено" FontWeight="SemiBold"/>
+                <TextBlock x:Name="MiniProfile" Text="Локальный SOCKS5" Style="{StaticResource MutedText}" FontSize="13" TextTrimming="CharacterEllipsis"/>
+              </StackPanel>
+            </Border>
+            <Button Content="☷   Настройки" Background="Transparent" HorizontalContentAlignment="Left" FontWeight="Normal" FontSize="15" Click="SettingsClick"/>
+          </StackPanel>
+        </Grid>
+        <Border Grid.Column="1" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="1,1,0,0" CornerRadius="20,0,0,0">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="*"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid x:Name="PageHost">
+              <views:ConnectionView x:Name="Connection"/>
+              <views:ServersView x:Name="Servers" Visibility="Collapsed"/>
+              <views:RoutesView x:Name="Routes" Visibility="Collapsed"/>
+              <views:DiagnosticsView x:Name="Diagnostics" Visibility="Collapsed"/>
+              <views:OnboardingView x:Name="Onboarding" Visibility="Collapsed"/>
+            </Grid>
+            <Border Grid.Row="1" Background="#F8F9FB" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="24,12">
+              <TextBlock x:Name="ShellFeedback" Text="Добавь подписку, ключ или файл, чтобы начать." Style="{StaticResource MutedText}" FontSize="12" MaxHeight="70"/>
+            </Border>
+          </Grid>
+        </Border>
+      </Grid>
+      <Grid x:Name="SettingsOverlay" Background="#700D1B30" Visibility="Collapsed" MouseDown="OverlayMouseDown">
+        <views:SettingsView x:Name="Settings" Margin="24"/>
+      </Grid>
+    </Grid>
+  </Border>
+</Window>
