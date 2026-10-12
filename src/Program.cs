@@ -9,6 +9,9 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // Привилегированная половина системного режима. Запускается самим приложением
+        // с явным повышением прав; окно продолжает работать без прав администратора.
+        if (args.Length == 3 && args[0] == NetworkHelperHost.Argument) return NetworkHelperHost.Run(args);
         if (args.Length == 2 && args[0] == "--vm-tun-host") return VmTunWindow.Run(args[1]);
         if (args.Length == 4 && args[0] == "--prepare-vm-tun")
         {
