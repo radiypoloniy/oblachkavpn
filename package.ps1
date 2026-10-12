@@ -1,4 +1,4 @@
-param([string]$SigningKeyPath)
+﻿param([string]$SigningKeyPath)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'release-crypto.ps1')
 Add-Type -AssemblyName System.IO.Compression

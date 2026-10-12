@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
 $outputDirectory = Join-Path $projectRoot 'app-v082'
 & (Join-Path $projectRoot 'check-source-size.ps1')

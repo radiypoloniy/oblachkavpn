@@ -1,4 +1,4 @@
-# Self-contained build: the client PC does not need the .NET Desktop Runtime installed.
+﻿# Self-contained build: the client PC does not need the .NET Desktop Runtime installed.
 # .NET 8 support ends on 10 November 2026, so .NET 10 is used when its SDK is installed.
 # Requires nuget.org access (runtime packs). Run .\build.ps1 first: cores are copied from its verified output.
 param([switch]$AllowNet8)

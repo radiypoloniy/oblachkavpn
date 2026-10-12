@@ -1,4 +1,4 @@
-param([Parameter(Mandatory = $true)][string]$ArchivePath)
+﻿param([Parameter(Mandatory = $true)][string]$ArchivePath)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $expected = @(

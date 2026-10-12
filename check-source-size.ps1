@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $sourceRoot = Join-Path $PSScriptRoot 'src'
 $violations = @()
 $largest = 0
