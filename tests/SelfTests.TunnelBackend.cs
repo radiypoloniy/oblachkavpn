@@ -12,6 +12,13 @@ public static partial class SelfTests
         public void Dispose() { Disposals++; IsRunning = false; }
     }
 
+    // Ядро, которое не умирает по Dispose: настоящий отказ остановки.
+    private sealed class StubbornTunnelProcess : ITunnelProcess
+    {
+        public bool IsRunning => true;
+        public void Dispose() { }
+    }
+
     private static async Task TunnelBackendChecksAsync(Func<string, Func<Task>, Task> check, string root)
     {
         var peers = new[] { "203.0.113.7" };
@@ -32,6 +39,21 @@ public static partial class SelfTests
             // Запись из чужой сессии не распоряжается нашим интерфейсом.
             ExpectUserError(() => backend.Apply(Guid.NewGuid(), changes[0]));
             ExpectUserError(() => backend.Restore(Guid.NewGuid(), changes[0]));
+        }));
+        await check("Channel waits longer than the backend does for the adapter", () => Sync(() =>
+        {
+            // Найдено живым прогоном: клиент сдавался через 10 секунд, а помощник
+            // законно ждал исчезновения адаптера дольше. Канал рвался, сессия уходила
+            // в RecoveryRequired, хотя остановка на самом деле проходила успешно.
+            Assert(HelperPipeClient.SessionTimeout > WindowsTunnelBackend.DefaultTimeout);
+            // Запас нужен и на сам обмен по каналу, а не только на ожидание адаптера.
+            Assert(HelperPipeClient.SessionTimeout - WindowsTunnelBackend.DefaultTimeout >= TimeSpan.FromSeconds(20));
+            // Короткие команды остаются короткими: зависший помощник не держит окно минуту.
+            Assert(HelperPipeClient.TimeoutFor(HelperOperation.Heartbeat) == HelperPipeClient.QuickTimeout);
+            Assert(HelperPipeClient.TimeoutFor(HelperOperation.Acquire) == HelperPipeClient.SessionTimeout);
+            Assert(HelperPipeClient.TimeoutFor(HelperOperation.Release) == HelperPipeClient.SessionTimeout);
+            // Сердцебиение должно успевать несколько раз за срок чтения на стороне помощника.
+            Assert(HelperPipeClient.QuickTimeout < TimeSpan.FromSeconds(15));
         }));
         await check("Full session starts the core, waits for the interface and removes it on release", () => Sync(() =>
         {
@@ -73,9 +95,11 @@ public static partial class SelfTests
             var change = backend.Prepare(lease)[0] with { State = NetworkChangeState.Applied };
             Assert(backend.Restore(id, change) == NetworkWriteResult.Unchanged);
         }));
-        await check("Interface that survives the stop is reported, not silently accepted", () => Sync(() =>
+        await check("Lingering adapter does not block the next session once the core is gone", () => Sync(() =>
         {
-            // Застрявший адаптер — повод для RecoveryRequired, а не для тихого «всё хорошо».
+            // Найдено живым прогоном: Windows убирает wintun уже после смерти процесса, и
+            // задержка доходит до минут. Решает процесс, а не адаптер: иначе безобидный
+            // остаток навсегда запирал бы системный режим.
             var id = Guid.NewGuid();
             var core = new FakeTunnelProcess();
             var up = false;
@@ -84,10 +108,33 @@ public static partial class SelfTests
             var lease = NetworkHelperContracts.Validate(Request(id));
             var change = backend.Prepare(lease)[0];
             Assert(backend.Apply(id, change) == NetworkWriteResult.Changed);
-            // Процесс остановлен, но адаптер не исчез.
+            // Адаптер не исчезает, но ядро остановлено: сессия считается снятой.
+            Assert(backend.Restore(id, change with { State = NetworkChangeState.Applied }) == NetworkWriteResult.Changed);
+            Assert(core.Disposals == 1);
+        }));
+        await check("Core that refuses to stop is reported instead of being silently accepted", () => Sync(() =>
+        {
+            // Живое ядро с живым адаптером — настоящий отказ, а не остаток.
+            var id = Guid.NewGuid();
+            var stubborn = new StubbornTunnelProcess();
+            var up = false;
+            var backend = new WindowsTunnelBackend((_, _) => { up = true; return stubborn; }, _ => up,
+                TimeSpan.FromMilliseconds(30), NoDelay);
+            var lease = NetworkHelperContracts.Validate(Request(id));
+            var change = backend.Prepare(lease)[0];
+            Assert(backend.Apply(id, change) == NetworkWriteResult.Changed);
+            // Ядро живо, адаптер на месте: это отказ остановки, а не остаток.
             var failed = false;
             try { backend.Restore(id, change with { State = NetworkChangeState.Applied }); } catch (IOException) { failed = true; }
-            Assert(failed && core.Disposals == 1);
+            Assert(failed);
+        }));
+        await check("Helper processes a long operation without dropping the channel", () => Sync(() =>
+        {
+            // Найдено живым прогоном: один общий срок покрывал и ожидание запроса, и его
+            // обработку. Release законно занимал дольше, срок истекал на записи ответа,
+            // помощник завершался и рвал канал посреди успешной остановки.
+            Assert(HelperPipeServer.DefaultSessionTimeout > WindowsTunnelBackend.DefaultTimeout);
+            Assert(HelperPipeClient.SessionTimeout > HelperPipeServer.DefaultSessionTimeout);
         }));
         await check("Core that never raises an interface is stopped instead of left behind", () => Sync(() =>
         {

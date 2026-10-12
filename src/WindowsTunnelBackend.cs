@@ -22,7 +22,10 @@ public interface ITunnelProcess : IDisposable
 public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
 {
     public const string InterfacePrefix = "Obl-";
-    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(20);
+    // Адаптер wintun появляется и исчезает не мгновенно: снятие происходит уже после
+    // смерти процесса ядра. Срок должен быть заметно меньше того, что готов ждать клиент
+    // канала, иначе он разорвёт связь раньше, чем помощник закончит.
+    public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(25);
 
     private readonly Func<ValidatedNetworkLease, CancellationToken, ITunnelProcess> startCore;
     private readonly Func<string, bool> interfaceExists;
@@ -83,17 +86,28 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
     {
         var name = Owned(leaseId, change);
         var stopped = false;
+        // Ссылку держим локально: поле обнуляется сразу, а судить о том, умерло ли ядро,
+        // нужно именно по нему.
+        ITunnelProcess? halted = null;
         if (core is not null && owner == leaseId)
         {
+            halted = core;
             core.Dispose();
             core = null;
             owner = Guid.Empty;
             stopped = true;
         }
         // Ядро могло быть убито вместе с владельцем: интерфейс уже отсутствует, и это норма.
-        if (!Wait(() => !interfaceExists(name)))
-            throw new IOException("Интерфейс системного туннеля остался после остановки: " + name);
-        return stopped ? NetworkWriteResult.Changed : NetworkWriteResult.Unchanged;
+        if (Wait(() => !interfaceExists(name))) return stopped ? NetworkWriteResult.Changed : NetworkWriteResult.Unchanged;
+
+        // Адаптер задержался. На стенде это наблюдалось многократно: Windows убирает
+        // wintun уже после смерти процесса, и задержка доходит до минут. Трафик при этом
+        // возвращается на обычный выход сразу, как только ядро умерло, — проверено по
+        // выходному IP. Поэтому решающим признаком служит процесс, а не адаптер:
+        // если ядра нет, туннель не может ничего нести, и сессия считается снятой.
+        // Иначе мы бы навсегда блокировали следующий запуск из-за безобидного остатка.
+        if (halted is null || !halted.IsRunning) return NetworkWriteResult.Changed;
+        throw new IOException("Ядро системного туннеля не остановилось: " + name);
     }
 
     // Владение проверяется по имени интерфейса, выведенному из идентификатора сессии:

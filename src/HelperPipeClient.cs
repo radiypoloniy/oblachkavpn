@@ -24,6 +24,15 @@ public sealed class HelperPipeClient : IAsyncDisposable
         catch { await pipe.DisposeAsync(); throw; }
     }
 
+    // Короткие команды и длинные — разные сроки. Acquire и Release ждут появления или
+    // исчезновения сетевого адаптера, и это десятки секунд: на стенде клиент сдавался
+    // через 10 секунд, рвал канал и помечал сессию как требующую восстановления, хотя
+    // помощник в это время успешно доводил остановку до конца.
+    public static readonly TimeSpan QuickTimeout = TimeSpan.FromSeconds(10);
+    public static readonly TimeSpan SessionTimeout = TimeSpan.FromSeconds(60);
+    public static TimeSpan TimeoutFor(HelperOperation operation) =>
+        operation == HelperOperation.Heartbeat ? QuickTimeout : SessionTimeout;
+
     public async Task<HelperResponse> SendAsync(HelperOperation operation, NetworkLeaseRequest? lease, CancellationToken token)
     {
         var request = new HelperRequest(1, Guid.NewGuid(), operation, lease); HelperProtocol.Validate(request);
@@ -31,7 +40,7 @@ public sealed class HelperPipeClient : IAsyncDisposable
         try
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-            timeout.CancelAfter(TimeSpan.FromSeconds(10));
+            timeout.CancelAfter(TimeoutFor(operation));
             await HelperProtocol.WriteAsync(pipe, request, timeout.Token);
             var response = await HelperProtocol.ReadAsync<HelperResponse>(pipe, timeout.Token);
             if (response.Version != 1 || response.RequestId != request.RequestId || !Enum.IsDefined(response.Failure) ||

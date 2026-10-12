@@ -3,8 +3,12 @@ using System.IO.Pipes;
 
 namespace Oblachka;
 
-public sealed class HelperPipeServer(NetworkSession session, string pipeName, Process owner, TimeSpan? heartbeatTimeout = null)
+public sealed class HelperPipeServer(NetworkSession session, string pipeName, Process owner,
+    TimeSpan? heartbeatTimeout = null, TimeSpan? sessionTimeout = null)
 {
+    // Обработка Acquire и Release ограничена отдельно и с запасом над ожиданием адаптера.
+    public static readonly TimeSpan DefaultSessionTimeout = TimeSpan.FromSeconds(45);
+
     public async Task RunAsync(CancellationToken token)
     {
         HelperPipeIdentity.ValidateName(pipeName);
@@ -24,9 +28,15 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
             var recent = new HashSet<Guid>(); var order = new Queue<Guid>();
             while (!lifetime.IsCancellationRequested)
             {
+                // Срок ожидания запроса и срок его обработки — разные вещи. Один общий
+                // срок был ошибкой: Acquire и Release законно ждут появления или
+                // исчезновения сетевого адаптера десятки секунд, срок истекал на записи
+                // ответа, помощник завершался и рвал канал посреди успешной остановки.
+                using var idle = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+                idle.CancelAfter(heartbeatTimeout ?? TimeSpan.FromSeconds(15));
+                var request = await HelperProtocol.ReadAsync<HelperRequest>(pipe, idle.Token);
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
-                deadline.CancelAfter(heartbeatTimeout ?? TimeSpan.FromSeconds(15));
-                var request = await HelperProtocol.ReadAsync<HelperRequest>(pipe, deadline.Token);
+                deadline.CancelAfter(sessionTimeout ?? DefaultSessionTimeout);
                 HelperResponse response;
                 try
                 {

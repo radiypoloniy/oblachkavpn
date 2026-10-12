@@ -11,6 +11,8 @@ public static class TestProgram
         if (args.Length == 1 && args[0] == "--helper-idle-fixture") { Thread.Sleep(30000); return 0; }
         if (args.Length == 4 && args[0] == "--helper-fixture")
             return SelfTests.HelperFixtureAsync(args[1], int.Parse(args[2]), args[3]).GetAwaiter().GetResult();
+        if (args.Length == 5 && args[0] == "--system-tunnel-check")
+            return SystemTunnelCheckCommand.Run(args[1], args[2], args[3], int.Parse(args[4]));
         if (args.Length == 5 && args[0] == "--export-core-config")
             return ExportCoreConfigCommand.Run(args[1], args[2], args[3], int.Parse(args[4]));
         if (args.Length == 3 && args[0] == "--subscription-check") return SubscriptionCheckCommand.Run(args[1], args[2]);
