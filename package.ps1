@@ -5,7 +5,11 @@ Add-Type -AssemblyName System.IO.Compression
 $projectRoot = $PSScriptRoot
 $packageDirectory = Join-Path $projectRoot 'dist'
 [System.IO.Directory]::CreateDirectory($packageDirectory) | Out-Null
-$archivePath = Join-Path $packageDirectory ('Oblachka-0.8.2-win-x64-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.zip')
+# Версия берётся из проекта: две записи рядом расходятся, как уже случилось с 0.8.2.
+$projectFile = Join-Path $projectRoot 'src\Oblachka.csproj'
+$release = ([xml](Get-Content -LiteralPath $projectFile -Raw)).Project.PropertyGroup.Version | Where-Object { $_ }
+if (-not $release) { throw 'В src\Oblachka.csproj нет элемента Version.' }
+$archivePath = Join-Path $packageDirectory ('Oblachka-' + $release + '-win-x64-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.zip')
 $files = [ordered]@{
     'Oblachka.exe' = 'app-v09\Oblachka.exe'
     'Oblachka.dll' = 'app-v09\Oblachka.dll'
@@ -49,7 +53,7 @@ $files = [ordered]@{
 foreach ($relativePath in $files.Values) {
     if (-not (Test-Path -LiteralPath (Join-Path $projectRoot $relativePath) -PathType Leaf)) { throw ('Нет файла: ' + $relativePath) }
 }
-$manifest = [ordered]@{ Version = 1; Release = '0.8.2'; Files = @() }
+$manifest = [ordered]@{ Version = 1; Release = $release; Files = @() }
 foreach ($item in $files.GetEnumerator()) {
     $source = Join-Path $projectRoot $item.Value
     $manifest.Files += @{ Path = $item.Key; Size = (Get-Item -LiteralPath $source).Length; Sha256 = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash }
