@@ -7,7 +7,7 @@ public static partial class SelfTests
     private static async Task SingBoxJobFixtureAsync(string root)
     {
         var childFolder = Path.Combine(root, "sing-box-child"); Directory.CreateDirectory(childFolder);
-        var info = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "RoutePilot.exe")) { UseShellExecute = false, CreateNoWindow = true };
+        var info = new ProcessStartInfo(TestHost.Executable) { UseShellExecute = false, CreateNoWindow = true };
         info.ArgumentList.Add("--job-child"); info.ArgumentList.Add(childFolder); info.ArgumentList.Add("sing-box");
         using var child = Process.Start(info)!;
         var ready = Path.Combine(childFolder, "pid.txt");

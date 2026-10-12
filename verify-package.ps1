@@ -37,14 +37,13 @@ $hashes = @{
 foreach ($item in $hashes.GetEnumerator()) {
     if ((Get-FileHash -LiteralPath (Join-Path $destination $item.Key) -Algorithm SHA256).Hash -ne $item.Value) { throw 'Хеш ядра в архиве не совпал.' }
 }
-$reportPath = Join-Path $destination 'package-ui-check.json'
-$process = Start-Process -FilePath (Join-Path $destination 'RoutePilot.exe') -ArgumentList @('--ui-self-test', ('"' + $reportPath + '"')) -WorkingDirectory $destination -WindowStyle Hidden -PassThru -Wait
-if (-not (Test-Path -LiteralPath $reportPath)) { throw 'Проверка распакованного приложения не вернула отчёт.' }
-$report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
-if ($process.ExitCode -ne 0 -or -not $report.Passed -or $report.Checks.Count -ne 23) { throw 'Проверка распакованного приложения не прошла.' }
+# Проверки интерфейса выполняются в test.ps1 на отдельной сборке с -p:IncludeTestCode=true.
+# В поставляемом комплекте точки входа --ui-self-test нет, поэтому здесь проверяется обратное:
+# что тестовый код в комплект не попал.
+& (Join-Path $PSScriptRoot 'check-no-test-code.ps1') -Directory $destination
 & (Join-Path $destination 'vm-kit\test-tun.ps1') -SocksPort 10808 -PeerAddresses @('192.0.2.1')
-Write-Host ('Комплект: ' + $expected.Count + ' файлов; SHA256 ядер совпадают; WPF проверок: ' + $report.Checks.Count + '.')
-Write-Host ('Отчёт: ' + $reportPath)
+Write-Host ('Комплект: ' + $expected.Count + ' файлов; SHA256 ядер совпадают; тестового кода нет.')
+Write-Host ('Распаковано для проверки: ' + $destination)
 
 
 

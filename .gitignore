@@ -24,3 +24,6 @@ app-v081/
 _to_delete/
 app-v082/
 app-v082-standalone-*/
+app-v082-test/
+tests/bin/
+tests/obj/

@@ -21,8 +21,10 @@ public sealed class Engine : ITunnelController
     public int? ProcessId => process is { HasExited: false } ? process.Id : null;
     public ConnectionState State { get; private set; }
     public event Action<ConnectionState, string>? Changed;
-    // Used only by local synthetic fixtures. No production logger subscribes to this stream.
+#if TEST_HOOKS
+    // Used only by local synthetic fixtures. Absent from the shipped build.
     internal Action<string>? FixtureTrace;
+#endif
 
     public string CoreLabel => adapter.Label;
     public Engine(string executable, string runtimeRoot) { adapter = new(CoreKind.Xray, executable); }
@@ -77,8 +79,11 @@ public sealed class Engine : ITunnelController
             process.Exited += OnExited;
             process.Start();
             try { job.Attach(process); } catch { TryKill(process); throw; }
+#if TEST_HOOKS
             process.OutputDataReceived += (_, args) => { if (args.Data is not null) FixtureTrace?.Invoke(args.Data); };
             process.ErrorDataReceived += (_, args) => { if (args.Data is not null) FixtureTrace?.Invoke(args.Data); };
+#endif
+            // Потоки ядра всё равно вычитываются: без этого процесс может заблокироваться на записи.
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
             await process.StandardInput.WriteAsync(config.AsMemory(), token);

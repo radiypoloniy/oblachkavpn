@@ -75,7 +75,7 @@ public static partial class SelfTests
         {
             var folder = Path.Combine(root, "helper-child"); Directory.CreateDirectory(folder);
             var path = Path.Combine(folder, "journal.json"); var name = HelperPipeIdentity.NewPipeName();
-            var start = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "RoutePilot.exe")) { UseShellExecute = false, CreateNoWindow = true };
+            var start = new ProcessStartInfo(TestHost.Executable) { UseShellExecute = false, CreateNoWindow = true };
             foreach (var arg in new[] { "--helper-fixture", name, Environment.ProcessId.ToString(), path }) start.ArgumentList.Add(arg);
             using var child = Process.Start(start)!; using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
             try
@@ -99,7 +99,7 @@ public static partial class SelfTests
 
     private static Process StartHelperIdle()
     {
-        var start = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "RoutePilot.exe")) { UseShellExecute = false, CreateNoWindow = true };
+        var start = new ProcessStartInfo(TestHost.Executable) { UseShellExecute = false, CreateNoWindow = true };
         start.ArgumentList.Add("--helper-idle-fixture"); return Process.Start(start)!;
     }
 

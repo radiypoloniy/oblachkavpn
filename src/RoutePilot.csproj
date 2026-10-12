@@ -13,6 +13,22 @@
     <RestoreSources></RestoreSources>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
+  <!-- Тестовые части MainWindow и захват превью собираются только по явному флагу.
+       build.ps1 собирает без него: в поставляемом RoutePilot.exe тестового кода нет.
+       test.ps1 собирает с -p:IncludeTestCode=true. -->
+  <PropertyGroup Condition="'$(IncludeTestCode)' == 'true'">
+    <DefineConstants>$(DefineConstants);TEST_HOOKS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(IncludeTestCode)' != 'true'">
+    <Compile Remove="MainWindow.*Fixtures.cs"/>
+    <Compile Remove="DesignPreview.cs"/>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Проверки лежат в отдельной сборке и пользуются internal-членами клиента. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Oblachka.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets/countries-*.json"/>
     <Resource Include="Assets/Flags/*.png"/>

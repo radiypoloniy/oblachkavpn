@@ -1,9 +1,9 @@
 ﻿$ErrorActionPreference = 'Stop'
-$sourceRoot = Join-Path $PSScriptRoot 'src'
+$sourceRoots = @((Join-Path $PSScriptRoot 'src'), (Join-Path $PSScriptRoot 'tests')) | Where-Object { Test-Path -LiteralPath $_ }
 $violations = @()
 $largest = 0
 # Include future subdirectories, excluding compiler-generated trees.
-foreach ($file in Get-ChildItem -LiteralPath $sourceRoot -File -Recurse | Where-Object {
+foreach ($file in Get-ChildItem -LiteralPath $sourceRoots -File -Recurse | Where-Object {
     $_.Extension -in @('.cs', '.xaml') -and $_.FullName -notmatch '\\(obj|bin)\\'
 }) {
     $lines = [System.IO.File]::ReadAllLines($file.FullName).Length

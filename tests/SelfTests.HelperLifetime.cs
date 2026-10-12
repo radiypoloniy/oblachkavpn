@@ -12,7 +12,7 @@ public static partial class SelfTests
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
             await using (var lifetime = await HelperProcessLifetime.ConnectAsync((pipe, owner) =>
             {
-                var start = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "RoutePilot.exe")) { UseShellExecute = false, CreateNoWindow = true };
+                var start = new ProcessStartInfo(TestHost.Executable) { UseShellExecute = false, CreateNoWindow = true };
                 foreach (var arg in new[] { "--helper-fixture", pipe, owner.ToString(), path }) start.ArgumentList.Add(arg);
                 return Process.Start(start)!;
             }, timeout.Token))

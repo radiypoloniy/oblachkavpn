@@ -106,7 +106,7 @@ public static partial class SelfTests
         await CheckAsync("Force-quitting controller terminates its Xray via Windows Job", async () =>
         {
             var childFolder = Path.Combine(root, "child"); Directory.CreateDirectory(childFolder);
-            var info = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "RoutePilot.exe")) { UseShellExecute = false, CreateNoWindow = true };
+            var info = new ProcessStartInfo(TestHost.Executable) { UseShellExecute = false, CreateNoWindow = true };
             info.ArgumentList.Add("--job-child"); info.ArgumentList.Add(childFolder);
             using var child = Process.Start(info)!;
             var ready = Path.Combine(childFolder, "pid.txt");

@@ -15,12 +15,9 @@ public static class Program
             try { return VmTunCommand.PrepareAsync(int.Parse(args[1]), args[2], args[3]).GetAwaiter().GetResult(); }
             catch { return 2; }
         }
-        if (args.Length == 2 && args[0] == "--architecture-self-test") return SelfTests.RunArchitectureAsync(args[1]).GetAwaiter().GetResult();
-        if (args.Length == 1 && args[0] == "--helper-idle-fixture") { Thread.Sleep(30000); return 0; }
-        if (args.Length == 4 && args[0] == "--helper-fixture") return SelfTests.HelperFixtureAsync(args[1], int.Parse(args[2]), args[3]).GetAwaiter().GetResult();
-        if (args.Length == 3 && args[0] == "--lab") return LabCommand.RunAsync(args[1], args[2]).GetAwaiter().GetResult();
-        if (args.Length > 0 && args[0] == "--self-test") return SelfTests.RunAsync(args.Length > 1 ? args[1] : Path.Combine(AppContext.BaseDirectory, "self-test.json")).GetAwaiter().GetResult();
-        if (args.Length > 1 && args[0] == "--job-child") return SelfTests.JobChildAsync(args[1], args.Length > 2 && args[2] == "sing-box" ? CoreKind.SingBox : CoreKind.Xray).GetAwaiter().GetResult();
+#if TEST_HOOKS
+        // Проверки интерфейса работают с частями MainWindow из *Fixtures.cs: они доступны
+        // только в сборке с -p:IncludeTestCode=true и отсутствуют в поставляемом клиенте.
         if (args.Length > 1 && args[0] == "--ui-self-test")
         {
             FlagImages.AllowNetwork = false;
@@ -46,6 +43,7 @@ public static class Program
         }
         if (args.Length > 1 && args[0] == "--preview")
             return DesignPreview.Capture(args[1], args.Length > 2 ? args[2] : "welcome", args.Length > 3 && args[3] == "compact");
+#endif
         using var mutex = new Mutex(true, "Local\\RoutePilot-" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(AppContext.BaseDirectory.ToLowerInvariant())))[..16], out var first);
         if (!first) { MessageBox.Show("Эта сборка уже запущена.", "Облачка"); return 1; }
         try
