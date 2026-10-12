@@ -66,12 +66,14 @@ public partial class MainWindow
         Servers.SubscriptionSummary.Text = $"Подключений: {importedProfiles.Count}, показано: {ProfilePicker.Items.Count}";
     }
 
+    // Первый экран принимает ключ сервиса. Подписка другого сервиса идёт отдельным путём,
+    // через «Вставить ссылку или JSON», и там же показывается соответствующая подсказка.
     private async void ContinueSubscription(object sender, RoutedEventArgs args)
     {
         try
         {
-            await LoadSubscriptionAsync(SubscriptionMirrors.ParseSources(Onboarding.SubscriptionUrl.Text), 0);
-            if (profile is not null) Onboarding.SubscriptionUrl.Clear();
+            await LoadSubscriptionAsync(new[] { ServiceKey.ToSubscriptionUrl(Onboarding.KeyInput.Text) }, 0);
+            if (profile is not null) Onboarding.KeyInput.Clear();
         }
         catch (UserError ex) { DetailText.Text = ex.Message; }
     }

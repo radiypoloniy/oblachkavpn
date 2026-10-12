@@ -44,6 +44,7 @@ public partial class MainWindow : Window
         SubscribeLifecycle(persistenceEnabled && isolatedStore is null);
         InitSystemProxy(persistenceEnabled && isolatedStore is null);
         Settings.VersionText.Text = ServiceBrand.Label;
+        Onboarding.BrandText.Text = ServiceBrand.Name;
         Closing += OnClosing;
         trayConnect = new Forms.ToolStripMenuItem("Подключить");
         trayStop = new Forms.ToolStripMenuItem("Остановить");

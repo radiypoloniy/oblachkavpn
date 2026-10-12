@@ -69,7 +69,7 @@
               <views:OnboardingView x:Name="Onboarding" Visibility="Collapsed"/>
             </Grid>
             <Border Grid.Row="1" Background="#F8F9FB" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="24,12">
-              <TextBlock x:Name="ShellFeedback" Text="Добавь подписку, ключ или файл, чтобы начать." Style="{StaticResource MutedText}" FontSize="12" MaxHeight="70"/>
+              <TextBlock x:Name="ShellFeedback" Text="Клиент ещё не настроен: нужен ключ подписки." Style="{StaticResource MutedText}" FontSize="12" MaxHeight="70"/>
             </Border>
           </Grid>
         </Border>
