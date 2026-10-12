@@ -45,6 +45,21 @@ public partial class MainWindow
             throw new InvalidOperationException("Removing third-party subscriptions did not restore the service-only list");
         checks.Add("Third-party subscriptions can be removed while the service list and a valid selection stay");
 
+        // Объявление панели показывается только при наличии подписки сервиса и только как текст.
+        subscriptionMetadata = new SubscriptionMetadata(null, null, 0, DateTimeOffset.UtcNow.AddDays(5))
+        { Title = "Облачка", Announce = "Доступен обход белых списков" };
+        UpdateSubscriptionSummary();
+        if (Connection.AnnounceCard.Visibility != Visibility.Visible ||
+            Connection.AnnounceText.Text != "Доступен обход белых списков" ||
+            Connection.AnnounceTitle.Text != "Облачка" ||
+            !Connection.PlanTile.Text.StartsWith("Подписка ещё "))
+            throw new InvalidOperationException("Panel announcement or plan is not shown: " + Connection.PlanTile.Text);
+        subscriptionMetadata = null;
+        UpdateSubscriptionSummary();
+        if (Connection.AnnounceCard.Visibility != Visibility.Collapsed || Connection.PlanTile.Text != "Нет данных")
+            throw new InvalidOperationException("Stale announcement survives an empty subscription");
+        checks.Add("Panel announcement and plan appear on the main screen and disappear without subscription data");
+
         // Возвращаем стенд в исходное состояние: дальше проверяется механика обновления
         // и остановки, а она не про источники.
         serviceProfiles = Array.Empty<Profile>();

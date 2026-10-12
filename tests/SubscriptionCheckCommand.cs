@@ -47,6 +47,10 @@ internal static class SubscriptionCheckCommand
             var summary = meta.Summary(DateTimeOffset.UtcNow);
             report.AppendLine("Тариф: " + (summary.Length > 0 ? summary : "заголовок есть, но срок и объём не заданы"));
             report.AppendLine("  total=" + (meta.Total?.ToString() ?? "нет") + (meta.Total == 0 ? " (безлимит)" : ""));
+            report.AppendLine("  на главном экране: " + meta.ShortSummary(DateTimeOffset.UtcNow));
+            report.AppendLine("Название: " + (meta.Title ?? "нет"));
+            report.AppendLine("Объявление: " + (meta.Announce ?? "нет"));
+            report.AppendLine("Период обновления: " + (meta.UpdateInterval?.ToString() ?? "нет, берём шесть часов"));
         }
         else report.AppendLine("Тариф: заголовка subscription-userinfo нет");
         report.AppendLine();

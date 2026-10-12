@@ -105,7 +105,7 @@ public partial class MainWindow
         try
         {
             var result = await (loader ?? SubscriptionMirrors.FetchAsync)(sources, preferred, operation.Token);
-            subscriptionSchedule.Complete(DateTimeOffset.UtcNow, true);
+            subscriptionSchedule.Complete(DateTimeOffset.UtcNow, true, result.Import.Metadata?.UpdateInterval);
             operation.Token.ThrowIfCancellationRequested();
             if (closed) return;
             var kind = ServiceKey.SourceOf(sources);

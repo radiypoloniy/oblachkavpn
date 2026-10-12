@@ -31,6 +31,7 @@ public static partial class SelfTests
         await ServiceKeyChecksAsync(CheckAsync);
         await AliasChecksAsync(CheckAsync, root);
         await SourceChecksAsync(CheckAsync, root);
+        await PanelHeaderChecksAsync(CheckAsync, root);
         await ImportChecksAsync(CheckAsync, executable, root);
         await ShareLinkChecksAsync(CheckAsync, root);
         await SystemProxyChecksAsync(CheckAsync, root);

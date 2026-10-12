@@ -29,11 +29,17 @@
           </Border>
           <Border Background="#F5F6F8" CornerRadius="14" Padding="14">
             <StackPanel>
-              <TextBlock Text="Получено" Style="{StaticResource MutedText}"/>
-              <TextBlock Text="Не измеряем" FontSize="15" FontWeight="SemiBold"/>
+              <TextBlock Text="Подписка" Style="{StaticResource MutedText}"/>
+              <TextBlock x:Name="PlanTile" Text="Нет данных" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap"/>
             </StackPanel>
           </Border>
         </UniformGrid>
+        <Border x:Name="AnnounceCard" Style="{StaticResource Card}" Background="#F3F7FF" BorderBrush="{StaticResource Blue}" Margin="0,0,0,14" Visibility="Collapsed">
+          <StackPanel>
+            <TextBlock x:Name="AnnounceTitle" Text="Сообщение сервиса" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <TextBlock x:Name="AnnounceText" Style="{StaticResource MutedText}" TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
         <Border Style="{StaticResource Card}" Padding="0">
           <StackPanel>
             <Grid Margin="16,14">

@@ -118,7 +118,18 @@ public sealed class ClientStateStore(string path)
             throw new UserError("Сохранённые измерения повреждены.");
         if (snapshot.SelectedName is { } selectedName && (selectedName.Length > 80 || selectedName.Any(char.IsControl)))
             throw new UserError("Сохранённый выбор сервера повреждён.");
-        if (snapshot.Metadata is { } info && (info.Upload < 0 || info.Download < 0 || info.Total < 0))
-            throw new UserError("Сведения подписки повреждены.");
+        if (snapshot.Metadata is { } info)
+        {
+            if (info.Upload < 0 || info.Download < 0 || info.Total < 0)
+                throw new UserError("Сведения подписки повреждены.");
+            // Название и объявление пришли от сервера: в снимке они не должны вырасти
+            // или принести управляющие символы.
+            foreach (var text in new[] { info.Title, info.Announce })
+                if (text is not null && (text.Length > SubscriptionMetadata.MaxTextLength || text.Any(char.IsControl)))
+                    throw new UserError("Сведения подписки повреждены.");
+            if (info.UpdateInterval is { } interval &&
+                (interval < SubscriptionMetadata.MinUpdateInterval || interval > SubscriptionMetadata.MaxUpdateInterval))
+                throw new UserError("Период обновления подписки повреждён.");
+        }
     }
 }
