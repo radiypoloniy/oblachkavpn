@@ -46,6 +46,7 @@ public partial class MainWindow : Window
         presentationTimer.Start();
         SubscribeLifecycle(persistenceEnabled && isolatedStore is null);
         InitSystemProxy(persistenceEnabled && isolatedStore is null);
+        InitSystemTunnel(persistenceEnabled && isolatedStore is null);
         Settings.VersionText.Text = ServiceBrand.Label;
         Onboarding.BrandText.Text = ServiceBrand.Name;
         // Идентификатор установки виден пользователю: по нему сервис находит устройство
@@ -120,39 +121,6 @@ public partial class MainWindow : Window
         tray.Text = ServiceBrand.Name + " — " + StatusText.Text;
         EndpointText.Text = engine.ProcessId is not null ? $"SOCKS5  127.0.0.1:{engine.Port}  •  только TCP" : "Адрес SOCKS появится после запуска";
         RefreshPresentation();
-    }
-    private async void ConnectClick(object sender, RoutedEventArgs args)
-    {
-        manualStop = false;
-        recoveryWait?.Cancel(); recovery.Reset(); health.Reset();
-        await ConnectCoreAsync();
-    }
-    private async Task ConnectCoreAsync()
-    {
-        if (vmTestActive || profile is null || operation is not null) return;
-        manualStop = false;
-        operation = new CancellationTokenSource();
-        engineOperation = true;
-        UpdateControls();
-        try
-        {
-            await engine.StartAsync(profile, operation.Token);
-            nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
-            if (!closed) DetailText.Text = "Подключение запущено. Проверьте туннель в диагностике.";
-        }
-        catch (OperationCanceledException) { if (!closed) DetailText.Text = "Запуск отменён или истёк срок ожидания. Можно попробовать снова."; }
-        catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }
-        finally { if (manualStop) engine.Stop(); operation.Dispose(); operation = null; engineOperation = false; if (!closed) { UpdateControls(); if (engine.State == ConnectionState.Failed) ScheduleRecovery(); } }
-    }
-    private void StopClick(object sender, RoutedEventArgs args)
-    {
-        manualStop = true;
-        recoveryWait?.Cancel();
-        operation?.Cancel();
-        // During startup the async owner tears down the engine; do not race process disposal with it.
-        if (operation is null || !engineOperation) engine.Stop();
-        else if (engine.State is ConnectionState.Running or ConnectionState.Verified) DetailText.Text = "Отменяем проверку…";
-        if (operation is null) DetailText.Text = "Подключение остановлено.";
     }
     private async void ProbeClick(object sender, RoutedEventArgs args)
     {

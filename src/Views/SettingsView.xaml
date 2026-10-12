@@ -50,6 +50,23 @@
                   <CheckBox x:Name="SystemProxy" Grid.Column="1" Style="{StaticResource Switch}" AutomationProperties.Name="Системный прокси Windows"/>
                 </Grid>
               </Border>
+              <Border Style="{StaticResource Card}" Margin="0,12,0,0">
+                <StackPanel>
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                      <TextBlock Text="Системный VPN"/>
+                      <TextBlock Text="Весь трафик компьютера идёт через туннель, включая программы без настроек прокси. Потребуется разрешение на права администратора при каждом включении." Style="{StaticResource MutedText}" FontSize="13" MaxWidth="400" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <CheckBox x:Name="SystemTunnel" Grid.Column="1" Style="{StaticResource Switch}" AutomationProperties.Name="Системный VPN"/>
+                  </Grid>
+                  <TextBlock x:Name="SystemTunnelNote" Style="{StaticResource MutedText}" FontSize="12" Margin="0,10,0,0" TextWrapping="Wrap"
+                             Text="UDP и игры в этом режиме не работают: проверка показала, что проходит только DNS. Блокировка трафика мимо VPN пока не реализована."/>
+                </StackPanel>
+              </Border>
               <TextBlock Text="Если связь прервалась" Foreground="{StaticResource Muted}" FontWeight="SemiBold" Margin="12,24,0,10"/>
               <Border Style="{StaticResource Card}">
                 <StackPanel>

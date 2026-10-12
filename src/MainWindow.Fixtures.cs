@@ -71,7 +71,10 @@ public partial class MainWindow
     {
         var checks = new List<string>();
         if (vmTestAllowed || Diagnostics.VmTunButton.IsEnabled) throw new InvalidOperationException("Isolated UI fixture can launch elevated TUN");
-        checks.Add("Isolated UI fixture cannot launch the VM TUN host");
+        if (Settings.SystemTunnel.IsEnabled || Settings.SystemTunnel.IsChecked == true || systemTunnel is not null || helperLifetime is not null)
+            throw new InvalidOperationException("Isolated UI fixture can start the privileged system mode");
+        checks.Add("Isolated UI fixture cannot launch the VM TUN host or the privileged system mode");
+        CheckSystemModes(checks);
         if (Onboarding.Visibility != Visibility.Visible || Sidebar.Visibility != Visibility.Collapsed)
             throw new InvalidOperationException("Empty client does not show subscription onboarding");
         checks.Add("Empty client opens subscription onboarding without fabricated subscription claims");
