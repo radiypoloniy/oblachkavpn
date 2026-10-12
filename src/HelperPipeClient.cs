@@ -17,7 +17,9 @@ public sealed class HelperPipeClient : IAsyncDisposable
         try
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-            timeout.CancelAfter(TimeSpan.FromSeconds(10)); await pipe.ConnectAsync(timeout.Token);
+            // Помощник до открытия канала может восстанавливать незавершённую сессию,
+            // поэтому на подключение даётся больше, чем на обычную команду.
+            timeout.CancelAfter(ConnectTimeout); await pipe.ConnectAsync(timeout.Token);
             HelperPipeIdentity.Server(pipe, helper);
             return new(pipe);
         }
@@ -29,6 +31,7 @@ public sealed class HelperPipeClient : IAsyncDisposable
     // через 10 секунд, рвал канал и помечал сессию как требующую восстановления, хотя
     // помощник в это время успешно доводил остановку до конца.
     public static readonly TimeSpan QuickTimeout = TimeSpan.FromSeconds(10);
+    public static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(40);
     public static readonly TimeSpan SessionTimeout = TimeSpan.FromSeconds(60);
     public static TimeSpan TimeoutFor(HelperOperation operation) =>
         operation == HelperOperation.Heartbeat ? QuickTimeout : SessionTimeout;

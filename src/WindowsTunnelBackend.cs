@@ -97,8 +97,14 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
             owner = Guid.Empty;
             stopped = true;
         }
-        // Ядро могло быть убито вместе с владельцем: интерфейс уже отсутствует, и это норма.
-        if (Wait(() => !interfaceExists(name))) return stopped ? NetworkWriteResult.Changed : NetworkWriteResult.Unchanged;
+        // Нечего было останавливать: это восстановление по чужому незавершённому журналу,
+        // например после перезагрузки. Ждать исчезновения адаптера бессмысленно — своего
+        // ядра у нас нет, а задержавшийся остаток всё равно ничего не несёт. Ожидание здесь
+        // стоило помощнику 25 секунд ДО открытия канала, и клиент не дожидался подключения.
+        if (halted is null) return NetworkWriteResult.Unchanged;
+
+        // Ядро только что остановлено: ждём, пока Windows уберёт адаптер.
+        if (Wait(() => !interfaceExists(name))) return NetworkWriteResult.Changed;
 
         // Адаптер задержался. На стенде это наблюдалось многократно: Windows убирает
         // wintun уже после смерти процесса, и задержка доходит до минут. Трафик при этом
@@ -106,7 +112,7 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
         // выходному IP. Поэтому решающим признаком служит процесс, а не адаптер:
         // если ядра нет, туннель не может ничего нести, и сессия считается снятой.
         // Иначе мы бы навсегда блокировали следующий запуск из-за безобидного остатка.
-        if (halted is null || !halted.IsRunning) return NetworkWriteResult.Changed;
+        if (!halted.IsRunning) return NetworkWriteResult.Changed;
         throw new IOException("Ядро системного туннеля не остановилось: " + name);
     }
 

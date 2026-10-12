@@ -31,6 +31,11 @@ internal static class SystemTunnelCheckCommand
         if (profile is null) { Add("узел не найден: " + nodeName); Save(); return 3; }
         Add("узел: " + profile.DisplayName + " · " + profile.Core + " · " + profile.Transport);
 
+        // Исходный выход меряем до туннеля. На машине владельца постоянно включён свой VPN,
+        // поэтому «известного» базового адреса не существует: его нужно измерять каждый раз.
+        var baseline = Probe("https://api.ipify.org");
+        Add("исходный выход (до туннеля): " + baseline);
+
         var engine = new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), "");
         HelperProcessLifetime? helper = null;
         SystemTunnelSession? session = null;
@@ -39,6 +44,10 @@ internal static class SystemTunnelCheckCommand
             using var token = new CancellationTokenSource(TimeSpan.FromMinutes(3));
             var plan = TunnelEndpoints.PrepareAsync(profile, token.Token).GetAwaiter().GetResult();
             Add("адрес входа закреплён: " + string.Join(',', plan.Peers));
+            // Если вход узла совпал с текущим выходом машины, по IP ничего доказать нельзя:
+            // адрес не изменится независимо от того, работает туннель или нет.
+            if (plan.Peers.Contains(baseline, StringComparer.Ordinal))
+                Add("ВНИМАНИЕ: вход узла совпадает с текущим выходом машины — перенаправление по IP этим прогоном не доказывается, выберите другой узел");
 
             helper = HelperProcessLifetime.ConnectAsync(NetworkHelperLauncher.Launch, token.Token).GetAwaiter().GetResult();
             Add("помощник запущен и канал установлен");
@@ -53,13 +62,24 @@ internal static class SystemTunnelCheckCommand
             Add("локальный порт ядра: " + engine.Port);
 
             Thread.Sleep(TimeSpan.FromSeconds(Math.Clamp(holdSeconds, 1, 120)));
-            Add("выходной IP: " + Probe("https://api.ipify.org"));
-            Add("второй источник: " + Probe("https://ifconfig.me/ip"));
+            var inside = Probe("https://api.ipify.org");
+            var second = Probe("https://ifconfig.me/ip");
+            Add("выходной IP: " + inside);
+            Add("второй источник: " + second);
+            // Вывод делается сравнением с измеренным исходным выходом, а не с зашитым адресом.
+            Add(inside == baseline
+                ? "ВЫВОД: выход не изменился — перенаправление НЕ подтверждено"
+                : "ВЫВОД: выход изменился с " + baseline + " на " + inside + " — перенаправление подтверждено");
+            if (inside != second) Add("ВНИМАНИЕ: источники разошлись, замеру верить нельзя");
 
             session.StopAsync().GetAwaiter().GetResult();
             Add("после остановки состояние: " + session.State);
             Add("остались интерфейсы: " + (TunnelInterfaces.Ours().Count == 0 ? "нет" : string.Join(',', TunnelInterfaces.Ours())));
-            Add("выходной IP после остановки: " + Probe("https://api.ipify.org"));
+            var after = Probe("https://api.ipify.org");
+            Add("выходной IP после остановки: " + after);
+            Add(after == baseline
+                ? "ВЫВОД: выход вернулся к исходному — откат подтверждён"
+                : "ВНИМАНИЕ: выход после остановки отличается от исходного");
             Add("итоговые переходы: " + string.Join(" → ", states));
         }
         catch (Exception ex)

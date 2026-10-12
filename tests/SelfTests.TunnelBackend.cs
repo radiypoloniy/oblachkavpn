@@ -85,15 +85,26 @@ public static partial class SelfTests
             var change = backend.Prepare(lease)[0];
             Assert(backend.Apply(id, change) == NetworkWriteResult.Conflict);
         }));
-        await check("Core that dies with its owner leaves a session that releases cleanly", () => Sync(() =>
+        await check("Recovery of a journal we do not own returns at once, without waiting", () => Sync(() =>
         {
-            // На стенде журнал остался в Running после убийства процесса, а интерфейс Windows
-            // убрала сама. Восстановление обязано считать отсутствие интерфейса успехом.
+            // После перезагрузки помощник видит чужой незавершённый журнал. Своего ядра у
+            // него нет, поэтому ждать исчезновения адаптера бессмысленно — а на стенде это
+            // ожидание стоило 25 секунд ДО открытия канала, и клиент не дожидался связи.
             var id = Guid.NewGuid();
-            var backend = new WindowsTunnelBackend((_, _) => new FakeTunnelProcess(), _ => false, delay: NoDelay);
+            var waited = false;
+            var backend = new WindowsTunnelBackend((_, _) => new FakeTunnelProcess(), _ => true,
+                TimeSpan.FromSeconds(30), (_, _) => { waited = true; return Task.CompletedTask; });
             var lease = NetworkHelperContracts.Validate(Request(id));
             var change = backend.Prepare(lease)[0] with { State = NetworkChangeState.Applied };
+            // Интерфейс намеренно «висит»: это не должно задерживать восстановление.
             Assert(backend.Restore(id, change) == NetworkWriteResult.Unchanged);
+            Assert(!waited);
+        }));
+        await check("Channel allows for the helper recovering before it opens the pipe", () => Sync(() =>
+        {
+            // Помощник восстанавливает незавершённую сессию до создания канала.
+            Assert(HelperPipeClient.ConnectTimeout > WindowsTunnelBackend.DefaultTimeout);
+            Assert(HelperPipeClient.ConnectTimeout > HelperPipeClient.QuickTimeout);
         }));
         await check("Lingering adapter does not block the next session once the core is gone", () => Sync(() =>
         {
