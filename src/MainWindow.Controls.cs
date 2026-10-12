@@ -1,7 +1,7 @@
 using System.Windows.Controls;
 using System.Windows.Shapes;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 // View-local controls are exposed here to keep existing operation ownership in MainWindow.
 public partial class MainWindow

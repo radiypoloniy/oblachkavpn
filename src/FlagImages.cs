@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Windows.Media.Imaging;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public static class FlagImages
 {
@@ -15,7 +15,7 @@ public static class FlagImages
     public static BitmapImage? Local(string? code)
     {
         if (code is null) return null;
-        try { return new BitmapImage(new Uri($"pack://application:,,,/RoutePilot;component/Assets/Flags/{code.ToLowerInvariant()}.png")); }
+        try { return new BitmapImage(new Uri($"pack://application:,,,/Oblachka;component/Assets/Flags/{code.ToLowerInvariant()}.png")); }
         catch (IOException) { return null; }
     }
 

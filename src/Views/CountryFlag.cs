@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 
-namespace RoutePilot.Views;
+namespace Oblachka.Views;
 
 public sealed class CountryFlag : Image
 {

@@ -47,7 +47,7 @@ try {
         try { $hash = ([BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace('-', '') } finally { $stream.Dispose(); $algorithm.Dispose() }
         if ($hash -ne $file.Sha256) { throw 'Package file changed.' }; $verified[$file.Path] = $true
     }
-    if (-not $verified.ContainsKey('RoutePilot.exe') -or -not $verified.ContainsKey('RoutePilot.dll')) { throw 'Incomplete client package.' }
+    if (-not $verified.ContainsKey('Oblachka.exe') -or -not $verified.ContainsKey('Oblachka.dll')) { throw 'Incomplete client package.' }
     $revision = 'release-' + $manifest.Release + '-' + [guid]::NewGuid().ToString('N')
     $destination = Join-Path $root $revision
     [IO.Directory]::CreateDirectory($destination) | Out-Null

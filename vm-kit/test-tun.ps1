@@ -9,11 +9,11 @@ $ErrorActionPreference = 'Stop'
 if ($ApplicationDirectory -eq '') {
     $projectApp = Join-Path $PSScriptRoot '..\app-v08'
     $packageApp = Join-Path $PSScriptRoot '..'
-    if (Test-Path -LiteralPath (Join-Path $projectApp 'RoutePilot.exe')) { $ApplicationDirectory = $projectApp }
+    if (Test-Path -LiteralPath (Join-Path $projectApp 'Oblachka.exe')) { $ApplicationDirectory = $projectApp }
     else { $ApplicationDirectory = $packageApp }
 }
 $ApplicationDirectory = (Resolve-Path -LiteralPath $ApplicationDirectory).Path
-$client = Join-Path $ApplicationDirectory 'RoutePilot.exe'
+$client = Join-Path $ApplicationDirectory 'Oblachka.exe'
 $core = Join-Path $ApplicationDirectory 'tools\sing-box.exe'
 if (-not (Test-Path -LiteralPath $client) -or -not (Test-Path -LiteralPath $core)) { throw 'Нет полного комплекта приложения.' }
 if ((Get-FileHash -LiteralPath $core -Algorithm SHA256).Hash -ne '5C19BB3F8C12D4E85B3D47FE63123A7624B314B58DD7A8E32F51004F1C4D2FAF') {

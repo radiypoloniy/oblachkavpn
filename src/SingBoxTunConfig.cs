@@ -1,7 +1,7 @@
 using System.Net.Sockets;
 using System.Text.Json.Nodes;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 // Prepared for the isolated VM stage only. Validation invokes `check`, never starts the TUN.
 public static class SingBoxTunConfig

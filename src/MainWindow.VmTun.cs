@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Windows;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public partial class MainWindow
 {

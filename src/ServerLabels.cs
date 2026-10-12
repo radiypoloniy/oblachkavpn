@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public static class ServerLabels
 {

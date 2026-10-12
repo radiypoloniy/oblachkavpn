@@ -1,6 +1,6 @@
 {
-  "name": "RoutePilot Windows",
-  "description": "Xray JSON for the RoutePilot prototype",
+  "name": "Oblachka Windows",
+  "description": "Xray JSON for the Oblachka prototype",
   "enabled": true,
   "operator": "AND",
   "conditions": [
@@ -8,7 +8,7 @@
       "caseSensitive": false,
       "headerName": "user-agent",
       "operator": "STARTS_WITH",
-      "value": "RoutePilot/"
+      "value": "Oblachka/"
     }
   ],
   "responseType": "XRAY_JSON"

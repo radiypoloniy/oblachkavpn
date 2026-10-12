@@ -1,4 +1,4 @@
-namespace RoutePilot;
+namespace Oblachka;
 
 // UI and route search own operations, while implementations own core/network resources.
 public interface ITunnelController : IDisposable

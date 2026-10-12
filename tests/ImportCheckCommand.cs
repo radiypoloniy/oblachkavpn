@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 // Разбирает сохранённое тело подписки и печатает, что из него получил клиент.
 // Нужна для сверки с реальной панелью: Oblachka.Tests.exe --import-check <файл>.

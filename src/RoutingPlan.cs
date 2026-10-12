@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public enum SiteAction { Tunnel, Direct, Block }
 public sealed record SiteRule(string Domain, SiteAction Action)

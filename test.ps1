@@ -3,7 +3,7 @@ $projectRoot = $PSScriptRoot
 $verified = Join-Path $projectRoot 'app-v09'
 $testDirectory = Join-Path $projectRoot 'app-v09-test'
 
-# Проверки собираются отдельным проектом и в поставляемый RoutePilot.exe не попадают.
+# Проверки собираются отдельным проектом и в поставляемый Oblachka.exe не попадают.
 # Здесь клиент пересобирается с -p:IncludeTestCode=true: только в этой сборке есть
 # части MainWindow из *Fixtures.cs и точка входа --ui-self-test.
 if (-not (Test-Path -LiteralPath (Join-Path $verified 'tools\xray.exe'))) { throw 'Сначала запустите .\build.ps1: ядра берутся из проверенной сборки app-v09.' }
@@ -24,7 +24,7 @@ if ($testProcess.ExitCode -ne 0 -or -not $testReport.Passed) {
     throw 'Проверки не прошли.'
 }
 $uiReportPath = Join-Path $testDirectory ('ui-test-' + [guid]::NewGuid().ToString('N') + '.json')
-$uiProcess = Start-Process -FilePath (Join-Path $testDirectory 'RoutePilot.exe') -ArgumentList @('--ui-self-test', ('"' + $uiReportPath + '"')) -WorkingDirectory $testDirectory -WindowStyle Hidden -PassThru -Wait
+$uiProcess = Start-Process -FilePath (Join-Path $testDirectory 'Oblachka.exe') -ArgumentList @('--ui-self-test', ('"' + $uiReportPath + '"')) -WorkingDirectory $testDirectory -WindowStyle Hidden -PassThru -Wait
 if (-not (Test-Path -LiteralPath $uiReportPath)) { throw 'Проверка интерфейса не сформировала отчёт.' }
 $uiReport = Get-Content -LiteralPath $uiReportPath -Raw | ConvertFrom-Json
 Write-Host ('Проверки интерфейса: ' + $uiReport.Checks.Count + '. Успех: ' + $uiReport.Passed)

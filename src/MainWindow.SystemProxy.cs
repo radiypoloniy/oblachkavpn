@@ -1,6 +1,6 @@
 using Microsoft.Win32;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 // Optional per-user Windows proxy pointing at the running core's local port (SOCKS5 + HTTP on one port).
 public partial class MainWindow

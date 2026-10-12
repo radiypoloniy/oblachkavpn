@@ -13,8 +13,8 @@ else { throw 'Нужен .NET SDK 10: winget install Microsoft.DotNet.SDK.10. В
 $outputDirectory = Join-Path $projectRoot ('app-v09-standalone-' + $tfm.Split('.')[0])
 if (Test-Path -LiteralPath $outputDirectory) { throw ('Папка уже есть: ' + $outputDirectory + '. Переименуй её; скрипт ничего не удаляет.') }
 & (Join-Path $projectRoot 'check-source-size.ps1')
-& dotnet publish (Join-Path $projectRoot 'src\RoutePilot.csproj') -c Release -r win-x64 --self-contained true `
+& dotnet publish (Join-Path $projectRoot 'src\Oblachka.csproj') -c Release -r win-x64 --self-contained true `
     -p:TargetFramework=$tfm -p:UseSharedCompilation=false --source 'https://api.nuget.org/v3/index.json' -o $outputDirectory
 if ($LASTEXITCODE -ne 0) { throw 'Публикация не прошла.' }
 Copy-Item -LiteralPath (Join-Path $verified 'tools') -Destination (Join-Path $outputDirectory 'tools') -Recurse
-Write-Host ('Готово: ' + $outputDirectory + '\RoutePilot.exe (' + $tfm + ', без установки .NET).')
+Write-Host ('Готово: ' + $outputDirectory + '\Oblachka.exe (' + $tfm + ', без установки .NET).')

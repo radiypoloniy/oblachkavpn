@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public enum NetworkLeaseAction { Acquire, Release }
 public sealed record NetworkLeaseRequest(

@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace RoutePilot.Views;
+namespace Oblachka.Views;
 
 public partial class TrayPopup : Window
 {

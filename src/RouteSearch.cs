@@ -1,4 +1,4 @@
-namespace RoutePilot;
+namespace Oblachka;
 
 public sealed record RouteAttempt(int ProfileIndex, string Outcome, long Milliseconds);
 public sealed record RouteSearchResult(int? ProfileIndex, IReadOnlyList<RouteAttempt> Attempts);

@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Text.Json.Nodes;
 using System.Security.Cryptography;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public static class CoreConfigurationCheck
 {

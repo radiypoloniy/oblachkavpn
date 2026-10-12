@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public sealed record ServerCountry(string? Code, string Name);
 
@@ -19,7 +19,7 @@ public static class CountryCatalog
 
     private static Dictionary<string, string> Read(string language)
     {
-        using var stream = typeof(CountryCatalog).Assembly.GetManifestResourceStream($"RoutePilot.Assets.countries-{language}.json")!;
+        using var stream = typeof(CountryCatalog).Assembly.GetManifestResourceStream($"Oblachka.Assets.countries-{language}.json")!;
         return JsonSerializer.Deserialize<Dictionary<string, string>>(stream)!
             .Where(p => p.Key.Length == 2).ToDictionary(p => p.Key.ToUpperInvariant(), p => p.Value);
     }

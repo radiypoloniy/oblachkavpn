@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 // Deliberately limited native imports: unknown settings fail, never disappear silently.
 public static class SingBoxProfiles

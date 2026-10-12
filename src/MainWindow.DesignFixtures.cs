@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public partial class MainWindow
 {

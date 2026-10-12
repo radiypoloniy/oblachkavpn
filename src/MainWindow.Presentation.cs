@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public partial class MainWindow
 {

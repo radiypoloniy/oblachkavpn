@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public static partial class SelfTests
 {

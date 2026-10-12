@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public enum ClientEventCode { Idle, Validating, Starting, Running, Verified, Failed, Recovered, SubscriptionUpdated, HealthFailed }
 public sealed record ClientEvent(DateTimeOffset Time, ClientEventCode Code)

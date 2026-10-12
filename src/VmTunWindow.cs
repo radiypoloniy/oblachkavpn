@@ -4,7 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 internal sealed class VmTunWindow : Window
 {

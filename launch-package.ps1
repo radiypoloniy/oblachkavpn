@@ -10,4 +10,4 @@ foreach ($file in $manifest.Files) {
     if (-not $target.StartsWith($directory + '\', [StringComparison]::OrdinalIgnoreCase) -or
         (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne $file.Sha256) { throw 'Installed package changed. Reinstall a verified archive.' }
 }
-Start-Process -FilePath (Join-Path $directory 'RoutePilot.exe') -WorkingDirectory $directory
+Start-Process -FilePath (Join-Path $directory 'Oblachka.exe') -WorkingDirectory $directory

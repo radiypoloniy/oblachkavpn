@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 internal sealed record VmTunTicket(int Version, DateTimeOffset Created, int OwnerId, long OwnerStarted,
     Profile Profile, string[] Peers);

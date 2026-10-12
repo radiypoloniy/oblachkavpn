@@ -2,7 +2,7 @@ using Microsoft.Win32;
 using System.Net.NetworkInformation;
 using System.Windows;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public partial class MainWindow
 {

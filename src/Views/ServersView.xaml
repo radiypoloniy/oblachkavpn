@@ -1,4 +1,4 @@
-<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:RoutePilot.Views" x:Class="RoutePilot.Views.ServersView">
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:Oblachka.Views" x:Class="Oblachka.Views.ServersView">
   <Grid Margin="24">
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="*"/>

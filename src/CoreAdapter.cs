@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public enum CoreKind { Xray, SingBox }
 

@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public static partial class SelfTests
 {

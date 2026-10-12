@@ -1,4 +1,4 @@
-namespace RoutePilot;
+namespace Oblachka;
 
 public sealed record HealthRound(bool Reachable, bool Verified, IReadOnlyList<ProbeResult> Results);
 

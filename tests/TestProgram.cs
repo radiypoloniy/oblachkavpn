@@ -1,4 +1,4 @@
-namespace RoutePilot;
+namespace Oblachka;
 
 // Точка входа тестового исполняемого файла. Поставляемый клиент этих аргументов не знает.
 public static class TestProgram

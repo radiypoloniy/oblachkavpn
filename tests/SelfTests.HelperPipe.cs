@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.IO.Pipes;
 using System.Text;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public static partial class SelfTests
 {

@@ -1,4 +1,4 @@
-namespace RoutePilot;
+namespace Oblachka;
 
 public sealed record ServerMeasurement(string Fingerprint, DateTimeOffset Time, bool Success, long Milliseconds);
 

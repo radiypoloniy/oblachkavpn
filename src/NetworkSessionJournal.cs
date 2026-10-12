@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 // One explicit journal path, held exclusively for this owner's lifetime. No directory scanning.
 public sealed class NetworkSessionJournal : INetworkSessionJournal, IDisposable

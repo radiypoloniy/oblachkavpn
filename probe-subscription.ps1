@@ -21,11 +21,11 @@ param(
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11
 
-# User-Agent, которые проверяем. Первый — наш будущий, второй — текущий прототип,
+# User-Agent, которые проверяем. Первый — наш, второй — прежнее имя клиента до 0.9,
 # остальные — для сравнения: отличается ли ответ по клиенту.
 $agents = [ordered]@{
     'Oblachka'  = 'Oblachka/0.9'
-    'RoutePilot' = 'RoutePilot/0.8.2'
+    'Legacy'    = 'RoutePilot/0.8.2'
     'Browser'   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
     'v2rayNG'   = 'v2rayNG/1.9.0'
     'Happ'      = 'Happ/1.0'

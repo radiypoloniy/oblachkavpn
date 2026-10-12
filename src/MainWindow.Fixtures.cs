@@ -6,7 +6,7 @@ using System.Windows.Media;
 using System.Text.Json;
 using Forms = System.Windows.Forms;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public partial class MainWindow
 {

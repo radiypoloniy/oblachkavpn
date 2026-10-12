@@ -19,7 +19,7 @@ foreach ($name in $forbiddenFiles) {
     if (Test-Path -LiteralPath (Join-Path $Directory $name)) { throw ('В поставляемой сборке лежит файл проверок: ' + $name) }
 }
 
-$assembly = Join-Path $Directory 'RoutePilot.dll'
+$assembly = Join-Path $Directory 'Oblachka.dll'
 if (-not (Test-Path -LiteralPath $assembly)) { throw ('Не найдено ' + $assembly) }
 $bytes = [IO.File]::ReadAllBytes($assembly)
 $found = @()
@@ -36,4 +36,4 @@ foreach ($symbol in $forbiddenSymbols) {
     }
 }
 if ($found.Count -gt 0) { throw ('В поставляемой сборке найден тестовый код: ' + ($found -join ', ')) }
-Write-Host ('Поставляемая сборка без тестового кода: проверено ' + $forbiddenSymbols.Count + ' символов в RoutePilot.dll.')
+Write-Host ('Поставляемая сборка без тестового кода: проверено ' + $forbiddenSymbols.Count + ' символов в Oblachka.dll.')

@@ -1,4 +1,4 @@
-namespace RoutePilot;
+namespace Oblachka;
 
 // Дочерние процессы проверок запускает сам тестовый исполняемый файл, а не поставляемый клиент:
 // точки входа --job-child, --helper-fixture и --helper-idle-fixture живут только здесь.

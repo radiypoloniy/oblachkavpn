@@ -1,7 +1,7 @@
 using System.Windows;
-using RoutePilot.Views;
+using Oblachka.Views;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public partial class MainWindow
 {

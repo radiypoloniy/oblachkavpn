@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public sealed record LabPlan(Uri Target, IReadOnlyList<Profile> Profiles, int Repetitions, int IntervalMilliseconds)
 {
@@ -24,7 +24,7 @@ public sealed record LabPlan(Uri Target, IReadOnlyList<Profile> Profiles, int Re
             if (root["profiles"] is not JsonArray array || array.Count is < 1 or > 8)
                 throw new UserError("Стенд: добавьте 1–8 профилей в массив profiles.");
             var profiles = array.Select(p => p is JsonValue value && value.TryGetValue<string>(out var link)
-                ? RoutePilot.Profiles.Parse(link) : RoutePilot.Profiles.Parse(p?.ToJsonString() ?? "")).ToArray();
+                ? Oblachka.Profiles.Parse(link) : Oblachka.Profiles.Parse(p?.ToJsonString() ?? "")).ToArray();
             return new(target, profiles, count, interval);
         }
         catch (UserError) { throw; }

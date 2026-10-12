@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text.Json.Nodes;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public static partial class SelfTests
 {

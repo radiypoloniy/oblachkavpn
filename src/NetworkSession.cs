@@ -1,4 +1,4 @@
-namespace RoutePilot;
+namespace Oblachka;
 
 // Serializes transactions; the file journal separately prevents a second process owning the same path.
 // No real backend is wired into the application at this stage.

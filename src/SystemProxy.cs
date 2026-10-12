@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.Win32;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 // Values of HKCU Internet Settings that the system proxy mode changes. Null means "value was absent".
 public sealed record ProxySettings(int? ProxyEnable, string? ProxyServer, string? ProxyOverride, string? AutoConfigUrl);

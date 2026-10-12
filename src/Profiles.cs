@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 // Откуда взялось подключение. Узлы сервиса — основной путь: для них работают подбор,
 // измерения и восстановление. Сторонние остаются доступными, но только вручную:

@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public sealed record SubscriptionMetadata(long? Upload, long? Download, long? Total, DateTimeOffset? Expires)
 {

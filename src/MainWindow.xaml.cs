@@ -6,7 +6,7 @@ using System.Windows.Media;
 using System.Text.Json;
 using Forms = System.Windows.Forms;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public partial class MainWindow : Window
 {
@@ -34,7 +34,7 @@ public partial class MainWindow : Window
         stateStore = isolatedStore ?? (persistenceEnabled ? new ClientStateStore(ClientDataPaths.StateFile) : null);
         isolatedPersistence = isolatedStore is not null;
         if (!Application.Current.Resources.Contains("Ink"))
-            Application.Current.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/RoutePilot;component/Theme.xaml", UriKind.Relative) });
+            Application.Current.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/Oblachka;component/Theme.xaml", UriKind.Relative) });
         InitializeComponent();
         Height = Math.Min(Height, SystemParameters.WorkArea.Height);
         engine = new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), Path.Combine(AppContext.BaseDirectory, "data", "runtime"));

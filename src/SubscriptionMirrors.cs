@@ -1,4 +1,4 @@
-namespace RoutePilot;
+namespace Oblachka;
 
 public sealed class SubscriptionAccessDenied() : UserError("Подписка отклонила доступ (HTTP 401/403). Проверьте срок действия и ссылку. Обход через резервный адрес не выполняется.");
 public sealed record MirrorResult(ImportResult Import, int SourceIndex, int Attempts);

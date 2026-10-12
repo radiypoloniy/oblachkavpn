@@ -1,4 +1,4 @@
-namespace RoutePilot;
+namespace Oblachka;
 
 // Живая проверка пути «ключ подписки → сеть → список узлов».
 //   Oblachka.Tests.exe --subscription-check <ключ или ссылка> <файл отчёта>

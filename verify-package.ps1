@@ -2,7 +2,7 @@
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $expected = @(
-    'RoutePilot.exe', 'RoutePilot.dll', 'RoutePilot.deps.json', 'RoutePilot.runtimeconfig.json',
+    'Oblachka.exe', 'Oblachka.dll', 'Oblachka.deps.json', 'Oblachka.runtimeconfig.json',
     'tools/xray.exe', 'tools/LICENSE-Xray', 'tools/sing-box.exe', 'tools/libcronet.dll',
     'tools/LICENSE-sing-box', 'tools/COPYING-GPL-3.0', 'tools/sing-box-provenance.json',
     'README.md', 'THIRD-PARTY.md', 'docs/NEXT-STEPS.md', 'docs/ARCHITECTURE.md',
@@ -13,7 +13,7 @@ $expected = @(
     'docs/NETWORK-SESSION-0.6.2.md',
     'docs/HELPER-IPC.md', 'docs/SYSTEM-COORDINATOR.md', 'docs/MILESTONES-0.7.md', 'docs/VALIDATION-0.7.md',
     'vm-kit/README.md', 'vm-kit/test-tun.ps1',
-    'docs/REMNAWAVE.md', 'docs/routepilot-response-rule.example.json',
+    'docs/REMNAWAVE.md', 'docs/oblachka-response-rule.example.json',
     'docs/OBLACHKA-IMPLEMENTATION.md', 'docs/LAB.md', 'docs/lab-plan.example.json', 'docs/REDESIGN-0.5.md'
 )
 $archive = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $ArchivePath).Path)

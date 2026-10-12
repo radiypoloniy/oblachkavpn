@@ -1,4 +1,4 @@
-namespace RoutePilot;
+namespace Oblachka;
 
 public interface INetworkHelperClient : IAsyncDisposable
 {

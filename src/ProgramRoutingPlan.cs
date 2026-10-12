@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public sealed record ProgramRule(string Executable, SiteAction Action)
 {

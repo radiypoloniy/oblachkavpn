@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public sealed record ImportResult(IReadOnlyList<Profile> Profiles, int Unsupported, int Invalid)
 {

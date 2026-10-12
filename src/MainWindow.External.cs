@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 // Сторонние подписки живут рядом с подпиской сервиса и ничем её не затрагивают.
 // Вся работа с ними — в этом разделе настроек, чтобы главный экран оставался о сервисе.

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public static class LabCommand
 {

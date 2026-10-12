@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace RoutePilot.Views;
+namespace Oblachka.Views;
 
 public partial class RoutesView : UserControl
 {

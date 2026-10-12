@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public sealed record LabAttempt(int ProfileIndex, string Core, int Repetition, string Outcome, long StartupMilliseconds, long RequestMilliseconds);
 public sealed record LabSummary(int ProfileIndex, int Attempts, int Successes, double SuccessRate, long? MedianRequestMilliseconds);

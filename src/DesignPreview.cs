@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public static class DesignPreview
 {

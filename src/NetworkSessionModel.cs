@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 public enum NetworkSessionState { Prepare, Applied, Restoring, Released, RecoveryRequired }
 public enum NetworkChangeState { Planned, Applied, Restored, Conflict }

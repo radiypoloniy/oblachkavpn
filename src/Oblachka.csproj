@@ -6,15 +6,15 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>RoutePilot</AssemblyName>
+    <AssemblyName>Oblachka</AssemblyName>
     <Version>0.9.0</Version>
     <PlatformTarget>x64</PlatformTarget>
-    <StartupObject>RoutePilot.Program</StartupObject>
+    <StartupObject>Oblachka.Program</StartupObject>
     <RestoreSources></RestoreSources>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <!-- Тестовые части MainWindow и захват превью собираются только по явному флагу.
-       build.ps1 собирает без него: в поставляемом RoutePilot.exe тестового кода нет.
+       build.ps1 собирает без него: в поставляемом Oblachka.exe тестового кода нет.
        test.ps1 собирает с -p:IncludeTestCode=true. -->
   <PropertyGroup Condition="'$(IncludeTestCode)' == 'true'">
     <DefineConstants>$(DefineConstants);TEST_HOOKS</DefineConstants>

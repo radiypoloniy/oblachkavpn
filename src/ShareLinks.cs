@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace RoutePilot;
+namespace Oblachka;
 
 // Share links: vless://, trojan://, hysteria2:// (hy2://). Unknown parameters fail with their names only, never values.
 public static class ShareLinks
