@@ -170,7 +170,7 @@ public partial class MainWindow : Window
         try
         {
             var profiles = importedProfiles.ToArray();
-            var selected = Array.FindIndex(profiles, p => Profiles.Fingerprint(p) == Profiles.Fingerprint(profile));
+            var selected = ProfileSelection.IndexOf(profiles, profile);
             var result = await new RouteSearch(engine).FindAsync(profiles, selected, target, operation.Token,
                 (attempt, total) => { if (!closed) DetailText.Text = $"Проверяем подключение {attempt} из {total}. «Остановить» отменяет подбор."; });
             if (closed) return;

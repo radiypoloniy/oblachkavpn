@@ -9,6 +9,9 @@ public sealed record SavedProfile(string Name, JsonObject Outbound);
 public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string? SelectedFingerprint,
     string[] SubscriptionSources, int PreferredSource, bool StayInTray, bool AutoRecover)
 {
+    // Имя выбранной записи рядом с её отпечатком: конфигурация может совпадать у двух
+    // строк списка, например у «Авто» и страны-балансировщика за ним.
+    public string? SelectedName { get; init; }
     public bool AutoRefresh { get; init; } = true;
     public bool SystemProxy { get; init; }
     public SubscriptionMetadata? Metadata { get; init; }
@@ -97,6 +100,8 @@ public sealed class ClientStateStore(string path)
         if (snapshot.Measurements is null || snapshot.Measurements.Length > Subscriptions.MaxProfiles || snapshot.Measurements.Any(m => m is null ||
             m.Fingerprint is null || m.Fingerprint.Length != 64 || m.Fingerprint.Any(c => !char.IsAsciiHexDigit(c)) || m.Milliseconds < 0))
             throw new UserError("Сохранённые измерения повреждены.");
+        if (snapshot.SelectedName is { } selectedName && (selectedName.Length > 80 || selectedName.Any(char.IsControl)))
+            throw new UserError("Сохранённый выбор сервера повреждён.");
         if (snapshot.Metadata is { } info && (info.Upload < 0 || info.Download < 0 || info.Total < 0))
             throw new UserError("Сведения подписки повреждены.");
     }

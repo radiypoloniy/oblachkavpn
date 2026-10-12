@@ -73,7 +73,7 @@ public partial class MainWindow
         {
             await Task.Delay(delay.Value, operation.Token);
             var profiles = importedProfiles.ToArray();
-            var selected = Array.FindIndex(profiles, p => Profiles.Fingerprint(p) == Profiles.Fingerprint(profile));
+            var selected = ProfileSelection.IndexOf(profiles, profile);
             var result = await new RouteSearch(engine).FindAsync(profiles, selected, TunnelHealth.Targets[0], operation.Token);
             routeAttempts = result.Attempts;
             if (result.ProfileIndex is int index && !closed)
