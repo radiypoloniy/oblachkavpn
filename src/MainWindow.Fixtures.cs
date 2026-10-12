@@ -19,6 +19,8 @@ public partial class MainWindow
     internal async Task<IReadOnlyList<string>> RunUiFixtureAsync()
     {
         var checks = new List<string>();
+        if (vmTestAllowed || Diagnostics.VmTunButton.IsEnabled) throw new InvalidOperationException("Isolated UI fixture can launch elevated TUN");
+        checks.Add("Isolated UI fixture cannot launch the VM TUN host");
         if (Onboarding.Visibility != Visibility.Visible || Sidebar.Visibility != Visibility.Collapsed)
             throw new InvalidOperationException("Empty client does not show subscription onboarding");
         checks.Add("Empty client opens subscription onboarding without fabricated subscription claims");

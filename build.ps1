@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
-$outputDirectory = Join-Path $projectRoot 'app-v08'
+$outputDirectory = Join-Path $projectRoot 'app-v081'
 & (Join-Path $projectRoot 'check-source-size.ps1')
 & dotnet build (Join-Path $projectRoot 'src\RoutePilot.csproj') -c Release -o $outputDirectory --configfile (Join-Path $projectRoot 'src\NuGet.Config') -p:UseSharedCompilation=false
 if ($LASTEXITCODE -ne 0) { throw 'Сборка не прошла.' }
@@ -28,6 +28,6 @@ foreach ($binary in @{
 foreach ($item in $vendorFiles.GetEnumerator()) {
     Copy-Item -LiteralPath (Join-Path $vendorRoot $item.Value) -Destination (Join-Path $outputDirectory ('tools\' + $item.Key))
 }
-Write-Host 'Готово: app-v08\RoutePilot.exe. Предыдущие сборки сохранены.'
+Write-Host 'Готово: app-v081\RoutePilot.exe. Предыдущие сборки сохранены.'
 
 

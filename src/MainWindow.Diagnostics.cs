@@ -12,7 +12,7 @@ public partial class MainWindow
 {
     private async void ScheduleRecovery()
     {
-        if (closed || manualStop || operation is not null || recoveryWait is not null || AutoRecover.IsChecked != true || profile is null) return;
+        if (closed || vmTestActive || manualStop || operation is not null || recoveryWait is not null || AutoRecover.IsChecked != true || profile is null) return;
         var delay = recovery.NextDelay(DateTimeOffset.UtcNow);
         if (delay is null) { DetailText.Text = "Автоперезапуск остановлен после трёх попыток за две минуты. Проверь профиль и подключи вручную."; return; }
         recoveryWait = new CancellationTokenSource();

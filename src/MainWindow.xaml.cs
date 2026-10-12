@@ -118,7 +118,7 @@ public partial class MainWindow : Window
     }
     private async Task ConnectCoreAsync()
     {
-        if (profile is null || operation is not null) return;
+        if (vmTestActive || profile is null || operation is not null) return;
         manualStop = false;
         operation = new CancellationTokenSource();
         engineOperation = true;
@@ -145,7 +145,7 @@ public partial class MainWindow : Window
     }
     private async void ProbeClick(object sender, RoutedEventArgs args)
     {
-        if (operation is not null) return;
+        if (vmTestActive || operation is not null) return;
         if (!Uri.TryCreate(ProbeUrl.Text.Trim(), UriKind.Absolute, out var target) || target.Scheme != "https" || !string.IsNullOrEmpty(target.UserInfo))
         { DetailText.Text = "Укажи HTTPS-адрес без логина и пароля."; return; }
         operation = new CancellationTokenSource();
@@ -159,7 +159,7 @@ public partial class MainWindow : Window
     }
     private async void FindRouteClick(object sender, RoutedEventArgs args)
     {
-        if (operation is not null || profile is null) return;
+        if (vmTestActive || operation is not null || profile is null) return;
         if (!Uri.TryCreate(ProbeUrl.Text.Trim(), UriKind.Absolute, out var target) || target.Scheme != "https" || target.UserInfo.Length > 0)
         { DetailText.Text = "Укажи HTTPS-адрес проверки без логина и пароля."; return; }
         manualStop = false; recoveryWait?.Cancel(); recovery.Reset();
@@ -193,7 +193,7 @@ public partial class MainWindow : Window
     }
     private async void ReconnectClick(object sender, RoutedEventArgs args)
     {
-        if (operation is not null || profile is null) return;
+        if (vmTestActive || operation is not null || profile is null) return;
         recoveryWait?.Cancel(); recovery.Reset(); manualStop = false;
         engine.Stop(); await ConnectCoreAsync();
     }
@@ -205,6 +205,7 @@ public partial class MainWindow : Window
         if (!exitRequested && Settings.StayInTray.IsChecked == true && !Application.Current.Dispatcher.HasShutdownStarted)
         { args.Cancel = true; Hide(); return; }
         closed = true;
+        try { vmTestProcess?.CloseMainWindow(); } catch (InvalidOperationException) { }
         presentationTimer.Stop();
         UnsubscribeLifecycle();
         trayPopup?.Close();

@@ -6,7 +6,7 @@ public partial class MainWindow
     private SubscriptionMetadata? subscriptionMetadata;
     private async void PollSubscription()
     {
-        if (closed || !backgroundWorkEnabled || subscriptionSources.Count == 0 || operation is not null || recoveryWait is not null ||
+        if (closed || vmTestActive || !backgroundWorkEnabled || subscriptionSources.Count == 0 || operation is not null || recoveryWait is not null ||
             pendingImport is not null || Settings.AutoRefresh.IsChecked != true || !subscriptionSchedule.IsDue(DateTimeOffset.UtcNow)) return;
         await LoadSubscriptionAsync(subscriptionSources, preferredSource);
     }

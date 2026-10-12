@@ -31,12 +31,12 @@ public partial class MainWindow
     { if (args.IsAvailable) QueueHealthCheck(); }
     private void QueueHealthCheck()
     {
-        if (closed || Dispatcher.HasShutdownStarted) return;
+        if (closed || vmTestActive || Dispatcher.HasShutdownStarted) return;
         Dispatcher.BeginInvoke(new Action(() => { if (!closed) nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3); }));
     }
     private async void PollHealth()
     {
-        if (closed || !backgroundWorkEnabled || operation is not null || recoveryWait is not null || engine.ProcessId is null ||
+        if (closed || vmTestActive || !backgroundWorkEnabled || operation is not null || recoveryWait is not null || engine.ProcessId is null ||
             AutoRecover.IsChecked != true || DateTimeOffset.UtcNow < nextHealthCheck) return;
         nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(45);
         operation = new CancellationTokenSource(); engineOperation = true; UpdateControls();
@@ -59,7 +59,7 @@ public partial class MainWindow
             if (manualStop) engine.Stop();
             if (!closed) UpdateControls();
         }
-        if (closed || manualStop || AutoRecover.IsChecked != true) return;
+        if (closed || vmTestActive || manualStop || AutoRecover.IsChecked != true) return;
         if (shouldRecover) await RecoverUnreachableAsync();
         else if (engine.State == ConnectionState.Failed) ScheduleRecovery();
     }

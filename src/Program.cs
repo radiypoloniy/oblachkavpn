@@ -9,6 +9,7 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Length == 2 && args[0] == "--vm-tun-host") return VmTunWindow.Run(args[1]);
         if (args.Length == 4 && args[0] == "--prepare-vm-tun")
         {
             try { return VmTunCommand.PrepareAsync(int.Parse(args[1]), args[2], args[3]).GetAwaiter().GetResult(); }

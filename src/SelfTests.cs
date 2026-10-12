@@ -39,6 +39,7 @@ public static partial class SelfTests
         await TunConfigurationChecksAsync(CheckAsync);
         await SystemSessionChecksAsync(CheckAsync);
         await VmKitChecksAsync(CheckAsync, root);
+        await VmTunChecksAsync(CheckAsync, root);
         await HealthChecksAsync(CheckAsync);
         await SubscriptionChecksAsync(CheckAsync);
         await ClientBlockChecksAsync(CheckAsync, root);

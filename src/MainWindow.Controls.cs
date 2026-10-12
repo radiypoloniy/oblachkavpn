@@ -30,6 +30,7 @@ public partial class MainWindow
     private void WireViews()
     {
         WireRules();
+        WireVmTun();
         WireMeasurements();
         ConnectButton.Click += ConnectClick;
         StopButton.Click += StopClick;
