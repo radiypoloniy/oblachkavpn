@@ -111,6 +111,8 @@
               <Button x:Name="RemoveExternalButton" Content="Убрать сторонние" IsEnabled="False" Margin="0,0,0,8"/>
             </WrapPanel>
             <TextBlock Text="На этом компьютере" FontSize="18" FontWeight="SemiBold" Margin="0,28,0,12"/>
+            <TextBlock x:Name="DeviceIdText" Style="{StaticResource MutedText}" FontSize="12" Margin="0,0,0,10" TextWrapping="Wrap"
+                       Text="Идентификатор устройства" ToolTip="Случайное значение, созданное при первом запуске. Аппаратные серийные номера не читаются."/>
             <TextBlock x:Name="StorageStatus" Text="При включённом запоминании подписка сохраняется автоматически. Данные шифруются Windows и доступны вашей учётной записи." Style="{StaticResource MutedText}" Margin="0,0,0,16"/>
             <Button x:Name="SaveStateButton" Content="Сохранить на этом компьютере" IsEnabled="False"/>
           </StackPanel>

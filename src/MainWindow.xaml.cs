@@ -48,6 +48,9 @@ public partial class MainWindow : Window
         InitSystemProxy(persistenceEnabled && isolatedStore is null);
         Settings.VersionText.Text = ServiceBrand.Label;
         Onboarding.BrandText.Text = ServiceBrand.Name;
+        // Идентификатор установки виден пользователю: по нему сервис находит устройство
+        // в списке, когда надо освободить место в лимите.
+        Settings.DeviceIdText.Text = "Идентификатор устройства: " + DeviceIdentity.Current;
         Closing += OnClosing;
         trayConnect = new Forms.ToolStripMenuItem("Подключить");
         trayStop = new Forms.ToolStripMenuItem("Остановить");

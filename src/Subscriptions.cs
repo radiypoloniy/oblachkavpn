@@ -143,6 +143,15 @@ public static class Subscriptions
             using var request = new HttpRequestMessage(HttpMethod.Get, uri);
             request.Headers.UserAgent.ParseAdd(ServiceBrand.UserAgent);
             request.Headers.Accept.ParseAdd("text/plain, application/json");
+            // Идентификатор установки для лимита устройств. Уходит только на хосты сервиса:
+            // сторонней подписке знать про наше устройство незачем.
+            if (ServiceBrand.IsServiceHost(uri.Host))
+            {
+                request.Headers.Add("x-hwid", DeviceIdentity.Current);
+                request.Headers.Add("x-device-os", DeviceIdentity.OperatingSystem);
+                request.Headers.Add("x-ver-os", DeviceIdentity.OperatingSystemVersion);
+                request.Headers.Add("x-device-model", DeviceIdentity.DeviceModel);
+            }
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
             if ((int)response.StatusCode is >= 300 and < 400) throw new UserError("Подписка перенаправляет запрос. Вставьте конечную HTTPS-ссылку из панели.");
             if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)

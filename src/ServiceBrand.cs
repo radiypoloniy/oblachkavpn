@@ -9,8 +9,11 @@ namespace Oblachka;
 public static class ServiceBrand
 {
     public const string Name = "Облачка";
+    // Латинское имя для всего, что уходит в сеть и в имена файлов: значения заголовков
+    // HTTP передаются в однобайтовой кодировке, кириллица там не проходит.
+    public const string LatinName = "Oblachka";
     public const string Version = "0.9";
-    public const string UserAgent = "Oblachka/" + Version;
+    public const string UserAgent = LatinName + "/" + Version;
     public static string Label => Name + " " + Version;
 
     // Хосты, которые считаются подпиской сервиса. Первый — основной: именно на нём
