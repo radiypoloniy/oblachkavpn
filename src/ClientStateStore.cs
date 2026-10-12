@@ -10,6 +10,7 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     string[] SubscriptionSources, int PreferredSource, bool StayInTray, bool AutoRecover)
 {
     public bool AutoRefresh { get; init; } = true;
+    public bool SystemProxy { get; init; }
     public SubscriptionMetadata? Metadata { get; init; }
     public SiteRule[] RouteRules { get; init; } = Array.Empty<SiteRule>();
     public ProgramRule[] ProgramRules { get; init; } = Array.Empty<ProgramRule>();

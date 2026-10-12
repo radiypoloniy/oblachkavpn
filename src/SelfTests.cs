@@ -29,6 +29,8 @@ public static partial class SelfTests
 
 
         await ImportChecksAsync(CheckAsync, executable, root);
+        await ShareLinkChecksAsync(CheckAsync, root);
+        await SystemProxyChecksAsync(CheckAsync, root);
         await EngineChecksAsync(CheckAsync, executable, root);
         await SingBoxChecksAsync(CheckAsync, executable, root);
         await LabChecksAsync(CheckAsync, root);

@@ -53,7 +53,7 @@ internal static class VmTunTickets
                 ticket.Created < DateTimeOffset.UtcNow.AddMinutes(-5)) throw new UserError("Запрос устарел. Запусти проверку ещё раз.");
             NetworkHelperContracts.Validate(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, 10808, ticket.Peers));
             var parsed = Profiles.Parse(ticket.Profile.Outbound.ToJsonString());
-            var address = parsed.Core == CoreKind.Xray ? parsed.Outbound["settings"]!["vnext"]![0]!["address"]!.GetValue<string>() : parsed.Outbound["server"]!.GetValue<string>();
+            var address = parsed.Core == CoreKind.Xray ? Profiles.XrayEndpoint(parsed.Outbound)["address"]!.GetValue<string>() : parsed.Outbound["server"]!.GetValue<string>();
             if (!ticket.Peers.Contains(address) || parsed.Core != ticket.Profile.Core) throw new UserError("Адрес профиля не подготовлен.");
             using var owner = Process.GetProcessById(ticket.OwnerId);
             if (owner.StartTime.ToUniversalTime().Ticks != ticket.OwnerStarted ||

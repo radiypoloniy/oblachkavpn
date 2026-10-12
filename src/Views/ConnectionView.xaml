@@ -63,8 +63,8 @@
                   <Path Data="{StaticResource RouteIcon}" Stroke="{StaticResource Ink}" StrokeThickness="2" Width="22" Height="22" Stretch="Uniform"/>
                 </Border>
                 <StackPanel Grid.Column="1" Margin="14,0">
-                  <TextBlock Text="Только через туннель" FontWeight="SemiBold" FontSize="15"/>
-                  <TextBlock Text="Программы с настроенным SOCKS5" Style="{StaticResource MutedText}"/>
+                  <TextBlock x:Name="ModeTitle" Text="Только через туннель" FontWeight="SemiBold" FontSize="15"/>
+                  <TextBlock x:Name="ModeSubtitle" Text="Программы с настроенным SOCKS5" Style="{StaticResource MutedText}"/>
                 </StackPanel>
                 <TextBlock Grid.Column="2" Text="›" Foreground="{StaticResource Muted}" FontSize="26" VerticalAlignment="Center"/>
               </Grid>
@@ -72,7 +72,7 @@
           </StackPanel>
         </Border>
         <Button x:Name="CheckTunnelButton" Content="Проверить туннель" Style="{StaticResource Quiet}" Margin="0,12,0,0" HorizontalAlignment="Center"/>
-        <TextBlock Text="Сейчас туннель используют программы с настроенным SOCKS5. Остальные подключения компьютера не меняются." Style="{StaticResource MutedText}" FontSize="12" TextAlignment="Center" Margin="0,12,0,0"/>
+        <TextBlock x:Name="ModeNote" Text="Сейчас туннель используют программы с настроенным SOCKS5. Остальные подключения компьютера не меняются." Style="{StaticResource MutedText}" FontSize="12" TextAlignment="Center" Margin="0,12,0,0"/>
       </StackPanel>
     </Grid>
   </ScrollViewer>

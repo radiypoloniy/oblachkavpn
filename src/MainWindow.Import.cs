@@ -14,7 +14,7 @@ public partial class MainWindow
     {
         try
         {
-            var result = input.Trim().StartsWith("vless://", StringComparison.OrdinalIgnoreCase) && !input.Trim().Contains('\n')
+            var result = ShareLinks.IsLink(input.Trim()) && !input.Trim().Contains('\n')
                 ? new ImportResult(new[] { Profiles.Parse(input) }, 0, 0) : Subscriptions.Parse(input);
             subscriptionSources = Array.Empty<string>(); pendingImport = null;
             ApplyImport(result);
@@ -37,6 +37,7 @@ public partial class MainWindow
         ShowProfile();
         DetailText.Text = $"Добавлено подключений: {result.Profiles.Count}.";
         if (result.Unsupported + result.Invalid > 0) DetailText.Text += $" Пропущено: неподдерживаемых {result.Unsupported}, некорректных {result.Invalid}.";
+        if (result.Reasons.Count > 0) DetailText.Text += " Причины: " + string.Join(" | ", result.Reasons);
         UpdateControls();
         QueueStateSave();
     }
@@ -110,7 +111,7 @@ public partial class MainWindow
     {
         var dialog = new Window { Owner = this, Title = "Добавить профиль", Width = 620, Height = 360, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = Background, FontFamily = FontFamily };
         var panel = new DockPanel { Margin = new Thickness(24) };
-        var caption = new TextBlock { Text = "Вставь VLESS-ссылку или клиентский Xray / sing-box JSON.", Margin = new Thickness(0, 0, 0, 12), Foreground = Foreground };
+        var caption = new TextBlock { Text = "Вставь ссылку vless://, trojan://, hy2:// или клиентский Xray / sing-box JSON.", Margin = new Thickness(0, 0, 0, 12), Foreground = Foreground };
         DockPanel.SetDock(caption, Dock.Top); panel.Children.Add(caption);
         var button = new Button { Content = "Добавить профиль", Margin = new Thickness(0, 14, 0, 0), HorizontalAlignment = HorizontalAlignment.Right };
         DockPanel.SetDock(button, Dock.Bottom); panel.Children.Add(button);

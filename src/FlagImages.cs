@@ -5,7 +5,8 @@ namespace RoutePilot;
 
 public static class FlagImages
 {
-    public static bool AllowNetwork { get; set; } = true;
+    // Off: 252 flags are bundled; a direct CDN request would reveal the client and the user's real IP.
+    public static bool AllowNetwork { get; set; }
     private static readonly SemaphoreSlim Slots = new(4);
     private static readonly ConcurrentDictionary<string, Lazy<Task<BitmapImage?>>> Images = new();
     private static readonly HttpClient Client = new(new SocketsHttpHandler { AllowAutoRedirect = false, UseCookies = false })

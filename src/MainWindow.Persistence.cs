@@ -32,7 +32,7 @@ public partial class MainWindow
         importedProfiles.Select(p => new SavedProfile(p.Name, (System.Text.Json.Nodes.JsonObject)p.Outbound.DeepClone())).ToArray(),
         profile is null ? null : Profiles.Fingerprint(profile), subscriptionSources.ToArray(), preferredSource,
         Settings.StayInTray.IsChecked == true, AutoRecover.IsChecked == true)
-        { AutoRefresh = Settings.AutoRefresh.IsChecked == true, Metadata = subscriptionMetadata, RouteRules = siteRules.ToArray(), ProgramRules = programRules.ToArray(),
+        { AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, Metadata = subscriptionMetadata, RouteRules = siteRules.ToArray(), ProgramRules = programRules.ToArray(),
             Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray() };
 
     private void SaveStateClick(object sender, RoutedEventArgs args)
@@ -71,6 +71,7 @@ public partial class MainWindow
         subscriptionSources = snapshot.SubscriptionSources.ToArray(); preferredSource = snapshot.PreferredSource;
         Settings.StayInTray.IsChecked = snapshot.StayInTray; AutoRecover.IsChecked = snapshot.AutoRecover;
         Settings.AutoRefresh.IsChecked = snapshot.AutoRefresh;
+        Settings.SystemProxy.IsChecked = snapshot.SystemProxy; UpdateModeText();
         siteRules.Clear(); siteRules.AddRange(snapshot.RouteRules); RefreshRules();
         programRules.Clear(); programRules.AddRange(snapshot.ProgramRules); RefreshRules();
         measurements.Clear(); foreach (var measurement in snapshot.Measurements) measurements[measurement.Fingerprint] = measurement;

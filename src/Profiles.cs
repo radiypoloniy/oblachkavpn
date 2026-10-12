@@ -30,16 +30,16 @@ public static class Profiles
         if (System.Text.Encoding.UTF8.GetByteCount(input) > MaxBytes)
             throw new UserError("Профиль слишком большой. Максимум — 1 МБ.");
         input = input.Trim();
-        if (input.StartsWith("vless://", StringComparison.OrdinalIgnoreCase)) return ParseLink(input);
+        if (ShareLinks.IsLink(input)) return ShareLinks.Parse(input);
         try
         {
             var root = JsonNode.Parse(input, documentOptions: new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip }) as JsonObject
-                ?? throw new UserError("Нужна VLESS-ссылка или JSON-объект Xray.");
+                ?? throw new UserError("Нужна ссылка vless://, trojan://, hy2:// или JSON-объект Xray / sing-box.");
             JsonObject outbound;
             if (root["outbounds"] is JsonArray outbounds)
             {
-                var candidates = outbounds.OfType<JsonObject>().Where(n => n["protocol"]?.GetValue<string>() == "vless" || SingBoxProfiles.IsSupported(n)).ToList();
-                if (candidates.Count != 1) throw new UserError("В конфигурации должен быть ровно один VLESS outbound. Экспортируй нужное подключение отдельно.");
+                var candidates = outbounds.OfType<JsonObject>().Where(n => IsXrayProtocol(n) || SingBoxProfiles.IsSupported(n)).ToList();
+                if (candidates.Count != 1) throw new UserError("В конфигурации должен быть ровно один VLESS/Trojan outbound. Экспортируй нужное подключение отдельно.");
                 outbound = (JsonObject)candidates[0].DeepClone();
             }
             else outbound = (JsonObject)root.DeepClone();
@@ -53,21 +53,13 @@ public static class Profiles
     public static Profile FromOutbound(JsonObject outbound, string name)
     {
         RejectExternalResources(outbound);
-        if (outbound["protocol"]?.GetValue<string>() != "vless")
-            throw new UserError("В этой сборке поддерживается VLESS через Xray. Другие протоколы добавим следующим этапом.");
+        var protocol = outbound["protocol"]?.GetValue<string>();
+        if (protocol is not ("vless" or "trojan"))
+            throw new UserError("В этой сборке через Xray поддерживаются VLESS и Trojan.");
         if (outbound["proxySettings"] is not null || outbound["sendThrough"] is not null)
             throw new UserError("Профиль с цепочкой или привязкой интерфейса пока не поддерживается.");
         var settings = outbound["settings"] as JsonObject ?? throw new UserError("В профиле нет settings.");
-        // Xray 26.9.9 uses vnext. Newer flat address/id syntax is intentionally not guessed.
-        var vnext = settings["vnext"] as JsonArray;
-        if (vnext?.Count != 1 || vnext[0] is not JsonObject peer || peer["users"] is not JsonArray users || users.Count != 1)
-            throw new UserError("Для Xray 26.9.9 нужны settings.vnext с одним сервером и одним пользователем.");
-        var address = peer["address"]?.GetValue<string>();
-        if (string.IsNullOrWhiteSpace(address) || address.Any(char.IsWhiteSpace)) throw new UserError("Не указан корректный адрес сервера.");
-        var port = peer["port"]?.GetValue<int>() ?? 0;
-        if (port is < 1 or > 65535) throw new UserError("Порт сервера должен быть от 1 до 65535.");
-        var user = users[0] as JsonObject ?? throw new UserError("Не указан пользователь VLESS.");
-        if (string.IsNullOrWhiteSpace(user["id"]?.GetValue<string>())) throw new UserError("Не указан идентификатор VLESS.");
+        if (protocol == "vless") ValidateVless(settings); else ValidateTrojan(settings);
         var stream = outbound["streamSettings"] as JsonObject ?? throw new UserError("В профиле нет streamSettings.");
         var security = stream["security"]?.GetValue<string>() ?? "none";
         // Keep this first build on encrypted public transports, including for optional VLESS Encryption.
@@ -81,78 +73,41 @@ public static class Profiles
         var sockopt = stream["sockopt"] as JsonObject;
         if (sockopt?["dialerProxy"] is not null) throw new UserError("Профиль с дополнительным dialerProxy пока не поддерживается.");
         outbound["tag"] = "tunnel";
-        return new Profile(SafeName(name), network.ToUpperInvariant() + " / " + security.ToUpperInvariant(), outbound);
+        var label = (protocol == "trojan" ? "TROJAN · " : "") + network.ToUpperInvariant() + " / " + security.ToUpperInvariant();
+        return new Profile(SafeName(name), label, outbound);
     }
 
-    private static Profile ParseLink(string input)
+    // Server entry of a validated Xray outbound: vnext[0] for VLESS, servers[0] for Trojan.
+    internal static JsonObject XrayEndpoint(JsonObject outbound) => (outbound["protocol"]?.GetValue<string>() == "trojan"
+        ? outbound["settings"]!["servers"]![0] : outbound["settings"]!["vnext"]![0])!.AsObject();
+
+    internal static bool IsXrayProtocol(JsonObject outbound) => outbound["protocol"]?.GetValue<string>() is "vless" or "trojan";
+
+    private static void ValidateVless(JsonObject settings)
     {
-        if (!Uri.TryCreate(input, UriKind.Absolute, out var uri) || uri.Scheme != "vless" || string.IsNullOrWhiteSpace(uri.Host))
-            throw new UserError("Не удалось прочитать VLESS-ссылку.");
-        var q = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var part in uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var pair = part.Split('=', 2);
-            var key = Uri.UnescapeDataString(pair[0]);
-            if (!q.TryAdd(key, pair.Length > 1 ? Uri.UnescapeDataString(pair[1].Replace("+", " ")) : ""))
-                throw new UserError("В ссылке повторяется параметр. Экспортируй профиль как JSON.");
-        }
-        string Get(string key, string fallback = "") => q.TryGetValue(key, out var value) ? value : fallback;
-        var known = new HashSet<string>(new[] { "type", "security", "encryption", "flow", "sni", "fp", "pbk", "sid", "spx", "alpn", "allowInsecure", "host", "path", "mode", "extra", "serviceName", "authority", "headerType", "packetEncoding" }, StringComparer.OrdinalIgnoreCase);
-        if (q.Keys.Any(k => !known.Contains(k)))
-            throw new UserError("Ссылка содержит параметры, которые эта сборка не распознаёт. Импортируй клиентский Xray JSON, чтобы сохранить настройки.");
-        if (Get("allowInsecure") is "1" or "true") throw new UserError("Ссылка отключает проверку TLS-сертификата.");
-        if (Get("headerType", "none") != "none" || q.ContainsKey("packetEncoding"))
-            throw new UserError("Дополнительные параметры этой ссылки требуют импорта через Xray JSON.");
-        var id = Uri.UnescapeDataString(uri.UserInfo);
-        if (!Guid.TryParse(id, out _)) throw new UserError("В ссылке нужен UUID пользователя VLESS.");
-        var network = Get("type", "tcp").ToLowerInvariant();
-        if (network == "raw") network = "tcp";
-        var security = Get("security", "none").ToLowerInvariant();
-        var stream = new JsonObject { ["network"] = network, ["security"] = security };
-        if (security == "reality")
-        {
-            if (string.IsNullOrWhiteSpace(Get("pbk")) || string.IsNullOrWhiteSpace(Get("sni")))
-                throw new UserError("В REALITY-ссылке нужны pbk и sni.");
-            stream["realitySettings"] = new JsonObject { ["serverName"] = Get("sni"), ["fingerprint"] = Get("fp", "chrome"), ["publicKey"] = Get("pbk"), ["shortId"] = Get("sid"), ["spiderX"] = Get("spx", "/") };
-        }
-        else if (security == "tls")
-        {
-            var tls = new JsonObject { ["serverName"] = Get("sni", uri.Host), ["allowInsecure"] = false };
-            if (q.ContainsKey("fp")) tls["fingerprint"] = Get("fp");
-            if (q.ContainsKey("alpn")) tls["alpn"] = new JsonArray(Get("alpn").Split(',').Select(s => (JsonNode?)JsonValue.Create(s)).ToArray());
-            stream["tlsSettings"] = tls;
-        }
-        switch (network)
-        {
-            case "xhttp":
-                var xhttp = new JsonObject { ["path"] = Get("path", "/"), ["host"] = Get("host"), ["mode"] = Get("mode", "auto") };
-                if (q.ContainsKey("extra"))
-                {
-                    try { xhttp["extra"] = JsonNode.Parse(Get("extra")) as JsonObject ?? throw new UserError("extra должен быть JSON-объектом."); }
-                    catch (JsonException) { throw new UserError("Не удалось прочитать XHTTP extra. Импортируй Xray JSON."); }
-                }
-                stream["xhttpSettings"] = xhttp;
-                break;
-            case "ws":
-                var ws = new JsonObject { ["path"] = Get("path", "/") };
-                if (q.ContainsKey("host")) ws["headers"] = new JsonObject { ["Host"] = Get("host") };
-                stream["wsSettings"] = ws;
-                break;
-            case "grpc":
-                stream["grpcSettings"] = new JsonObject { ["serviceName"] = Get("serviceName"), ["authority"] = Get("authority") };
-                break;
-            case "httpupgrade":
-                stream["httpupgradeSettings"] = new JsonObject { ["path"] = Get("path", "/"), ["host"] = Get("host") };
-                break;
-        }
-        var outbound = new JsonObject
-        {
-            ["protocol"] = "vless",
-            ["settings"] = new JsonObject { ["vnext"] = new JsonArray(new JsonObject { ["address"] = uri.Host, ["port"] = uri.Port > 0 ? uri.Port : 443,
-                ["users"] = new JsonArray(new JsonObject { ["id"] = id, ["encryption"] = Get("encryption", "none"), ["flow"] = Get("flow") }) }) },
-            ["streamSettings"] = stream
-        };
-        return FromOutbound(outbound, Uri.UnescapeDataString(uri.Fragment.TrimStart('#')));
+        // Xray 26.9.9 uses vnext. Newer flat address/id syntax is intentionally not guessed.
+        var vnext = settings["vnext"] as JsonArray;
+        if (vnext?.Count != 1 || vnext[0] is not JsonObject peer || peer["users"] is not JsonArray users || users.Count != 1)
+            throw new UserError("Для Xray 26.9.9 нужны settings.vnext с одним сервером и одним пользователем.");
+        ValidateEndpoint(peer);
+        var user = users[0] as JsonObject ?? throw new UserError("Не указан пользователь VLESS.");
+        if (string.IsNullOrWhiteSpace(user["id"]?.GetValue<string>())) throw new UserError("Не указан идентификатор VLESS.");
+    }
+
+    private static void ValidateTrojan(JsonObject settings)
+    {
+        if (settings["servers"] is not JsonArray servers || servers.Count != 1 || servers[0] is not JsonObject server)
+            throw new UserError("Для Trojan нужен settings.servers с одним сервером.");
+        ValidateEndpoint(server);
+        if (string.IsNullOrEmpty(server["password"]?.GetValue<string>())) throw new UserError("Не указан пароль Trojan.");
+    }
+
+    private static void ValidateEndpoint(JsonObject peer)
+    {
+        var address = peer["address"]?.GetValue<string>();
+        if (string.IsNullOrWhiteSpace(address) || address.Any(char.IsWhiteSpace)) throw new UserError("Не указан корректный адрес сервера.");
+        var port = peer["port"]?.GetValue<int>() ?? 0;
+        if (port is < 1 or > 65535) throw new UserError("Порт сервера должен быть от 1 до 65535.");
     }
 
     private static bool HasInsecureTls(JsonNode? node)

@@ -8,6 +8,8 @@ namespace RoutePilot;
 public sealed record ImportResult(IReadOnlyList<Profile> Profiles, int Unsupported, int Invalid)
 {
     public SubscriptionMetadata? Metadata { get; init; }
+    // Distinct validation messages for skipped entries; messages never contain profile values.
+    public IReadOnlyList<string> Reasons { get; init; } = Array.Empty<string>();
 }
 
 public static class Subscriptions
@@ -28,11 +30,11 @@ public static class Subscriptions
                 input = new UTF8Encoding(false, true).GetString(Convert.FromBase64String(base64)).Trim();
             }
             catch (Exception ex) when (ex is FormatException or DecoderFallbackException)
-            { throw new UserError("Не удалось прочитать подписку. Поддерживаются VLESS-ссылки, Base64 и клиентский Xray JSON."); }
+            { throw new UserError("Не удалось прочитать подписку. Поддерживаются ссылки VLESS/Trojan/Hysteria2, Base64 и клиентский JSON Xray / sing-box."); }
         }
         var profiles = new List<Profile>();
         var fingerprints = new HashSet<string>(StringComparer.Ordinal);
-        var invalid = 0; var unsupported = 0;
+        var invalid = 0; var unsupported = 0; var reasons = new List<string>();
         void Add(string text)
         {
             try
@@ -41,7 +43,7 @@ public static class Subscriptions
                 var fingerprint = Profiles.Fingerprint(profile);
                 if (fingerprints.Add(fingerprint)) profiles.Add(profile);
             }
-            catch (UserError) { invalid++; }
+            catch (UserError ex) { invalid++; if (reasons.Count < 3 && !reasons.Contains(ex.Message)) reasons.Add(ex.Message); }
             if (profiles.Count > MaxProfiles) throw new UserError("В подписке больше 200 подключений. Используй отдельную группу.");
         }
         if (input.StartsWith('{') || input.StartsWith('['))
@@ -57,7 +59,7 @@ public static class Subscriptions
                     {
                         foreach (var outbound in outbounds.OfType<JsonObject>())
                         {
-                            if (outbound["protocol"]?.GetValue<string>() != "vless" && !SingBoxProfiles.IsSupported(outbound)) { unsupported++; continue; }
+                            if (!Profiles.IsXrayProtocol(outbound) && !SingBoxProfiles.IsSupported(outbound)) { unsupported++; continue; }
                             var named = outbound.DeepClone();
                             var wrapper = named!.ToJsonString();
                             var originalCount = profiles.Count;
@@ -83,12 +85,12 @@ public static class Subscriptions
             foreach (var line in lines)
             {
                 if (line.StartsWith('#')) continue;
-                if (line.StartsWith("vless://", StringComparison.OrdinalIgnoreCase)) Add(line);
+                if (ShareLinks.IsLink(line)) Add(line);
                 else unsupported++;
             }
         }
-        if (profiles.Count == 0) throw new UserError("В подписке нет поддерживаемых VLESS-профилей с TLS/REALITY. Проверь формат подписки.");
-        return new(profiles, unsupported, invalid);
+        if (profiles.Count == 0) throw new UserError("В подписке нет поддерживаемых профилей (VLESS, Trojan, Hysteria2 с TLS/REALITY)." + (reasons.Count > 0 ? " Причина: " + reasons[0] : " Проверь формат подписки."));
+        return new(profiles, unsupported, invalid) { Reasons = reasons };
     }
     private static string CleanLabel(string name) => new(name.Where(c => !char.IsControl(c)).Take(80).ToArray());
 

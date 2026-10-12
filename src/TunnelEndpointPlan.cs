@@ -17,7 +17,7 @@ public static class TunnelEndpoints
         {
             if (copy["streamSettings"]?["xhttpSettings"]?["extra"]?["downloadSettings"] is not null)
                 throw new UserError("TUN: отдельный адрес XHTTP downstream ещё не поддержан.");
-            host = copy["settings"]!["vnext"]![0]!["address"]!.GetValue<string>();
+            host = Profiles.XrayEndpoint(copy)["address"]!.GetValue<string>();
         }
         else host = copy["server"]!.GetValue<string>();
         var addresses = IPAddress.TryParse(host, out var ip) ? new[] { ip } :
@@ -27,7 +27,7 @@ public static class TunnelEndpoints
         NetworkHelperContracts.Validate(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, 10808, peers));
         if (profile.Core == CoreKind.Xray)
         {
-            copy["settings"]!["vnext"]![0]!["address"] = peers[0];
+            Profiles.XrayEndpoint(copy)["address"] = peers[0];
             var tls = copy["streamSettings"]?["tlsSettings"] as JsonObject;
             if (tls is not null && string.IsNullOrWhiteSpace(tls["serverName"]?.GetValue<string>())) tls["serverName"] = host;
         }

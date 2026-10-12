@@ -7,7 +7,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>RoutePilot</AssemblyName>
-    <Version>0.8.1</Version>
+    <Version>0.8.2</Version>
     <PlatformTarget>x64</PlatformTarget>
     <StartupObject>RoutePilot.Program</StartupObject>
     <RestoreSources></RestoreSources>

@@ -36,6 +36,20 @@
                   </Border>
                 </StackPanel>
               </Border>
+              <TextBlock Text="Режим подключения" Foreground="{StaticResource Muted}" FontWeight="SemiBold" Margin="12,24,0,10"/>
+              <Border Style="{StaticResource Card}">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+                  <StackPanel>
+                    <TextBlock Text="Системный прокси Windows"/>
+                    <TextBlock Text="Браузеры и большинство программ идут через Облачку, пока подключение запущено. Прежние настройки возвращаются после остановки. Права администратора не нужны." Style="{StaticResource MutedText}" FontSize="13" MaxWidth="400" TextWrapping="Wrap"/>
+                  </StackPanel>
+                  <CheckBox x:Name="SystemProxy" Grid.Column="1" Style="{StaticResource Switch}" AutomationProperties.Name="Системный прокси Windows"/>
+                </Grid>
+              </Border>
               <TextBlock Text="Если связь прервалась" Foreground="{StaticResource Muted}" FontWeight="SemiBold" Margin="12,24,0,10"/>
               <Border Style="{StaticResource Card}">
                 <StackPanel>
@@ -96,8 +110,8 @@
         </TabItem>
         <TabItem Header="Для опытных">
           <StackPanel Margin="0,24,0,0">
-            <TextBlock Text="Облачка 0.8.1" FontSize="18" FontWeight="SemiBold"/>
-            <TextBlock Text="Xray 26.9.9 и sing-box 1.14.3. Формат профиля определяет ядро. Туннель работает как локальный SOCKS5 для TCP." Style="{StaticResource MutedText}" Margin="0,12,0,24"/>
+            <TextBlock Text="Облачка 0.8.2" FontSize="18" FontWeight="SemiBold"/>
+            <TextBlock Text="Xray 26.9.9 и sing-box 1.14.3. Формат профиля определяет ядро. Туннель работает как локальный SOCKS5/HTTP-прокси для TCP; системный прокси включается в «Основном»." Style="{StaticResource MutedText}" Margin="0,12,0,24"/>
             <Button x:Name="OpenDiagnosticsButton" Content="Открыть диагностику" Style="{StaticResource Primary}"/>
           </StackPanel>
         </TabItem>

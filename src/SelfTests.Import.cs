@@ -59,7 +59,7 @@ public static partial class SelfTests
         }));
         await CheckAsync("Base64 subscription deduplicates connections and reports unsupported protocols", () => Sync(() =>
         {
-            var source = Convert.ToBase64String(Encoding.UTF8.GetBytes(link + "\n" + link + "\ntrojan://fixture@example.com:443"));
+            var source = Convert.ToBase64String(Encoding.UTF8.GetBytes(link + "\n" + link + "\nss://fixture@example.com:443"));
             var result = Subscriptions.Parse(source);
             Assert(result.Profiles.Count == 1 && result.Unsupported == 1 && result.Invalid == 0);
         }));

@@ -23,7 +23,8 @@ public sealed record CoreAdapter(CoreKind Kind, string Executable)
             ["log"] = new JsonObject { ["disabled"] = true },
             ["inbounds"] = new JsonArray(new JsonObject
             {
-                ["type"] = "socks", ["tag"] = "local", ["listen"] = "127.0.0.1",
+                // mixed = SOCKS5 and HTTP on one port; HTTP is needed for the Windows system proxy.
+                ["type"] = "mixed", ["tag"] = "local", ["listen"] = "127.0.0.1",
                 ["listen_port"] = port
             }),
             ["outbounds"] = new JsonArray(copy),

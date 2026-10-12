@@ -5,18 +5,18 @@ Add-Type -AssemblyName System.IO.Compression
 $projectRoot = $PSScriptRoot
 $packageDirectory = Join-Path $projectRoot 'dist'
 [System.IO.Directory]::CreateDirectory($packageDirectory) | Out-Null
-$archivePath = Join-Path $packageDirectory ('Oblachka-0.8.1-win-x64-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.zip')
+$archivePath = Join-Path $packageDirectory ('Oblachka-0.8.2-win-x64-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.zip')
 $files = [ordered]@{
-    'RoutePilot.exe' = 'app-v081\RoutePilot.exe'
-    'RoutePilot.dll' = 'app-v081\RoutePilot.dll'
-    'RoutePilot.deps.json' = 'app-v081\RoutePilot.deps.json'
-    'RoutePilot.runtimeconfig.json' = 'app-v081\RoutePilot.runtimeconfig.json'
-    'tools/xray.exe' = 'app-v081\tools\xray.exe'
-    'tools/LICENSE-Xray' = 'app-v081\tools\LICENSE-Xray'
-    'tools/sing-box.exe' = 'app-v081\tools\sing-box.exe'
-    'tools/libcronet.dll' = 'app-v081\tools\libcronet.dll'
-    'tools/LICENSE-sing-box' = 'app-v081\tools\LICENSE-sing-box'
-    'tools/COPYING-GPL-3.0' = 'app-v081\tools\COPYING-GPL-3.0'
+    'RoutePilot.exe' = 'app-v082\RoutePilot.exe'
+    'RoutePilot.dll' = 'app-v082\RoutePilot.dll'
+    'RoutePilot.deps.json' = 'app-v082\RoutePilot.deps.json'
+    'RoutePilot.runtimeconfig.json' = 'app-v082\RoutePilot.runtimeconfig.json'
+    'tools/xray.exe' = 'app-v082\tools\xray.exe'
+    'tools/LICENSE-Xray' = 'app-v082\tools\LICENSE-Xray'
+    'tools/sing-box.exe' = 'app-v082\tools\sing-box.exe'
+    'tools/libcronet.dll' = 'app-v082\tools\libcronet.dll'
+    'tools/LICENSE-sing-box' = 'app-v082\tools\LICENSE-sing-box'
+    'tools/COPYING-GPL-3.0' = 'app-v082\tools\COPYING-GPL-3.0'
     'tools/sing-box-provenance.json' = 'vendor\sing-box-1.14.3\provenance.json'
     'docs/VM-TUN-0.8.1.md' = 'docs\VM-TUN-0.8.1.md'
     'README.md' = 'README.md'
@@ -49,7 +49,7 @@ $files = [ordered]@{
 foreach ($relativePath in $files.Values) {
     if (-not (Test-Path -LiteralPath (Join-Path $projectRoot $relativePath) -PathType Leaf)) { throw ('Нет файла: ' + $relativePath) }
 }
-$manifest = [ordered]@{ Version = 1; Release = '0.8.1'; Files = @() }
+$manifest = [ordered]@{ Version = 1; Release = '0.8.2'; Files = @() }
 foreach ($item in $files.GetEnumerator()) {
     $source = Join-Path $projectRoot $item.Value
     $manifest.Files += @{ Path = $item.Key; Size = (Get-Item -LiteralPath $source).Length; Sha256 = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash }

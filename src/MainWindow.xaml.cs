@@ -42,6 +42,7 @@ public partial class MainWindow : Window
         presentationTimer.Tick += (_, _) => { RefreshPresentation(); PollHealth(); PollSubscription(); };
         presentationTimer.Start();
         SubscribeLifecycle(persistenceEnabled && isolatedStore is null);
+        InitSystemProxy(persistenceEnabled && isolatedStore is null);
         Closing += OnClosing;
         trayConnect = new Forms.ToolStripMenuItem("Подключить");
         trayStop = new Forms.ToolStripMenuItem("Остановить");
@@ -76,6 +77,7 @@ public partial class MainWindow : Window
             StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(state switch
             { ConnectionState.Verified => "#276B68", ConnectionState.Failed => "#B24635", ConnectionState.Running => "#A87620", _ => "#8798A7" }));
             EventText.Text = DateTime.Now.ToString("HH:mm:ss") + "  " + message;
+            SyncSystemProxy(state);
             UpdateControls();
             if (state == ConnectionState.Failed) ScheduleRecovery();
         }));
@@ -213,6 +215,7 @@ public partial class MainWindow : Window
         operation?.Cancel();
         recoveryWait?.Cancel();
         engine.Dispose();
+        CloseSystemProxy();
         tray.Visible = false; tray.Dispose();
         profile = null;
         subscriptionSources = Array.Empty<string>(); pendingImport = null;
