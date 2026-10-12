@@ -17,7 +17,10 @@ public static partial class SelfTests
             Assert(!Encoding.UTF8.GetString(before).Contains("uuid") && !Encoding.UTF8.GetString(before).Contains("password"));
             try { await VmTunCommand.PrepareAsync(10808, input, output); throw new InvalidOperationException(); }
             catch (IOException) { }
-            Assert(before.SequenceEqual(await File.ReadAllBytesAsync(output)));
+            // Читаем до сравнения: в .NET 10 SequenceEqual разрешается в span-перегрузку,
+            // а span не может пережить await.
+            var after = await File.ReadAllBytesAsync(output);
+            Assert(before.SequenceEqual(after));
         });
         await check("VM preparation rejects overlong input and broad routes without creating a config", async () =>
         {
