@@ -28,11 +28,11 @@ public sealed record CoreAdapter(CoreKind Kind, string Executable)
                 ["listen_port"] = port
             }),
             ["outbounds"] = new JsonArray(copy),
-            ["route"] = new JsonObject
-            {
-                ["final"] = "tunnel",
-                ["rules"] = new JsonArray(new JsonObject { ["network"] = "udp", ["action"] = "reject" })
-            }
+            // Весь трафик уходит в единственный outbound, включая UDP: Hysteria2 переносит
+            // его штатно, а запрет оставался от первой осторожной конфигурации.
+            // Массив правил остаётся пустым, а не исчезает: в него дописывают планы
+            // маршрутизации по сайтам и программам.
+            ["route"] = new JsonObject { ["final"] = "tunnel", ["rules"] = new JsonArray() }
         };
     }
 }

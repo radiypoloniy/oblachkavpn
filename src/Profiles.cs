@@ -148,7 +148,9 @@ public static class Profiles
         {
             ["log"] = new JsonObject { ["loglevel"] = "none" },
             ["inbounds"] = new JsonArray(new JsonObject { ["tag"] = "local", ["listen"] = "127.0.0.1", ["port"] = socksPort, ["protocol"] = "socks",
-                ["settings"] = new JsonObject { ["auth"] = "noauth", ["udp"] = false } }),
+                // UDP нужен и локальному режиму, и системному: исходящее звено системного
+                // туннеля — этот же локальный SOCKS. Без него игры и звонки не работают.
+                ["settings"] = new JsonObject { ["auth"] = "noauth", ["udp"] = true } }),
             ["outbounds"] = new JsonArray(copy),
             ["routing"] = new JsonObject { ["rules"] = new JsonArray(new JsonObject { ["type"] = "field", ["inboundTag"] = new JsonArray("local"), ["outboundTag"] = "tunnel" }) }
         };

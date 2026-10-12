@@ -51,7 +51,7 @@ public static class RoutingPlan
                     : new JsonObject { ["domain_suffix"] = new JsonArray(rule.Domain), ["outbound"] = destination });
         }
         var route = (JsonObject)config[xray ? "routing" : "route"]!;
-        // Preserve the UDP rejection rule before user rules.
+        // Правила ядра идут впереди пользовательских: для sing-box это перехват DNS.
         var original = (JsonArray)route["rules"]!;
         if (xray)
         {

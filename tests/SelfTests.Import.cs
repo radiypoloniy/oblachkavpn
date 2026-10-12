@@ -55,7 +55,10 @@ public static partial class SelfTests
             Assert(config["outbounds"]!.AsArray().Count == 1);
             Assert(config["outbounds"]![0]!["protocol"]!.GetValue<string>() == "vless");
             Assert(config["inbounds"]![0]!["listen"]!.GetValue<string>() == "127.0.0.1");
-            Assert(config["inbounds"]![0]!["settings"]!["udp"]!.GetValue<bool>() == false);
+            // UDP включён намеренно: системный туннель отдаёт сюда и UDP тоже, а без него
+            // игры и звонки не работают. Прямого выхода при этом не появляется — outbound
+            // по-прежнему единственный.
+            Assert(config["inbounds"]![0]!["settings"]!["udp"]!.GetValue<bool>() == true);
         }));
         await CheckAsync("Base64 subscription deduplicates connections and reports unsupported protocols", () => Sync(() =>
         {

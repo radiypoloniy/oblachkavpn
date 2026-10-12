@@ -22,8 +22,11 @@ public static partial class SelfTests
             ExpectUserError(() => ProgramRoutingPlan.Create("steam.exe;whoami", SiteAction.Direct));
             ExpectUserError(() => ProgramRoutingPlan.Validate([new("Steam.exe", SiteAction.Direct), new("steam.exe", SiteAction.Block)]));
             var config = ProgramRoutingPlan.Compile(NetworkAcquire(), [new("steam.exe", SiteAction.Direct), new("browser.exe", SiteAction.Block)]);
+            // Перехват DNS остаётся первым правилом, пользовательские идут следом.
+            // Прежде между ними стоял запрет UDP; теперь UDP проходит в туннель.
             Assert(config["route"]!["rules"]![0]!["action"]!.GetValue<string>() == "hijack-dns");
-            Assert(config["route"]!["rules"]![1]!["action"]!.GetValue<string>() == "reject");
+            Assert(config["route"]!["rules"]![1]!["outbound"]!.GetValue<string>() == "user-direct");
+            Assert(config["route"]!["rules"]![2]!["action"]!.GetValue<string>() == "reject");
             await CoreConfigurationCheck.ValidateAsync(new(CoreKind.SingBox, Path.Combine(AppContext.BaseDirectory, "tools", "sing-box.exe")), config, CancellationToken.None);
         });
         await check("Routing drafts reject URLs and duplicates, prioritize subdomains, validate both cores", async () =>

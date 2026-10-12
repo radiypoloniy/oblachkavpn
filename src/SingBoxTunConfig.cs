@@ -34,15 +34,17 @@ public static class SingBoxTunConfig
             }),
             ["outbounds"] = new JsonArray(new JsonObject
             {
+                // Без ограничения network туннель отдаёт локальному ядру и UDP тоже.
                 ["type"] = "socks", ["tag"] = "local-core", ["server"] = "127.0.0.1",
-                ["server_port"] = lease.LoopbackPort, ["version"] = "5", ["network"] = "tcp"
+                ["server_port"] = lease.LoopbackPort, ["version"] = "5"
             }),
             ["route"] = new JsonObject
             {
                 ["auto_detect_interface"] = true, ["final"] = "local-core",
+                // Порядок важен: DNS перехватывается первым правилом и уходит на DoH внутри
+                // туннеля. Остальной UDP идёт в туннель наравне с TCP.
                 ["rules"] = new JsonArray(
-                    new JsonObject { ["port"] = 53, ["action"] = "hijack-dns" },
-                    new JsonObject { ["network"] = "udp", ["action"] = "reject" })
+                    new JsonObject { ["port"] = 53, ["action"] = "hijack-dns" })
             }
         };
     }

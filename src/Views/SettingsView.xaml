@@ -64,7 +64,7 @@
                     <CheckBox x:Name="SystemTunnel" Grid.Column="1" Style="{StaticResource Switch}" AutomationProperties.Name="Системный VPN"/>
                   </Grid>
                   <TextBlock x:Name="SystemTunnelNote" Style="{StaticResource MutedText}" FontSize="12" Margin="0,10,0,0" TextWrapping="Wrap"
-                             Text="UDP и игры в этом режиме не работают: проверка показала, что проходит только DNS. Блокировка трафика мимо VPN пока не реализована."/>
+                             Text="Блокировка трафика мимо VPN пока не реализована: при обрыве туннеля программы пойдут напрямую. Работа UDP в этом режиме проверена не полностью."/>
                 </StackPanel>
               </Border>
               <TextBlock Text="Если связь прервалась" Foreground="{StaticResource Muted}" FontWeight="SemiBold" Margin="12,24,0,10"/>
