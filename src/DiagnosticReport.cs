@@ -22,7 +22,7 @@ public static class DiagnosticReport
     public static string Create(ConnectionState state, int profileCount, int sourceCount,
         IEnumerable<ClientEvent> events, IEnumerable<RouteAttempt> attempts) => JsonSerializer.Serialize(new
         {
-            App = BuildInfo.Label, Mode = "Local SOCKS TCP", State = state.ToString(), ImportedProfiles = profileCount,
+            App = ServiceBrand.Label, Mode = "Local SOCKS TCP", State = state.ToString(), ImportedProfiles = profileCount,
             SubscriptionSources = sourceCount, SystemNetworkModified = false,
             Events = events.TakeLast(100).Select(e => new { e.Time, Code = e.Code.ToString() }),
             Attempts = attempts.Take(6).Select(a => new { a.ProfileIndex, Outcome = a.Outcome is "Verified" or "Reachability" or "TargetResponse" or "StartOrProbeRejected" ? a.Outcome : "Unknown", a.Milliseconds })

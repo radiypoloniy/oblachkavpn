@@ -22,7 +22,7 @@ internal sealed class VmTunWindow : Window
     internal VmTunWindow(string ticketPath)
     {
         path = ticketPath;
-        Title = "Облачка — проверка TUN в виртуалке";
+        Title = ServiceBrand.Name + " — проверка TUN в виртуалке";
         Width = 610; Height = 340; ResizeMode = ResizeMode.CanMinimize;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Background = Brushes.White; Foreground = new SolidColorBrush(Color.FromRgb(25, 38, 60));

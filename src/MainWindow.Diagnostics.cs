@@ -32,7 +32,7 @@ public partial class MainWindow
     }
     private void ExportReportClick(object sender, RoutedEventArgs args)
     {
-        var dialog = new SaveFileDialog { Filter = "Диагностика (*.json)|*.json", FileName = "routepilot-report-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".json", Title = "Сохранить обезличенный отчёт" };
+        var dialog = new SaveFileDialog { Filter = "Диагностика (*.json)|*.json", FileName = "oblachka-report-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".json", Title = "Сохранить обезличенный отчёт" };
         if (dialog.ShowDialog(this) != true) return;
         try
         {

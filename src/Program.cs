@@ -44,15 +44,15 @@ public static class Program
         if (args.Length > 1 && args[0] == "--preview")
             return DesignPreview.Capture(args[1], args.Length > 2 ? args[2] : "welcome", args.Length > 3 && args[3] == "compact");
 #endif
-        using var mutex = new Mutex(true, "Local\\RoutePilot-" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(AppContext.BaseDirectory.ToLowerInvariant())))[..16], out var first);
-        if (!first) { MessageBox.Show("Эта сборка уже запущена.", "Облачка"); return 1; }
+        using var mutex = new Mutex(true, "Local\\Oblachka-" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(AppContext.BaseDirectory.ToLowerInvariant())))[..16], out var first);
+        if (!first) { MessageBox.Show("Эта сборка уже запущена.", ServiceBrand.Name); return 1; }
         try
         {
             var app = new Application();
             app.DispatcherUnhandledException += (_, e) =>
             {
                 // Don't show Exception.Message: a parser/transport exception could contain credentials.
-                MessageBox.Show("Приложение завершится из-за внутренней ошибки. Перезапусти его; работа ядра будет остановлена.", "Облачка");
+                MessageBox.Show("Приложение завершится из-за внутренней ошибки. Перезапусти его; работа ядра будет остановлена.", ServiceBrand.Name);
                 e.Handled = true; app.Shutdown(1);
             };
             var window = new MainWindow();
@@ -60,6 +60,6 @@ public static class Program
             return app.Run(window);
         }
         catch
-        { MessageBox.Show("Не удалось открыть приложение. Папка сборки должна быть доступна для записи.", "Облачка"); return 1; }
+        { MessageBox.Show("Не удалось открыть приложение. Папка сборки должна быть доступна для записи.", ServiceBrand.Name); return 1; }
     }
 }

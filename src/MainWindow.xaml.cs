@@ -43,6 +43,7 @@ public partial class MainWindow : Window
         presentationTimer.Start();
         SubscribeLifecycle(persistenceEnabled && isolatedStore is null);
         InitSystemProxy(persistenceEnabled && isolatedStore is null);
+        Settings.VersionText.Text = ServiceBrand.Label;
         Closing += OnClosing;
         trayConnect = new Forms.ToolStripMenuItem("Подключить");
         trayStop = new Forms.ToolStripMenuItem("Остановить");
@@ -52,7 +53,7 @@ public partial class MainWindow : Window
         menu.Items.Add("Завершить", null, (_, _) => Dispatcher.Invoke(ExitApplication));
         trayConnect.Click += (_, _) => Dispatcher.Invoke(() => ConnectClick(this, new RoutedEventArgs()));
         trayStop.Click += (_, _) => Dispatcher.Invoke(() => StopClick(this, new RoutedEventArgs()));
-        tray = new Forms.NotifyIcon { Icon = System.Drawing.SystemIcons.Application, Text = "Облачка — отключено", ContextMenuStrip = menu };
+        tray = new Forms.NotifyIcon { Icon = System.Drawing.SystemIcons.Application, Text = ServiceBrand.Name + " — отключено", ContextMenuStrip = menu };
         tray.DoubleClick += (_, _) => Dispatcher.Invoke(ShowWindow);
         tray.MouseUp += (_, args) => { if (args.Button == Forms.MouseButtons.Left && args.Clicks < 2) Dispatcher.Invoke(ShowTrayPopup); };
         Loaded += (_, _) => { tray.Visible = true; RestoreSavedState(); UpdateControls(); };
@@ -108,7 +109,7 @@ public partial class MainWindow : Window
         Routes.ValidateRulesButton.IsEnabled = profile is not null && operation is null;
         trayConnect.Enabled = ConnectButton.IsEnabled;
         trayStop.Enabled = StopButton.IsEnabled;
-        tray.Text = "Облачка — " + StatusText.Text;
+        tray.Text = ServiceBrand.Name + " — " + StatusText.Text;
         EndpointText.Text = engine.ProcessId is not null ? $"SOCKS5  127.0.0.1:{engine.Port}  •  только TCP" : "Адрес SOCKS появится после запуска";
         RefreshPresentation();
     }

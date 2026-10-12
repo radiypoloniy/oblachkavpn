@@ -25,7 +25,7 @@ public static class LabCommand
             var result = await run(plan);
             await JsonSerializer.SerializeAsync(json, new
             {
-                App = BuildInfo.Label, GeneratedAt = DateTimeOffset.UtcNow,
+                App = ServiceBrand.Label, GeneratedAt = DateTimeOffset.UtcNow,
                 Measurement = "HTTP response headers through local SOCKS; not ping or bandwidth",
                 SystemNetworkModified = false, Result = result
             }, new JsonSerializerOptions { WriteIndented = true });
