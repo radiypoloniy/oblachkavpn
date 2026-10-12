@@ -7,7 +7,7 @@
 )
 $ErrorActionPreference = 'Stop'
 if ($ApplicationDirectory -eq '') {
-    $projectApp = Join-Path $PSScriptRoot '..\app-v08'
+    $projectApp = Join-Path $PSScriptRoot '..\app-v09'
     $packageApp = Join-Path $PSScriptRoot '..'
     if (Test-Path -LiteralPath (Join-Path $projectApp 'Oblachka.exe')) { $ApplicationDirectory = $projectApp }
     else { $ApplicationDirectory = $packageApp }
