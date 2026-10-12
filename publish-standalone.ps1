@@ -4,13 +4,13 @@
 param([switch]$AllowNet8)
 $ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
-$verified = Join-Path $projectRoot 'app-v082'
-if (-not (Test-Path -LiteralPath (Join-Path $verified 'tools\xray.exe'))) { throw 'Сначала запусти .\build.ps1: ядра берутся из проверенной сборки app-v082.' }
+$verified = Join-Path $projectRoot 'app-v09'
+if (-not (Test-Path -LiteralPath (Join-Path $verified 'tools\xray.exe'))) { throw 'Сначала запустите .\build.ps1: ядра берутся из проверенной сборки app-v09.' }
 $sdks = (& dotnet --list-sdks) -join "`n"
 if ($sdks -match '(?m)^10\.') { $tfm = 'net10.0-windows' }
 elseif ($AllowNet8) { $tfm = 'net8.0-windows'; Write-Warning '.NET 8 перестаёт получать обновления 10.11.2026. Установи SDK 10: winget install Microsoft.DotNet.SDK.10' }
 else { throw 'Нужен .NET SDK 10: winget install Microsoft.DotNet.SDK.10. Временно на .NET 8: .\publish-standalone.ps1 -AllowNet8' }
-$outputDirectory = Join-Path $projectRoot ('app-v082-standalone-' + $tfm.Split('.')[0])
+$outputDirectory = Join-Path $projectRoot ('app-v09-standalone-' + $tfm.Split('.')[0])
 if (Test-Path -LiteralPath $outputDirectory) { throw ('Папка уже есть: ' + $outputDirectory + '. Переименуй её; скрипт ничего не удаляет.') }
 & (Join-Path $projectRoot 'check-source-size.ps1')
 & dotnet publish (Join-Path $projectRoot 'src\RoutePilot.csproj') -c Release -r win-x64 --self-contained true `

@@ -1,12 +1,12 @@
 ﻿$ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
-$verified = Join-Path $projectRoot 'app-v082'
-$testDirectory = Join-Path $projectRoot 'app-v082-test'
+$verified = Join-Path $projectRoot 'app-v09'
+$testDirectory = Join-Path $projectRoot 'app-v09-test'
 
 # Проверки собираются отдельным проектом и в поставляемый RoutePilot.exe не попадают.
 # Здесь клиент пересобирается с -p:IncludeTestCode=true: только в этой сборке есть
 # части MainWindow из *Fixtures.cs и точка входа --ui-self-test.
-if (-not (Test-Path -LiteralPath (Join-Path $verified 'tools\xray.exe'))) { throw 'Сначала запусти .\build.ps1: ядра берутся из проверенной сборки app-v082.' }
+if (-not (Test-Path -LiteralPath (Join-Path $verified 'tools\xray.exe'))) { throw 'Сначала запустите .\build.ps1: ядра берутся из проверенной сборки app-v09.' }
 & (Join-Path $projectRoot 'check-source-size.ps1')
 & (Join-Path $projectRoot 'check-voice.ps1')
 & dotnet build (Join-Path $projectRoot 'tests\Oblachka.Tests.csproj') -c Release -o $testDirectory --configfile (Join-Path $projectRoot 'src\NuGet.Config') -p:UseSharedCompilation=false -p:IncludeTestCode=true

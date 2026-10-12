@@ -22,8 +22,11 @@ release-keys/
 
 app-v081/
 _to_delete/
-app-v082/
-app-v082-standalone-*/
-app-v082-test/
+app-v09/
+app-v09-standalone-*/
+app-v09-test/
 tests/bin/
 tests/obj/
+app-v082/
+app-v082-test/
+app-v082-standalone-*/
