@@ -16,7 +16,10 @@ public partial class MainWindow : Window
     private bool closed;
     private bool manualStop;
     private bool engineOperation;
+    // Адреса подписки сервиса (основной и резервные) и адреса сторонней подписки.
+    // Разделены, чтобы загрузка одной не стирала адрес другой.
     private IReadOnlyList<string> subscriptionSources = Array.Empty<string>();
+    private IReadOnlyList<string> externalSources = Array.Empty<string>();
     private int preferredSource;
     private ImportResult? pendingImport;
     private IReadOnlyList<RouteAttempt> routeAttempts = Array.Empty<RouteAttempt>();
@@ -98,14 +101,15 @@ public partial class MainWindow : Window
         ImportFileButton.IsEnabled = !active && operation is null;
         PasteButton.IsEnabled = !active && operation is null;
         SubscriptionButton.IsEnabled = !active && operation is null;
-        RefreshButton.IsEnabled = subscriptionSources.Count > 0 && operation is null;
-        FindRouteButton.IsEnabled = profile is not null && operation is null;
+        RefreshButton.IsEnabled = (subscriptionSources.Count > 0 || externalSources.Count > 0) && operation is null;
+        // Подбор переключает узел, поэтому доступен только внутри своего сервиса.
+        FindRouteButton.IsEnabled = profile is { IsService: true } && operation is null;
         ProfilePicker.IsEnabled = !active && operation is null;
         ProbeButton.IsEnabled = engine.ProcessId is not null && operation is null;
         ProbeUrl.IsEnabled = operation is null;
         CopyEndpointButton.IsEnabled = engine.ProcessId is not null;
         ReconnectButton.IsEnabled = profile is not null && operation is null;
-        Servers.MeasureButton.IsEnabled = profile is not null && !active && operation is null;
+        Servers.MeasureButton.IsEnabled = profile is not null && !active && operation is null && importedProfiles.Any(p => p.IsService);
         Servers.BestButton.IsEnabled = Servers.MeasureButton.IsEnabled;
         Routes.ValidateRulesButton.IsEnabled = profile is not null && operation is null;
         trayConnect.Enabled = ConnectButton.IsEnabled;
@@ -171,13 +175,18 @@ public partial class MainWindow : Window
         try
         {
             var profiles = importedProfiles.ToArray();
-            var selected = ProfileSelection.IndexOf(profiles, profile);
-            var result = await new RouteSearch(engine).FindAsync(profiles, selected, target, operation.Token,
+            // Перебор ограничен узлами сервиса: см. RouteCandidates.
+            var candidates = RouteCandidates.For(profiles, profile);
+            var result = await new RouteSearch(engine).FindAsync(candidates.Select(i => profiles[i]).ToArray(),
+                RouteCandidates.StartAt(candidates, profiles, profile), target, operation.Token,
                 (attempt, total) => { if (!closed) DetailText.Text = $"Проверяем подключение {attempt} из {total}. «Остановить» отменяет подбор."; });
             if (closed) return;
-            routeAttempts = result.Attempts;
-            if (result.ProfileIndex is int index)
+            // Нумерация попыток возвращается к позициям в общем списке: отчёт диагностики
+            // должен ссылаться на то, что видит пользователь.
+            routeAttempts = result.Attempts.Select(a => a with { ProfileIndex = candidates[a.ProfileIndex] }).ToArray();
+            if (result.ProfileIndex is int found)
             {
+                var index = candidates[found];
                 Servers.SearchBox.Clear(); ProfilePicker.ItemsSource = importedProfiles;
                 ProfilePicker.SelectedIndex = index; profile = profiles[index]; ShowProfile();
                 RecordProbe(new ProbeResult(true, result.Attempts[^1].Milliseconds, "Запрос выполнен"));

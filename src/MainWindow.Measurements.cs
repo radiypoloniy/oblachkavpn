@@ -8,13 +8,17 @@ public partial class MainWindow
         Servers.MeasureButton.Click += async (_, _) =>
         {
             if (operation is not null || engine.ProcessId is not null || profile is null) return;
+            if (!importedProfiles.Any(p => p.IsService)) { DetailText.Text = "Измерения выполняются только по узлам вашей подписки."; return; }
             operation = new CancellationTokenSource(); UpdateControls();
             try
             {
+                // Измеряем только узлы сервиса: сторонние конфигурации нам не принадлежат,
+                // и отвечать за их задержку и доступность мы не можем.
+                var measured = importedProfiles.Where(p => p.IsService).ToArray();
                 var done = 0;
-                await ServerMeasurements.MeasureAsync(importedProfiles.ToArray(),
+                await ServerMeasurements.MeasureAsync(measured,
                     () => new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), ""),
-                    result => { measurements[result.Fingerprint] = result; if (!closed) { DetailText.Text = $"Проверено серверов: {++done} из {importedProfiles.Count}. Можно остановить."; RefreshMeasurement(); } }, operation.Token);
+                    result => { measurements[result.Fingerprint] = result; if (!closed) { DetailText.Text = $"Проверено серверов: {++done} из {measured.Length}. Можно остановить."; RefreshMeasurement(); } }, operation.Token);
                 QueueStateSave();
             }
             catch (OperationCanceledException) { if (!closed) DetailText.Text = "Измерение завершено по отмене или лимиту пяти минут. Полученные результаты сохранены."; QueueStateSave(); }

@@ -5,13 +5,20 @@ using System.Text.Json.Nodes;
 
 namespace RoutePilot;
 
-public sealed record SavedProfile(string Name, JsonObject Outbound);
+public sealed record SavedProfile(string Name, JsonObject Outbound)
+{
+    // Источник появился в 0.9. В снимках прежних версий его нет, и тогда он выводится
+    // по адресам подписки: см. RestoreProfiles.
+    public ProfileSource? Source { get; init; }
+}
 public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string? SelectedFingerprint,
     string[] SubscriptionSources, int PreferredSource, bool StayInTray, bool AutoRecover)
 {
     // Имя выбранной записи рядом с её отпечатком: конфигурация может совпадать у двух
     // строк списка, например у «Авто» и страны-балансировщика за ним.
     public string? SelectedName { get; init; }
+    // Адреса сторонней подписки. Адреса сервиса остались в SubscriptionSources.
+    public string[] ExternalSources { get; init; } = Array.Empty<string>();
     public bool AutoRefresh { get; init; } = true;
     public bool SystemProxy { get; init; }
     public SubscriptionMetadata? Metadata { get; init; }
@@ -78,8 +85,14 @@ public sealed class ClientStateStore(string path)
         return null;
     }
 
-    public static IReadOnlyList<Profile> RestoreProfiles(ClientSnapshot snapshot) => snapshot.Profiles.Select(saved =>
-        Profiles.Parse(saved.Outbound.ToJsonString()) with { Name = saved.Name }).ToArray();
+    public static IReadOnlyList<Profile> RestoreProfiles(ClientSnapshot snapshot)
+    {
+        // Снимок прежней версии источника не содержал. Выводим его из сохранённых адресов
+        // подписки: список целиком с хостов сервиса — это узлы сервиса, иначе сторонние.
+        var inferred = ServiceKey.SourceOf(snapshot.SubscriptionSources ?? Array.Empty<string>());
+        return snapshot.Profiles.Select(saved =>
+            Profiles.Parse(saved.Outbound.ToJsonString()) with { Name = saved.Name, Source = saved.Source ?? inferred }).ToArray();
+    }
 
     private static void Validate(ClientSnapshot snapshot)
     {
@@ -94,6 +107,9 @@ public sealed class ClientStateStore(string path)
             if (snapshot.PreferredSource < 0 || snapshot.PreferredSource >= snapshot.SubscriptionSources.Length)
                 throw new UserError("Сохранённый адрес подписки повреждён.");
         }
+        if (snapshot.ExternalSources is null || snapshot.ExternalSources.Length > SubscriptionMirrors.MaxSources)
+            throw new UserError("Сохранённые сторонние подписки повреждены.");
+        if (snapshot.ExternalSources.Length > 0) SubscriptionMirrors.ParseSources(string.Join("\n", snapshot.ExternalSources));
         RestoreProfiles(snapshot);
         RoutingPlan.Validate(snapshot.RouteRules);
         ProgramRoutingPlan.Validate(snapshot.ProgramRules);

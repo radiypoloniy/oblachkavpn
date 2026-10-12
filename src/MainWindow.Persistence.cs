@@ -29,10 +29,10 @@ public partial class MainWindow
     }
 
     private ClientSnapshot CaptureState() => new(1,
-        importedProfiles.Select(p => new SavedProfile(p.Name, (System.Text.Json.Nodes.JsonObject)p.Outbound.DeepClone())).ToArray(),
+        importedProfiles.Select(p => new SavedProfile(p.Name, (System.Text.Json.Nodes.JsonObject)p.Outbound.DeepClone()) { Source = p.Source }).ToArray(),
         profile is null ? null : Profiles.Fingerprint(profile), subscriptionSources.ToArray(), preferredSource,
         Settings.StayInTray.IsChecked == true, AutoRecover.IsChecked == true)
-        { SelectedName = profile?.Name, AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, Metadata = subscriptionMetadata, RouteRules = siteRules.ToArray(), ProgramRules = programRules.ToArray(),
+        { SelectedName = profile?.Name, ExternalSources = externalSources.ToArray(), AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, Metadata = subscriptionMetadata, RouteRules = siteRules.ToArray(), ProgramRules = programRules.ToArray(),
             Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray() };
 
     private void SaveStateClick(object sender, RoutedEventArgs args)
@@ -69,13 +69,18 @@ public partial class MainWindow
     {
         var restored = ClientStateStore.RestoreProfiles(snapshot);
         subscriptionSources = snapshot.SubscriptionSources.ToArray(); preferredSource = snapshot.PreferredSource;
+        externalSources = snapshot.ExternalSources.ToArray();
         Settings.StayInTray.IsChecked = snapshot.StayInTray; AutoRecover.IsChecked = snapshot.AutoRecover;
         Settings.AutoRefresh.IsChecked = snapshot.AutoRefresh;
         Settings.SystemProxy.IsChecked = snapshot.SystemProxy; UpdateModeText();
         siteRules.Clear(); siteRules.AddRange(snapshot.RouteRules); RefreshRules();
         programRules.Clear(); programRules.AddRange(snapshot.ProgramRules); RefreshRules();
         measurements.Clear(); foreach (var measurement in snapshot.Measurements) measurements[measurement.Fingerprint] = measurement;
-        ApplyImport(new ImportResult(restored, 0, 0) { Metadata = snapshot.Metadata });
+        // Снимок хранит оба набора вперемешку: раскладываем обратно по источникам.
+        serviceProfiles = restored.Where(p => p.IsService).ToArray();
+        externalProfiles = restored.Where(p => !p.IsService).ToArray();
+        subscriptionMetadata = snapshot.Metadata;
+        ApplyProfiles(false);
         // Сначала имя вместе с отпечатком, потом только отпечаток: переименование узла в
         // панели выбор не теряет, а две строки с одинаковой конфигурацией не подменяют друг друга.
         var selected = restored.FirstOrDefault(p => p.Name == snapshot.SelectedName && Profiles.Fingerprint(p) == snapshot.SelectedFingerprint)

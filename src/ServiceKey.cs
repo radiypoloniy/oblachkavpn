@@ -55,6 +55,17 @@ public static class ServiceKey
         return "https://" + ServiceBrand.SubscriptionHosts[0].ToLowerInvariant() + ServiceBrand.SubscriptionPath + key;
     }
 
+    // Источник списка узлов определяется адресами, с которых он загружен. Смешанный набор
+    // считается сторонним: отвечать за подбор и измерения можно только по своим узлам.
+    public static ProfileSource SourceOf(IEnumerable<string> urls)
+    {
+        var list = urls as IReadOnlyList<string> ?? urls.ToArray();
+        if (list.Count == 0) return ProfileSource.External;
+        foreach (var url in list)
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || !ServiceBrand.IsServiceHost(uri.Host))
+                return ProfileSource.External;
+        return ProfileSource.Service;
+    }
     // Обратная операция для показа в интерфейсе: ключ из сохранённого адреса.
     public static string? KeyFromUrl(string url)
     {

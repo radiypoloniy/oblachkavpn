@@ -10,36 +10,56 @@ namespace RoutePilot;
 
 public partial class MainWindow
 {
+    // Вставленная ссылка и открытый файл — всегда сторонний источник: ключ сервиса
+    // вводится на первом экране и проходит через ServiceKey.
     private void Import(string input)
     {
         try
         {
             var result = ShareLinks.IsLink(input.Trim()) && !input.Trim().Contains('\n')
                 ? new ImportResult(new[] { Profiles.Parse(input) }, 0, 0) : Subscriptions.Parse(input);
-            subscriptionSources = Array.Empty<string>(); pendingImport = null;
-            ApplyImport(result);
+            // Вставленный профиль заменяет сторонний набор; адрес подписки сервиса не трогаем.
+            externalSources = Array.Empty<string>(); pendingImport = null;
+            ApplyImport(result.WithSource(ProfileSource.External));
         }
         catch (UserError ex) { DetailText.Text = ex.Message; }
     }
     private void ApplyImport(ImportResult result, bool preserveSelection = false)
     {
-        var selection = ProfileSelection.Find(result.Profiles, preserveSelection ? profile : null);
-        subscriptionMetadata = result.Metadata;
-        ProfilePicker.ItemsSource = result.Profiles;
-        importedProfiles = result.Profiles;
-        Servers.SearchBox.Clear();
-        ProfilePicker.Visibility = Visibility.Visible;
-        Servers.SubscriptionSummary.Text = $"Подключений: {result.Profiles.Count}";
-        UpdateSubscriptionSummary();
-        ProfilePicker.SelectedIndex = selection;
-        profile = result.Profiles[selection];
-        routeAttempts = Array.Empty<RouteAttempt>();
-        ShowProfile();
+        // Набор заменяется только свой. Сторонняя подписка не стирает узлы сервиса,
+        // и наоборот: пользователь мог добавить и то и другое.
+        if (result.Profiles.Count > 0 && result.Profiles[0].Source == ProfileSource.Service)
+        {
+            serviceProfiles = result.Profiles;
+            subscriptionMetadata = result.Metadata;
+        }
+        else externalProfiles = result.Profiles;
+        ApplyProfiles(preserveSelection);
         DetailText.Text = $"Добавлено подключений: {result.Profiles.Count}.";
         if (result.Unsupported + result.Invalid > 0) DetailText.Text += $" Пропущено: неподдерживаемых {result.Unsupported}, некорректных {result.Invalid}.";
         if (result.Reasons.Count > 0) DetailText.Text += " Причины: " + string.Join(" | ", result.Reasons);
         UpdateControls();
         QueueStateSave();
+    }
+
+    private void ApplyProfiles(bool preserveSelection)
+    {
+        var combined = serviceProfiles.Concat(externalProfiles).ToArray();
+        if (combined.Length == 0) return;
+        var selection = ProfileSelection.Find(combined, preserveSelection ? profile : null);
+        ProfilePicker.ItemsSource = combined;
+        importedProfiles = combined;
+        Servers.SearchBox.Clear();
+        ProfilePicker.Visibility = Visibility.Visible;
+        Servers.SubscriptionSummary.Text = externalProfiles.Count > 0
+            ? $"Подключений: {combined.Length} · свои {serviceProfiles.Count} · сторонние {externalProfiles.Count}"
+            : $"Подключений: {combined.Length}";
+        UpdateSubscriptionSummary();
+        RefreshExternalSummary();
+        ProfilePicker.SelectedIndex = selection;
+        profile = combined[selection];
+        routeAttempts = Array.Empty<RouteAttempt>();
+        ShowProfile();
     }
     private void ProfileSelectionChanged(object sender, SelectionChangedEventArgs args)
     {
@@ -68,8 +88,13 @@ public partial class MainWindow
         catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }
         finally { url = null; }
     }
+    // Обновляем подписку сервиса; если её нет, обновляем стороннюю.
     private async void RefreshClick(object sender, RoutedEventArgs args)
-    { if (subscriptionSources.Count > 0 && operation is null) await LoadSubscriptionAsync(subscriptionSources, preferredSource); }
+    {
+        if (operation is not null) return;
+        if (subscriptionSources.Count > 0) await LoadSubscriptionAsync(subscriptionSources, preferredSource);
+        else if (externalSources.Count > 0) await LoadSubscriptionAsync(externalSources, 0);
+    }
     private async Task LoadSubscriptionAsync(IReadOnlyList<string> sources, int preferred,
         Func<IReadOnlyList<string>, int, CancellationToken, Task<MirrorResult>>? loader = null)
     {
@@ -83,13 +108,16 @@ public partial class MainWindow
             subscriptionSchedule.Complete(DateTimeOffset.UtcNow, true);
             operation.Token.ThrowIfCancellationRequested();
             if (closed) return;
-            subscriptionSources = sources.ToArray(); preferredSource = result.SourceIndex;
+            var kind = ServiceKey.SourceOf(sources);
+            if (kind == ProfileSource.Service) { subscriptionSources = sources.ToArray(); preferredSource = result.SourceIndex; }
+            else externalSources = sources.ToArray();
+            var imported = result.Import.WithSource(kind);
             if (engine.State is ConnectionState.Running or ConnectionState.Verified)
             {
-                pendingImport = result.Import;
+                pendingImport = imported;
                 DetailText.Text = $"Получено подключений: {result.Import.Profiles.Count}; адрес №{result.SourceIndex + 1}. Текущий туннель сохранён. Новый список применится после остановки.";
             }
-            else { ApplyImport(result.Import, true); DetailText.Text += $" Загрузка: адрес №{result.SourceIndex + 1}, попыток {result.Attempts}."; }
+            else { ApplyImport(imported, true); DetailText.Text += $" Загрузка: адрес №{result.SourceIndex + 1}, попыток {result.Attempts}."; }
         }
         catch (OperationCanceledException) { subscriptionSchedule.Complete(DateTimeOffset.UtcNow, false); if (!closed) DetailText.Text = "Загрузка отменена. Предыдущий список сохранён."; }
         catch (SubscriptionAccessDenied ex) { subscriptionSchedule.AccessDenied(); if (!closed) DetailText.Text = ex.Message; }

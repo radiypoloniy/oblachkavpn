@@ -13,8 +13,44 @@ public partial class MainWindow
     internal void LoadPreviewProfiles() => Import("vless://11111111-1111-4111-8111-111111111111@example.com:443?security=tls&type=xhttp&path=%2Fexample&mode=stream-up#Тестовый%20XHTTP\nvless://22222222-2222-4222-8222-222222222222@example.net:443?security=tls&type=tcp#Тестовый%20TCP");
     internal void CheckPreviewControls()
     {
-        if (ProfilePicker.Items.Count != 2 || !ConnectButton.IsEnabled || !FindRouteButton.IsEnabled || StopButton.IsEnabled || ProbeButton.IsEnabled || !trayConnect.Enabled || trayStop.Enabled)
+        // Предпросмотр загружает сторонние профили: подключиться можно, подбирать маршрут
+        // и измерять — нет, это действия только по узлам своей подписки.
+        if (ProfilePicker.Items.Count != 2 || !ConnectButton.IsEnabled || StopButton.IsEnabled || ProbeButton.IsEnabled || !trayConnect.Enabled || trayStop.Enabled)
             throw new InvalidOperationException("Imported-profile controls have incorrect state");
+        if (FindRouteButton.IsEnabled || Servers.MeasureButton.IsEnabled)
+            throw new InvalidOperationException("Route search or measurement is offered for a third-party node");
+    }
+
+    // Те же профили, но как узлы сервиса: подбор и измерения должны стать доступны.
+    internal void CheckServiceControls(List<string> checks)
+    {
+        // Те же два профиля приходят как подписка сервиса. Сторонние из предпросмотра
+        // при этом никуда не деваются: наборы складываются, а не заменяют друг друга.
+        var service = importedProfiles.Select(p => p with { Source = ProfileSource.Service }).ToArray();
+        ApplyImport(new ImportResult(service, 0, 0));
+        if (ProfilePicker.Items.Count != 4 || importedProfiles.Count(p => p.IsService) != 2 || importedProfiles.Count(p => !p.IsService) != 2)
+            throw new InvalidOperationException("Service subscription replaced the third-party list instead of joining it: " + ProfilePicker.Items.Count);
+        checks.Add("Service subscription and third-party nodes live in one list without replacing each other");
+
+        // Узлы сервиса идут первыми, поэтому выбран сейчас свой: подбор и измерения доступны.
+        if (profile is not { IsService: true } || !FindRouteButton.IsEnabled || !Servers.MeasureButton.IsEnabled)
+            throw new InvalidOperationException("Own subscription nodes do not enable route search and measurement");
+        ProfilePicker.SelectedIndex = 3;
+        if (profile is not { IsService: false } || FindRouteButton.IsEnabled)
+            throw new InvalidOperationException("Route search is offered after switching to a third-party node");
+        checks.Add("Route search follows the selected node: offered for the service, withheld for third-party");
+
+        RemoveExternalClick(this, new RoutedEventArgs());
+        if (ProfilePicker.Items.Count != 2 || importedProfiles.Any(p => !p.IsService) || profile is not { IsService: true })
+            throw new InvalidOperationException("Removing third-party subscriptions did not restore the service-only list");
+        checks.Add("Third-party subscriptions can be removed while the service list and a valid selection stay");
+
+        // Возвращаем стенд в исходное состояние: дальше проверяется механика обновления
+        // и остановки, а она не про источники.
+        serviceProfiles = Array.Empty<Profile>();
+        externalProfiles = Array.Empty<Profile>();
+        profile = null;
+        LoadPreviewProfiles();
     }
     internal async Task<IReadOnlyList<string>> RunUiFixtureAsync()
     {
@@ -27,6 +63,7 @@ public partial class MainWindow
         CheckSubscriptionInput(checks);
         CheckCountryRows(checks);
         LoadPreviewProfiles(); CheckPreviewControls();
+        CheckServiceControls(checks);
         CheckClientBlocks(checks);
         checks.Add("Synthetic subscription updates picker, actions and tray");
         for (var i = 0; i < 2; i++)
@@ -60,7 +97,9 @@ public partial class MainWindow
             checks.Add("UI start/stop cycle " + (i + 1) + " correctly owns its Xray and action states");
         }
         await ConnectCoreAsync();
-        var loading = LoadSubscriptionAsync(subscriptionSources, preferredSource, async (_, _, ct) =>
+        // Синтетические адреса стенда ведут на fixture.invalid, то есть это сторонняя
+        // подписка: её адреса лежат в externalSources.
+        var loading = LoadSubscriptionAsync(externalSources, 0, async (_, _, ct) =>
         { await Task.Delay(Timeout.Infinite, ct); throw new InvalidOperationException(); });
         StopClick(this, new RoutedEventArgs()); await loading;
         await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);

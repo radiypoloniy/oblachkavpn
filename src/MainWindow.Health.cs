@@ -73,11 +73,15 @@ public partial class MainWindow
         {
             await Task.Delay(delay.Value, operation.Token);
             var profiles = importedProfiles.ToArray();
-            var selected = ProfileSelection.IndexOf(profiles, profile);
-            var result = await new RouteSearch(engine).FindAsync(profiles, selected, TunnelHealth.Targets[0], operation.Token);
-            routeAttempts = result.Attempts;
-            if (result.ProfileIndex is int index && !closed)
+            var candidates = RouteCandidates.For(profiles, profile);
+            var result = await new RouteSearch(engine).FindAsync(candidates.Select(i => profiles[i]).ToArray(),
+                RouteCandidates.StartAt(candidates, profiles, profile), TunnelHealth.Targets[0], operation.Token);
+            // Нумерация попыток возвращается к позициям в общем списке: отчёт диагностики
+            // должен ссылаться на то, что видит пользователь.
+            routeAttempts = result.Attempts.Select(a => a with { ProfileIndex = candidates[a.ProfileIndex] }).ToArray();
+            if (result.ProfileIndex is int found && !closed)
             {
+                var index = candidates[found];
                 Servers.SearchBox.Clear(); ProfilePicker.ItemsSource = importedProfiles;
                 ProfilePicker.SelectedIndex = index; profile = profiles[index]; health.Reset();
                 RecordProbe(new(true, result.Attempts[^1].Milliseconds, "Соединение восстановлено"));

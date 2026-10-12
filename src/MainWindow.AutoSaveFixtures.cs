@@ -11,7 +11,8 @@ public partial class MainWindow
         try
         {
             var imported = Subscriptions.Parse("vless://11111111-1111-4111-8111-111111111111@example.invalid:443?security=tls#%F0%9F%87%AA%F0%9F%87%BA%D0%90%D0%B2%D1%82%D0%BE");
-            var sources = new[] { "https://fixture.invalid/sub/remembered-token" };
+            // Адрес сервиса: именно этот путь проходит пользователь, вводя ключ подписки.
+            var sources = new[] { "https://" + ServiceBrand.SubscriptionHosts[0] + ServiceBrand.SubscriptionPath + "remembered-token" };
             await fresh.LoadSubscriptionAsync(sources, 0, (_, _, _) => Task.FromResult(new MirrorResult(imported, 0, 1)));
             fresh.FlushStateSave();
             if (!File.Exists(path)) throw new InvalidOperationException("Subscription requires a separate manual save");
@@ -20,6 +21,7 @@ public partial class MainWindow
             {
                 reloaded.RestoreSavedState();
                 if (reloaded.profile?.DisplayName != "Авто" || !reloaded.subscriptionSources.SequenceEqual(sources) ||
+                    reloaded.profile is not { IsService: true } ||
                     reloaded.Onboarding.Visibility == System.Windows.Visibility.Visible || reloaded.engine.ProcessId is not null)
                     throw new InvalidOperationException("Next launch requires the subscription again or starts the core automatically");
             }

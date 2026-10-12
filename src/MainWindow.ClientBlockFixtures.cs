@@ -17,7 +17,9 @@ public partial class MainWindow
         if (programRules.Count != 1 || programRules[0].Action != SiteAction.Direct) throw new InvalidOperationException("Program draft editor failed");
         Routes.ProgramList.SelectedIndex = 0; Routes.RemoveProgramButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
         if (programRules.Count != 0) throw new InvalidOperationException("Program draft removal failed");
-        if (!Servers.MeasureButton.IsEnabled || !Servers.BestButton.IsEnabled || !Routes.ValidateRulesButton.IsEnabled || backgroundWorkEnabled)
+        // Доступность измерений зависит от источника узла и проверяется отдельно
+        // в CheckPreviewControls и CheckServiceControls.
+        if (!Routes.ValidateRulesButton.IsEnabled || backgroundWorkEnabled)
             throw new InvalidOperationException("Client block actions or fixture network isolation incorrect");
         checks.Add("Rule editor normalizes draft domains and removes them; background requests disabled in fixtures");
     }

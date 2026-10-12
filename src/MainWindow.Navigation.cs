@@ -9,7 +9,11 @@ public partial class MainWindow
     private string currentPage = "Connection";
     private bool viewsReady;
     private bool exitRequested;
+    // Общий список для интерфейса: сначала узлы сервиса, затем сторонние.
     private IReadOnlyList<Profile> importedProfiles = Array.Empty<Profile>();
+    // Наборы живут раздельно, поэтому загрузка одного не стирает другой.
+    private IReadOnlyList<Profile> serviceProfiles = Array.Empty<Profile>();
+    private IReadOnlyList<Profile> externalProfiles = Array.Empty<Profile>();
 
     private void NavigationChecked(object sender, RoutedEventArgs args)
     {

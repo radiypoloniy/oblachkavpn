@@ -60,6 +60,8 @@ public partial class MainWindow
         Settings.CloseButton.Click += (_, _) => CloseSettings();
         Settings.ManageSubscriptionButton.Click += (_, _) => { CloseSettings(); Navigate("Servers"); };
         Settings.SaveStateButton.Click += SaveStateClick;
+        Settings.AddExternalButton.Click += AddExternalClick;
+        Settings.RemoveExternalButton.Click += RemoveExternalClick;
         Settings.OpenDiagnosticsButton.Click += (_, _) => { CloseSettings(); Navigate("Diagnostics"); };
     }
 }
