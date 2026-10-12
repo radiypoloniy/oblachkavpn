@@ -102,6 +102,17 @@ public static partial class SelfTests
             var reversed = new JsonObject(original.Outbound.Reverse().Select(p => new KeyValuePair<string, JsonNode?>(p.Key, p.Value?.DeepClone())));
             Assert(Profiles.Fingerprint(original) == Profiles.Fingerprint(original with { Name = "Changed", Outbound = reversed }));
         }));
+        await CheckAsync("Subscription keeps one node offered under two names and collapses exact repeats", () => Sync(() =>
+        {
+            // Реальная подписка Remnawave отдаёт один и тот же узел и как «Авто», и как страну.
+            // Склейка по конфигурации без имени молча теряла вторую запись.
+            var alias = link.Replace("#Test", "#Авто");
+            var both = Subscriptions.Parse(link + "\n" + alias);
+            Assert(both.Profiles.Count == 2 && both.Duplicates == 0);
+            Assert(Profiles.Fingerprint(both.Profiles[0]) == Profiles.Fingerprint(both.Profiles[1]));
+            var repeated = Subscriptions.Parse(link + "\n" + link);
+            Assert(repeated.Profiles.Count == 1 && repeated.Duplicates == 1);
+        }));
         await CheckAsync("Mirror addresses require explicit HTTPS URLs and reject excess sources", () => Sync(() =>
         {
             ExpectUserError(() => SubscriptionMirrors.ParseSources("http://fixture.invalid/sub"));

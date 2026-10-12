@@ -198,10 +198,15 @@ function Describe-Body {
         $result['WithName']   = $withName
         $result['WithParams'] = $withParams
 
-        # В ссылках XHTTP extra и downstream не переносятся. Это важно для нашего клиента.
-        $hasXhttp = @($lines | Where-Object { $_ -match 'type=xhttp' }).Count
-        $result['LinksWithXHTTP'] = $hasXhttp
-        $result['Note'] = 'Ссылки не переносят XHTTP extra/downloadSettings — если они нужны, панель должна отдавать Xray JSON'
+        # Remnawave кодирует XHTTP extra прямо в параметр ссылки, поэтому проверяем его наличие,
+        # а не считаем потерю заранее. downloadSettings в ссылку не помещается.
+        $result['LinksWithXHTTP'] = @($lines | Where-Object { $_ -match 'type=xhttp' }).Count
+        $result['LinksWithExtra'] = @($lines | Where-Object { $_ -match '[?&]extra=' }).Count
+        if ($result['LinksWithXHTTP'] -gt 0 -and $result['LinksWithExtra'] -eq 0) {
+            $result['Note'] = 'Есть XHTTP, но ни в одной ссылке нет параметра extra: часть настроек транспорта может теряться. Сверь с выдачей Xray JSON.'
+        } elseif ($result['LinksWithExtra'] -gt 0) {
+            $result['Note'] = 'XHTTP extra передаётся в ссылках. downloadSettings в ссылку не помещается — если раздельный downstream нужен, нужна выдача Xray JSON.'
+        }
         return [pscustomobject] $result
     }
 
