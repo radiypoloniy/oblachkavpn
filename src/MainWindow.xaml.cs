@@ -131,7 +131,7 @@ public partial class MainWindow : Window
         {
             await engine.StartAsync(profile, operation.Token);
             nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
-            if (!closed) DetailText.Text = "Подключение запущено. Проверь туннель в диагностике.";
+            if (!closed) DetailText.Text = "Подключение запущено. Проверьте туннель в диагностике.";
         }
         catch (OperationCanceledException) { if (!closed) DetailText.Text = "Запуск отменён или истёк срок ожидания. Можно попробовать снова."; }
         catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }
@@ -151,7 +151,7 @@ public partial class MainWindow : Window
     {
         if (vmTestActive || operation is not null) return;
         if (!Uri.TryCreate(ProbeUrl.Text.Trim(), UriKind.Absolute, out var target) || target.Scheme != "https" || !string.IsNullOrEmpty(target.UserInfo))
-        { DetailText.Text = "Укажи HTTPS-адрес без логина и пароля."; return; }
+        { DetailText.Text = "Укажите HTTPS-адрес без логина и пароля."; return; }
         operation = new CancellationTokenSource();
         engineOperation = true;
         UpdateControls();
@@ -165,7 +165,7 @@ public partial class MainWindow : Window
     {
         if (vmTestActive || operation is not null || profile is null) return;
         if (!Uri.TryCreate(ProbeUrl.Text.Trim(), UriKind.Absolute, out var target) || target.Scheme != "https" || target.UserInfo.Length > 0)
-        { DetailText.Text = "Укажи HTTPS-адрес проверки без логина и пароля."; return; }
+        { DetailText.Text = "Укажите HTTPS-адрес проверки без логина и пароля."; return; }
         manualStop = false; recoveryWait?.Cancel(); recovery.Reset();
         operation = new CancellationTokenSource(); engineOperation = true; findingRoute = true; Navigate("Connection"); UpdateControls();
         try
@@ -183,7 +183,7 @@ public partial class MainWindow : Window
                 RecordProbe(new ProbeResult(true, result.Attempts[^1].Milliseconds, "Запрос выполнен"));
                 DetailText.Text = $"Работающее подключение найдено. Попыток: {result.Attempts.Count}.";
             }
-            else DetailText.Text = $"Успешного запроса нет: проверено {result.Attempts.Count} подключений. Подключение остановлено. Проверь сеть и сайт проверки; это не доказывает блокировку всех узлов.";
+            else DetailText.Text = $"Успешного запроса нет: проверено {result.Attempts.Count} подключений. Подключение остановлено. Проверьте сеть и сайт проверки; это не доказывает блокировку всех узлов.";
         }
         catch (OperationCanceledException) { if (!closed) DetailText.Text = "Подбор отменён, подключение остановлено."; }
         catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }
@@ -193,7 +193,7 @@ public partial class MainWindow : Window
     {
         if (engine.ProcessId is null) return;
         try { Clipboard.SetText($"socks5://127.0.0.1:{engine.Port}"); DetailText.Text = "Адрес локального SOCKS скопирован."; }
-        catch (System.Runtime.InteropServices.ExternalException) { DetailText.Text = "Буфер обмена занят другим приложением. Попробуй снова."; }
+        catch (System.Runtime.InteropServices.ExternalException) { DetailText.Text = "Буфер обмена занят другим приложением. Попробуйте снова."; }
     }
     private async void ReconnectClick(object sender, RoutedEventArgs args)
     {

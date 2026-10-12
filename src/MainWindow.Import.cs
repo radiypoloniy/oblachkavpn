@@ -102,16 +102,16 @@ public partial class MainWindow
         if (dialog.ShowDialog(this) != true) return;
         try
         {
-            if (new FileInfo(dialog.FileName).Length > Profiles.MaxBytes) { DetailText.Text = "Файл больше 1 МБ. Выбери профиль одного подключения."; return; }
+            if (new FileInfo(dialog.FileName).Length > Profiles.MaxBytes) { DetailText.Text = "Файл больше 1 МБ. Выберите профиль одного подключения."; return; }
             Import(File.ReadAllText(dialog.FileName));
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { DetailText.Text = "Не удалось прочитать файл. Проверь доступ к нему."; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { DetailText.Text = "Не удалось прочитать файл. Проверьте доступ к нему."; }
     }
     private void PasteClick(object sender, RoutedEventArgs args)
     {
         var dialog = new Window { Owner = this, Title = "Добавить профиль", Width = 620, Height = 360, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = Background, FontFamily = FontFamily };
         var panel = new DockPanel { Margin = new Thickness(24) };
-        var caption = new TextBlock { Text = "Вставь ссылку vless://, trojan://, hy2:// или клиентский Xray / sing-box JSON.", Margin = new Thickness(0, 0, 0, 12), Foreground = Foreground };
+        var caption = new TextBlock { Text = "Вставьте ссылку vless://, trojan://, hy2:// или клиентский Xray / sing-box JSON.", Margin = new Thickness(0, 0, 0, 12), Foreground = Foreground };
         DockPanel.SetDock(caption, Dock.Top); panel.Children.Add(caption);
         var button = new Button { Content = "Добавить профиль", Margin = new Thickness(0, 14, 0, 0), HorizontalAlignment = HorizontalAlignment.Right };
         DockPanel.SetDock(button, Dock.Bottom); panel.Children.Add(button);

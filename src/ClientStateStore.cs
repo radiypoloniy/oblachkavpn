@@ -42,7 +42,7 @@ public sealed class ClientStateStore(string path)
             File.Move(staged, path, true);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or CryptographicException)
-        { throw new UserError("Не удалось сохранить подключения. Проверь доступ к папке приложения."); }
+        { throw new UserError("Не удалось сохранить подключения. Проверьте доступ к папке приложения."); }
         finally { CryptographicOperations.ZeroMemory(plain); }
     }
 
@@ -59,7 +59,7 @@ public sealed class ClientStateStore(string path)
             return snapshot;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or CryptographicException or JsonException or InvalidOperationException)
-        { throw new UserError("Не удалось открыть сохранённые подключения. Добавь подписку заново; исходный файл сохранён."); }
+        { throw new UserError("Не удалось открыть сохранённые подключения. Добавьте подписку заново; исходный файл сохранён."); }
         finally { if (plain is not null) CryptographicOperations.ZeroMemory(plain); }
     }
 

@@ -22,14 +22,14 @@ public sealed record LabPlan(Uri Target, IReadOnlyList<Profile> Profiles, int Re
             if (count is < 1 or > 10 || interval is < 0 or > 10000)
                 throw new UserError("Стенд: 1–10 повторов, интервал 0–10000 мс.");
             if (root["profiles"] is not JsonArray array || array.Count is < 1 or > 8)
-                throw new UserError("Стенд: добавь 1–8 профилей в массив profiles.");
+                throw new UserError("Стенд: добавьте 1–8 профилей в массив profiles.");
             var profiles = array.Select(p => p is JsonValue value && value.TryGetValue<string>(out var link)
                 ? RoutePilot.Profiles.Parse(link) : RoutePilot.Profiles.Parse(p?.ToJsonString() ?? "")).ToArray();
             return new(target, profiles, count, interval);
         }
         catch (UserError) { throw; }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
-        { throw new UserError("Некорректный план стенда. Проверь типы полей и профили."); }
+        { throw new UserError("Некорректный план стенда. Проверьте типы полей и профили."); }
     }
 
     private const int ProfilesLimit = 1024 * 1024;

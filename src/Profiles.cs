@@ -65,7 +65,7 @@ public static class Profiles
         // Keep this first build on encrypted public transports, including for optional VLESS Encryption.
         if (security is not ("tls" or "reality")) throw new UserError("Первая сборка принимает профили с TLS или REALITY.");
         if (HasInsecureTls(stream))
-            throw new UserError("Профиль отключает проверку TLS-сертификата. Используй профиль с проверкой сертификата.");
+            throw new UserError("Профиль отключает проверку TLS-сертификата. Используйте профиль с проверкой сертификата.");
         var network = stream["method"]?.GetValue<string>() ?? stream["network"]?.GetValue<string>() ?? "tcp";
         network = network.ToLowerInvariant() switch { "websocket" => "ws", "splithttp" => "xhttp", var n => n };
         if (network is not ("tcp" or "raw" or "xhttp" or "ws" or "grpc" or "httpupgrade"))

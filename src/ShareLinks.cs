@@ -135,7 +135,7 @@ public static class ShareLinks
     {
         RejectUnknown(q, new[] { "sni", "obfs", "obfs-password", "insecure", "mport", "alpn", "pinSHA256" });
         if (Get(q, "insecure") is "1" or "true") throw new UserError("Ссылка отключает проверку TLS-сертификата.");
-        if (q.ContainsKey("pinSHA256")) throw new UserError("Hysteria2 pinSHA256 пока не поддерживается: используй сертификат с обычной проверкой.");
+        if (q.ContainsKey("pinSHA256")) throw new UserError("Hysteria2 pinSHA256 пока не поддерживается: используйте сертификат с обычной проверкой.");
         var password = Uri.UnescapeDataString(uri.UserInfo);
         if (string.IsNullOrEmpty(password)) throw new UserError("В Hysteria2-ссылке нет пароля.");
         var tls = new JsonObject { ["enabled"] = true, ["server_name"] = Get(q, "sni", uri.Host) };

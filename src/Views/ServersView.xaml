@@ -32,7 +32,7 @@
       <Border Grid.Row="2" Background="#F5F6F8" CornerRadius="16" Padding="16" Margin="0,14,0,0">
         <StackPanel>
           <TextBlock x:Name="SubscriptionSummary" Text="Пока нет подключений" FontWeight="SemiBold"/>
-          <TextBlock Text="Добавь подписку или отдельный профиль" Style="{StaticResource MutedText}" FontSize="13" Margin="0,4,0,12"/>
+          <TextBlock Text="Добавьте подписку или отдельный профиль" Style="{StaticResource MutedText}" FontSize="13" Margin="0,4,0,12"/>
           <WrapPanel>
             <Button x:Name="RefreshButton" Content="Обновить" IsEnabled="False" Margin="0,0,8,6"/>
             <Button x:Name="SubscriptionButton" Content="+ Подписка" Margin="0,0,0,6"/>
@@ -42,8 +42,8 @@
     </Grid>
     <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
       <StackPanel>
-        <TextBlock x:Name="SelectedName" Text="Выбери подключение" Style="{StaticResource PageTitle}" TextTrimming="CharacterEllipsis"/>
-        <TextBlock Text="Используем параметры из твоего профиля. Страна выхода и скорость пока не определяются." Style="{StaticResource MutedText}" Margin="0,0,0,22"/>
+        <TextBlock x:Name="SelectedName" Text="Выберите подключение" Style="{StaticResource PageTitle}" TextTrimming="CharacterEllipsis"/>
+        <TextBlock Text="Используем параметры из вашего профиля. Страна выхода и скорость пока не определяются." Style="{StaticResource MutedText}" Margin="0,0,0,22"/>
         <TextBlock Text="Протокол и транспорт" FontWeight="SemiBold" Margin="0,0,0,12"/>
         <Border Style="{StaticResource Card}" Background="#F7F9FF" BorderBrush="{StaticResource Blue}">
           <StackPanel>

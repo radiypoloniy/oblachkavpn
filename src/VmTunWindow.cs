@@ -64,7 +64,7 @@ internal sealed class VmTunWindow : Window
         }
         catch (OperationCanceledException) { Finish("Проверка отменена или истёк срок ожидания."); }
         catch (UserError error) { Finish(error.Message); }
-        catch { Finish("Не удалось выполнить проверку. Проверь, что сборка распакована целиком и UAC использует ту же учётную запись Windows."); }
+        catch { Finish("Не удалось выполнить проверку. Проверьте, что сборка распакована целиком и UAC использует ту же учётную запись Windows."); }
         finally { starting = false; if (closeAfterStop) Close(); }
     }
 
@@ -73,7 +73,7 @@ internal sealed class VmTunWindow : Window
         if (finished) return;
         finished = true; watchdog.Stop(); session.Dispose();
         var adapterLeft = session.InterfaceName.Length > 0 && session.InterfaceExists;
-        status.Text = message + (adapterLeft ? " Адаптер остался: восстанови снимок VM перед повторной проверкой." : " Ядра остановлены, адаптер этой проверки отсутствует.");
+        status.Text = message + (adapterLeft ? " Адаптер остался: восстановите снимок VM перед повторной проверкой." : " Ядра остановлены, адаптер этой проверки отсутствует.");
         stop.Content = "Закрыть";
         stop.Click += (_, _) => { if (!starting) Close(); };
     }
@@ -81,7 +81,7 @@ internal sealed class VmTunWindow : Window
     internal static int Run(string path)
     {
         using var mutex = new System.Threading.Mutex(true, "Local\\Oblachka-VmTun-Test", out var first);
-        if (!first) { MessageBox.Show("Проверка TUN уже открыта. Останови её перед повторным запуском.", "Облачка"); return 1; }
+        if (!first) { MessageBox.Show("Проверка TUN уже открыта. Остановите её перед повторным запуском.", ServiceBrand.Name); return 1; }
         try { return new Application().Run(new VmTunWindow(path)); }
         catch { MessageBox.Show("Не удалось открыть проверку TUN.", "Облачка"); return 2; }
     }

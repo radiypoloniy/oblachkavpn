@@ -22,7 +22,7 @@ public partial class MainWindow
     private async void StartVmTunClick(object sender, RoutedEventArgs args)
     {
         if (!vmTestAllowed || vmTestActive || operation is not null) return;
-        if (profile is null) { DetailText.Text = "Сначала выбери сервер из своей подписки."; return; }
+        if (profile is null) { DetailText.Text = "Сначала выберите сервер из своей подписки."; return; }
         vmTestActive = true; IsEnabled = false;
         manualStop = true; recoveryWait?.Cancel();
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
@@ -37,13 +37,13 @@ public partial class MainWindow
             start.Arguments = "--vm-tun-host \"" + ticket + "\"";
             vmTestProcess = Process.Start(start) ?? throw new UserError("Windows не запустила проверку.");
             await vmTestProcess.WaitForExitAsync();
-            if (!closed) DetailText.Text = "Окно проверки закрыто. Для обычного подключения нажми включение VPN.";
+            if (!closed) DetailText.Text = "Окно проверки закрыто. Для обычного подключения нажмите включение VPN.";
         }
         catch (UserError error) { if (!closed) DetailText.Text = error.Message; }
         catch (OperationCanceledException) { if (!closed) DetailText.Text = "Не удалось вовремя получить адрес выбранного сервера."; }
         catch (System.ComponentModel.Win32Exception error) when (error.NativeErrorCode == 1223)
         { if (!closed) DetailText.Text = "Запрос прав администратора отменён. Можно повторить проверку."; }
-        catch { if (!closed) DetailText.Text = "Не удалось подготовить проверку. Проверь доступность выбранного сервера и целостность сборки."; }
+        catch { if (!closed) DetailText.Text = "Не удалось подготовить проверку. Проверьте доступность выбранного сервера и целостность сборки."; }
         finally { vmTestProcess?.Dispose(); vmTestProcess = null; vmTestActive = false; if (!closed) { IsEnabled = true; UpdateControls(); } }
     }
 }

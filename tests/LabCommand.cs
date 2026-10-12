@@ -18,7 +18,7 @@ public static class LabCommand
             var plan = LabPlan.Parse(await File.ReadAllTextAsync(manifestPath));
             var csvPath = Path.ChangeExtension(reportPath, ".csv");
             if (!Path.GetExtension(reportPath).Equals(".json", StringComparison.OrdinalIgnoreCase))
-                throw new UserError("Укажи отчёт с расширением .json.");
+                throw new UserError("Укажите отчёт с расширением .json.");
             // Reserve both new outputs before any network traffic. Existing files are untouched.
             using var json = new FileStream(reportPath, FileMode.CreateNew, FileAccess.Write);
             using var csv = new FileStream(csvPath, FileMode.CreateNew, FileAccess.Write);

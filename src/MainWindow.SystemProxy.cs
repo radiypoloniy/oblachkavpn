@@ -46,7 +46,7 @@ public partial class MainWindow
     {
         try { action(); }
         catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException or System.Security.SecurityException)
-        { DetailText.Text = ex is UserError ? ex.Message : "Не удалось изменить настройки прокси Windows. Проверь их вручную: Параметры → Сеть и Интернет → Прокси."; }
+        { DetailText.Text = ex is UserError ? ex.Message : "Не удалось изменить настройки прокси Windows. Проверьте их вручную: Параметры → Сеть и Интернет → Прокси."; }
     }
 
     private void UpdateModeText()

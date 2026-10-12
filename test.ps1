@@ -8,6 +8,7 @@ $testDirectory = Join-Path $projectRoot 'app-v082-test'
 # части MainWindow из *Fixtures.cs и точка входа --ui-self-test.
 if (-not (Test-Path -LiteralPath (Join-Path $verified 'tools\xray.exe'))) { throw 'Сначала запусти .\build.ps1: ядра берутся из проверенной сборки app-v082.' }
 & (Join-Path $projectRoot 'check-source-size.ps1')
+& (Join-Path $projectRoot 'check-voice.ps1')
 & dotnet build (Join-Path $projectRoot 'tests\Oblachka.Tests.csproj') -c Release -o $testDirectory --configfile (Join-Path $projectRoot 'src\NuGet.Config') -p:UseSharedCompilation=false -p:IncludeTestCode=true
 if ($LASTEXITCODE -ne 0) { throw 'Сборка проверок не прошла.' }
 Copy-Item -LiteralPath (Join-Path $verified 'tools') -Destination (Join-Path $testDirectory 'tools') -Recurse -Force

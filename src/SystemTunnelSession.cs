@@ -38,7 +38,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
         await operations.WaitAsync(token).ConfigureAwait(false);
         try
         {
-            if (State != SystemTunnelState.Idle) throw new UserError("Сначала останови системный туннель.");
+            if (State != SystemTunnelState.Idle) throw new UserError("Сначала остановите системный туннель.");
             Set(SystemTunnelState.Starting);
             try
             {

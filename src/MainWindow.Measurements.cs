@@ -24,7 +24,7 @@ public partial class MainWindow
         {
             if (operation is not null || engine.ProcessId is not null) return;
             var best = ServerMeasurements.Best(importedProfiles, measurements, DateTimeOffset.UtcNow);
-            if (best is null) { DetailText.Text = "Нет успешных измерений за последние 20 минут. Сначала проверь серверы."; return; }
+            if (best is null) { DetailText.Text = "Нет успешных измерений за последние 20 минут. Сначала проверьте серверы."; return; }
             Servers.SearchBox.Clear(); ProfilePicker.ItemsSource = importedProfiles; ProfilePicker.SelectedIndex = best.Value;
             DetailText.Text = "Выбран сервер с наименьшим временем успешного HTTPS-запроса.";
         };

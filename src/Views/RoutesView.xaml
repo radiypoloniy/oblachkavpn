@@ -8,7 +8,7 @@
           <Button x:Name="CopyEndpointButton" Content="Скопировать" DockPanel.Dock="Right" Background="White" IsEnabled="False" Margin="12,0,0,0"/>
           <StackPanel VerticalAlignment="Center">
             <TextBlock x:Name="EndpointText" Text="Адрес SOCKS появится после запуска" FontWeight="SemiBold" TextWrapping="Wrap"/>
-            <TextBlock Text="В программе выбери SOCKS5 с передачей имени сайта через прокси" Style="{StaticResource MutedText}" FontSize="12" Margin="0,5,0,0"/>
+            <TextBlock Text="В программе выберите SOCKS5 с передачей имени сайта через прокси" Style="{StaticResource MutedText}" FontSize="12" Margin="0,5,0,0"/>
           </StackPanel>
         </DockPanel>
       </Border>

@@ -1,6 +1,6 @@
 namespace RoutePilot;
 
-public sealed class SubscriptionAccessDenied() : UserError("Подписка отклонила доступ (HTTP 401/403). Проверь срок действия и ссылку. Обход через резервный адрес не выполняется.");
+public sealed class SubscriptionAccessDenied() : UserError("Подписка отклонила доступ (HTTP 401/403). Проверьте срок действия и ссылку. Обход через резервный адрес не выполняется.");
 public sealed record MirrorResult(ImportResult Import, int SourceIndex, int Attempts);
 
 public static class SubscriptionMirrors
@@ -10,7 +10,7 @@ public static class SubscriptionMirrors
     {
         if (input.Length > 20 * 1024) throw new UserError("Список адресов слишком большой.");
         var sources = input.Split(new[] { '\r', '\n' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Distinct(StringComparer.Ordinal).ToArray();
-        if (sources.Length is < 1 or > MaxSources) throw new UserError("Укажи от одного до пяти полных HTTPS-адресов подписки, каждый с новой строки.");
+        if (sources.Length is < 1 or > MaxSources) throw new UserError("Укажите от одного до пяти полных HTTPS-адресов подписки, каждый с новой строки.");
         foreach (var source in sources)
             if (!Uri.TryCreate(source, UriKind.Absolute, out var uri) || uri.Scheme != "https" || uri.UserInfo.Length > 0 || uri.Fragment.Length > 0)
                 throw new UserError("Каждая строка должна содержать полный HTTPS-адрес без логина, пароля и #fragment.");

@@ -38,7 +38,7 @@ public partial class MainWindow
     private void SaveStateClick(object sender, RoutedEventArgs args)
     {
         if (stateStore is null || profile is null || operation is not null) return;
-        if (pendingImport is not null) { DetailText.Text = "Сначала останови подключение, чтобы сохранить обновлённый список."; return; }
+        if (pendingImport is not null) { DetailText.Text = "Сначала остановите подключение, чтобы сохранить обновлённый список."; return; }
         try
         {
             stateStore.Save(CaptureState());

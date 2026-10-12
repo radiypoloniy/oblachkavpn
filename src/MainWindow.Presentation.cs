@@ -46,9 +46,9 @@ public partial class MainWindow
         Connection.Subtitle.Text = findingRoute ? "Проверим до шести подключений, не дольше двух минут" : state switch
         {
             ConnectionState.Verified => "Запрос через выбранный сервер выполнен",
-            ConnectionState.Running => "Локальный вход готов. Проверь запрос через туннель",
-            ConnectionState.Failed => "Попробуй снова или выбери другой сервер",
-            ConnectionState.Idle => "Включи выбранное подключение", _ => "Проверяем профиль и запускаем ядро"
+            ConnectionState.Running => "Локальный вход готов. Проверьте запрос через туннель",
+            ConnectionState.Failed => "Попробуйте снова или выберите другой сервер",
+            ConnectionState.Idle => "Включите выбранное подключение", _ => "Проверяем профиль и запускаем ядро"
         };
         var canStop = StopButton.IsEnabled;
         ConnectButton.Visibility = canStop ? Visibility.Collapsed : Visibility.Visible;
@@ -62,7 +62,7 @@ public partial class MainWindow
         MiniStatusText.Text = StatusText.Text;
         MiniStatusText.Foreground = foreground;
         MiniProfile.Text = profile?.DisplayName ?? "Локальный SOCKS5";
-        Servers.SelectedName.Text = profile?.DisplayName ?? "Выбери подключение";
+        Servers.SelectedName.Text = profile?.DisplayName ?? "Выберите подключение";
         Servers.SelectedTransport.Text = profile?.Transport ?? "—";
         Servers.SelectedCore.Text = profile is null ? "Ядро выберется по формату профиля" : profile.Core == CoreKind.Xray ? "Xray 26.9.9" : "sing-box 1.14.3";
         Servers.UseServerButton.IsEnabled = profile is not null;

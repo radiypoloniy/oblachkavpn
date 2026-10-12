@@ -9,7 +9,7 @@
           </StackPanel>
         </Border>
         <TextBlock x:Name="Headline" Text="Туннель выключен" FontSize="36" FontWeight="Bold" TextAlignment="Center" TextWrapping="Wrap" Margin="0,22,0,8"/>
-        <TextBlock x:Name="Subtitle" Text="Выбери подключение и включи туннель" Style="{StaticResource MutedText}" FontSize="15" TextAlignment="Center"/>
+        <TextBlock x:Name="Subtitle" Text="Выберите подключение и включите туннель" Style="{StaticResource MutedText}" FontSize="15" TextAlignment="Center"/>
         <Grid HorizontalAlignment="Center" Margin="0,28,0,26">
           <Button x:Name="ConnectButton" Style="{StaticResource Power}" HorizontalContentAlignment="Left" Foreground="#8A96A8" IsEnabled="False" AutomationProperties.Name="Включить туннель" ToolTip="Запустить выбранное подключение"/>
           <Button x:Name="StopButton" Style="{StaticResource Power}" HorizontalContentAlignment="Right" Foreground="#0D9267" Background="{StaticResource Green}" IsEnabled="False" Visibility="Collapsed" AutomationProperties.Name="Остановить туннель" ToolTip="Остановить подключение или отменить операцию"/>
@@ -46,7 +46,7 @@
                 <Path Data="{StaticResource GlobeIcon}" Stroke="{StaticResource Ink}" StrokeThickness="2" Width="22" Height="22" Stretch="Uniform"/>
               </Border>
               <StackPanel Grid.Column="1" Margin="14,0">
-                <TextBlock x:Name="ProfileNameText" Text="Добавь подключение" FontWeight="SemiBold" FontSize="15" TextTrimming="CharacterEllipsis"/>
+                <TextBlock x:Name="ProfileNameText" Text="Добавьте подключение" FontWeight="SemiBold" FontSize="15" TextTrimming="CharacterEllipsis"/>
                 <TextBlock x:Name="TransportText" Style="{StaticResource MutedText}" Text="Подписка, ключ или файл" TextTrimming="CharacterEllipsis"/>
               </StackPanel>
               <Button x:Name="ChangeServerButton" Grid.Column="2" Style="{StaticResource Quiet}" Content="Сменить" Padding="8"/>

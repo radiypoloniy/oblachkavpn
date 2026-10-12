@@ -14,7 +14,7 @@ public partial class MainWindow
     {
         if (closed || vmTestActive || manualStop || operation is not null || recoveryWait is not null || AutoRecover.IsChecked != true || profile is null) return;
         var delay = recovery.NextDelay(DateTimeOffset.UtcNow);
-        if (delay is null) { DetailText.Text = "Автоперезапуск остановлен после трёх попыток за две минуты. Проверь профиль и подключи вручную."; return; }
+        if (delay is null) { DetailText.Text = "Автоперезапуск остановлен после трёх попыток за две минуты. Проверьте профиль и подключи вручную."; return; }
         recoveryWait = new CancellationTokenSource();
         try
         {
@@ -39,6 +39,6 @@ public partial class MainWindow
             File.WriteAllText(dialog.FileName, DiagnosticReport.Create(engine.State, importedProfiles.Count, subscriptionSources.Count, events, routeAttempts));
             DetailText.Text = "Отчёт сохранён. Профили, UUID и адреса подписок в него не включены.";
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { DetailText.Text = "Не удалось сохранить отчёт. Выбери доступную папку."; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { DetailText.Text = "Не удалось сохранить отчёт. Выберите доступную папку."; }
     }
 }

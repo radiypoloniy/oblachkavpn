@@ -29,7 +29,7 @@ internal sealed class VmTunSession : IDisposable
         core = new Engine(executable, AppContext.BaseDirectory);
         await core.StartAsync(ticket.Profile, token);
         var probe = await core.ProbeAsync(new Uri("https://www.gstatic.com/generate_204"), token);
-        if (!probe.Success) throw new UserError("Выбранный сервер не прошёл проверку SOCKS. Останови проверку и выбери другой сервер в приложении.");
+        if (!probe.Success) throw new UserError("Выбранный сервер не прошёл проверку SOCKS. Остановите проверку и выберите другой сервер в приложении.");
         var lease = new NetworkLeaseRequest(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, core.Port, ticket.Peers);
         status("Проверяем конфигурацию TUN…");
         await CoreConfigurationCheck.ValidateTunAsync(lease, token);

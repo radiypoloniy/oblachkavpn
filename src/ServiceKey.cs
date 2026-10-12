@@ -28,7 +28,7 @@ public static class ServiceKey
         if (text.Contains('/')) return FromUrl("https://" + text);
 
         if (!LooksLikeKey(text))
-            throw new UserError("Ключ состоит из латинских букв, цифр, дефиса и подчёркивания. Проверь, что скопировал его целиком.");
+            throw new UserError("Ключ состоит из латинских букв, цифр, дефиса и подчёркивания. Проверьте, что скопировали его целиком.");
         return "https://" + ServiceBrand.SubscriptionHosts[0] + ServiceBrand.SubscriptionPath + text;
     }
 
@@ -41,7 +41,7 @@ public static class ServiceKey
         if (uri.UserInfo.Length > 0 || uri.Fragment.Length > 0)
             throw new UserError("В ссылке подписки не должно быть логина, пароля и части после #.");
         if (!ServiceBrand.IsServiceHost(uri.Host))
-            throw new UserError($"Это подписка другого сервиса, а не {ServiceBrand.Name}. Добавь её в «Настройки → Другие подписки».");
+            throw new UserError($"Это подписка другого сервиса, а не {ServiceBrand.Name}. Добавьте её в «Настройки → Другие подписки».");
 
         var key = uri.AbsolutePath;
         if (key.StartsWith(ServiceBrand.SubscriptionPath, StringComparison.OrdinalIgnoreCase))
@@ -50,7 +50,7 @@ public static class ServiceKey
         if (key.Length == 0 || key.Contains('/'))
             throw new UserError($"В ссылке нет ключа подписки. Нужен адрес вида https://{ServiceBrand.SubscriptionHosts[0]}{ServiceBrand.SubscriptionPath}ключ.");
         if (!LooksLikeKey(key))
-            throw new UserError("Ключ в ссылке содержит недопустимые символы. Проверь, что скопировал ссылку целиком.");
+            throw new UserError("Ключ в ссылке содержит недопустимые символы. Проверьте, что скопировали ссылку целиком.");
         // Нормализуем: запрос и регистр хоста не влияют на выдачу, ключ остаётся как есть.
         return "https://" + ServiceBrand.SubscriptionHosts[0].ToLowerInvariant() + ServiceBrand.SubscriptionPath + key;
     }

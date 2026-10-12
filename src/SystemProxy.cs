@@ -65,7 +65,7 @@ public sealed class SystemProxy(IProxySettingsStore store, string backupPath)
             if (backup is null || backup.Version != 1 || backup.Original is null || !IsOurs(backup.Applied)) throw new JsonException();
             return backup;
         }
-        catch (JsonException) { throw new UserError("Файл восстановления системного прокси повреждён: " + backupPath + ". Проверь настройки прокси Windows вручную."); }
+        catch (JsonException) { throw new UserError("Файл восстановления системного прокси повреждён: " + backupPath + ". Проверьте настройки прокси Windows вручную."); }
     }
 
     private void WriteBackup(ProxyBackup backup)

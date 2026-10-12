@@ -17,7 +17,7 @@ public sealed class RouteSearch
     public async Task<RouteSearchResult> FindAsync(IReadOnlyList<Profile> profiles, int selected, Uri target,
         CancellationToken token, Action<int, int>? progress = null)
     {
-        if (profiles.Count == 0) throw new UserError("Сначала добавь подключения.");
+        if (profiles.Count == 0) throw new UserError("Сначала добавьте подключения.");
         if (target.Scheme != "https" && !(target.Scheme == "http" && target.IsLoopback) || target.UserInfo.Length > 0)
             throw new UserError("Для проверки нужен HTTPS-адрес без логина и пароля.");
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -50,5 +50,5 @@ public sealed class RouteSearch
         { stop(); throw new UserError("Подбор остановлен по лимиту времени. Подключение выключено."); }
         catch { stop(); throw; }
     }
-    private sealed class CheckSiteError() : UserError("Сайт проверки вернул HTTP-ошибку. Подбор остановлен; выбери другой адрес проверки.");
+    private sealed class CheckSiteError() : UserError("Сайт проверки вернул HTTP-ошибку. Подбор остановлен; выберите другой адрес проверки.");
 }

@@ -25,7 +25,7 @@ public partial class MainWindow
 
     private void RefreshTrayPopup()
     {
-        trayPopup?.Refresh(StatusText.Text, profile?.DisplayName ?? "Добавь подключение", profile?.Transport ?? "Подписка, ключ или файл",
+        trayPopup?.Refresh(StatusText.Text, profile?.DisplayName ?? "Добавьте подключение", profile?.Transport ?? "Подписка, ключ или файл",
             lastProbe is { Success: true } ? "Туннель проверен" : "Туннель не проверен",
             sessionStarted is null ? "Туннель выключен" : Connection.SessionTime.Text + " в сети",
             StopButton.IsEnabled, StopButton.IsEnabled || ConnectButton.IsEnabled);
@@ -34,7 +34,7 @@ public partial class MainWindow
     internal TrayPopup CreateTrayPreview()
     {
         var popup = new TrayPopup(() => { }, () => { }, () => { });
-        popup.Refresh(StatusText.Text, profile?.DisplayName ?? "Добавь подключение", profile?.Transport ?? "Подписка, ключ или файл",
+        popup.Refresh(StatusText.Text, profile?.DisplayName ?? "Добавьте подключение", profile?.Transport ?? "Подписка, ключ или файл",
             "Туннель не проверен", "Туннель выключен", false, profile is not null);
         return popup;
     }

@@ -35,7 +35,7 @@ public sealed class Engine : ITunnelController
 
     public Task StartAsync(Profile profile, CancellationToken token)
     {
-        if (process is not null) throw new UserError("Сначала останови текущее подключение.");
+        if (process is not null) throw new UserError("Сначала остановите текущее подключение.");
         var filename = profile.Core == CoreKind.Xray ? "xray.exe" : "sing-box.exe";
         adapter = new(profile.Core, Path.Combine(Path.GetDirectoryName(adapter.Executable)!, filename));
         return StartAsync(profile.Outbound, token);
@@ -43,8 +43,8 @@ public sealed class Engine : ITunnelController
 
     internal async Task StartCoreAsync(Func<int, JsonObject> configFactory, CancellationToken token)
     {
-        if (process is not null) throw new UserError("Сначала останови текущее подключение.");
-        if (!File.Exists(adapter.Executable)) throw new UserError("Не найден файл ядра " + adapter.Label + ". Восстанови комплект приложения.");
+        if (process is not null) throw new UserError("Сначала остановите текущее подключение.");
+        if (!File.Exists(adapter.Executable)) throw new UserError("Не найден файл ядра " + adapter.Label + ". Восстановите комплект приложения.");
         stopping = false;
         try
         {
@@ -70,7 +70,7 @@ public sealed class Engine : ITunnelController
                 }
                 catch { TryKill(validator); throw; }
                 await Task.WhenAll(stdout, stderr); // Raw core output is never persisted or shown: it can contain credentials.
-                if (validator.ExitCode != 0) throw new UserError(adapter.Label + " отклонил конфигурацию. Проверь профиль и совместимость настроек.");
+                if (validator.ExitCode != 0) throw new UserError(adapter.Label + " отклонил конфигурацию. Проверьте профиль и совместимость настроек.");
             }
             token.ThrowIfCancellationRequested();
             Set(ConnectionState.Starting, "Запускаем " + adapter.Label);
@@ -93,7 +93,7 @@ public sealed class Engine : ITunnelController
             while (true)
             {
                 startup.Token.ThrowIfCancellationRequested();
-                if (process.HasExited) throw new UserError("Ядро завершилось при запуске. Проверь профиль или попробуй другой локальный порт.");
+                if (process.HasExited) throw new UserError("Ядро завершилось при запуске. Проверьте профиль или попробуйте другой локальный порт.");
                 try
                 {
                     using var client = new TcpClient();
@@ -114,12 +114,12 @@ public sealed class Engine : ITunnelController
         }
         catch (OperationCanceledException) { Stop(); throw; }
         catch (UserError) { Stop(); Set(ConnectionState.Failed, "Подключение не запущено"); throw; }
-        catch (Exception ex) { Stop(); Set(ConnectionState.Failed, "Подключение не запущено"); throw new UserError("Не удалось запустить ядро. Проверь доступ к папке приложения и наличие " + adapter.Label + ".", ex); }
+        catch (Exception ex) { Stop(); Set(ConnectionState.Failed, "Подключение не запущено"); throw new UserError("Не удалось запустить ядро. Проверьте доступ к папке приложения и наличие " + adapter.Label + ".", ex); }
     }
 
     public async Task<ProbeResult> ProbeAsync(Uri target, CancellationToken token)
     {
-        if (process is null || process.HasExited) throw new UserError("Сначала запусти подключение.");
+        if (process is null || process.HasExited) throw new UserError("Сначала запустите подключение.");
         var pid = process.Id;
         var port = Port;
         var watch = Stopwatch.StartNew();
@@ -138,7 +138,7 @@ public sealed class Engine : ITunnelController
             if (!response.IsSuccessStatusCode)
             {
                 Set(ConnectionState.Running, "Сайт проверки вернул ошибку; это не доказывает отказ всего туннеля.");
-                return new(false, watch.ElapsedMilliseconds, $"Ответ сайта: HTTP {(int)response.StatusCode}. Попробуй другой адрес проверки.", ProbeFailure.TargetResponse);
+                return new(false, watch.ElapsedMilliseconds, $"Ответ сайта: HTTP {(int)response.StatusCode}. Попробуйте другой адрес проверки.", ProbeFailure.TargetResponse);
             }
             Set(ConnectionState.Verified, "Запрос через туннель выполнен");
             return new(true, watch.ElapsedMilliseconds, $"Запрос через SOCKS выполнен за {watch.ElapsedMilliseconds} мс. Это время запроса, а не ping.");
@@ -161,7 +161,7 @@ public sealed class Engine : ITunnelController
     }
     private void OnExited(object? sender, EventArgs args)
     {
-        if (!stopping && ReferenceEquals(sender, process)) Set(ConnectionState.Failed, adapter.Label + " неожиданно остановился. Останови подключение и запусти его заново.");
+        if (!stopping && ReferenceEquals(sender, process)) Set(ConnectionState.Failed, adapter.Label + " неожиданно остановился. Остановите подключение и запустите его заново.");
     }
     public void Stop()
     {
@@ -192,7 +192,7 @@ public sealed class Engine : ITunnelController
             return ((IPEndPoint)listener.LocalEndpoint).Port;
         }
         catch (SocketException) when (preferred != 0)
-        { throw new UserError("Локальный SOCKS-порт занят. Освободи его или перезапусти приложение, чтобы выбрать новый порт."); }
+        { throw new UserError("Локальный SOCKS-порт занят. Освободите его или перезапустите приложение, чтобы выбрать новый порт."); }
         finally { listener.Stop(); }
     }
     public void Dispose() => Stop();

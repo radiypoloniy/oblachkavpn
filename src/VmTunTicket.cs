@@ -50,7 +50,7 @@ internal static class VmTunTickets
             if (bytes.Length > 65536) throw new UserError("Запрос слишком большой.");
             var ticket = JsonSerializer.Deserialize<VmTunTicket>(bytes) ?? throw new UserError("Пустой запрос.");
             if (ticket.Version != 1 || ticket.Created > DateTimeOffset.UtcNow.AddSeconds(30) ||
-                ticket.Created < DateTimeOffset.UtcNow.AddMinutes(-5)) throw new UserError("Запрос устарел. Запусти проверку ещё раз.");
+                ticket.Created < DateTimeOffset.UtcNow.AddMinutes(-5)) throw new UserError("Запрос устарел. Запустите проверку ещё раз.");
             NetworkHelperContracts.Validate(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, 10808, ticket.Peers));
             var parsed = Profiles.Parse(ticket.Profile.Outbound.ToJsonString());
             var address = parsed.Core == CoreKind.Xray ? Profiles.XrayEndpoint(parsed.Outbound)["address"]!.GetValue<string>() : parsed.Outbound["server"]!.GetValue<string>();

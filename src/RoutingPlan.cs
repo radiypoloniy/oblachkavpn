@@ -17,7 +17,7 @@ public static class RoutingPlan
     {
         domain = domain.Trim().TrimEnd('.');
         try { domain = new IdnMapping().GetAscii(domain).ToLowerInvariant(); }
-        catch (ArgumentException) { throw new UserError("Укажи домен сайта, например example.com."); }
+        catch (ArgumentException) { throw new UserError("Укажите домен сайта, например example.com."); }
         if (!Enum.IsDefined(action) || domain.Length is < 3 or > 253 || !domain.Contains('.') ||
             System.Net.IPAddress.TryParse(domain, out _) || domain.Split('.').Any(p => p.Length is < 1 or > 63 || p.StartsWith('-') || p.EndsWith('-') || p.Any(c => !(char.IsAsciiLetterOrDigit(c) || c == '-'))))
             throw new UserError("Нужен домен без https://, пути, порта и звёздочек.");

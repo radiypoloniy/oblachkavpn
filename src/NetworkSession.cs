@@ -16,7 +16,7 @@ public sealed class NetworkSession(INetworkSessionJournal journal, INetworkSessi
         {
             var existing = journal.Load();
             if (existing is { State: not NetworkSessionState.Released })
-                throw new UserError("Сначала восстанови предыдущую сетевую сессию.");
+                throw new UserError("Сначала восстановите предыдущую сетевую сессию.");
             token.ThrowIfCancellationRequested();
             var changes = backend.Prepare(lease).ToArray();
             var record = new NetworkSessionRecord(1, lease.LeaseId, NetworkSessionState.Prepare, changes);
