@@ -35,6 +35,11 @@ internal static class SystemTunnelCheckCommand
         // поэтому «известного» базового адреса не существует: его нужно измерять каждый раз.
         var baseline = Probe("https://api.ipify.org");
         Add("исходный выход (до туннеля): " + baseline);
+        Add("брандмауэр до туннеля: " + KillSwitchProbe.Describe());
+        // Соединение открывается заранее: именно такие кадры уходили мимо туннеля в
+        // захвате, и обрывает ли их блокировка — главный вопрос этого прогона.
+        const string earlyHost = "example.com";
+        var early = KillSwitchProbe.OpenBefore(earlyHost, 80, log);
 
         var engine = new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), "");
         HelperProcessLifetime? helper = null;
@@ -61,6 +66,10 @@ internal static class SystemTunnelCheckCommand
             Add("интерфейсы туннеля: " + string.Join(',', TunnelInterfaces.Ours()));
             Add("локальный порт ядра: " + engine.Port);
 
+            Add("блокировка трафика мимо туннеля: " + (session.BlocksBypass ? "поставлена" : "НЕ поставлена"));
+            Add("брандмауэр при поднятом туннеле: " + KillSwitchProbe.Describe());
+            Add(KillSwitchProbe.UseAfter(early, earlyHost));
+
             Thread.Sleep(TimeSpan.FromSeconds(Math.Clamp(holdSeconds, 1, 120)));
             var inside = Probe("https://api.ipify.org");
             var second = Probe("https://ifconfig.me/ip");
@@ -75,6 +84,8 @@ internal static class SystemTunnelCheckCommand
             session.StopAsync().GetAwaiter().GetResult();
             Add("после остановки состояние: " + session.State);
             Add("остались интерфейсы: " + (TunnelInterfaces.Ours().Count == 0 ? "нет" : string.Join(',', TunnelInterfaces.Ours())));
+            Add("брандмауэр после остановки: " + KillSwitchProbe.Describe());
+            early?.Dispose();
             var after = Probe("https://api.ipify.org");
             Add("выходной IP после остановки: " + after);
             Add(after == baseline
