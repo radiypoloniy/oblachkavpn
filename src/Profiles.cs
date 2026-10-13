@@ -10,14 +10,26 @@ public enum ProfileSource { Service, External }
 
 public sealed record Profile(string Name, string Transport, JsonObject Outbound, CoreKind Core = CoreKind.Xray) : System.ComponentModel.INotifyPropertyChanged
 {
-    private string listStatus = "Не проверен";
-    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
-    public string ListStatus => listStatus;
+    // Состояние строки отдельно от record: оно не участвует в равенстве профилей.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Profile, ListPresentation> listPresentations = new();
+    private sealed class ListPresentation
+    {
+        public string Status = "Не проверен";
+        public System.ComponentModel.PropertyChangedEventHandler? Handlers;
+    }
+    private ListPresentation Presentation => listPresentations.GetValue(this, static _ => new());
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged
+    {
+        add => Presentation.Handlers += value;
+        remove => Presentation.Handlers -= value;
+    }
+    public string ListStatus => Presentation.Status;
     public void SetListStatus(string value)
     {
-        if (listStatus == value) return;
-        listStatus = value;
-        PropertyChanged?.Invoke(this, new(nameof(ListStatus)));
+        var presentation = Presentation;
+        if (presentation.Status == value) return;
+        presentation.Status = value;
+        presentation.Handlers?.Invoke(this, new(nameof(ListStatus)));
     }
     public ProfileSource Source { get; init; } = ProfileSource.External;
     public ServerCountry Country => CountryCatalog.Resolve(Name);
