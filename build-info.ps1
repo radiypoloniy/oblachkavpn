@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 function Get-ClientSourceFingerprint {
     $sourceRoot = Join-Path $PSScriptRoot 'src'
