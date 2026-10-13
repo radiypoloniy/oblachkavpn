@@ -27,11 +27,12 @@ public partial class MainWindow
         Servers.SearchBox.Clear();
         if (ProfilePicker.Items.Count != 2 || profile != selected) throw new InvalidOperationException("Search reset lost selection");
         checks.Add("Server search filters and restores profiles without discarding the selected connection");
+        CheckServerList(checks);
         await ConnectCoreAsync();
         await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
         RefreshPresentation();
         if (Connection.ConnectButton.Visibility != Visibility.Collapsed || Connection.StopButton.Visibility != Visibility.Visible ||
-            Connection.Statistics.Visibility != Visibility.Visible || Connection.Headline.Text != "Прокси запущен" || Diagnostics.TunnelState.Text != "Не проверен")
+            Connection.Statistics.Visibility != Visibility.Visible || Connection.Headline.Text != "Подключение запущено" || Diagnostics.TunnelState.Text != "Не проверен")
             throw new InvalidOperationException("Running proxy falsely appears verified or power switch is wrong");
         Navigate("Connection");
         DesignPreview.Render(this, Path.Combine(AppContext.BaseDirectory, "preview-running.png"));

@@ -50,6 +50,9 @@ public static partial class SelfTests
         {
             var report = DiagnosticReport.Create(ConnectionState.Running, 2, 1, [new(DateTimeOffset.UtcNow, ClientEventCode.Verified)], [new(1, "SECRET-https://server.invalid/token", 5)]);
             Assert(!report.Contains("SECRET") && !report.Contains("server.invalid") && report.Contains("Unknown"));
+            using var systemReport = System.Text.Json.JsonDocument.Parse(DiagnosticReport.Create(ConnectionState.Running, 2, 1, [], [], DiagnosticMode.SystemTunnel, true));
+            Assert(systemReport.RootElement.GetProperty("Mode").GetString() == "SystemTunnel" &&
+                systemReport.RootElement.GetProperty("SystemNetworkModified").GetBoolean() && systemReport.RootElement.GetProperty("BlocksBypass").GetBoolean());
         }));
         await check("Server selection ignores stale failed and future measurements", () => Sync(() =>
         {
@@ -63,8 +66,9 @@ public static partial class SelfTests
         {
             var profile = Profiles.Parse(link); var key = Profiles.Fingerprint(profile); var store = new ClientStateStore(Path.Combine(root, "blocks-state.bin"));
             store.Save(new(1, [new(profile.Name, profile.Outbound)], key, ["https://fixture.invalid/SECRET-token"], 0, false, true)
-                { AutoRefresh = false, Metadata = new(1, 2, 100, null), RouteRules = [new("secret-domain.invalid", SiteAction.Direct)], ProgramRules = [new("steam.exe", SiteAction.Direct)], Measurements = [new(key, DateTimeOffset.UtcNow, true, 12)] });
+                { Favorites = [key], AutoRefresh = false, Metadata = new(1, 2, 100, null), RouteRules = [new("secret-domain.invalid", SiteAction.Direct)], ProgramRules = [new("steam.exe", SiteAction.Direct)], Measurements = [new(key, DateTimeOffset.UtcNow, true, 12)] });
             var loaded = store.Load()!; Assert(!loaded.AutoRefresh && loaded.Metadata?.Total == 100 && loaded.RouteRules.Length == 1 && loaded.ProgramRules.Length == 1 && loaded.Measurements[0].Milliseconds == 12);
+            Assert(loaded.Favorites.SequenceEqual(new[] { key }));
             var bytes = System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(root, "blocks-state.bin"))); Assert(!bytes.Contains("SECRET-token") && !bytes.Contains("secret-domain"));
         }));
     }
