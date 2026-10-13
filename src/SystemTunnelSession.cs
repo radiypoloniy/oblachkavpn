@@ -9,6 +9,8 @@ public sealed class SystemTunnelSession : IAsyncDisposable
     private readonly INetworkHelperClient helper;
     private readonly SemaphoreSlim operations = new(1);
     public SystemTunnelState State { get; private set; }
+    // Блокируется ли трафик мимо туннеля. Решает помощник, окно только сообщает.
+    public bool BlocksBypass { get; private set; }
     public event Action<SystemTunnelState>? Changed;
 
     public SystemTunnelSession(ITunnelController core, INetworkHelperClient helper)
@@ -43,7 +45,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
             try
             {
                 await core.StartAsync(plan.PinnedProfile, token).ConfigureAwait(false);
-                await helper.AcquireAsync(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, core.Port, plan.Peers), token).ConfigureAwait(false);
+                BlocksBypass = await helper.AcquireAsync(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, core.Port, plan.Peers), token).ConfigureAwait(false);
                 Set(SystemTunnelState.Running);
             }
             catch
@@ -66,6 +68,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
     private async Task CleanupAsync()
     {
         Set(SystemTunnelState.Stopping);
+        BlocksBypass = false;
         var recovered = false;
         try
         {

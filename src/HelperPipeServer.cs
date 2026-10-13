@@ -44,10 +44,13 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                     if (!recent.Add(request.RequestId)) throw new UserError("Повторная команда helper.");
                     order.Enqueue(request.RequestId); if (order.Count > 64) recent.Remove(order.Dequeue());
                     NetworkSessionState? state = session.State;
+                    bool? blocking = null;
                     if (request.Operation == HelperOperation.Acquire)
                     {
                         if (activeLease is not null) throw new UserError("Сессия уже запущена.");
-                        state = session.Acquire(request.Lease!, deadline.Token).State;
+                        var record = session.Acquire(request.Lease!, deadline.Token);
+                        state = record.State;
+                        blocking = SystemNetworkBackend.Blocks(record);
                         activeLease = request.Lease!.LeaseId;
                     }
                     else if (request.Operation == HelperOperation.Release)
@@ -56,7 +59,7 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                         state = session.Release(activeLease.Value).State;
                         if (state == NetworkSessionState.Released) activeLease = null;
                     }
-                    response = new(1, request.RequestId, state == NetworkSessionState.RecoveryRequired ? HelperFailure.RecoveryRequired : HelperFailure.None, state);
+                    response = new(1, request.RequestId, state == NetworkSessionState.RecoveryRequired ? HelperFailure.RecoveryRequired : HelperFailure.None, state, blocking);
                 }
                 catch (UserError)
                 {

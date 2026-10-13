@@ -19,11 +19,12 @@ public partial class MainWindow
         checks.Add("System VPN and the Windows proxy cannot be enabled at the same time");
 
         // Пояснение режима обязано говорить о его границах, а не обещать полную защиту.
-        // Раньше здесь требовалось слово «UDP»: его работа внутри туннеля не была доказана.
-        // Проверка захватом снаружи её доказала, зато показала настоящую границу — трафик
-        // мимо туннеля на краях окна. О ней и обязано говорить пояснение.
+        // Границу эту дважды переписывала проверка на стенде: сначала требовалось слово
+        // «UDP», пока его работа внутри туннеля не была доказана, потом — упоминание
+        // трафика мимо туннеля, пока блокировки не было вовсе. Теперь блокировка есть,
+        // но держится на брандмауэре Windows, и об этой зависимости надо сказать.
         var idle = Settings.SystemTunnelNote.Text;
-        if (!idle.Contains("мимо") || !idle.Contains("не реализована"))
+        if (!idle.Contains("мимо") || !idle.Contains("брандмауэр"))
             throw new InvalidOperationException("System mode note hides its limits: " + idle);
         UpdateSystemTunnelNote(SystemTunnelState.RecoveryRequired);
         if (!Settings.SystemTunnelNote.Text.Contains("не полностью"))
@@ -31,6 +32,10 @@ public partial class MainWindow
         UpdateSystemTunnelNote(SystemTunnelState.Running);
         if (!Settings.SystemTunnelNote.Text.Contains("весь трафик"))
             throw new InvalidOperationException("Running system mode is not described");
+        // Сессии в этот момент нет, значит и блокировки нет: работающий режим обязан
+        // это признать, а не выдавать защиту, которой не существует.
+        if (!Settings.SystemTunnelNote.Text.Contains("не действует"))
+            throw new InvalidOperationException("Running mode claims protection it does not have");
         checks.Add("System mode states and limits are shown plainly, including incomplete rollback");
 
         Settings.SystemTunnel.IsChecked = false;

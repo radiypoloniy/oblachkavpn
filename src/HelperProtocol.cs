@@ -11,11 +11,15 @@ public sealed record HelperRequest(
     [property: JsonRequired] Guid RequestId,
     [property: JsonRequired] HelperOperation Operation,
     [property: JsonRequired] NetworkLeaseRequest? Lease);
+// Blocking говорит, встала ли блокировка трафика мимо туннеля. Поле нужно затем,
+// что помощник решает это сам: при выключенном брандмауэре блокировки не будет, и
+// окно обязано сообщить пользователю то, что есть, а не то, на что мы рассчитывали.
 public sealed record HelperResponse(
     [property: JsonRequired] int Version,
     [property: JsonRequired] Guid RequestId,
     [property: JsonRequired] HelperFailure Failure,
-    [property: JsonRequired] NetworkSessionState? State);
+    [property: JsonRequired] NetworkSessionState? State,
+    [property: JsonRequired] bool? Blocking = null);
 
 public static class HelperProtocol
 {

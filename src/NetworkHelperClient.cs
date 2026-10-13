@@ -3,7 +3,8 @@ namespace Oblachka;
 public interface INetworkHelperClient : IAsyncDisposable
 {
     event Action? ConnectionLost;
-    Task AcquireAsync(NetworkLeaseRequest request, CancellationToken token);
+    // Возвращает признак того, блокируется ли трафик мимо туннеля.
+    Task<bool> AcquireAsync(NetworkLeaseRequest request, CancellationToken token);
     Task<NetworkSessionState> ReleaseAsync(CancellationToken token);
 }
 
@@ -24,7 +25,7 @@ public sealed class NetworkHelperClient : INetworkHelperClient
         if (this.interval <= TimeSpan.Zero || this.interval > TimeSpan.FromSeconds(5)) throw new ArgumentOutOfRangeException(nameof(interval));
     }
 
-    public async Task AcquireAsync(NetworkLeaseRequest request, CancellationToken token)
+    public async Task<bool> AcquireAsync(NetworkLeaseRequest request, CancellationToken token)
     {
         await operations.WaitAsync(token).ConfigureAwait(false);
         try
@@ -39,6 +40,9 @@ public sealed class NetworkHelperClient : INetworkHelperClient
                 throw new UserError("Helper не подтвердил запуск сетевой сессии.");
             pulseCancellation = new CancellationTokenSource();
             pulse = PulseAsync(pulseCancellation.Token);
+            // Отсутствие признака трактуется как «не блокируется»: обещать защиту
+            // по умолчанию нельзя.
+            return response.Blocking == true;
         }
         finally { operations.Release(); }
     }
