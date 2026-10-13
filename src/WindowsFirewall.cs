@@ -12,7 +12,7 @@ public sealed record FirewallRule(
     string Name, int Protocol = WindowsFirewallPolicy.AnyProtocol,
     string? LocalAddresses = null, string? RemoteAddresses = null,
     string? LocalPorts = null, string? RemotePorts = null,
-    FirewallAction Action = FirewallAction.Allow);
+    FirewallAction Action = FirewallAction.Allow, string? Program = null);
 
 // Брандмауэр, каким его видит kill switch. Отдельный интерфейс нужен затем, чтобы
 // проверки шли на подменном брандмауэре, а не на сети компьютера.
@@ -97,6 +97,7 @@ public sealed class WindowsFirewallPolicy : IFirewallPolicy
             if (rule.RemoteAddresses is not null) SetOn(created, "RemoteAddresses", rule.RemoteAddresses);
             if (rule.LocalPorts is not null) SetOn(created, "LocalPorts", rule.LocalPorts);
             if (rule.RemotePorts is not null) SetOn(created, "RemotePorts", rule.RemotePorts);
+            if (rule.Program is not null) SetOn(created, "ApplicationName", rule.Program);
             SetOn(created, "Profiles", ProfileAll);
             SetOn(created, "Enabled", true);
             var rules = Read("Rules") ?? throw new IOException("Брандмауэр не отдал список правил.");

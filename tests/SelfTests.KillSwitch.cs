@@ -71,13 +71,22 @@ public static partial class SelfTests
             Assert(kill.Apply(id, change) == NetworkWriteResult.Changed);
             // Иначе осталось бы окно, в котором наружу не проходит и сам туннель.
             var firstBlock = firewall.Log.FindIndex(l => l.StartsWith("outbound", StringComparison.Ordinal));
-            Assert(firewall.Log.Take(firstBlock).Count(l => l.StartsWith("rule+", StringComparison.Ordinal)) == 6);
+            Assert(firewall.Log.Take(firstBlock).Count(l => l.StartsWith("rule+", StringComparison.Ordinal)) == KillSwitchBackend.RuleNames.Count);
             Assert(firewall.Outbound.Values.All(a => a == FirewallAction.Block));
             // Адрес туннеля берётся из конфигурации ядра: расхождение закрыло бы туннель наглухо.
             var tunnelRule = firewall.Rules[KillSwitchBackend.TunnelRule];
             Assert(tunnelRule.LocalAddresses!.Contains(SingBoxTunConfig.TunHost4, StringComparison.Ordinal));
             Assert(tunnelRule.LocalAddresses!.Contains(SingBoxTunConfig.TunHost6, StringComparison.Ordinal));
-            Assert(firewall.Rules[KillSwitchBackend.PeerRule].RemoteAddresses == "203.0.113.7");
+            // Адрес узла открыт только программам ядер из папки сборки, и больше никому:
+            // разрешение без программы пустило бы к этому адресу мимо туннеля что угодно.
+            var xray = firewall.Rules[KillSwitchBackend.PeerXrayRule];
+            var singBox = firewall.Rules[KillSwitchBackend.PeerSingBoxRule];
+            Assert(xray.RemoteAddresses == "203.0.113.7" && singBox.RemoteAddresses == "203.0.113.7");
+            Assert(xray.Program == kill.XrayProgram && singBox.Program == kill.SingBoxProgram);
+            Assert(Path.IsPathFullyQualified(xray.Program!) && xray.Program!.EndsWith(Path.Combine("tools", "xray.exe"), StringComparison.Ordinal));
+            Assert(!firewall.Rules.ContainsKey(KillSwitchBackend.PeerRule));
+            Assert(firewall.Rules.Values.Where(r => r.Action == FirewallAction.Allow && r.Program is null)
+                .All(r => r.RemoteAddresses is null || !r.RemoteAddresses.Contains("203.0.113.7", StringComparison.Ordinal)));
             // DNS запрещается именно запретом: встроенные разрешения Windows иначе
             // выпускают его на физический адаптер, что и показал захват на стенде.
             // Резолверу туннеля нужно собственное разрешение: запрет по умолчанию

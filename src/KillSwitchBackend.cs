@@ -4,7 +4,7 @@ namespace Oblachka;
 //
 // Пока системный режим работает, исходящее действие всех профилей брандмауэра переведено
 // в Block, а наружу разрешены ровно три вещи: трафик, уходящий в туннель (по локальному
-// адресу самого туннеля), соединение с адресом входа узла и DHCP на физической сети.
+// адресу самого туннеля), соединение программ ядер с адресом входа узла и DHCP.
 // Отдельно запрещён DNS с любого адреса, кроме туннельного: у Windows есть собственные
 // встроенные разрешения, и запрет по умолчанию их не отменяет — на стенде DNS сквозь них
 // уходил на физический адаптер прямо при поднятом туннеле.
@@ -23,6 +23,12 @@ public sealed class KillSwitchBackend : INetworkSessionBackend
 {
     public const string ResourceId = "kill-switch";
     public static readonly string TunnelRule = ServiceBrand.Name + " — трафик в туннель";
+    // Адрес узла разрешён только программам ядер. Иначе к этому адресу мимо туннеля
+    // ходила бы любая программа: разрешение действует на адрес, а не на того, кто идёт.
+    public static readonly string PeerXrayRule = ServiceBrand.Name + " — соединение с сервером (Xray)";
+    public static readonly string PeerSingBoxRule = ServiceBrand.Name + " — соединение с сервером (sing-box)";
+    // Прежнее разрешение без привязки к программе. Не ставится, но снимается: могло
+    // остаться от сборки, которая его ставила.
     public static readonly string PeerRule = ServiceBrand.Name + " — соединение с сервером";
     public static readonly string DhcpRule = ServiceBrand.Name + " — получение адреса в сети";
     public static readonly string DnsRule = ServiceBrand.Name + " — запрет DNS мимо туннеля";
@@ -57,16 +63,24 @@ public sealed class KillSwitchBackend : INetworkSessionBackend
     // Имена правил постоянны и не содержат идентификатора сессии: правило, оставшееся
     // после потери журнала, иначе стало бы невидимым для уборки. Одновременных сессий
     // не бывает — журнал этого не допускает.
-    public static IReadOnlyList<string> RuleNames => new[] { TunnelRule, PeerRule, DhcpRule, TunnelDnsRule, DnsRule, DnsTcpRule };
+    public static IReadOnlyList<string> RuleNames => new[] { TunnelRule, PeerXrayRule, PeerSingBoxRule, DhcpRule, TunnelDnsRule, DnsRule, DnsTcpRule };
+    private static IReadOnlyList<string> CleanupNames => RuleNames.Append(PeerRule).ToArray();
 
     private readonly IFirewallPolicy firewall;
     private readonly int[] profiles;
+    private readonly string tools;
 
-    public KillSwitchBackend(IFirewallPolicy firewall, int[]? profiles = null)
+    // Ядра лежат в папке tools сборки — той же, из которой запущен помощник. Путь не
+    // приходит по IPC: окно не вправе назначать, какой программе открыть выход.
+    public KillSwitchBackend(IFirewallPolicy firewall, int[]? profiles = null, string? toolsDirectory = null)
     {
         this.firewall = firewall;
         this.profiles = profiles ?? WindowsFirewallPolicy.AllProfiles;
+        tools = toolsDirectory ?? Path.Combine(AppContext.BaseDirectory, "tools");
     }
+
+    public string XrayProgram => Path.Combine(tools, "xray.exe");
+    public string SingBoxProgram => Path.Combine(tools, "sing-box.exe");
 
     // Блокировка имеет смысл только при включённом брандмауэре: иначе исходящее действие
     // профиля ни на что не влияет, и мы бы обещали защиту, которой нет. Отказ брандмауэра
@@ -103,10 +117,11 @@ public sealed class KillSwitchBackend : INetworkSessionBackend
 
         // Остатки с нашими же именами могли пережить потерю журнала. Правило создаётся
         // заново, поэтому старое снимается до, а не после.
-        foreach (var name in RuleNames) firewall.RemoveRule(name);
+        foreach (var name in CleanupNames) firewall.RemoveRule(name);
         firewall.AddRule(new FirewallRule(TunnelRule,
             LocalAddresses: SingBoxTunConfig.TunHost4 + "," + SingBoxTunConfig.TunHost6));
-        firewall.AddRule(new FirewallRule(PeerRule, RemoteAddresses: peers));
+        firewall.AddRule(new FirewallRule(PeerXrayRule, RemoteAddresses: peers, Program: XrayProgram));
+        firewall.AddRule(new FirewallRule(PeerSingBoxRule, RemoteAddresses: peers, Program: SingBoxProgram));
         firewall.AddRule(new FirewallRule(DhcpRule, WindowsFirewallPolicy.Udp,
             LocalPorts: "68", RemotePorts: "67"));
         // Резолверу туннеля нужно собственное разрешение. Правило по локальному адресу
@@ -162,10 +177,10 @@ public sealed class KillSwitchBackend : INetworkSessionBackend
 
     private void RemoveRules()
     {
-        foreach (var name in RuleNames) firewall.RemoveRule(name);
+        foreach (var name in CleanupNames) firewall.RemoveRule(name);
         // Снятие проверяется, а не предполагается: оставшееся разрешение — это дыра,
         // а оставшийся запрет — молча сломанный DNS. И то и другое переживёт сессию.
-        var left = RuleNames.Where(firewall.RuleExists).ToArray();
+        var left = CleanupNames.Where(firewall.RuleExists).ToArray();
         if (left.Length > 0)
             throw new IOException("Брандмауэр не снял правила: " + string.Join(", ", left) + ".");
     }
