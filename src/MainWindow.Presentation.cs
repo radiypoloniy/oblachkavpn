@@ -41,12 +41,16 @@ public partial class MainWindow
         Connection.Headline.Text = findingRoute ? "Ищем маршрут" : state switch
         {
             ConnectionState.Idle => "Туннель выключен", ConnectionState.Verified => "Подключено",
-            ConnectionState.Running => "Прокси запущен", ConnectionState.Failed => "Подключение прервано", _ => "Подключаемся"
+            ConnectionState.Running => systemTunnel?.State == SystemTunnelState.Running ? "Системный VPN запущен" : "Подключение запущено",
+            ConnectionState.Failed => "Подключение прервано", _ => "Подключаемся"
         };
         Connection.Subtitle.Text = findingRoute ? "Проверим до шести подключений, не дольше двух минут" : state switch
         {
             ConnectionState.Verified => "Запрос через выбранный сервер выполнен",
-            ConnectionState.Running => "Локальный вход готов. Проверьте запрос через туннель",
+            ConnectionState.Running => systemTunnel?.State == SystemTunnelState.Running
+                ? "Системный туннель готов. Проверка связи доступна в диагностике"
+                : Settings.SystemProxy.IsChecked == true ? "Прокси Windows включён. Проверка связи доступна в диагностике"
+                : "Локальный прокси готов. Настройте его в нужной программе и проверьте связь",
             ConnectionState.Failed => "Попробуйте снова или выберите другой сервер",
             ConnectionState.Idle => "Включите выбранное подключение", _ => "Проверяем профиль и запускаем ядро"
         };
@@ -69,6 +73,9 @@ public partial class MainWindow
         Servers.SearchBox.IsEnabled = ProfilePicker.IsEnabled;
         RefreshServerListControls();
         Diagnostics.CoreState.Text = pid is null ? "Не запущен" : "Готов";
+        Diagnostics.NetworkNote.Text = SystemTunnelActive
+            ? "Включён системный режим. Запрос ниже проверяет связь через локальное ядро; проверка DNS, IPv6 и блокировки обхода выполняется отдельно."
+            : "Запрос ниже проверяет связь через локальный прокси. Он не проверяет DNS, IPv6 и трафик остальных программ.";
         Diagnostics.TunnelState.Text = lastProbe is null ? "Не проверен" : lastProbe.Success ? $"{lastProbe.Milliseconds} мс" : "Не прошёл";
         Diagnostics.Heading.Text = lastProbe is { Success: true } ? "Туннель проверен" : "Проверим подключение";
         Diagnostics.LastCheck.Text = lastCheck is null ? "Проверка ещё не выполнялась" : "Последняя проверка " + lastCheck.Value.ToLocalTime().ToString("HH:mm:ss");

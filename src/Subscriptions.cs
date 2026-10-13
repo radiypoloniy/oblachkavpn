@@ -156,7 +156,7 @@ public static class Subscriptions
             if ((int)response.StatusCode is >= 300 and < 400) throw new UserError("Подписка перенаправляет запрос. Вставьте конечную HTTPS-ссылку из панели.");
             if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
                 throw new SubscriptionAccessDenied();
-            if (!response.IsSuccessStatusCode) throw new UserError($"Подписка вернула HTTP {(int)response.StatusCode}. Проверьте ссылку и доступ.");
+            if (!response.IsSuccessStatusCode) throw new UserError($"Не удалось обновить подписку (HTTP {(int)response.StatusCode}). Попробуйте позже. Сохранённые подключения остаются в списке.");
             if (response.Content.Headers.ContentLength > Profiles.MaxBytes) throw new UserError("Подписка больше 1 МБ.");
             await using var stream = await response.Content.ReadAsStreamAsync(token);
             using var memory = new MemoryStream(); var buffer = new byte[8192];

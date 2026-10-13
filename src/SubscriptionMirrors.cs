@@ -1,6 +1,6 @@
 namespace Oblachka;
 
-public sealed class SubscriptionAccessDenied() : UserError("Подписка отклонила доступ (HTTP 401/403). Проверьте срок действия и ссылку. Обход через резервный адрес не выполняется.");
+public sealed class SubscriptionAccessDenied() : UserError("Доступ к подписке отклонён (HTTP 401/403). Проверьте ключ и срок подписки в панели сервиса. Автообновление приостановлено; после решения проблемы нажмите «Обновить». Сохранённые подключения остаются в списке.");
 public sealed record MirrorResult(ImportResult Import, int SourceIndex, int Attempts);
 
 public static class SubscriptionMirrors

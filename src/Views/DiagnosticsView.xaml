@@ -24,7 +24,7 @@
             <Border BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="0,16">
               <TextBlock Text="DNS и IPv6 компьютера не проверялись" Style="{StaticResource MutedText}"/>
             </Border>
-            <TextBlock Text="Обычный режим не меняет системные маршруты. Эта проверка относится только к запросу через SOCKS5." Style="{StaticResource MutedText}" FontSize="13"/>
+            <TextBlock x:Name="NetworkNote" Text="Запрос ниже проверяет связь через локальный прокси." Style="{StaticResource MutedText}" FontSize="13"/>
           </StackPanel>
         </Border>
         <TextBox x:Name="ProbeUrl" Text="https://www.gstatic.com/generate_204" Margin="0,20,0,10" AutomationProperties.Name="HTTPS-адрес проверки" ToolTip="Сайт проверки получит запрос через выбранный сервер"/>
