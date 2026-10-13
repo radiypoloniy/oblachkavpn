@@ -25,7 +25,7 @@ internal static class SystemTunnelCheckCommand
             using var fetch = new CancellationTokenSource(TimeSpan.FromSeconds(40));
             imported = Subscriptions.FetchAsync(ServiceKey.ToSubscriptionUrl(key), fetch.Token).GetAwaiter().GetResult();
         }
-        catch (Exception ex) { Add("подписка не загружена: " + ex.GetType().Name); Save(); return 2; }
+        catch (Exception ex) { Add("подписка не загружена: " + ex.GetType().Name + (ex is UserError ? " — " + ex.Message : "")); Save(); return 2; }
 
         var profile = imported.Profiles.FirstOrDefault(p => p.DisplayName.Contains(nodeName, StringComparison.OrdinalIgnoreCase));
         if (profile is null) { Add("узел не найден: " + nodeName); Save(); return 3; }
@@ -73,6 +73,10 @@ internal static class SystemTunnelCheckCommand
             Add(KillSwitchProbe.UseAfter(early, earlyHost));
             Add("резолверы при поднятом туннеле: " + KillSwitchProbe.Resolvers());
             Add(KillSwitchProbe.Resolve("api.ipify.org"));
+            // Три пути по отдельности: без имени (только TCP через туннель), через локальный
+            // SOCKS ядра (ядро → узел, туннель не участвует) и обычный запрос по имени.
+            Add("без DNS, по адресу 1.1.1.1: " + Probe("https://1.1.1.1/cdn-cgi/trace", "ip="));
+            Add("через SOCKS ядра: " + Socks(engine));
 
             Thread.Sleep(TimeSpan.FromSeconds(Math.Clamp(holdSeconds, 1, 120)));
             var inside = Probe("https://api.ipify.org");
@@ -80,10 +84,15 @@ internal static class SystemTunnelCheckCommand
             Add("выходной IP: " + inside);
             Add("второй источник: " + second);
             // Вывод делается сравнением с измеренным исходным выходом, а не с зашитым адресом.
-            Add(inside == baseline
-                ? "ВЫВОД: выход не изменился — перенаправление НЕ подтверждено"
-                : "ВЫВОД: выход изменился с " + baseline + " на " + inside + " — перенаправление подтверждено");
+            // Ошибка — не «другой выход»: раньше отказ всех запросов читался как успех.
+            Add(inside.StartsWith("ошибка", StringComparison.Ordinal)
+                ? "ВЫВОД: через туннель связи нет — перенаправление НЕ подтверждено"
+                : inside == baseline
+                    ? "ВЫВОД: выход не изменился — перенаправление НЕ подтверждено"
+                    : "ВЫВОД: выход изменился с " + baseline + " на " + inside + " — перенаправление подтверждено");
             if (inside != second) Add("ВНИМАНИЕ: источники разошлись, замеру верить нельзя");
+            ForeignAllowProbe.Run(plan.Peers[0], Add);
+            SystemTunnelCoreLoss.Run(session, engine, Add, () => Probe("https://api.ipify.org"));
 
             session.StopAsync().GetAwaiter().GetResult();
             Add("после остановки состояние: " + session.State);
@@ -127,13 +136,25 @@ internal static class SystemTunnelCheckCommand
     }
 
     // Запрос идёт мимо локального прокси: нас интересует, куда система выпускает трафик.
-    private static string Probe(string url)
+    private static string Probe(string url, string? line = null)
     {
         try
         {
             using var handler = new HttpClientHandler { UseProxy = false, AllowAutoRedirect = false };
             using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(25) };
-            return client.GetStringAsync(url).GetAwaiter().GetResult().Trim();
+            var text = client.GetStringAsync(url).GetAwaiter().GetResult().Trim();
+            return line is null ? text : text.Split('\n').FirstOrDefault(l => l.StartsWith(line, StringComparison.Ordinal)) ?? "ответ без " + line;
+        }
+        catch (Exception ex) { return "ошибка (" + ex.GetType().Name + ")"; }
+    }
+
+    private static string Socks(Engine engine)
+    {
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+            var result = engine.ProbeAsync(new Uri("https://api.ipify.org"), timeout.Token).GetAwaiter().GetResult();
+            return result.Success ? "работает, " + result.Milliseconds + " мс" : "НЕ работает (" + result.Failure + ")";
         }
         catch (Exception ex) { return "ошибка (" + ex.GetType().Name + ")"; }
     }
