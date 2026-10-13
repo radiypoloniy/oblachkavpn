@@ -78,6 +78,7 @@ internal static class SystemTunnelCheckCommand
             Add("блокировка трафика мимо туннеля: " + (session.BlocksBypass ? "поставлена" : "НЕ поставлена"));
             Add("брандмауэр при поднятом туннеле: " + KillSwitchProbe.Describe());
             Add(KillSwitchProbe.ForeignAllows());
+            Add(WfpStateProbe.Describe());
             Add(KillSwitchProbe.UseAfter(early, earlyHost));
             Add("резолверы при поднятом туннеле: " + KillSwitchProbe.Resolvers());
             Add(KillSwitchProbe.Resolve("api.ipify.org"));
@@ -106,6 +107,7 @@ internal static class SystemTunnelCheckCommand
             Add("после остановки состояние: " + session.State);
             Add("остались интерфейсы: " + (TunnelInterfaces.Ours().Count == 0 ? "нет" : string.Join(',', TunnelInterfaces.Ours())));
             Add("брандмауэр после остановки: " + KillSwitchProbe.Describe());
+            Add("после остановки " + WfpStateProbe.Describe());
             foreach (var step in KillSwitchProbe.HelperSteps()) Add(step);
             early?.Dispose();
             var after = Probe("https://api.ipify.org");
@@ -114,6 +116,9 @@ internal static class SystemTunnelCheckCommand
                 ? "ВЫВОД: выход вернулся к исходному — откат подтверждён"
                 : "ВНИМАНИЕ: выход после остановки отличается от исходного");
             Add("итоговые переходы: " + string.Join(" → ", states));
+            // Журнал занят помощником, пока тот жив: следующему он нужен свободным.
+            helper.DisposeAsync().AsTask().GetAwaiter().GetResult(); helper = null;
+            SystemTunnelHelperLoss.Run(plan, engine, Add, () => Probe("https://api.ipify.org"));
         }
         catch (Exception ex)
         {
