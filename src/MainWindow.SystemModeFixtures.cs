@@ -21,10 +21,11 @@ public partial class MainWindow
         // Пояснение режима обязано говорить о его границах, а не обещать полную защиту.
         // Границу эту дважды переписывала проверка на стенде: сначала требовалось слово
         // «UDP», пока его работа внутри туннеля не была доказана, потом — упоминание
-        // трафика мимо туннеля, пока блокировки не было вовсе. Теперь блокировка есть,
-        // но держится на брандмауэре Windows, и об этой зависимости надо сказать.
+        // трафика мимо туннеля, пока блокировки не было вовсе, потом — зависимости от
+        // брандмауэра Windows. Теперь блокировка на фильтрах WFP, и её граница — срок
+        // жизни приложения: при завершении окна режим снимается вместе с блокировкой.
         var idle = Settings.SystemTunnelNote.Text;
-        if (!idle.Contains("мимо") || !idle.Contains("брандмауэр"))
+        if (!idle.Contains("мимо") || !idle.Contains("завершении"))
             throw new InvalidOperationException("System mode note hides its limits: " + idle);
         UpdateSystemTunnelNote(SystemTunnelState.RecoveryRequired);
         if (!Settings.SystemTunnelNote.Text.Contains("не полностью"))

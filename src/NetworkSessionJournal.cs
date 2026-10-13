@@ -24,6 +24,21 @@ public sealed class NetworkSessionJournal : INetworkSessionJournal, IDisposable
         ownership = new FileStream(this.path + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
     }
 
+    // Состояние журнала без владения им: окно спрашивает, не осталась ли сеть изменённой
+    // после прерванной сессии. Непрочитанный журнал — тоже повод восстановить сеть.
+    public static NetworkSessionState? PeekState(string path)
+    {
+        try
+        {
+            if (!File.Exists(path) || new FileInfo(path).Length > MaxBytes) return null;
+            using var document = JsonDocument.Parse(File.ReadAllBytes(path));
+            return Enum.TryParse<NetworkSessionState>(document.RootElement.GetProperty("State").GetString(), out var state)
+                ? state : NetworkSessionState.RecoveryRequired;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or KeyNotFoundException or InvalidOperationException)
+        { return NetworkSessionState.RecoveryRequired; }
+    }
+
     public NetworkSessionRecord? Load()
     {
         ObjectDisposedException.ThrowIf(disposed, this);

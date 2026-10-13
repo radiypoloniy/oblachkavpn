@@ -5,10 +5,11 @@ namespace Oblachka;
 public enum NetworkSessionState { Prepare, Applied, Restoring, Released, RecoveryRequired }
 public enum NetworkChangeState { Planned, Applied, Restored, Conflict }
 // Порядок значений задаёт порядок применения: сессия применяет изменения по списку,
-// а снимает в обратном. KillSwitch стоит первым, потому что захват трафика показал,
+// а снимает в обратном. Защита стоит первой, потому что захват трафика показал,
 // что утечки лежат на краях окна — до поднятия туннеля и после его снятия.
+// WfpProtection — фильтры Windows, KillSwitch — прежняя блокировка брандмауэром.
 // В журнал значения пишутся строками, поэтому порядок можно менять.
-public enum NetworkResourceKind { KillSwitch, PeerRoute, TunnelInterface, DefaultRoute, Dns }
+public enum NetworkResourceKind { WfpProtection, KillSwitch, PeerRoute, TunnelInterface, DefaultRoute, Dns }
 public enum NetworkWriteResult { Changed, Unchanged, Conflict }
 
 // Only a trusted backend prepares these values. They are not an IPC command or core configuration.
@@ -51,7 +52,7 @@ public static class NetworkSessionValidation
             record.Changes is null || record.Changes.Length is < 1 or > 32)
             throw new UserError("Неподдерживаемый журнал сетевой сессии.");
         var ids = new HashSet<string>(StringComparer.Ordinal);
-        var lastKind = NetworkResourceKind.KillSwitch;
+        var lastKind = NetworkResourceKind.WfpProtection;
         foreach (var change in record.Changes)
         {
             if (change is null || !Enum.IsDefined(change.Kind) || !Enum.IsDefined(change.State) ||

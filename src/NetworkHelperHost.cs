@@ -85,7 +85,12 @@ public static class NetworkHelperHost
             KillSwitchBackend? killSwitch = null;
             try { killSwitch = new KillSwitchBackend(WindowsFirewallPolicy.Open()); }
             catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException) { }
-            using var backend = new SystemNetworkBackend(tunnel, killSwitch);
+            // Служба фильтрации проверяется открытием движка: если её нет, защита остаётся
+            // за брандмауэром. Движок открывается заново на каждое изменение.
+            WfpProtectionBackend? wfp = null;
+            try { using (WfpEngine.Open()) { } wfp = new WfpProtectionBackend(WfpEngine.Open); }
+            catch (Exception ex) when (ex is IOException or DllNotFoundException or EntryPointNotFoundException) { }
+            using var backend = new SystemNetworkBackend(tunnel, killSwitch, wfp);
             using var journal = new NetworkSessionJournal(JournalPath);
             var session = new NetworkSession(journal, backend, RecordStep);
             var server = new HelperPipeServer(session, parsed.PipeName, owner, report: RecordFailure);

@@ -19,7 +19,33 @@ public partial class MainWindow
     private void InitSystemTunnel(bool enabled)
     {
         Settings.SystemTunnel.Click += SystemTunnelToggled;
+        Settings.RestoreNetwork.Click += async (_, _) => await RestoreNetworkAsync();
         if (!enabled) { Settings.SystemTunnel.IsEnabled = false; return; }
+        UpdateSystemTunnelNote(null);
+    }
+
+    // Сессия, не снятая прошлым запуском: помощник погиб, а защита на фильтрах осталась и
+    // держит сеть закрытой. Снимает её только помощник — при своём запуске он восстанавливает
+    // сеть по журналу, — поэтому окно предлагает запустить его, а не молчит.
+    private static bool NetworkLeftChanged =>
+        NetworkSessionJournal.PeekState(NetworkHelperHost.JournalPath) is { } state && state != NetworkSessionState.Released;
+
+    private async Task RestoreNetworkAsync()
+    {
+        if (systemTunnel is not null || operation is not null) return;
+        Settings.RestoreNetwork.IsEnabled = false;
+        DetailText.Text = "Восстанавливаем сеть. Подтвердите запрос прав администратора.";
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            var lifetime = await HelperProcessLifetime.ConnectAsync(NetworkHelperLauncher.Launch, timeout.Token).ConfigureAwait(true);
+            await lifetime.DisposeAsync().ConfigureAwait(true);
+        }
+        catch (Exception ex) when (ex is UserError or IOException or TimeoutException or OperationCanceledException or ObjectDisposedException) { }
+        finally { Settings.RestoreNetwork.IsEnabled = true; }
+        DetailText.Text = NetworkLeftChanged
+            ? "Сеть восстановить не удалось. Перезагрузите компьютер: фильтры защиты после перезагрузки не сохраняются."
+            : "Сеть восстановлена.";
         UpdateSystemTunnelNote(null);
     }
 
@@ -87,6 +113,8 @@ public partial class MainWindow
         {
             session.Changed -= OnSystemTunnelChanged;
             if (lifetime is not null) await lifetime.DisposeAsync().ConfigureAwait(true);
+            // Снятая не до конца сессия видна только по журналу: окно должно о ней сказать.
+            if (!closed) UpdateSystemTunnelNote(null);
         }
     }
 
@@ -104,26 +132,33 @@ public partial class MainWindow
     private void UpdateSystemTunnelNote(SystemTunnelState? state)
     {
         // Про блокировку говорится только то, что действительно сделано: решает это
-        // помощник, а не окно. При выключенном брандмауэре Windows блокировать нечем.
+        // помощник, а не окно. Без службы фильтрации и брандмауэра блокировать нечем.
         var running = systemTunnel?.BlocksBypass == true
             ? "Системный режим работает: весь трафик компьютера идёт через туннель, мимо него трафик заблокирован."
             : "Системный режим работает: весь трафик компьютера идёт через туннель. Блокировка трафика мимо туннеля " +
-              "не действует — включите брандмауэр Windows, иначе при обрыве программы пойдут напрямую.";
+              "не действует — фильтрация Windows недоступна, при обрыве программы пойдут напрямую.";
+        var leftover = systemTunnel is null && Settings.SystemTunnel.IsEnabled && NetworkLeftChanged;
+        Settings.RestoreNetwork.Visibility = leftover ? Visibility.Visible : Visibility.Collapsed;
+        if (leftover)
+        {
+            Settings.SystemTunnelNote.Text = "Прошлый системный режим прервался, и блокировка трафика могла остаться: " +
+                "без неё интернет может не работать. Нажмите «Восстановить сеть» или включите системный режим снова.";
+            return;
+        }
         Settings.SystemTunnelNote.Text = state switch
         {
             SystemTunnelState.Starting => "Системный режим запускается.",
             SystemTunnelState.Running => running,
             SystemTunnelState.Holding => systemTunnel?.BlocksBypass == true
                 ? "Связь с сервером прервана, восстанавливаем. Трафик мимо туннеля по-прежнему заблокирован: интернета не будет, пока связь не вернётся или вы не нажмёте «Остановить»."
-                : "Связь с сервером прервана, восстанавливаем. Интернета не будет, пока связь не вернётся или вы не нажмёте «Остановить». Блокировка брандмауэром не действует.",
+                : "Связь с сервером прервана, восстанавливаем. Интернета не будет, пока связь не вернётся или вы не нажмёте «Остановить». Блокировка трафика мимо туннеля не действует.",
             SystemTunnelState.Stopping => "Системный режим останавливается.",
             SystemTunnelState.RecoveryRequired =>
-                "Системный режим остановлен не полностью. Перезапустите приложение; если интерфейс Obl- остался, удалите его вручную.",
+                "Системный режим остановлен не полностью. Нажмите «Остановить», затем «Восстановить сеть».",
             SystemTunnelState.Failed => "Системный режим прерван. Подключение остановлено.",
-            // Граница, о которой обязано сказать пояснение, теперь другая: блокировка
-            // сделана средствами брандмауэра Windows, и при выключенном брандмауэре её
-            // не будет. Обещать её безусловно нельзя.
-            _ => "Весь трафик компьютера пойдёт через туннель, а мимо туннеля будет заблокирован средствами брандмауэра Windows. При выключенном брандмауэре блокировки не будет."
+            // Граница, о которой обязано сказать пояснение: блокировка держится, пока
+            // работает приложение. Завершение окна снимает режим вместе с ней.
+            _ => "Весь трафик компьютера пойдёт через туннель, а мимо туннеля будет заблокирован фильтрами Windows. Блокировка действует, пока приложение работает: при его завершении она снимается вместе с режимом."
         };
     }
 
