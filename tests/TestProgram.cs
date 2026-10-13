@@ -15,6 +15,7 @@ public static class TestProgram
             return SystemTunnelCheckCommand.Run(args[1], args[2], args[3], int.Parse(args[4]), args.Length == 6 && args[5] == "--real-machine");
         if (args.Length == 5 && args[0] == "--export-core-config")
             return ExportCoreConfigCommand.Run(args[1], args[2], args[3], int.Parse(args[4]));
+        if (args.Length == 4 && args[0] == "--local-rules-check") return LocalRulesCheckCommand.Run(args[1], args[2], args[3]);
         if (args.Length == 3 && args[0] == "--subscription-check") return SubscriptionCheckCommand.Run(args[1], args[2]);
         if (args.Length is 3 or 4 && args[0] == "--import-check")
             return ImportCheckCommand.Run(args[1], args[2], args.Length > 3 && args[3] == "--validate");
