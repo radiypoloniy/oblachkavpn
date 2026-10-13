@@ -25,6 +25,44 @@ internal static class KillSwitchProbe
         catch (Exception ex) { return "прочитать не удалось (" + ex.GetType().Name + ")"; }
     }
 
+    // Включённые разрешения для исходящего трафика, кроме наших. Каждое из них сильнее
+    // запрета по умолчанию, то есть потенциально выпускает свою программу мимо туннеля.
+    // «Широкие» — без привязки к программе, пакету и адресу: такие пропускают кого угодно.
+    // Имена правил — из Windows и установленных программ, ключей и адресов в них нет.
+    internal static string ForeignAllows()
+    {
+        try
+        {
+            var type = Type.GetTypeFromProgID("HNetCfg.FwPolicy2", throwOnError: true)!;
+            var policy = Activator.CreateInstance(type)!;
+            var rules = (System.Collections.IEnumerable)Get(policy, "Rules")!;
+            var ours = new HashSet<string>(KillSwitchBackend.RuleNames, StringComparer.Ordinal);
+            int total = 0, programs = 0; var wide = new List<string>();
+            foreach (var rule in rules)
+            {
+                if (Convert.ToInt32(Get(rule, "Direction")) != 2 || Convert.ToInt32(Get(rule, "Action")) != 1 ||
+                    !Convert.ToBoolean(Get(rule, "Enabled"))) continue;
+                var name = Convert.ToString(Get(rule, "Name")) ?? "";
+                if (ours.Contains(name)) continue;
+                total++;
+                var program = Convert.ToString(Get(rule, "ApplicationName"));
+                var service = Convert.ToString(Get(rule, "ServiceName"));
+                var remote = Convert.ToString(Get(rule, "RemoteAddresses"));
+                // Владелец задан у правил приложений Store: они действуют только на свой пакет.
+                var owner = Convert.ToString(Get(rule, "LocalUserOwner"));
+                if (!string.IsNullOrEmpty(program) || !string.IsNullOrEmpty(service) || !string.IsNullOrEmpty(owner)) programs++;
+                else if (string.IsNullOrEmpty(remote) || remote == "*") wide.Add(name);
+            }
+            return "чужих включённых разрешений: " + total + ", из них привязаны к программе, службе или пакету: " + programs +
+                ", без программы и на любой адрес: " + wide.Count +
+                (wide.Count > 0 ? " (" + string.Join("; ", wide.Distinct().Take(12)) + ")" : "");
+        }
+        catch (Exception ex) { return "разрешения прочитать не удалось (" + ex.GetType().Name + ")"; }
+
+        static object? Get(object target, string name) =>
+            target.GetType().InvokeMember(name, System.Reflection.BindingFlags.GetProperty, null, target, null);
+    }
+
     // Соединение, открытое до туннеля, и оставленное живым.
     internal static TcpClient? OpenBefore(string host, int port, List<string> log)
     {

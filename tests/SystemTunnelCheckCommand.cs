@@ -69,6 +69,7 @@ internal static class SystemTunnelCheckCommand
 
             Add("блокировка трафика мимо туннеля: " + (session.BlocksBypass ? "поставлена" : "НЕ поставлена"));
             Add("брандмауэр при поднятом туннеле: " + KillSwitchProbe.Describe());
+            Add(KillSwitchProbe.ForeignAllows());
             Add(KillSwitchProbe.UseAfter(early, earlyHost));
             Add("резолверы при поднятом туннеле: " + KillSwitchProbe.Resolvers());
             Add(KillSwitchProbe.Resolve("api.ipify.org"));
