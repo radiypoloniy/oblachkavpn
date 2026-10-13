@@ -74,7 +74,7 @@ public partial class MainWindow
             await Task.Delay(delay.Value, operation.Token);
             var profiles = importedProfiles.ToArray();
             var candidates = RouteCandidates.For(profiles, profile);
-            var result = await new RouteSearch(engine).FindAsync(candidates.Select(i => profiles[i]).ToArray(),
+            var result = await CreateRouteSearch().FindAsync(candidates.Select(i => profiles[i]).ToArray(),
                 RouteCandidates.StartAt(candidates, profiles, profile), TunnelHealth.Targets[0], operation.Token);
             // Нумерация попыток возвращается к позициям в общем списке: отчёт диагностики
             // должен ссылаться на то, что видит пользователь.
@@ -87,7 +87,9 @@ public partial class MainWindow
                 RecordProbe(new(true, result.Attempts[^1].Milliseconds, "Соединение восстановлено"));
                 DetailText.Text = "Соединение восстановлено; выбран рабочий сервер.";
             }
-            else if (!closed) DetailText.Text = "Рабочий сервер не найден. Автоподбор завершён; подключи вручную.";
+            else if (!closed) DetailText.Text = SystemTunnelActive
+                ? "Рабочий сервер не найден. Блокировка остаётся: выберите сервер и подключитесь или нажмите «Остановить»."
+                : "Рабочий сервер не найден. Автоподбор завершён; подключи вручную.";
         }
         catch (OperationCanceledException) { }
         catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }

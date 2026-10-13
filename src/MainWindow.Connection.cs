@@ -23,7 +23,15 @@ public partial class MainWindow
         {
             // В системном режиме порядок запуска держит SystemTunnelSession: сначала ядро,
             // затем туннель у привилегированного помощника. Окно само ядро не стартует.
-            if (SystemTunnelWanted)
+            // Сессия уже держит туннель и блокировку: повторный запуск — это перезапуск
+            // ядра под защитой, а не второй туннель и не второй запрос прав.
+            if (SystemTunnelWanted && SystemTunnelActive && systemTunnel is { } session)
+            {
+                await session.SwitchAsync(profile, operation.Token);
+                nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
+                if (!closed) DetailText.Text = "Ядро перезапущено, блокировка не снималась.";
+            }
+            else if (SystemTunnelWanted)
             {
                 await StartSystemTunnelAsync(operation.Token);
                 nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);

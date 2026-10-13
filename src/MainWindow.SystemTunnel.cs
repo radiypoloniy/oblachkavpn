@@ -43,14 +43,34 @@ public partial class MainWindow
     private async Task StartSystemTunnelAsync(CancellationToken token)
     {
         if (profile is null) throw new UserError("Сначала выберите сервер.");
+        // Прерванная сессия (помощник потерян) ещё держит свои объекты. Новая не должна
+        // их перезаписать: иначе прежний помощник остался бы без владельца.
+        if (systemTunnel is not null || helperLifetime is not null) await StopSystemTunnelAsync().ConfigureAwait(true);
         DetailText.Text = "Готовим системный режим. Подтвердите запрос прав администратора.";
-        var plan = await TunnelEndpoints.PrepareAsync(profile, token).ConfigureAwait(true);
+        var plans = await TunnelEndpoints.PrepareSetAsync(SystemCandidates(profile), token).ConfigureAwait(true);
         helperLifetime = await HelperProcessLifetime.ConnectAsync(NetworkHelperLauncher.Launch, token).ConfigureAwait(true);
         var session = new SystemTunnelSession(engine, helperLifetime.Client);
         session.Changed += OnSystemTunnelChanged;
         systemTunnel = session;
-        await session.StartAsync(plan, token).ConfigureAwait(true);
+        await session.StartWithSparesAsync(plans, token).ConfigureAwait(true);
     }
+
+    // Выбранный узел первым, затем запасные в том порядке, в каком их переберёт подбор.
+    private Profile[] SystemCandidates(Profile selected)
+    {
+        var profiles = importedProfiles.ToArray();
+        var candidates = RouteCandidates.For(profiles, selected);
+        if (candidates.Length == 0) return new[] { selected };
+        return RouteSearch.Order(candidates.Length, RouteCandidates.StartAt(candidates, profiles, selected))
+            .Select(i => profiles[candidates[i]]).ToArray();
+    }
+
+    // В системном режиме подбор не трогает ядро напрямую: переключение идёт через сессию,
+    // и блокировка остаётся на месте. Останавливать между попытками нечего — неудачная
+    // попытка оставляет сессию в удержании, а не возвращает обычную сеть.
+    private RouteSearch CreateRouteSearch() => SystemTunnelActive && systemTunnel is { } session
+        ? new RouteSearch(session.SwitchAsync, engine.ProbeAsync, static () => { })
+        : new RouteSearch(engine);
 
     private async Task StopSystemTunnelAsync()
     {
@@ -60,7 +80,8 @@ public partial class MainWindow
         helperLifetime = null;
         if (session is null) return;
         try { await session.StopAsync().ConfigureAwait(true); }
-        catch (Exception ex) when (ex is UserError or IOException or TimeoutException)
+        // Прерванная сессия могла уже потерять канал помощника: закрытый канал — тот же отказ.
+        catch (Exception ex) when (ex is UserError or IOException or TimeoutException or ObjectDisposedException)
         { if (!closed) DetailText.Text = "Системный режим остановлен не полностью. Проверьте сетевые настройки."; }
         finally
         {
@@ -92,6 +113,9 @@ public partial class MainWindow
         {
             SystemTunnelState.Starting => "Системный режим запускается.",
             SystemTunnelState.Running => running,
+            SystemTunnelState.Holding => systemTunnel?.BlocksBypass == true
+                ? "Связь с сервером прервана, восстанавливаем. Трафик мимо туннеля по-прежнему заблокирован: интернета не будет, пока связь не вернётся или вы не нажмёте «Остановить»."
+                : "Связь с сервером прервана, восстанавливаем. Интернета не будет, пока связь не вернётся или вы не нажмёте «Остановить». Блокировка брандмауэром не действует.",
             SystemTunnelState.Stopping => "Системный режим останавливается.",
             SystemTunnelState.RecoveryRequired =>
                 "Системный режим остановлен не полностью. Перезапустите приложение; если интерфейс Obl- остался, удалите его вручную.",

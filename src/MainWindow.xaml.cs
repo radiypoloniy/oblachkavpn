@@ -148,7 +148,7 @@ public partial class MainWindow : Window
             var profiles = importedProfiles.ToArray();
             // Перебор ограничен узлами сервиса: см. RouteCandidates.
             var candidates = RouteCandidates.For(profiles, profile);
-            var result = await new RouteSearch(engine).FindAsync(candidates.Select(i => profiles[i]).ToArray(),
+            var result = await CreateRouteSearch().FindAsync(candidates.Select(i => profiles[i]).ToArray(),
                 RouteCandidates.StartAt(candidates, profiles, profile), target, operation.Token,
                 (attempt, total) => { if (!closed) DetailText.Text = $"Проверяем подключение {attempt} из {total}. «Остановить» отменяет подбор."; });
             if (closed) return;
@@ -163,7 +163,9 @@ public partial class MainWindow : Window
                 RecordProbe(new ProbeResult(true, result.Attempts[^1].Milliseconds, "Запрос выполнен"));
                 DetailText.Text = $"Работающее подключение найдено. Попыток: {result.Attempts.Count}.";
             }
-            else DetailText.Text = $"Успешного запроса нет: проверено {result.Attempts.Count} подключений. Подключение остановлено. Проверьте сеть и сайт проверки; это не доказывает блокировку всех узлов.";
+            else DetailText.Text = $"Успешного запроса нет: проверено {result.Attempts.Count} подключений. " +
+                (SystemTunnelActive ? "Блокировка остаётся; «Остановить» вернёт обычную сеть." : "Подключение остановлено.") +
+                " Проверьте сеть и сайт проверки; это не доказывает блокировку всех узлов.";
         }
         catch (OperationCanceledException) { if (!closed) DetailText.Text = "Подбор отменён, подключение остановлено."; }
         catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }

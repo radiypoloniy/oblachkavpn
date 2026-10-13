@@ -112,8 +112,9 @@ public static partial class SelfTests
         public event Action? ConnectionLost;
         public void Lose() => ConnectionLost?.Invoke();
         public bool Blocking = true;
+        public string[] LastPeers = Array.Empty<string>();
         public Task<bool> AcquireAsync(NetworkLeaseRequest request, CancellationToken token)
-        { calls.Add("helper:acquire"); if (FailAcquire) throw new UserError("fixture"); return Task.FromResult(Blocking); }
+        { calls.Add("helper:acquire"); LastPeers = request.PeerAddresses; if (FailAcquire) throw new UserError("fixture"); return Task.FromResult(Blocking); }
         public Task<NetworkSessionState> ReleaseAsync(CancellationToken token)
         { calls.Add("helper:release"); return Task.FromResult(ReleaseState); }
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;

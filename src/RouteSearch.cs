@@ -14,6 +14,15 @@ public sealed class RouteSearch
     internal RouteSearch(Func<Profile, CancellationToken, Task> start, Func<Uri, CancellationToken, Task<ProbeResult>> probe, Action stop)
     { this.start = start; this.probe = probe; this.stop = stop; }
 
+    // Порядок перебора: выбранный, затем остальные по списку. Тем же порядком системный
+    // режим заранее разрешает запасные узлы, чтобы подбор под блокировкой мог на них перейти.
+    public static int[] Order(int count, int selected)
+    {
+        if (count <= 0) return Array.Empty<int>();
+        var first = selected >= 0 && selected < count ? selected : 0;
+        return new[] { first }.Concat(Enumerable.Range(0, count).Where(i => i != first)).Take(MaxAttempts).ToArray();
+    }
+
     public async Task<RouteSearchResult> FindAsync(IReadOnlyList<Profile> profiles, int selected, Uri target,
         CancellationToken token, Action<int, int>? progress = null)
     {
@@ -22,8 +31,7 @@ public sealed class RouteSearch
             throw new UserError("Для проверки нужен HTTPS-адрес без логина и пароля.");
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(token);
         budget.CancelAfter(TimeSpan.FromMinutes(2));
-        var first = selected >= 0 && selected < profiles.Count ? selected : 0;
-        var order = new[] { first }.Concat(Enumerable.Range(0, profiles.Count).Where(i => i != first)).Take(MaxAttempts).ToArray();
+        var order = Order(profiles.Count, selected);
         var attempts = new List<RouteAttempt>();
         try
         {
