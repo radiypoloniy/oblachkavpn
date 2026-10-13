@@ -25,7 +25,8 @@ public sealed record HelperResponse(
 
 public static class HelperProtocol
 {
-    public const int MaxBytes = 8192;
+    // С запасом на 100 правил сайтов и 100 правил программ.
+    public const int MaxBytes = 32768;
     private static readonly JsonSerializerOptions Json = new()
     {
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,

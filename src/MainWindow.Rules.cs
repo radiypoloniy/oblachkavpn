@@ -31,7 +31,7 @@ public partial class MainWindow
                 var config = RoutingPlan.Compile(adapter, profile, 10808, siteRules);
                 await CoreConfigurationCheck.ValidateAsync(adapter, config, operation.Token);
                 await ValidateProgramDraftAsync(operation.Token);
-                if (!closed) DetailText.Text = "Ядро приняло черновик правил. Текущее подключение не изменялось.";
+                if (!closed) DetailText.Text = "Ядро приняло правила. Они вступят в силу со следующего подключения.";
             }
             catch (OperationCanceledException) { }
             catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }

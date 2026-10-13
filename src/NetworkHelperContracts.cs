@@ -11,22 +11,34 @@ public sealed record NetworkLeaseRequest(
     [property: JsonRequired] Guid LeaseId,
     [property: JsonRequired] NetworkLeaseAction Action,
     [property: JsonRequired] int LoopbackPort,
-    [property: JsonRequired] string[] PeerAddresses);
-public sealed record ValidatedNetworkLease(Guid LeaseId, NetworkLeaseAction Action, int LoopbackPort, IReadOnlyList<IPAddress> Peers);
+    [property: JsonRequired] string[] PeerAddresses,
+    SiteRule[]? Sites = null,
+    ProgramRule[]? Programs = null);
+// Правила сайтов и программ — ограниченные данные: домены и имена .exe без путей,
+// проверенные теми же правилами, что и в окне. Конфигурацию ядра помощник строит сам.
+public sealed record ValidatedNetworkLease(Guid LeaseId, NetworkLeaseAction Action, int LoopbackPort, IReadOnlyList<IPAddress> Peers,
+    IReadOnlyList<SiteRule>? Sites = null, IReadOnlyList<ProgramRule>? Programs = null)
+{
+    public IReadOnlyList<SiteRule> SiteRules => Sites ?? Array.Empty<SiteRule>();
+    public IReadOnlyList<ProgramRule> ProgramRules => Programs ?? Array.Empty<ProgramRule>();
+    // Есть ли трафик, который пользователь сам отправил мимо туннеля.
+    public bool HasDirect => SiteRules.Any(r => r.Action == SiteAction.Direct) || ProgramRules.Any(r => r.Action == SiteAction.Direct);
+}
 
 // A future privileged helper accepts bounded network intent, never profiles, tokens or shell commands.
 // This contract performs no IPC and changes no network settings.
 public static class NetworkHelperContracts
 {
+    public const int MaxBytes = HelperProtocol.MaxBytes;
     private static readonly JsonSerializerOptions Json = new()
     {
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-        Converters = { new JsonStringEnumConverter<NetworkLeaseAction>(allowIntegerValues: false) }
+        Converters = { new JsonStringEnumConverter(allowIntegerValues: false) }
     };
 
     public static ValidatedNetworkLease Parse(string input)
     {
-        if (Encoding.UTF8.GetByteCount(input) > 8192) throw new UserError("Запрос сетевого помощника слишком большой.");
+        if (Encoding.UTF8.GetByteCount(input) > MaxBytes) throw new UserError("Запрос сетевого помощника слишком большой.");
         try
         {
             using var document = JsonDocument.Parse(input);
@@ -46,7 +58,8 @@ public static class NetworkHelperContracts
             throw new UserError("Неверная версия или идентификатор сетевой сессии.");
         if (request.Action == NetworkLeaseAction.Release)
         {
-            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0) throw new UserError("Завершение сессии не принимает сетевые параметры.");
+            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 })
+                throw new UserError("Завершение сессии не принимает сетевые параметры.");
             return new(request.LeaseId, request.Action, 0, Array.Empty<IPAddress>());
         }
         if (request.LoopbackPort is < 1 or > 65535 || request.PeerAddresses.Length is < 1 or > 16)
@@ -67,6 +80,10 @@ public static class NetworkHelperContracts
             if (peers.Contains(peer)) throw new UserError("Адрес сервера повторяется.");
             peers.Add(peer);
         }
-        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly());
+        var sites = request.Sites ?? Array.Empty<SiteRule>();
+        var programs = request.Programs ?? Array.Empty<ProgramRule>();
+        RoutingPlan.Validate(sites);
+        ProgramRoutingPlan.Validate(programs);
+        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs);
     }
 }

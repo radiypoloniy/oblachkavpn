@@ -30,11 +30,12 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
     internal static ITunnelProcess Start(ValidatedNetworkLease lease, string executable, CancellationToken token)
     {
         var request = new NetworkLeaseRequest(1, lease.LeaseId, NetworkLeaseAction.Acquire, lease.LoopbackPort,
-            lease.Peers.Select(p => p.ToString()).ToArray());
+            lease.Peers.Select(p => p.ToString()).ToArray(), lease.SiteRules.ToArray(), lease.ProgramRules.ToArray());
         var adapter = new CoreAdapter(CoreKind.SingBox, executable);
         // Конфигурацию проверяет само ядро до запуска: отказ виден до изменения сети.
-        CoreConfigurationCheck.ValidateTunAsync(request, token).GetAwaiter().GetResult();
-        var config = SingBoxTunConfig.Create(request).ToJsonString();
+        var ipv6 = PhysicalNetwork.HasGlobalIpv6();
+        CoreConfigurationCheck.ValidateTunAsync(request, token, ipv6).GetAwaiter().GetResult();
+        var config = SingBoxTunConfig.Create(request, ipv6).ToJsonString();
 
         var start = new ProcessStartInfo(executable)
         {
@@ -79,6 +80,29 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         job.Dispose();   // Закрытие задания добивает всё, что ядро могло породить.
         process.Dispose();
     }
+}
+
+public static class PhysicalNetwork
+{
+    // Есть ли у физической сети глобальный IPv6: адрес из 2000::/3 и шлюз на работающем
+    // интерфейсе, не нашем туннеле. Локальные fd00::/8 и fe80:: в счёт не идут — с ними
+    // выхода в интернет по IPv6 нет.
+    public static bool HasGlobalIpv6()
+    {
+        try
+        {
+            return NetworkInterface.GetAllNetworkInterfaces().Any(n =>
+                n.OperationalStatus == OperationalStatus.Up &&
+                n.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
+                !n.Name.StartsWith(WindowsTunnelBackend.InterfacePrefix, StringComparison.Ordinal) &&
+                n.GetIPProperties() is var p &&
+                p.GatewayAddresses.Any(g => g.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) &&
+                p.UnicastAddresses.Any(a => a.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 && IsGlobal(a.Address)));
+        }
+        catch (NetworkInformationException) { return false; }
+    }
+
+    public static bool IsGlobal(System.Net.IPAddress address) => (address.GetAddressBytes()[0] & 0xE0) == 0x20;
 }
 
 public static class TunnelInterfaces

@@ -17,13 +17,19 @@ public static class SingBoxTunConfig
     public const string TunResolver4 = "172.31.255.2";
     public const string TunResolver6 = "fdfe:dcba:9876::2";
 
-    public static JsonObject Create(NetworkLeaseRequest request)
+    // ipv6 — давать ли туннелю IPv6-адрес. Только если у физической сети есть глобальный
+    // IPv6 (PhysicalNetwork.HasGlobalIpv6). Иначе программы выбирали IPv6 через туннель,
+    // стек туннеля принимал соединение, а прямой выход по правилу «напрямую» в сети без
+    // IPv6 срывался: программа получала сброс вместо отказа и на IPv4 не переходила
+    // (проверено на стенде: curl -4 проходил, curl по умолчанию — нет). IPv6 мимо туннеля
+    // при этом закрыт защитой WFP: он быстро отказывает, и программы уходят на IPv4.
+    public static JsonObject Create(NetworkLeaseRequest request, bool ipv6 = true)
     {
         var lease = NetworkHelperContracts.Validate(request);
         if (lease.Action != NetworkLeaseAction.Acquire) throw new UserError("TUN требует новую сетевую сессию.");
         var exclusions = new JsonArray(lease.Peers.Select(ip => (JsonNode?)JsonValue.Create(
             ip + (ip.AddressFamily == AddressFamily.InterNetwork ? "/32" : "/128"))).ToArray());
-        return new JsonObject
+        var config = new JsonObject
         {
             ["log"] = new JsonObject { ["disabled"] = true },
             ["dns"] = new JsonObject
@@ -39,7 +45,7 @@ public static class SingBoxTunConfig
             ["inbounds"] = new JsonArray(new JsonObject
             {
                 ["type"] = "tun", ["tag"] = "system-tun", ["interface_name"] = "Obl-" + lease.LeaseId.ToString("N")[..8],
-                ["address"] = new JsonArray(TunHost4 + "/30", TunHost6 + "/126"),
+                ["address"] = ipv6 ? new JsonArray(TunHost4 + "/30", TunHost6 + "/126") : new JsonArray(TunHost4 + "/30"),
                 ["mtu"] = 1500, ["stack"] = "mixed", ["auto_route"] = true, ["strict_route"] = true,
                 ["dns_mode"] = "hijack", ["route_exclude_address"] = exclusions
             }),
@@ -58,5 +64,32 @@ public static class SingBoxTunConfig
                     new JsonObject { ["port"] = 53, ["action"] = "hijack-dns" })
             }
         };
+        AddRules(config, lease);
+        return config;
+    }
+
+    // Правила пользователя. Порядок: DNS перехвачен выше; затем распознавание домена по
+    // SNI/Host/QUIC, без него правила сайтов видели бы только IP; затем правила программ —
+    // они относятся ко всей программе; затем правила сайтов, длинные домены раньше.
+    // «Напрямую» — отдельный выход direct из этого ядра; защита WFP разрешает его только
+    // при наличии таких правил (WfpProtectionBackend).
+    private static void AddRules(JsonObject config, ValidatedNetworkLease lease)
+    {
+        var rules = (JsonArray)config["route"]!["rules"]!;
+        if (lease.HasDirect) ((JsonArray)config["outbounds"]!).Add(new JsonObject { ["type"] = "direct", ["tag"] = UserDirect });
+        if (lease.SiteRules.Count > 0) rules.Add(new JsonObject { ["action"] = "sniff" });
+        foreach (var rule in lease.ProgramRules)
+            rules.Add(Route(new JsonObject { ["process_name"] = new JsonArray(rule.Executable) }, rule.Action));
+        foreach (var rule in lease.SiteRules.OrderByDescending(r => r.Domain.Count(c => c == '.')))
+            rules.Add(Route(new JsonObject { ["domain_suffix"] = new JsonArray(rule.Domain) }, rule.Action));
+    }
+
+    public const string UserDirect = "user-direct";
+
+    private static JsonObject Route(JsonObject match, SiteAction action)
+    {
+        if (action == SiteAction.Block) match["action"] = "reject";
+        else match["outbound"] = action == SiteAction.Direct ? UserDirect : "local-core";
+        return match;
     }
 }

@@ -33,12 +33,18 @@ public sealed class Engine : ITunnelController
 
     public Task StartAsync(JsonObject outbound, CancellationToken token) => StartCoreAsync(port => adapter.RuntimeConfig(outbound, port), token);
 
+    // Правила сайтов для обычного режима: их исполняет само ядро подключения. В системном
+    // режиме окно оставляет список пустым — правила там у ядра туннеля.
+    public IReadOnlyList<SiteRule> SiteRules { get; set; } = Array.Empty<SiteRule>();
+
     public Task StartAsync(Profile profile, CancellationToken token)
     {
         if (process is not null) throw new UserError("Сначала остановите текущее подключение.");
         var filename = profile.Core == CoreKind.Xray ? "xray.exe" : "sing-box.exe";
         adapter = new(profile.Core, Path.Combine(Path.GetDirectoryName(adapter.Executable)!, filename));
-        return StartAsync(profile.Outbound, token);
+        var rules = SiteRules;
+        return rules.Count == 0 ? StartAsync(profile.Outbound, token)
+            : StartCoreAsync(port => RoutingPlan.Compile(adapter, profile, port, rules), token);
     }
 
     internal async Task StartCoreAsync(Func<int, JsonObject> configFactory, CancellationToken token)

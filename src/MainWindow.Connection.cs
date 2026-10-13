@@ -16,6 +16,8 @@ public partial class MainWindow
     {
         if (vmTestActive || profile is null || operation is not null) return;
         manualStop = false;
+        // Правила сайтов: в обычном режиме — у ядра подключения, в системном — у ядра туннеля.
+        if (engine is Engine core) core.SiteRules = SystemTunnelWanted ? Array.Empty<SiteRule>() : siteRules.ToArray();
         operation = new CancellationTokenSource();
         engineOperation = true;
         UpdateControls();

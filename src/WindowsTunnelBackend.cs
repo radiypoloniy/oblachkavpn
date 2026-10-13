@@ -33,6 +33,9 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
     private readonly Func<TimeSpan, CancellationToken, Task> delay;
     private ITunnelProcess? core;
     private Guid owner;
+    // Правила сессии в журнал не помещаются (до 200 записей), а нужны только для запуска
+    // ядра сразу после подготовки. Журнал хранит их число, восстановлению они не нужны.
+    private ValidatedNetworkLease? prepared;
 
     public WindowsTunnelBackend(Func<ValidatedNetworkLease, CancellationToken, ITunnelProcess> startCore,
         Func<string, bool> interfaceExists, TimeSpan? timeout = null, Func<TimeSpan, CancellationToken, Task>? delay = null)
@@ -50,8 +53,10 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
     public IReadOnlyList<NetworkChange> Prepare(ValidatedNetworkLease lease)
     {
         if (lease.Action != NetworkLeaseAction.Acquire) throw new UserError("Для запуска нужна команда Acquire.");
+        prepared = lease;
         var description = "tun=" + InterfaceName(lease.LeaseId) +
             " socks=127.0.0.1:" + lease.LoopbackPort +
+            " rules=" + (lease.SiteRules.Count + lease.ProgramRules.Count) +
             " exclude=" + string.Join(',', lease.Peers);
         return new[] { new NetworkChange(NetworkResourceKind.TunnelInterface, InterfaceName(lease.LeaseId), null, description) };
     }
@@ -64,6 +69,8 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
         if (interfaceExists(name)) return NetworkWriteResult.Conflict;
 
         var lease = Describe(leaseId, change);
+        if (prepared is { } rules && rules.LeaseId == leaseId)
+            lease = lease with { Sites = rules.SiteRules, Programs = rules.ProgramRules };
         var started = startCore(lease, CancellationToken.None);
         try
         {

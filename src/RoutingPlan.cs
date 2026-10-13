@@ -6,11 +6,13 @@ namespace Oblachka;
 public enum SiteAction { Tunnel, Direct, Block }
 public sealed record SiteRule(string Domain, SiteAction Action)
 {
+    [System.Text.Json.Serialization.JsonIgnore]
     public string Label => Action switch { SiteAction.Tunnel => "Через VPN", SiteAction.Direct => "Напрямую", _ => "Блокировать" };
     public override string ToString() => Domain + " — " + Label;
 }
 
-// Draft rules are deliberately not applied to the current SOCKS process.
+// Правила сайтов в ядре обычного режима (Engine.SiteRules). В системном режиме те же
+// правила исполняет ядро туннеля (SingBoxTunConfig), а здесь список пуст.
 public static class RoutingPlan
 {
     public static SiteRule Create(string domain, SiteAction action)

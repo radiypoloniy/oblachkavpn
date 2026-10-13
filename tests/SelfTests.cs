@@ -36,6 +36,7 @@ public static partial class SelfTests
         await TunnelBackendChecksAsync(CheckAsync, root);
         await KillSwitchChecksAsync(CheckAsync, root);
         await WfpChecksAsync(CheckAsync);
+        await RuleChecksAsync(CheckAsync);
         await HelperHostChecksAsync(CheckAsync);
         await ImportChecksAsync(CheckAsync, executable, root);
         await ShareLinkChecksAsync(CheckAsync, root);

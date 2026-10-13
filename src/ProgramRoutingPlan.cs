@@ -25,18 +25,11 @@ public static class ProgramRoutingPlan
             if (rule is null || Create(rule.Executable, rule.Action).Executable != rule.Executable || !seen.Add(rule.Executable))
                 throw new UserError("Правила программ повреждены или повторяются.");
     }
+    // Правила программ применяются в ядре системного туннеля: SingBoxTunConfig строит их
+    // из аренды сессии. Здесь — та же сборка для проверки черновика из окна.
     public static JsonObject Compile(NetworkLeaseRequest request, IReadOnlyList<ProgramRule> rules)
     {
         Validate(rules);
-        var config = SingBoxTunConfig.Create(request);
-        if (rules.Any(r => r.Action == SiteAction.Direct)) ((JsonArray)config["outbounds"]!).Add(new JsonObject { ["type"] = "direct", ["tag"] = "user-direct" });
-        foreach (var rule in rules)
-        {
-            var node = new JsonObject { ["process_name"] = new JsonArray(rule.Executable) };
-            if (rule.Action == SiteAction.Block) node["action"] = "reject";
-            else node["outbound"] = rule.Action == SiteAction.Direct ? "user-direct" : "local-core";
-            ((JsonArray)config["route"]!["rules"]!).Add(node);
-        }
-        return config;
+        return SingBoxTunConfig.Create(request with { Programs = rules.ToArray() });
     }
 }

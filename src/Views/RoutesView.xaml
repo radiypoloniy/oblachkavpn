@@ -13,12 +13,12 @@
         </DockPanel>
       </Border>
       <TextBlock Text="Свои правила" FontSize="18" FontWeight="SemiBold" Margin="0,24,0,10"/>
-      <TextBlock Text="Черновик: сохраняется и проверяется ядрами, но пока не применяется к подключению." Style="{StaticResource MutedText}" Margin="0,0,0,14"/>
+      <TextBlock Text="Применяются при подключении; изменения вступают в силу со следующего подключения." Style="{StaticResource MutedText}" Margin="0,0,0,14"/>
       <TabControl BorderThickness="0" Background="Transparent" Padding="0">
         <TabItem Header="Сайты">
           <StackPanel Margin="0,12,0,0">
-            <TextBlock Text="Домен включает поддомены. Более точное правило имеет приоритет." Style="{StaticResource MutedText}" FontSize="12"/>
-            <ListBox x:Name="RuleList" MaxHeight="140" Margin="0,10,0,12" AutomationProperties.Name="Черновик правил сайтов"/>
+            <TextBlock Text="Домен включает поддомены. Более точное правило имеет приоритет. Правила программ сильнее правил сайтов." Style="{StaticResource MutedText}" FontSize="12"/>
+            <ListBox x:Name="RuleList" MaxHeight="140" Margin="0,10,0,12" AutomationProperties.Name="Правила сайтов"/>
             <Grid>
               <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="160"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <TextBox x:Name="RuleDomain" Tag="example.com" MaxLength="253" AutomationProperties.Name="Домен правила" Margin="0,0,8,0"/>
@@ -32,8 +32,8 @@
         </TabItem>
         <TabItem Header="Программы">
           <StackPanel Margin="0,12,0,0">
-            <TextBlock Text="Имя файла .exe без пути. Для будущего TUN; DNS остаётся через туннель." Style="{StaticResource MutedText}" FontSize="12"/>
-            <ListBox x:Name="ProgramList" MaxHeight="140" Margin="0,10,0,12" AutomationProperties.Name="Черновик правил программ"/>
+            <TextBlock Text="Имя файла .exe без пути. Действуют только в системном VPN; DNS остаётся через туннель." Style="{StaticResource MutedText}" FontSize="12"/>
+            <ListBox x:Name="ProgramList" MaxHeight="140" Margin="0,10,0,12" AutomationProperties.Name="Правила программ"/>
             <Grid>
               <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="160"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <TextBox x:Name="ProgramName" Tag="steam.exe" MaxLength="120" AutomationProperties.Name="Имя программы" Margin="0,0,8,0"/>
@@ -46,7 +46,7 @@
           </StackPanel>
         </TabItem>
       </TabControl>
-      <Button x:Name="ValidateRulesButton" Content="Проверить черновик" HorizontalAlignment="Left" Style="{StaticResource Primary}" Margin="0,16,0,0"/>
+      <Button x:Name="ValidateRulesButton" Content="Проверить правила" HorizontalAlignment="Left" Style="{StaticResource Primary}" Margin="0,16,0,0"/>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

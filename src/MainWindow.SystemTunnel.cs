@@ -78,7 +78,9 @@ public partial class MainWindow
         var session = new SystemTunnelSession(engine, helperLifetime.Client);
         session.Changed += OnSystemTunnelChanged;
         systemTunnel = session;
-        await session.StartWithSparesAsync(plans, token).ConfigureAwait(true);
+        // Правила сайтов и программ исполняет ядро туннеля у помощника; ядро окна в этом
+        // режиме правил не несёт (Engine.SiteRules пуст), иначе «напрямую» шло бы из него.
+        await session.StartWithSparesAsync(plans, token, siteRules.ToArray(), programRules.ToArray()).ConfigureAwait(true);
     }
 
     // Выбранный узел первым, затем запасные в том порядке, в каком их переберёт подбор.

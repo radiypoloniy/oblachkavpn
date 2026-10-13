@@ -143,6 +143,7 @@ internal static class SystemTunnelCheckCommand
             // Журнал занят помощником, пока тот жив: следующему он нужен свободным.
             helper.DisposeAsync().AsTask().GetAwaiter().GetResult(); helper = null;
             SystemTunnelHelperLoss.Run(plan, engine, Add, () => Probe("https://api.ipify.org"));
+            SystemTunnelRules.Run(plan, engine, Add, url => Probe(url));
         }
         catch (Exception ex)
         {
