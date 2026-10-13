@@ -6,6 +6,12 @@ namespace Oblachka;
 // Prepared for the isolated VM stage only. Validation invokes `check`, never starts the TUN.
 public static class SingBoxTunConfig
 {
+    // Адреса самого туннеля. Их же разрешает kill switch, чтобы трафик, уходящий
+    // в туннель, проходил при закрытом исходящем действии брандмауэра. Расхождение
+    // этих двух мест закрыло бы туннель наглухо, поэтому значение здесь одно.
+    public const string TunHost4 = "172.31.255.1";
+    public const string TunHost6 = "fdfe:dcba:9876::1";
+
     public static JsonObject Create(NetworkLeaseRequest request)
     {
         var lease = NetworkHelperContracts.Validate(request);
@@ -28,7 +34,7 @@ public static class SingBoxTunConfig
             ["inbounds"] = new JsonArray(new JsonObject
             {
                 ["type"] = "tun", ["tag"] = "system-tun", ["interface_name"] = "Obl-" + lease.LeaseId.ToString("N")[..8],
-                ["address"] = new JsonArray("172.31.255.1/30", "fdfe:dcba:9876::1/126"),
+                ["address"] = new JsonArray(TunHost4 + "/30", TunHost6 + "/126"),
                 ["mtu"] = 1500, ["stack"] = "mixed", ["auto_route"] = true, ["strict_route"] = true,
                 ["dns_mode"] = "hijack", ["route_exclude_address"] = exclusions
             }),

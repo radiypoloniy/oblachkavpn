@@ -50,7 +50,14 @@ public static class NetworkHelperHost
             var start = core is null
                 ? new Func<ValidatedNetworkLease, CancellationToken, ITunnelProcess>((lease, token) => SingBoxTunnelProcess.Start(lease, executable, token))
                 : ((lease, _) => core(executable));
-            using var backend = new WindowsTunnelBackend(start, TunnelInterfaces.Exists);
+            using var tunnel = new WindowsTunnelBackend(start, TunnelInterfaces.Exists);
+            // Брандмауэр открывается один раз на весь запуск помощника. Если его нет,
+            // режим работает без блокировки, а снять чужую блокировку будет нечем —
+            // восстановление сообщит об этом вместо того, чтобы молчать.
+            KillSwitchBackend? killSwitch = null;
+            try { killSwitch = new KillSwitchBackend(WindowsFirewallPolicy.Open()); }
+            catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException) { }
+            using var backend = new SystemNetworkBackend(tunnel, killSwitch);
             using var journal = new NetworkSessionJournal(JournalPath);
             var session = new NetworkSession(journal, backend);
             var server = new HelperPipeServer(session, parsed.PipeName, owner);
