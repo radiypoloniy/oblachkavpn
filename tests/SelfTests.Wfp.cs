@@ -102,6 +102,14 @@ public static partial class SelfTests
             Assert(failed && engine.Log.Contains("abort") && !engine.Sublayer && engine.Filters.Count == 0);
             return Task.CompletedTask;
         });
+        await check("A real-machine report hides the machine's own addresses and resolvers", () =>
+        {
+            Assert(SystemTunnelCheckCommand.Mask("исходный выход (до туннеля): 198.51.100.4", "198.51.100.4", null) == "исходный выход (до туннеля): <свой IPv4>");
+            Assert(SystemTunnelCheckCommand.Mask("IPv6: 2001:db8::5", null, "2001:db8::5") == "IPv6: <свой IPv6>");
+            Assert(SystemTunnelCheckCommand.Mask("резолверы до туннеля: Ethernet: 192.0.2.53", null, null) == "резолверы до туннеля: скрыто");
+            Assert(SystemTunnelCheckCommand.Mask("выходной IP: 203.0.113.9", "198.51.100.4", null) == "выходной IP: 203.0.113.9");
+            return Task.CompletedTask;
+        });
         await check("The window notices a session the helper did not release", () =>
         {
             var path = Path.Combine(Path.GetTempPath(), "oblachka-peek-" + Guid.NewGuid().ToString("N") + ".json");

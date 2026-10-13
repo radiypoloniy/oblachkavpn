@@ -3,21 +3,27 @@ using System.Text.Json;
 namespace Oblachka;
 
 // Прогон системного режима целиком, без интерфейса: тот же путь, которым идёт окно.
-//   Oblachka.Tests.exe --system-tunnel-check <ключ> <имя узла> <отчёт> <секунды>
+//   Oblachka.Tests.exe --system-tunnel-check <ключ> <имя узла> <отчёт> <секунды> [--real-machine]
 //
 // Задействованы TunnelEndpoints, NetworkHelperLauncher, NetworkHelperHost,
 // WindowsTunnelBackend, SingBoxTunnelProcess и SystemTunnelSession — то есть вся
-// цепочка, а не её части. Нужны права администратора; запуск только в одноразовой VM.
+// цепочка, а не её части. Нужны права администратора. По умолчанию — только в VM;
+// --real-machine передаёт скрипт комплекта проверки (real-check) после подтверждения
+// пользователя. Тогда собственные адреса машины и её резолверы в отчёт не попадают:
+// отчёт пересылают, а это адрес человека и его провайдера.
 internal static class SystemTunnelCheckCommand
 {
-    internal static int Run(string key, string nodeName, string reportPath, int holdSeconds)
+    internal static int Run(string key, string nodeName, string reportPath, int holdSeconds, bool realMachine = false)
     {
         var log = new List<string>();
+        string? own4 = null, own6 = null;
         void Add(string line) => log.Add(line);
-        void Save() => File.WriteAllLines(reportPath, log, new System.Text.UTF8Encoding(true));
+        void Save() => File.WriteAllLines(reportPath, realMachine ? log.Select(l => Mask(l, own4, own6)) : log, new System.Text.UTF8Encoding(true));
 
         if (!NetworkHelperHost.IsElevated()) { Add("нужны права администратора"); Save(); return 2; }
-        if (!VmTunTickets.IsVirtualMachine()) { Add("запуск разрешён только в виртуальной машине"); Save(); return 2; }
+        var virtualMachine = VmTunTickets.IsVirtualMachine();
+        if (!virtualMachine && !realMachine) { Add("запуск разрешён только в виртуальной машине"); Save(); return 2; }
+        Add("машина: " + (virtualMachine ? "виртуальная" : "реальная") + ", Windows " + Environment.OSVersion.Version);
 
         // Сеть гостя после смены DNS в начале прогона устаивается не сразу: первый запрос
         // бывает неудачным. Три попытки отличают это от настоящего отказа сервиса.
@@ -41,8 +47,10 @@ internal static class SystemTunnelCheckCommand
         // Исходный выход меряем до туннеля. На машине владельца постоянно включён свой VPN,
         // поэтому «известного» базового адреса не существует: его нужно измерять каждый раз.
         var baseline = Probe("https://api.ipify.org");
+        if (!baseline.StartsWith("ошибка", StringComparison.Ordinal)) own4 = baseline;
         Add("исходный выход (до туннеля): " + baseline);
         var baseline6 = SessionWatch.Ipv6(url => Probe(url));
+        if (!baseline6.StartsWith("ошибка", StringComparison.Ordinal)) own6 = baseline6;
         Add("исходный IPv6 (до туннеля): " + baseline6);
         Add("брандмауэр до туннеля: " + KillSwitchProbe.Describe());
         try { File.Delete(NetworkHelperHost.TracePath); } catch (IOException) { }
@@ -175,6 +183,16 @@ internal static class SystemTunnelCheckCommand
             return line is null ? text : text.Split('\n').FirstOrDefault(l => l.StartsWith(line, StringComparison.Ordinal)) ?? "ответ без " + line;
         }
         catch (Exception ex) { return "ошибка (" + ex.GetType().Name + ")"; }
+    }
+
+    // Собственные адреса машины заменяются метками: по ним видно, совпал ли выход с
+    // исходным, но сам адрес не пересылается. Резолверы — адреса провайдера — скрыты.
+    internal static string Mask(string line, string? own4, string? own6)
+    {
+        if (line.StartsWith("резолверы", StringComparison.Ordinal)) return line[..line.IndexOf(':')] + ": скрыто";
+        if (own4 is not null) line = line.Replace(own4, "<свой IPv4>", StringComparison.Ordinal);
+        if (own6 is not null) line = line.Replace(own6, "<свой IPv6>", StringComparison.Ordinal);
+        return line;
     }
 
     private static string Socks(Engine engine)
