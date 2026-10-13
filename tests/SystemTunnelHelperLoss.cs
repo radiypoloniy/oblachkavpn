@@ -30,6 +30,8 @@ internal static class SystemTunnelHelperLoss
             again.DisposeAsync().AsTask().GetAwaiter().GetResult();
             add("смерть помощника: после нового запуска помощника журнал " + NetworkSessionJournal.PeekState(NetworkHelperHost.JournalPath) +
                 ", " + WfpStateProbe.Describe().Split(';')[0] + ", выход: " + probe());
+            Thread.Sleep(5000);
+            add("смерть помощника: выход через 5 с: " + probe());
         }
         catch (Exception ex) { add("смерть помощника: сценарий прерван (" + ex.GetType().Name + (ex is UserError ? ": " + ex.Message : "") + ")"); }
         finally { try { helper?.DisposeAsync().AsTask().GetAwaiter().GetResult(); } catch (Exception) { } }

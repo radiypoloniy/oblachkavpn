@@ -42,6 +42,8 @@ internal static class SystemTunnelCheckCommand
         // поэтому «известного» базового адреса не существует: его нужно измерять каждый раз.
         var baseline = Probe("https://api.ipify.org");
         Add("исходный выход (до туннеля): " + baseline);
+        var baseline6 = SessionWatch.Ipv6(url => Probe(url));
+        Add("исходный IPv6 (до туннеля): " + baseline6);
         Add("брандмауэр до туннеля: " + KillSwitchProbe.Describe());
         try { File.Delete(NetworkHelperHost.TracePath); } catch (IOException) { }
         Add("резолверы до туннеля: " + KillSwitchProbe.Resolvers());
@@ -62,6 +64,16 @@ internal static class SystemTunnelCheckCommand
             // адрес не изменится независимо от того, работает туннель или нет.
             if (plan.Peers.Contains(baseline, StringComparer.Ordinal))
                 Add("ВНИМАНИЕ: вход узла совпадает с текущим выходом машины — перенаправление по IP этим прогоном не доказывается, выберите другой узел");
+
+            // Узел без защиты и туннеля: так отказ узла или пути до него отличается от
+            // отказа, который вносит сам системный режим.
+            try
+            {
+                engine.StartAsync(plan.PinnedProfile, token.Token).GetAwaiter().GetResult();
+                Add("до туннеля через SOCKS ядра: " + Socks(engine));
+            }
+            catch (UserError ex) { Add("до туннеля ядро не запустилось: " + ex.Message); }
+            finally { engine.Stop(); }
 
             helper = HelperProcessLifetime.ConnectAsync(NetworkHelperLauncher.Launch, token.Token).GetAwaiter().GetResult();
             Add("помощник запущен и канал установлен");
@@ -87,7 +99,10 @@ internal static class SystemTunnelCheckCommand
             Add("без DNS, по адресу 1.1.1.1: " + Probe("https://1.1.1.1/cdn-cgi/trace", "ip="));
             Add("через SOCKS ядра: " + Socks(engine));
 
-            Thread.Sleep(TimeSpan.FromSeconds(Math.Clamp(holdSeconds, 1, 120)));
+            var inside6 = SessionWatch.Ipv6(url => Probe(url));
+            Add("IPv6 при поднятом туннеле: " + inside6 + (inside6 == baseline6 && !baseline6.StartsWith("ошибка", StringComparison.Ordinal)
+                ? " — СОБСТВЕННЫЙ IPv6 МАШИНЫ, IPv6 идёт мимо туннеля" : ""));
+            SessionWatch.Hold(holdSeconds, Add, url => Probe(url));
             var inside = Probe("https://api.ipify.org");
             var second = Probe("https://ifconfig.me/ip");
             Add("выходной IP: " + inside);
