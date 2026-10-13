@@ -14,7 +14,7 @@ public partial class MainWindow
     {
         if (closed || vmTestActive || manualStop || operation is not null || recoveryWait is not null || AutoRecover.IsChecked != true || profile is null) return;
         var delay = recovery.NextDelay(DateTimeOffset.UtcNow);
-        if (delay is null) { DetailText.Text = "Автоперезапуск остановлен после трёх попыток за две минуты. Проверьте профиль и подключи вручную."; return; }
+        if (delay is null) { DetailText.Text = "После трёх попыток за две минуты восстановление приостановлено. Проверьте сеть или выберите другой сервер и подключитесь вручную."; return; }
         recoveryWait = new CancellationTokenSource();
         try
         {
@@ -36,9 +36,20 @@ public partial class MainWindow
         if (dialog.ShowDialog(this) != true) return;
         try
         {
-            File.WriteAllText(dialog.FileName, DiagnosticReport.Create(engine.State, importedProfiles.Count, subscriptionSources.Count, events, routeAttempts));
+            File.WriteAllText(dialog.FileName, CreateSupportReport());
             DetailText.Text = "Отчёт сохранён. Профили, UUID и адреса подписок в него не включены.";
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { DetailText.Text = "Не удалось сохранить отчёт. Выберите доступную папку."; }
+    }
+
+    private string CreateSupportReport() => DiagnosticReport.Create(engine.State, importedProfiles.Count,
+        subscriptionSources.Count + externalSources.Count, events, routeAttempts,
+        SystemTunnelActive ? DiagnosticMode.SystemTunnel : Settings.SystemProxy.IsChecked == true && engine.ProcessId is not null
+            ? DiagnosticMode.WindowsProxy : DiagnosticMode.LocalProxy, systemTunnel?.BlocksBypass == true);
+
+    private void CopyReportClick(object sender, RoutedEventArgs args)
+    {
+        try { Clipboard.SetText(CreateSupportReport()); DetailText.Text = "Обезличенный отчёт скопирован. Его можно отправить в поддержку."; }
+        catch (System.Runtime.InteropServices.COMException) { DetailText.Text = "Буфер обмена занят. Попробуйте снова или сохраните отчёт в файл."; }
     }
 }

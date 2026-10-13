@@ -44,6 +44,7 @@ public partial class MainWindow
         ReconnectButton.Click += ReconnectClick;
         CopyEndpointButton.Click += CopyEndpointClick;
         Diagnostics.ExportButton.Click += ExportReportClick;
+        Diagnostics.CopyReportButton.Click += CopyReportClick;
         Connection.ChangeServerButton.Click += (_, _) => Navigate("Servers");
         Connection.RoutesButton.Click += (_, _) => Navigate("Routes");
         Connection.CheckTunnelButton.Click += (_, _) => Navigate("Diagnostics");

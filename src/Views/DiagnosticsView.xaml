@@ -44,7 +44,10 @@
           <StackPanel>
             <TextBlock Text="Нужна помощь?" FontWeight="SemiBold" FontSize="15"/>
             <TextBlock Text="Сохраните отчёт без ключей, адресов серверов и истории сайтов." Style="{StaticResource MutedText}" Margin="0,8,0,14"/>
-            <Button x:Name="ExportButton" Content="Сохранить отчёт" Background="White" BorderBrush="{StaticResource Line}" HorizontalAlignment="Left"/>
+            <WrapPanel>
+              <Button x:Name="CopyReportButton" Content="Скопировать отчёт" Margin="0,0,8,8"/>
+              <Button x:Name="ExportButton" Content="Сохранить отчёт" Background="White" BorderBrush="{StaticResource Line}" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+            </WrapPanel>
           </StackPanel>
         </Border>
       </StackPanel>

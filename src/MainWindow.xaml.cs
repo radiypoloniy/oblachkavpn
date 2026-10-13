@@ -47,7 +47,7 @@ public partial class MainWindow : Window
         SubscribeLifecycle(persistenceEnabled && isolatedStore is null);
         InitSystemProxy(persistenceEnabled && isolatedStore is null);
         InitSystemTunnel(persistenceEnabled && isolatedStore is null);
-        Settings.VersionText.Text = ServiceBrand.Label;
+        Settings.VersionText.Text = BuildIdentity.Label;
         Onboarding.BrandText.Text = ServiceBrand.Name;
         // Идентификатор установки виден пользователю: по нему сервис находит устройство
         // в списке, когда надо освободить место в лимите.

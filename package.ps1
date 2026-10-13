@@ -3,6 +3,8 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'release-crypto.ps1')
 Add-Type -AssemblyName System.IO.Compression
 $projectRoot = $PSScriptRoot
+. (Join-Path $projectRoot 'build-info.ps1')
+Assert-ClientBuildInfo (Join-Path $projectRoot 'app-v09')
 $packageDirectory = Join-Path $projectRoot 'dist'
 [System.IO.Directory]::CreateDirectory($packageDirectory) | Out-Null
 # Версия берётся из проекта: две записи рядом расходятся, как уже случилось с 0.8.2.
@@ -11,6 +13,7 @@ $release = ([xml](Get-Content -LiteralPath $projectFile -Raw)).Project.PropertyG
 if (-not $release) { throw 'В src\Oblachka.csproj нет элемента Version.' }
 $archivePath = Join-Path $packageDirectory ('Oblachka-' + $release + '-win-x64-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.zip')
 $files = [ordered]@{
+    'build-info.json' = 'app-v09\build-info.json'
     'Oblachka.exe' = 'app-v09\Oblachka.exe'
     'Oblachka.dll' = 'app-v09\Oblachka.dll'
     'Oblachka.deps.json' = 'app-v09\Oblachka.deps.json'
@@ -43,6 +46,8 @@ $files = [ordered]@{
     'vm-kit/START-HERE.md' = 'vm-kit\START-HERE.md'
     'vm-kit/README.md' = 'vm-kit\README.md'
     'vm-kit/test-tun.ps1' = 'vm-kit\test-tun.ps1'
+    'vm-kit/parse-capture.ps1' = 'vm-kit\parse-capture.ps1'
+    'docs/VM-TUN-RESULTS-2026-10-12.md' = 'docs\VM-TUN-RESULTS-2026-10-12.md'
     'docs/REMNAWAVE.md' = 'docs\REMNAWAVE.md'
     'docs/oblachka-response-rule.example.json' = 'docs\oblachka-response-rule.example.json'
     'docs/OBLACHKA-IMPLEMENTATION.md' = 'docs\OBLACHKA-IMPLEMENTATION.md'

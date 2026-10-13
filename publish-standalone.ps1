@@ -4,6 +4,8 @@
 param([switch]$AllowNet8)
 $ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
+. (Join-Path $projectRoot 'build-info.ps1')
+$buildRevision = Get-ClientRevision
 $verified = Join-Path $projectRoot 'app-v09'
 if (-not (Test-Path -LiteralPath (Join-Path $verified 'tools\xray.exe'))) { throw 'Сначала запустите .\build.ps1: ядра берутся из проверенной сборки app-v09.' }
 $sdks = (& dotnet --list-sdks) -join "`n"
@@ -14,7 +16,8 @@ $outputDirectory = Join-Path $projectRoot ('app-v09-standalone-' + $tfm.Split('.
 if (Test-Path -LiteralPath $outputDirectory) { throw ('Папка уже есть: ' + $outputDirectory + '. Переименуй её; скрипт ничего не удаляет.') }
 & (Join-Path $projectRoot 'check-source-size.ps1')
 & dotnet publish (Join-Path $projectRoot 'src\Oblachka.csproj') -c Release -r win-x64 --self-contained true `
-    -p:TargetFramework=$tfm -p:UseSharedCompilation=false --source 'https://api.nuget.org/v3/index.json' -o $outputDirectory
+    -p:TargetFramework=$tfm -p:UseSharedCompilation=false "-p:SourceRevisionId=$buildRevision" --source 'https://api.nuget.org/v3/index.json' -o $outputDirectory
 if ($LASTEXITCODE -ne 0) { throw 'Публикация не прошла.' }
 Copy-Item -LiteralPath (Join-Path $verified 'tools') -Destination (Join-Path $outputDirectory 'tools') -Recurse
+Write-ClientBuildInfo $outputDirectory $buildRevision
 Write-Host ('Готово: ' + $outputDirectory + '\Oblachka.exe (' + $tfm + ', без установки .NET).')

@@ -1,8 +1,10 @@
 ﻿$ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
+. (Join-Path $projectRoot 'build-info.ps1')
+$buildRevision = Get-ClientRevision
 $outputDirectory = Join-Path $projectRoot 'app-v09'
 & (Join-Path $projectRoot 'check-source-size.ps1')
-& dotnet build (Join-Path $projectRoot 'src\Oblachka.csproj') -c Release -o $outputDirectory --configfile (Join-Path $projectRoot 'src\NuGet.Config') -p:UseSharedCompilation=false
+& dotnet build (Join-Path $projectRoot 'src\Oblachka.csproj') -c Release -o $outputDirectory --configfile (Join-Path $projectRoot 'src\NuGet.Config') -p:UseSharedCompilation=false "-p:SourceRevisionId=$buildRevision"
 if ($LASTEXITCODE -ne 0) { throw 'Сборка не прошла.' }
 [System.IO.Directory]::CreateDirectory((Join-Path $outputDirectory 'tools')) | Out-Null
 foreach ($coreFile in @('xray.exe', 'LICENSE-Xray')) {
@@ -29,5 +31,6 @@ foreach ($item in $vendorFiles.GetEnumerator()) {
     Copy-Item -LiteralPath (Join-Path $vendorRoot $item.Value) -Destination (Join-Path $outputDirectory ('tools\' + $item.Key))
 }
 Write-Host 'Готово: app-v09\Oblachka.exe. Предыдущие сборки сохранены.'
+Write-ClientBuildInfo $outputDirectory $buildRevision
 
 
