@@ -5,6 +5,9 @@ namespace Oblachka;
 // Пока системный режим работает, исходящее действие всех профилей брандмауэра переведено
 // в Block, а наружу разрешены ровно три вещи: трафик, уходящий в туннель (по локальному
 // адресу самого туннеля), соединение с адресом входа узла и DHCP на физической сети.
+// Отдельно запрещён DNS с любого адреса, кроме туннельного: у Windows есть собственные
+// встроенные разрешения, и запрет по умолчанию их не отменяет — на стенде DNS сквозь них
+// уходил на физический адаптер прямо при поднятом туннеле.
 //
 // Почему действие профиля, а не запрещающее правило: в брандмауэре Windows запрет всегда
 // сильнее разрешения, поэтому исключения у запрещающего правила можно задать только внутри
@@ -22,11 +25,22 @@ public sealed class KillSwitchBackend : INetworkSessionBackend
     public static readonly string TunnelRule = ServiceBrand.Name + " — трафик в туннель";
     public static readonly string PeerRule = ServiceBrand.Name + " — соединение с сервером";
     public static readonly string DhcpRule = ServiceBrand.Name + " — получение адреса в сети";
+    public static readonly string DnsRule = ServiceBrand.Name + " — запрет DNS мимо туннеля";
+    public static readonly string DnsTcpRule = ServiceBrand.Name + " — запрет DNS по TCP мимо туннеля";
+
+    // Всё, кроме самого туннеля. Запрет нельзя сузить словом «кроме», зато можно задать
+    // диапазонами: адреса туннеля лежат в /30 и /126, и вокруг них остаётся ровно по две
+    // области. Нужно это затем, что у Windows есть собственные встроенные разрешения
+    // («Основы сетей»), и запрет по умолчанию их не отменяет — DNS сквозь них уходил
+    // на физический адаптер прямо при поднятом туннеле, что и показал захват.
+    private const string OutsideTunnel =
+        "0.0.0.0-172.31.255.0,172.31.255.4-255.255.255.255," +
+        "::-fdfe:dcba:9875:ffff:ffff:ffff:ffff:ffff,fdfe:dcba:9876::4-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
 
     // Имена правил постоянны и не содержат идентификатора сессии: правило, оставшееся
     // после потери журнала, иначе стало бы невидимым для уборки. Одновременных сессий
     // не бывает — журнал этого не допускает.
-    public static IReadOnlyList<string> RuleNames => new[] { TunnelRule, PeerRule, DhcpRule };
+    public static IReadOnlyList<string> RuleNames => new[] { TunnelRule, PeerRule, DhcpRule, DnsRule, DnsTcpRule };
 
     private readonly IFirewallPolicy firewall;
     private readonly int[] profiles;
@@ -73,11 +87,17 @@ public sealed class KillSwitchBackend : INetworkSessionBackend
         // Остатки с нашими же именами могли пережить потерю журнала. Правило создаётся
         // заново, поэтому старое снимается до, а не после.
         foreach (var name in RuleNames) firewall.RemoveRule(name);
-        firewall.AddAllowRule(new FirewallAllowRule(TunnelRule,
+        firewall.AddRule(new FirewallRule(TunnelRule,
             LocalAddresses: SingBoxTunConfig.TunHost4 + "," + SingBoxTunConfig.TunHost6));
-        firewall.AddAllowRule(new FirewallAllowRule(PeerRule, RemoteAddresses: peers));
-        firewall.AddAllowRule(new FirewallAllowRule(DhcpRule, WindowsFirewallPolicy.Udp,
+        firewall.AddRule(new FirewallRule(PeerRule, RemoteAddresses: peers));
+        firewall.AddRule(new FirewallRule(DhcpRule, WindowsFirewallPolicy.Udp,
             LocalPorts: "68", RemotePorts: "67"));
+        // Запрет сильнее разрешения, поэтому встроенные правила Windows он перебивает.
+        // Выпускается только DNS с адреса самого туннеля, то есть ушедший внутрь него.
+        firewall.AddRule(new FirewallRule(DnsRule, WindowsFirewallPolicy.Udp,
+            LocalAddresses: OutsideTunnel, RemotePorts: "53", Action: FirewallAction.Block));
+        firewall.AddRule(new FirewallRule(DnsTcpRule, WindowsFirewallPolicy.Tcp,
+            LocalAddresses: OutsideTunnel, RemotePorts: "53", Action: FirewallAction.Block));
 
         // Разрешения ставятся до запрета: наоборот означало бы окно, в котором наружу
         // не проходит и сам туннель.
@@ -87,7 +107,7 @@ public sealed class KillSwitchBackend : INetworkSessionBackend
                 throw new IOException("Брандмауэр не принял запрет исходящего трафика для профиля " + profile + ".");
         foreach (var name in RuleNames)
             if (!firewall.RuleExists(name))
-                throw new IOException("Брандмауэр не сохранил разрешение «" + name + "».");
+                throw new IOException("Брандмауэр не сохранил правило «" + name + "».");
         return NetworkWriteResult.Changed;
     }
 
@@ -121,10 +141,10 @@ public sealed class KillSwitchBackend : INetworkSessionBackend
     {
         foreach (var name in RuleNames) firewall.RemoveRule(name);
         // Снятие проверяется, а не предполагается: оставшееся разрешение — это дыра,
-        // которая переживёт сессию и о которой никто не узнает.
+        // а оставшийся запрет — молча сломанный DNS. И то и другое переживёт сессию.
         var left = RuleNames.Where(firewall.RuleExists).ToArray();
         if (left.Length > 0)
-            throw new IOException("Брандмауэр не снял разрешения: " + string.Join(", ", left) + ".");
+            throw new IOException("Брандмауэр не снял правила: " + string.Join(", ", left) + ".");
     }
 
     private string Owned(NetworkChange change)

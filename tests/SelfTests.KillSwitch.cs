@@ -11,7 +11,7 @@ public static partial class SelfTests
         {
             [1] = FirewallAction.Allow, [2] = FirewallAction.Allow, [4] = FirewallAction.Allow
         };
-        public readonly Dictionary<string, FirewallAllowRule> Rules = new(StringComparer.Ordinal);
+        public readonly Dictionary<string, FirewallRule> Rules = new(StringComparer.Ordinal);
         public readonly List<string> Log = new();
         public bool Enabled = true;
         public bool RefuseRemoval;
@@ -25,10 +25,10 @@ public static partial class SelfTests
             Log.Add("outbound " + profile + "=" + action);
         }
 
-        public void AddAllowRule(FirewallAllowRule rule)
+        public void AddRule(FirewallRule rule)
         {
             Rules[rule.Name] = rule;
-            Log.Add("rule+ " + rule.Name);
+            Log.Add("rule+ " + rule.Name + " " + rule.Action);
         }
 
         public bool RuleExists(string name) => Rules.ContainsKey(name);
@@ -71,13 +71,22 @@ public static partial class SelfTests
             Assert(kill.Apply(id, change) == NetworkWriteResult.Changed);
             // Иначе осталось бы окно, в котором наружу не проходит и сам туннель.
             var firstBlock = firewall.Log.FindIndex(l => l.StartsWith("outbound", StringComparison.Ordinal));
-            Assert(firewall.Log.Take(firstBlock).Count(l => l.StartsWith("rule+", StringComparison.Ordinal)) == 3);
+            Assert(firewall.Log.Take(firstBlock).Count(l => l.StartsWith("rule+", StringComparison.Ordinal)) == 5);
             Assert(firewall.Outbound.Values.All(a => a == FirewallAction.Block));
             // Адрес туннеля берётся из конфигурации ядра: расхождение закрыло бы туннель наглухо.
             var tunnelRule = firewall.Rules[KillSwitchBackend.TunnelRule];
             Assert(tunnelRule.LocalAddresses!.Contains(SingBoxTunConfig.TunHost4, StringComparison.Ordinal));
             Assert(tunnelRule.LocalAddresses!.Contains(SingBoxTunConfig.TunHost6, StringComparison.Ordinal));
             Assert(firewall.Rules[KillSwitchBackend.PeerRule].RemoteAddresses == "203.0.113.7");
+            // DNS запрещается именно запретом: встроенные разрешения Windows иначе
+            // выпускают его на физический адаптер, что и показал захват на стенде.
+            foreach (var name in new[] { KillSwitchBackend.DnsRule, KillSwitchBackend.DnsTcpRule })
+            {
+                var dns = firewall.Rules[name];
+                Assert(dns.Action == FirewallAction.Block && dns.RemotePorts == "53");
+                // Адрес самого туннеля из запрета исключён, иначе не работал бы и он.
+                Assert(!dns.LocalAddresses!.Contains(SingBoxTunConfig.TunHost4, StringComparison.Ordinal));
+            }
         }));
         await check("Someone else's outbound setting is a conflict, not something to overwrite", () => Sync(() =>
         {
@@ -129,7 +138,7 @@ public static partial class SelfTests
             var kill = new KillSwitchBackend(firewall);
             var change = kill.Prepare(NetworkHelperContracts.Validate(Request(id)))[0];
             // Остаток правила от потерянного журнала: убрать его нужно, настройку — нет.
-            firewall.AddAllowRule(new FirewallAllowRule(KillSwitchBackend.PeerRule));
+            firewall.AddRule(new FirewallRule(KillSwitchBackend.PeerRule));
             Assert(kill.Restore(id, change with { State = NetworkChangeState.Applied }) == NetworkWriteResult.Unchanged);
             Assert(firewall.Rules.Count == 0);
             Assert(firewall.Outbound.Values.All(a => a == FirewallAction.Allow));
