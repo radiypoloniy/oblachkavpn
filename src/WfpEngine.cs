@@ -4,9 +4,11 @@ using System.Runtime.InteropServices;
 
 namespace Oblachka;
 
-public enum WfpConditionKind { Loopback, LocalAddress, RemoteAddress, Application, Protocol, LocalPort, RemotePort }
+public enum WfpConditionKind { Loopback, LocalAddress, RemoteAddress, Application, Protocol, LocalPort, RemotePort, InterfaceTypeNot }
 public sealed record WfpCondition(WfpConditionKind Kind, IPAddress? Address = null, string? Program = null, int Number = 0);
-public sealed record WfpFilter(Guid Key, string Name, bool V6, byte Weight, bool Permit, WfpCondition[] Conditions);
+// Packet — слой исходящих IP-пакетов, а не установления соединений: там видны пакеты
+// уже разрешённых потоков, в том числе закрытие соединения после снятия туннеля.
+public sealed record WfpFilter(Guid Key, string Name, bool V6, byte Weight, bool Permit, WfpCondition[] Conditions, bool Packet = false);
 
 // Windows Filtering Platform, каким её видит защита. Интерфейс нужен затем, чтобы порядок
 // и состав фильтров проверялись на подменном движке, а не на сети компьютера.
@@ -35,6 +37,9 @@ public sealed class WfpEngine : IWfpEngine
     // условия их символическими именами, а это возможно только при верных ключах.
     public static readonly Guid LayerConnectV4 = new("c38d57d1-05a7-4c33-904f-7fbceee60e82");
     public static readonly Guid LayerConnectV6 = new("4a72393b-319f-44bc-84c3-ba54dcb3b6b4");
+    public static readonly Guid LayerPacketV4 = new("1e5c9fae-8a84-4135-a331-950b54229ecd");
+    public static readonly Guid LayerPacketV6 = new("a3b3ab6b-3564-488c-9117-f34e82142763");
+    private static readonly Guid ConditionInterfaceType = new("daf8cd14-e09e-4c93-a5ae-c5c13b73ffca");
     private static readonly Guid ConditionFlags = new("632ce23b-5167-435c-86d7-e903684aa80c");
     private static readonly Guid ConditionLocalAddress = new("d9ee00de-c1ef-4617-bfe3-ffd8f5a08957");
     private static readonly Guid ConditionRemoteAddress = new("b235ae9a-1d64-49b8-a44c-5ff3d9095045");
@@ -48,7 +53,7 @@ public sealed class WfpEngine : IWfpEngine
     // Разрешение с очищенным правом на действие не может перебить подслой ниже по весу —
     // в том числе брандмауэр Windows, если в нём исходящее по умолчанию запрещено.
     private const uint FlagClearActionRight = 0x8;
-    private const uint MatchEqual = 0, MatchFlagsAllSet = 6;
+    private const uint MatchEqual = 0, MatchFlagsAllSet = 6, MatchNotEqual = 10;
     private const uint TypeUint8 = 1, TypeUint16 = 2, TypeUint32 = 3, TypeArray16 = 11, TypeBlob = 12;
     private const uint IsLoopback = 0x1;
     private const uint FilterNotFound = 0x80320003, ProviderNotFound = 0x80320005, SublayerNotFound = 0x80320007;
@@ -106,7 +111,7 @@ public sealed class WfpEngine : IWfpEngine
             Display = new() { Name = memory.Add(filter.Name) },
             Flags = filter.Permit ? FlagClearActionRight : 0,
             ProviderKey = memory.Copy(provider),
-            LayerKey = filter.V6 ? LayerConnectV6 : LayerConnectV4,
+            LayerKey = filter.Packet ? (filter.V6 ? LayerPacketV6 : LayerPacketV4) : (filter.V6 ? LayerConnectV6 : LayerConnectV4),
             SublayerKey = sublayer,
             Weight = new() { Type = TypeUint8, Data = filter.Weight },
             ConditionCount = (uint)conditions.Length,
@@ -128,6 +133,7 @@ public sealed class WfpEngine : IWfpEngine
         WfpConditionKind.Protocol => new() { Field = ConditionProtocol, Value = new() { Type = TypeUint8, Data = (ulong)c.Number } },
         WfpConditionKind.LocalPort => new() { Field = ConditionLocalPort, Value = new() { Type = TypeUint16, Data = (ulong)c.Number } },
         WfpConditionKind.RemotePort => new() { Field = ConditionRemotePort, Value = new() { Type = TypeUint16, Data = (ulong)c.Number } },
+        WfpConditionKind.InterfaceTypeNot => new() { Field = ConditionInterfaceType, Match = MatchNotEqual, Value = new() { Type = TypeUint32, Data = (ulong)c.Number } },
         WfpConditionKind.Application => new() { Field = ConditionAppId, Value = new() { Type = TypeBlob, Data = (ulong)memory.AppId(c.Program!) } },
         _ => throw new UserError("Неизвестное условие фильтра.")
     };

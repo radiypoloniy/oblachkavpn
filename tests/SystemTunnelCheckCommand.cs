@@ -124,6 +124,7 @@ internal static class SystemTunnelCheckCommand
                     : "ВЫВОД: выход изменился с " + baseline + " на " + inside + " — перенаправление подтверждено");
             if (inside != second) Add("ВНИМАНИЕ: источники разошлись, замеру верить нельзя");
             ForeignAllowProbe.Run(plan.Peers[0], Add);
+            Add(ForeignAllowProbe.TunnelSourceToPeer(plan.Peers[0]));
             SystemTunnelCoreLoss.Run(session, engine, Add, () => Probe("https://api.ipify.org"));
 
             session.StopAsync().GetAwaiter().GetResult();

@@ -56,7 +56,12 @@ public static partial class SelfTests
             foreach (var v6 in new[] { false, true })
             {
                 var family = filters.Where(f => f.V6 == v6).ToArray();
-                var block = family.Single(f => !f.Permit);
+                var block = family.Single(f => !f.Permit && !f.Packet);
+                // Адрес туннеля не выходит на физический адаптер даже в пакетах уже
+                // разрешённых потоков — это решается на слое пакетов, не соединений.
+                var packet = family.Single(f => f.Packet);
+                Assert(!packet.Permit && packet.Conditions.Any(c => c.Kind == WfpConditionKind.LocalAddress) &&
+                    packet.Conditions.Any(c => c.Kind == WfpConditionKind.InterfaceTypeNot && c.Number == WfpProtectionBackend.TunnelInterfaceType));
                 // Запрет без условий и с наименьшим весом: ниже всех разрешений подслоя.
                 Assert(block.Conditions.Length == 0 && block.Weight == 0 && family.Where(f => f.Permit).All(f => f.Weight > 0));
                 // Адрес узла открыт только программам ядер — по одному фильтру на ядро.

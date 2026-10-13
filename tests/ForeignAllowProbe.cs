@@ -28,6 +28,24 @@ internal static class ForeignAllowProbe
         catch (Exception ex) { add("чужое разрешение: правило не поставлено (" + ex.GetType().Name + ")"); }
     }
 
+    // Пакет с адресом туннеля в отправителе на адрес узла. Узел выведен из туннеля
+    // маршрутом, значит пакет пойдёт на физический адаптер, а слой соединений его
+    // пропускает: адрес отправителя — туннельный. Закрывает это только фильтр пакетов.
+    // В захвате снаружи таких кадров быть не должно; полезная нагрузка — метка поиска.
+    internal static string TunnelSourceToPeer(string peer)
+    {
+        try
+        {
+            using var socket = new System.Net.Sockets.Socket(System.Net.Sockets.AddressFamily.InterNetwork,
+                System.Net.Sockets.SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
+            socket.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.Parse(SingBoxTunConfig.TunHost4), 0));
+            var marker = System.Text.Encoding.ASCII.GetBytes("oblachka-tunnel-source-probe");
+            for (var i = 0; i < 5; i++) socket.SendTo(marker, new System.Net.IPEndPoint(System.Net.IPAddress.Parse(peer), 443));
+            return "адрес туннеля к узлу: 5 пакетов отправлено, в захвате их быть не должно (метка oblachka-tunnel-source-probe)";
+        }
+        catch (Exception ex) { return "адрес туннеля к узлу: отправка отклонена (" + ex.GetType().Name + ")"; }
+    }
+
     // Код 7 и 28 — соединение не установлено. Любой другой код (в том числе ошибка TLS)
     // значит, что TCP-соединение состоялось.
     private static string Connect(string curl, string peer)

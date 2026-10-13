@@ -27,6 +27,9 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
     // Номеров с запасом: два ядра на 16 адресов узлов плюс общие фильтры обоих семейств.
     public const int MaxFilters = 64;
     private const ushort SublayerWeight = ushort.MaxValue;
+    // Тип интерфейса wintun по IANA: IF_TYPE_PROP_VIRTUAL. Физические адаптеры — другие
+    // типы (Ethernet 6, Wi-Fi 71), поэтому «не 53» и значит «мимо туннеля».
+    public const int TunnelInterfaceType = 53;
 
     private readonly Func<IWfpEngine> open;
     private readonly string tools;
@@ -102,6 +105,8 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
         var list = new List<WfpFilter>();
         void Add(string name, bool v6, byte weight, bool permit, params WfpCondition[] conditions) =>
             list.Add(new(FilterKey(list.Count), ServiceBrand.Name + " — " + name, v6, weight, permit, conditions));
+        void AddPacket(string name, bool v6, params WfpCondition[] conditions) =>
+            list.Add(new(FilterKey(list.Count), ServiceBrand.Name + " — " + name, v6, 15, false, conditions, Packet: true));
         foreach (var v6 in new[] { false, true })
         {
             var family = v6 ? " (IPv6)" : " (IPv4)";
@@ -117,6 +122,11 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
             Add("DHCP" + family, v6, 12, true, new WfpCondition(WfpConditionKind.Protocol, Number: 17),
                 new WfpCondition(WfpConditionKind.LocalPort, Number: v6 ? 546 : 68), new WfpCondition(WfpConditionKind.RemotePort, Number: v6 ? 547 : 67));
             Add("запрет мимо туннеля" + family, v6, 0, false);
+            // Пакеты уже разрешённых потоков слой соединений не видит. На снятии туннеля
+            // соединения, жившие в нём, закрываются, и их FIN уходил на физический адаптер
+            // с адресом туннеля в отправителе. Адрес туннеля наружу выходить не должен.
+            AddPacket("адрес туннеля только в туннель" + family, v6, new WfpCondition(WfpConditionKind.LocalAddress, host),
+                new WfpCondition(WfpConditionKind.InterfaceTypeNot, Number: TunnelInterfaceType));
         }
         if (list.Count > MaxFilters) throw new UserError("Слишком много адресов узлов для защиты.");
         return list;
