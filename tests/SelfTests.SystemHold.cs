@@ -88,6 +88,16 @@ public static partial class SelfTests
             helper.Lose(); await failed.Task.WaitAsync(TimeSpan.FromSeconds(3));
             Assert(!session.BlocksBypass && core.ProcessId is null);
         });
+        await check("Session steps are traced with time and kind only, apply before restore", () =>
+        {
+            var steps = new List<string>(); var request = NetworkAcquire();
+            var session = new NetworkSession(new MemoryNetworkJournal(), new FakeNetworkBackend(), steps.Add);
+            session.Acquire(request); session.Release(request.LeaseId);
+            Assert(steps.Count >= 2 && steps[0].Contains(" apply ") && steps[^1].Contains(" restore "));
+            Assert(steps.All(s => System.Text.RegularExpressions.Regex.IsMatch(s, @"^\d\d:\d\d:\d\d\.\d{3} (apply|restore) \w+ \w+$")));
+            Assert(steps.All(s => !s.Contains("192.0.2", StringComparison.Ordinal) && !s.Contains("127.0.0.1", StringComparison.Ordinal)));
+            return Task.CompletedTask;
+        });
         await check("Spare plans: the selected server must prepare, spares that fail or overflow are skipped", async () =>
         {
             var many = Enumerable.Range(1, 9).Select(i => IPAddress.Parse("198.51.100." + i)).ToArray();

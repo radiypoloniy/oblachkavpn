@@ -1,8 +1,11 @@
 namespace Oblachka;
 
 // Serializes transactions; the file journal separately prevents a second process owning the same path.
-// No real backend is wired into the application at this stage.
-public sealed class NetworkSession(INetworkSessionJournal journal, INetworkSessionBackend backend)
+//
+// trace получает отметку каждого шага: вид изменения и момент его завершения. По этим
+// отметкам захват трафика сопоставляется с тем, стояла ли блокировка в момент кадра.
+// Адресов и ключей в отметках нет.
+public sealed class NetworkSession(INetworkSessionJournal journal, INetworkSessionBackend backend, Action<string>? trace = null)
 {
     private readonly object gate = journal.SyncRoot;
 
@@ -29,6 +32,7 @@ public sealed class NetworkSession(INetworkSessionJournal journal, INetworkSessi
                 {
                     token.ThrowIfCancellationRequested();
                     var result = backend.Apply(lease.LeaseId, changes[i]);
+                    Mark("apply " + changes[i].Kind + " " + result);
                     if (!Enum.IsDefined(result)) throw new UserError("Неизвестный результат сетевого изменения.");
                     if (result == NetworkWriteResult.Conflict) throw new UserError("Сетевой параметр изменён другим владельцем.");
                     changes[i] = changes[i] with { State = NetworkChangeState.Applied };
@@ -65,6 +69,8 @@ public sealed class NetworkSession(INetworkSessionJournal journal, INetworkSessi
         lock (gate) return RecoverCore();
     }
 
+    private void Mark(string step) => trace?.Invoke(DateTime.UtcNow.ToString("HH:mm:ss.fff") + " " + step);
+
     private NetworkSessionRecord? RecoverCore()
     {
         var record = journal.Load();
@@ -76,7 +82,7 @@ public sealed class NetworkSession(INetworkSessionJournal journal, INetworkSessi
             var change = record.Changes[i];
             if (change.State == NetworkChangeState.Restored) continue;
             NetworkWriteResult result;
-            try { result = backend.Restore(record.LeaseId, change); }
+            try { result = backend.Restore(record.LeaseId, change); Mark("restore " + change.Kind + " " + result); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or UserError)
             {
                 record = record with { State = NetworkSessionState.RecoveryRequired };

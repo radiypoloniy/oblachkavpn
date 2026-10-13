@@ -25,6 +25,19 @@ public static class NetworkHelperHost
 
     public static string JournalPath => Path.Combine(ClientDataPaths.Root, "network-session.json");
     public static string FailurePath => Path.Combine(ClientDataPaths.Root, "helper-failure.txt");
+    public static string TracePath => Path.Combine(ClientDataPaths.Root, "helper-trace.txt");
+
+    // Отметки шагов сессии: время UTC и вид изменения. Файл не растёт без предела.
+    internal static void RecordStep(string line)
+    {
+        try
+        {
+            Directory.CreateDirectory(ClientDataPaths.Root);
+            if (File.Exists(TracePath) && new FileInfo(TracePath).Length > 64 * 1024) File.Delete(TracePath);
+            File.AppendAllText(TracePath, line + Environment.NewLine, new System.Text.UTF8Encoding(false));
+        }
+        catch (Exception write) when (write is IOException or UnauthorizedAccessException) { }
+    }
 
     // Записывается только тип и сообщение ожидаемого отказа: ни ключей, ни адресов узлов
     // в таких сообщениях нет. Запись не должна мешать завершению, поэтому ошибки записи
@@ -74,7 +87,7 @@ public static class NetworkHelperHost
             catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException) { }
             using var backend = new SystemNetworkBackend(tunnel, killSwitch);
             using var journal = new NetworkSessionJournal(JournalPath);
-            var session = new NetworkSession(journal, backend);
+            var session = new NetworkSession(journal, backend, RecordStep);
             var server = new HelperPipeServer(session, parsed.PipeName, owner, report: RecordFailure);
             try
             {

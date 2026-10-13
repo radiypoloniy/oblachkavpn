@@ -63,6 +63,16 @@ internal static class KillSwitchProbe
             target.GetType().InvokeMember(name, System.Reflection.BindingFlags.GetProperty, null, target, null);
     }
 
+    // Шаги помощника по его часам: момент, когда встала и снялась блокировка и туннель.
+    // Сопоставляются с аудитом WFP гостя (vm-kit/wfp-audit.ps1), который пишет время по
+    // тем же часам. Захват снаружи для этого не годится: часы гостя под VirtualBox
+    // расходятся с часами захвата на секунды.
+    internal static IEnumerable<string> HelperSteps()
+    {
+        if (!File.Exists(NetworkHelperHost.TracePath)) return new[] { "шаги помощника: файла нет" };
+        return File.ReadAllLines(NetworkHelperHost.TracePath).TakeLast(12).Select(l => "шаг помощника: " + l);
+    }
+
     // Соединение, открытое до туннеля, и оставленное живым.
     internal static TcpClient? OpenBefore(string host, int port, List<string> log)
     {

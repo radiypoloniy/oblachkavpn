@@ -19,13 +19,20 @@ internal static class SystemTunnelCheckCommand
         if (!NetworkHelperHost.IsElevated()) { Add("нужны права администратора"); Save(); return 2; }
         if (!VmTunTickets.IsVirtualMachine()) { Add("запуск разрешён только в виртуальной машине"); Save(); return 2; }
 
-        ImportResult imported;
-        try
+        // Сеть гостя после смены DNS в начале прогона устаивается не сразу: первый запрос
+        // бывает неудачным. Три попытки отличают это от настоящего отказа сервиса.
+        ImportResult? imported = null;
+        for (var attempt = 1; imported is null; attempt++)
         {
-            using var fetch = new CancellationTokenSource(TimeSpan.FromSeconds(40));
-            imported = Subscriptions.FetchAsync(ServiceKey.ToSubscriptionUrl(key), fetch.Token).GetAwaiter().GetResult();
+            try
+            {
+                using var fetch = new CancellationTokenSource(TimeSpan.FromSeconds(40));
+                imported = Subscriptions.FetchAsync(ServiceKey.ToSubscriptionUrl(key), fetch.Token).GetAwaiter().GetResult();
+                if (attempt > 1) Add("подписка загружена с попытки " + attempt);
+            }
+            catch (Exception ex) when (attempt < 3) { Add("подписка, попытка " + attempt + ": " + ex.GetType().Name); Thread.Sleep(3000); }
+            catch (Exception ex) { Add("подписка не загружена: " + ex.GetType().Name + (ex is UserError ? " — " + ex.Message : "")); Save(); return 2; }
         }
-        catch (Exception ex) { Add("подписка не загружена: " + ex.GetType().Name + (ex is UserError ? " — " + ex.Message : "")); Save(); return 2; }
 
         var profile = imported.Profiles.FirstOrDefault(p => p.DisplayName.Contains(nodeName, StringComparison.OrdinalIgnoreCase));
         if (profile is null) { Add("узел не найден: " + nodeName); Save(); return 3; }
@@ -36,6 +43,7 @@ internal static class SystemTunnelCheckCommand
         var baseline = Probe("https://api.ipify.org");
         Add("исходный выход (до туннеля): " + baseline);
         Add("брандмауэр до туннеля: " + KillSwitchProbe.Describe());
+        try { File.Delete(NetworkHelperHost.TracePath); } catch (IOException) { }
         Add("резолверы до туннеля: " + KillSwitchProbe.Resolvers());
         // Соединение открывается заранее: именно такие кадры уходили мимо туннеля в
         // захвате, и обрывает ли их блокировка — главный вопрос этого прогона.
@@ -98,6 +106,7 @@ internal static class SystemTunnelCheckCommand
             Add("после остановки состояние: " + session.State);
             Add("остались интерфейсы: " + (TunnelInterfaces.Ours().Count == 0 ? "нет" : string.Join(',', TunnelInterfaces.Ours())));
             Add("брандмауэр после остановки: " + KillSwitchProbe.Describe());
+            foreach (var step in KillSwitchProbe.HelperSteps()) Add(step);
             early?.Dispose();
             var after = Probe("https://api.ipify.org");
             Add("выходной IP после остановки: " + after);
