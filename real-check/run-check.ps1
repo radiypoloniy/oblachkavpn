@@ -38,7 +38,8 @@ if (-not $desktop) {
 
 if ($Yes -and $Key) {
     $key = $Key; $otherVpn = $OtherVpn
-    $nodes = if ($Nodes) { $Nodes } else { @('Германия', 'звонков') }
+    # Через -File массив приходит одной строкой через запятую: делим сами.
+    $nodes = if ($Nodes) { $Nodes -join ',' -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ } } else { @('Германия', 'звонков') }
 } else {
     $answer = Read-Host 'Продолжить? Введите ДА'
     if ($answer -ne 'ДА' -and $answer -ne 'да') { Write-Host 'Отменено.'; return }
