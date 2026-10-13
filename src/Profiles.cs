@@ -8,8 +8,17 @@ namespace Oblachka;
 // их конфигурации мы не контролируем и отвечать за них не можем.
 public enum ProfileSource { Service, External }
 
-public sealed record Profile(string Name, string Transport, JsonObject Outbound, CoreKind Core = CoreKind.Xray)
+public sealed record Profile(string Name, string Transport, JsonObject Outbound, CoreKind Core = CoreKind.Xray) : System.ComponentModel.INotifyPropertyChanged
 {
+    private string listStatus = "Не проверен";
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+    public string ListStatus => listStatus;
+    public void SetListStatus(string value)
+    {
+        if (listStatus == value) return;
+        listStatus = value;
+        PropertyChanged?.Invoke(this, new(nameof(ListStatus)));
+    }
     public ProfileSource Source { get; init; } = ProfileSource.External;
     public ServerCountry Country => CountryCatalog.Resolve(Name);
     public string DisplayName => ServerLabels.DisplayName(Name);

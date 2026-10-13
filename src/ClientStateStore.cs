@@ -25,6 +25,7 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public SiteRule[] RouteRules { get; init; } = Array.Empty<SiteRule>();
     public ProgramRule[] ProgramRules { get; init; } = Array.Empty<ProgramRule>();
     public ServerMeasurement[] Measurements { get; init; } = Array.Empty<ServerMeasurement>();
+    public string[] Favorites { get; init; } = Array.Empty<string>();
 }
 
 // The OS binds the encrypted file to the current Windows user. Never stage plaintext on disk.
@@ -111,6 +112,9 @@ public sealed class ClientStateStore(string path)
             throw new UserError("Сохранённые сторонние подписки повреждены.");
         if (snapshot.ExternalSources.Length > 0) SubscriptionMirrors.ParseSources(string.Join("\n", snapshot.ExternalSources));
         RestoreProfiles(snapshot);
+        if (snapshot.Favorites is null || snapshot.Favorites.Length > Subscriptions.MaxProfiles ||
+            snapshot.Favorites.Any(f => f is null || f.Length != 64 || f.Any(c => !char.IsAsciiHexDigit(c))))
+            throw new UserError("Сохранённое избранное повреждено.");
         RoutingPlan.Validate(snapshot.RouteRules);
         ProgramRoutingPlan.Validate(snapshot.ProgramRules);
         if (snapshot.Measurements is null || snapshot.Measurements.Length > Subscriptions.MaxProfiles || snapshot.Measurements.Any(m => m is null ||

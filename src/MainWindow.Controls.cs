@@ -32,6 +32,7 @@ public partial class MainWindow
         WireRules();
         WireVmTun();
         WireMeasurements();
+        WireServerList();
         ConnectButton.Click += ConnectClick;
         StopButton.Click += StopClick;
         ProfilePicker.SelectionChanged += ProfileSelectionChanged;

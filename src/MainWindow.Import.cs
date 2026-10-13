@@ -60,6 +60,7 @@ public partial class MainWindow
         profile = combined[selection];
         routeAttempts = Array.Empty<RouteAttempt>();
         ShowProfile();
+        FilterProfiles();
     }
     private void ProfileSelectionChanged(object sender, SelectionChangedEventArgs args)
     {

@@ -14,6 +14,15 @@
       <StackPanel>
         <TextBlock Text="Серверы" Style="{StaticResource PageTitle}"/>
         <TextBox x:Name="SearchBox" Tag="Найти сервер" Height="40" ToolTip="Поиск по названию сервера или стране" AutomationProperties.Name="Поиск серверов" Margin="0,0,0,12"/>
+        <WrapPanel Margin="0,0,0,12">
+          <ComboBox x:Name="SortOrder" Width="165" SelectedIndex="0" AutomationProperties.Name="Порядок серверов" Margin="0,0,12,4">
+            <ComboBoxItem Content="Как в подписке"/>
+            <ComboBoxItem Content="По названию"/>
+            <ComboBoxItem Content="По стране"/>
+            <ComboBoxItem Content="По времени запроса"/>
+          </ComboBox>
+          <CheckBox x:Name="FavoritesOnly" Content="Избранное" VerticalAlignment="Center"/>
+        </WrapPanel>
       </StackPanel>
       <ListBox x:Name="ProfilePicker" Grid.Row="1" AutomationProperties.Name="Список подключений">
         <ListBox.ItemTemplate>
@@ -25,7 +34,10 @@
                 <ColumnDefinition Width="Auto"/>
               </Grid.ColumnDefinitions>
               <local:CountryFlag Code="{Binding Country.Code}" Width="28" Height="20" Stretch="Uniform" VerticalAlignment="Center"/>
-              <TextBlock Grid.Column="1" Margin="10,0,0,0" Text="{Binding DisplayName}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+              <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="{Binding DisplayName}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding ListStatus}" FontSize="11" Foreground="#5B6672" TextTrimming="CharacterEllipsis"/>
+              </StackPanel>
               <Border Grid.Column="2" Visibility="{Binding ExternalBadgeVisibility}" Background="#ECEFF3" CornerRadius="6" Padding="7,2" Margin="8,0,0,0" VerticalAlignment="Center"
                       ToolTip="Сторонний источник: подбор и измерения по нему не работают">
                 <TextBlock Text="Сторонний" FontSize="11" Foreground="#5B6672"/>
@@ -48,6 +60,7 @@
     <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
       <StackPanel>
         <TextBlock x:Name="SelectedName" Text="Выберите подключение" Style="{StaticResource PageTitle}" TextTrimming="CharacterEllipsis"/>
+        <Button x:Name="FavoriteButton" Content="Добавить в избранное" HorizontalAlignment="Left" Margin="0,0,0,12"/>
         <TextBlock Text="Используем параметры из вашего профиля. Страна выхода и скорость пока не определяются." Style="{StaticResource MutedText}" Margin="0,0,0,22"/>
         <TextBlock Text="Протокол и транспорт" FontWeight="SemiBold" Margin="0,0,0,12"/>
         <Border Style="{StaticResource Card}" Background="#F7F9FF" BorderBrush="{StaticResource Blue}">

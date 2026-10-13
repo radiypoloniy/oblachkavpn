@@ -33,6 +33,7 @@ public partial class MainWindow
         profile is null ? null : Profiles.Fingerprint(profile), subscriptionSources.ToArray(), preferredSource,
         Settings.StayInTray.IsChecked == true, AutoRecover.IsChecked == true)
         { SelectedName = profile?.Name, ExternalSources = externalSources.ToArray(), AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, Metadata = subscriptionMetadata, RouteRules = siteRules.ToArray(), ProgramRules = programRules.ToArray(),
+            Favorites = favorites.Where(f => importedProfiles.Any(p => FavoriteKey(p) == f)).Take(Subscriptions.MaxProfiles).ToArray(),
             Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray() };
 
     private void SaveStateClick(object sender, RoutedEventArgs args)
@@ -76,6 +77,7 @@ public partial class MainWindow
         siteRules.Clear(); siteRules.AddRange(snapshot.RouteRules); RefreshRules();
         programRules.Clear(); programRules.AddRange(snapshot.ProgramRules); RefreshRules();
         measurements.Clear(); foreach (var measurement in snapshot.Measurements) measurements[measurement.Fingerprint] = measurement;
+        favorites.Clear(); foreach (var favorite in snapshot.Favorites) favorites.Add(favorite);
         // Снимок хранит оба набора вперемешку: раскладываем обратно по источникам.
         serviceProfiles = restored.Where(p => p.IsService).ToArray();
         externalProfiles = restored.Where(p => !p.IsService).ToArray();

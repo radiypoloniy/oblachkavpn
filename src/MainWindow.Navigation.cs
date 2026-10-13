@@ -65,7 +65,17 @@ public partial class MainWindow
         if (!viewsReady || operation is not null || engine.State != ConnectionState.Idle) return;
         var query = Servers.SearchBox.Text.Trim();
         var selected = profile;
-        ProfilePicker.ItemsSource = importedProfiles.Where(p => p.Country.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || p.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
+        RefreshServerLabels();
+        var visible = importedProfiles.Where(p => (p.Country.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || p.Name.Contains(query, StringComparison.OrdinalIgnoreCase)) &&
+            (Servers.FavoritesOnly.IsChecked != true || favorites.Contains(FavoriteKey(p))));
+        visible = Servers.SortOrder.SelectedIndex switch
+        {
+            1 => visible.OrderBy(p => p.DisplayName, StringComparer.CurrentCultureIgnoreCase),
+            2 => visible.OrderBy(p => p.Country.Name, StringComparer.CurrentCultureIgnoreCase).ThenBy(p => p.DisplayName, StringComparer.CurrentCultureIgnoreCase),
+            3 => visible.OrderBy(MeasurementOrder),
+            _ => visible
+        };
+        ProfilePicker.ItemsSource = visible.ToArray();
         ProfilePicker.SelectedItem = selected;
         Servers.SubscriptionSummary.Text = $"Подключений: {importedProfiles.Count}, показано: {ProfilePicker.Items.Count}";
     }

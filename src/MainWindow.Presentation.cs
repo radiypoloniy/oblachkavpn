@@ -67,6 +67,7 @@ public partial class MainWindow
         Servers.SelectedCore.Text = profile is null ? "Ядро выберется по формату профиля" : profile.Core == CoreKind.Xray ? "Xray 26.9.9" : "sing-box 1.14.3";
         Servers.UseServerButton.IsEnabled = profile is not null;
         Servers.SearchBox.IsEnabled = ProfilePicker.IsEnabled;
+        RefreshServerListControls();
         Diagnostics.CoreState.Text = pid is null ? "Не запущен" : "Готов";
         Diagnostics.TunnelState.Text = lastProbe is null ? "Не проверен" : lastProbe.Success ? $"{lastProbe.Milliseconds} мс" : "Не прошёл";
         Diagnostics.Heading.Text = lastProbe is { Success: true } ? "Туннель проверен" : "Проверим подключение";
