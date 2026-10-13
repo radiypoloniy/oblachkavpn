@@ -18,13 +18,13 @@ public partial class MainWindow
             var parsed = Profiles.Parse(link) with { Source = ProfileSource.Service };
             if (parsed.Country.Code != code || parsed.Country.Name != countryName || FlagImages.Local(code) is null)
                 throw new InvalidOperationException($"Synthetic country case {code}: resolved {parsed.Country.Code}/{parsed.Country.Name}, name={parsed.Name}");
-            // Узел сервиса: в строке только его имя, без страны, транспорта и пометок.
+            // Имя отдельно от результата проверки: он не заменяет название подписки.
             var labels = RenderRow(parsed);
-            if (labels.Length != 1 || labels[0].Text != parsed.DisplayName || labels[0].Text == countryName)
+            if (labels.Length != 2 || labels[0].Text != parsed.DisplayName || labels[0].Text == countryName || labels[1].Text != "Не проверен")
                 throw new InvalidOperationException("Server row replaces its subscription name with a country or includes extra labels: " + string.Join(" | ", labels.Select(l => l.Text)) + " (всего " + labels.Length + ")");
             // Сторонний узел: то же имя плюс видимая пометка источника.
             var foreignLabels = RenderRow(parsed with { Source = ProfileSource.External });
-            if (foreignLabels.Length != 2 || foreignLabels[0].Text != parsed.DisplayName || foreignLabels[1].Text != "Сторонний")
+            if (foreignLabels.Length != 3 || foreignLabels[0].Text != parsed.DisplayName || foreignLabels[1].Text != "Не проверен" || foreignLabels[2].Text != "Сторонний")
                 throw new InvalidOperationException("External node is not marked in the server list: " + string.Join(" | ", foreignLabels.Select(l => l.Text)));
             if (Profiles.Fingerprint(parsed) != Profiles.Fingerprint(parsed with { Name = "Другое имя" }))
                 throw new InvalidOperationException("Country presentation changes connection identity");
