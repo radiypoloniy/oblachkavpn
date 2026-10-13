@@ -34,6 +34,7 @@ public partial class MainWindow
             UpdateModeText();
         }
         if (!SystemTunnelWanted && SystemTunnelActive) _ = StopSystemTunnelAsync();
+        UpdateModeText();
         UpdateSystemTunnelNote(systemTunnel?.State);
         UpdateControls();
         QueueStateSave();

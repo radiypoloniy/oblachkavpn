@@ -44,7 +44,7 @@ public partial class MainWindow
 
     private string CreateSupportReport() => DiagnosticReport.Create(engine.State, importedProfiles.Count,
         subscriptionSources.Count + externalSources.Count, events, routeAttempts,
-        SystemTunnelActive ? DiagnosticMode.SystemTunnel : Settings.SystemProxy.IsChecked == true && engine.ProcessId is not null
+        SystemTunnelActive ? DiagnosticMode.SystemTunnel : systemProxyPort != 0
             ? DiagnosticMode.WindowsProxy : DiagnosticMode.LocalProxy, systemTunnel?.BlocksBypass == true);
 
     private void CopyReportClick(object sender, RoutedEventArgs args)

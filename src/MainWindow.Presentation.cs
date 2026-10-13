@@ -49,7 +49,7 @@ public partial class MainWindow
             ConnectionState.Verified => "Запрос через выбранный сервер выполнен",
             ConnectionState.Running => systemTunnel?.State == SystemTunnelState.Running
                 ? "Системный туннель готов. Проверка связи доступна в диагностике"
-                : Settings.SystemProxy.IsChecked == true ? "Прокси Windows включён. Проверка связи доступна в диагностике"
+                : systemProxyPort != 0 ? "Прокси Windows включён. Проверка связи доступна в диагностике"
                 : "Локальный прокси готов. Настройте его в нужной программе и проверьте связь",
             ConnectionState.Failed => "Попробуйте снова или выберите другой сервер",
             ConnectionState.Idle => "Включите выбранное подключение", _ => "Проверяем профиль и запускаем ядро"

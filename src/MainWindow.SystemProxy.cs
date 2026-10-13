@@ -51,6 +51,13 @@ public partial class MainWindow
 
     private void UpdateModeText()
     {
+        if (SystemTunnelWanted)
+        {
+            Connection.ModeTitle.Text = "Системный VPN";
+            Connection.ModeSubtitle.Text = "Трафик компьютера через TUN";
+            Connection.ModeNote.Text = "Выбран системный режим. Для запуска сетевого помощника нужны права администратора. Состояние блокировки обхода показано в настройках.";
+            return;
+        }
         var system = Settings.SystemProxy.IsChecked == true;
         Connection.ModeTitle.Text = system ? "Системный прокси" : "Только через туннель";
         Connection.ModeSubtitle.Text = system ? "Браузеры и программы с настройками Windows" : "Программы с настроенным SOCKS5";
