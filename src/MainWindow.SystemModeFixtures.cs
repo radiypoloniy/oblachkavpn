@@ -19,8 +19,11 @@ public partial class MainWindow
         checks.Add("System VPN and the Windows proxy cannot be enabled at the same time");
 
         // Пояснение режима обязано говорить о его границах, а не обещать полную защиту.
+        // Раньше здесь требовалось слово «UDP»: его работа внутри туннеля не была доказана.
+        // Проверка захватом снаружи её доказала, зато показала настоящую границу — трафик
+        // мимо туннеля на краях окна. О ней и обязано говорить пояснение.
         var idle = Settings.SystemTunnelNote.Text;
-        if (!idle.Contains("UDP") || !idle.Contains("не реализована"))
+        if (!idle.Contains("мимо") || !idle.Contains("не реализована"))
             throw new InvalidOperationException("System mode note hides its limits: " + idle);
         UpdateSystemTunnelNote(SystemTunnelState.RecoveryRequired);
         if (!Settings.SystemTunnelNote.Text.Contains("не полностью"))

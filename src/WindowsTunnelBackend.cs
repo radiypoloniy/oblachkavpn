@@ -85,7 +85,6 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
     public NetworkWriteResult Restore(Guid leaseId, NetworkChange change)
     {
         var name = Owned(leaseId, change);
-        var stopped = false;
         // Ссылку держим локально: поле обнуляется сразу, а судить о том, умерло ли ядро,
         // нужно именно по нему.
         ITunnelProcess? halted = null;
@@ -95,7 +94,6 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
             core.Dispose();
             core = null;
             owner = Guid.Empty;
-            stopped = true;
         }
         // Нечего было останавливать: это восстановление по чужому незавершённому журналу,
         // например после перезагрузки. Ждать исчезновения адаптера бессмысленно — своего
