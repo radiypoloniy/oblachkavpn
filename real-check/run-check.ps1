@@ -97,7 +97,7 @@ foreach ($node in $nodes) {
     & $tests --system-tunnel-check $key $node $report 120 --real-machine | Out-Null
     Note ('код завершения: ' + $LASTEXITCODE)
     if (Test-Path -LiteralPath $report) {
-        Get-Content -LiteralPath $report -Encoding UTF8 | Where-Object { $_ -match 'узел:|до туннеля через|SOCKS ядра:|ВЫВОД|IPv6|чужое|смерть|удержание|блокировка трафика|наших фильтров WFP: [0-9]+;|после остановки наших|ОТКАЗ|подписка не' } | ForEach-Object { Note ('  ' + $_) }
+        Get-Content -LiteralPath $report -Encoding UTF8 | Where-Object { $_ -match 'узел:|до туннеля через|SOCKS ядра:|ВЫВОД|IPv6|чужое|смерть|удержание|блокировка трафика|наших фильтров WFP: [0-9]+;|после остановки наших|правила:|ОТКАЗ|подписка не' } | ForEach-Object { Note ('  ' + $_) }
         $wfpOn = Step-Time $report 'apply WfpProtection'; $tunUp = Step-Time $report 'apply TunnelInterface'
         $tunDown = Step-Time $report 'restore TunnelInterface'; $wfpOff = Step-Time $report 'restore WfpProtection'
         Note ('  защита стоит, туннеля ещё нет: ' + (Count-Window $wfpOn $tunUp))
