@@ -104,6 +104,11 @@ internal static class SystemTunnelCheckCommand
             Add("сессия создана: " + (session is not null));
             Add("помощник подключён: " + (helper is not null));
             Add("состояние сессии: " + (session?.State.ToString() ?? "нет"));
+            // Помощник завершается в своём процессе, и со стороны это выглядит обрывом.
+            // Его собственная причина лежит рядом с журналом.
+            Add("причина у помощника: " + (File.Exists(NetworkHelperHost.FailurePath)
+                ? File.ReadAllText(NetworkHelperHost.FailurePath) : "файла нет"));
+            Add("брандмауэр после отказа: " + KillSwitchProbe.Describe());
             Add("остались интерфейсы: " + (TunnelInterfaces.Ours().Count == 0 ? "нет" : string.Join(',', TunnelInterfaces.Ours())));
             Save();
             try { session?.StopAsync().GetAwaiter().GetResult(); } catch { }

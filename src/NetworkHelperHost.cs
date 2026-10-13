@@ -24,6 +24,21 @@ public static class NetworkHelperHost
     }
 
     public static string JournalPath => Path.Combine(ClientDataPaths.Root, "network-session.json");
+    public static string FailurePath => Path.Combine(ClientDataPaths.Root, "helper-failure.txt");
+
+    // Записывается только тип и сообщение ожидаемого отказа: ни ключей, ни адресов узлов
+    // в таких сообщениях нет. Запись не должна мешать завершению, поэтому ошибки записи
+    // проглатываются.
+    internal static void RecordFailure(Exception ex)
+    {
+        try
+        {
+            var line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + ex.GetType().Name + ": " + ex.Message;
+            Directory.CreateDirectory(ClientDataPaths.Root);
+            File.WriteAllText(FailurePath, line, new System.Text.UTF8Encoding(true));
+        }
+        catch (Exception write) when (write is IOException or UnauthorizedAccessException) { }
+    }
 
     public static bool IsElevated()
     {
@@ -68,6 +83,10 @@ public static class NetworkHelperHost
             }
             catch (Exception ex) when (ex is UserError or IOException or OperationCanceledException or UnauthorizedAccessException)
             {
+                // Помощник завершается тихо, и со стороны окна это неотличимо от обрыва.
+                // Причина записывается рядом с журналом: без неё разбор отказа на чужой
+                // машине сводится к догадкам. Адресов узлов в этих сообщениях нет.
+                RecordFailure(ex);
                 return 2;
             }
         }

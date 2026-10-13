@@ -67,6 +67,28 @@ public static partial class SelfTests
             }
             await PipeClosedAsync(server); Assert(backend.Original);
         });
+        await check("System refusal becomes an answer, and the helper keeps serving", async () =>
+        {
+            // Найдено живым прогоном: отказ самой системы не был ответом, и помощник
+            // завершался посреди живого канала. Окно видело обрыв потока и не могло
+            // сказать пользователю ничего, кроме «связь потеряна».
+            var journal = new MemoryNetworkJournal(); var backend = new FakeNetworkBackend(); var name = HelperPipeIdentity.NewPipeName();
+            using var owner = System.Diagnostics.Process.GetCurrentProcess(); using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+            backend.BeforeApply = () => throw new IOException("система отказала");
+            var server = new HelperPipeServer(new(journal, backend), name, owner, TimeSpan.FromSeconds(4)).RunAsync(timeout.Token);
+            var client = new NetworkHelperClient(await HelperPipeClient.ConnectAsync(name, owner, timeout.Token), TimeSpan.FromMilliseconds(100));
+            var answered = false;
+            try { await client.AcquireAsync(NetworkAcquire(), timeout.Token); }
+            catch (UserError error) { answered = error.Message.Contains(nameof(HelperFailure.SystemRefused), StringComparison.Ordinal); }
+            Assert(answered);
+            // Канал жив: помощник не умер вместе с отказом.
+            Assert(!server.IsCompleted);
+            // Снятие аренды, которой не случилось, законно отвечает отказом: клиент
+            // помечает её до отправки, чтобы потерянное подтверждение не выглядело
+            // как отсутствие сессии.
+            try { await client.DisposeAsync(); } catch (UserError) { }
+            await PipeClosedAsync(server);
+        });
     }
 
     private sealed class SessionCore(List<string> calls) : ITunnelController

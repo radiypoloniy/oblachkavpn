@@ -5,7 +5,9 @@ using System.Text.Json.Serialization;
 namespace Oblachka;
 
 public enum HelperOperation { Acquire, Release, Heartbeat }
-public enum HelperFailure { None, InvalidRequest, Busy, RecoveryRequired }
+// SystemRefused — отказ самой системы, а не ошибка в запросе. Без него такой отказ
+// вылетал мимо ответа и завершал помощника: клиент видел обрыв канала вместо причины.
+public enum HelperFailure { None, InvalidRequest, Busy, RecoveryRequired, SystemRefused }
 public sealed record HelperRequest(
     [property: JsonRequired] int Version,
     [property: JsonRequired] Guid RequestId,

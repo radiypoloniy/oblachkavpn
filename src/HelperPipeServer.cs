@@ -61,10 +61,16 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                     }
                     response = new(1, request.RequestId, state == NetworkSessionState.RecoveryRequired ? HelperFailure.RecoveryRequired : HelperFailure.None, state, blocking);
                 }
-                catch (UserError)
+                catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException)
                 {
+                    // Отказ системы — это ответ, а не конец работы. Раньше сюда попадал
+                    // только UserError, и отказ брандмауэра или адаптера проходил мимо
+                    // ответа, завершая помощника посреди живого канала: клиент получал
+                    // обрыв потока и не мог сказать пользователю ничего внятного.
                     var state = session.State;
-                    response = new(1, request.RequestId, state == NetworkSessionState.RecoveryRequired ? HelperFailure.RecoveryRequired : HelperFailure.InvalidRequest, state);
+                    var failure = state == NetworkSessionState.RecoveryRequired ? HelperFailure.RecoveryRequired
+                        : ex is UserError ? HelperFailure.InvalidRequest : HelperFailure.SystemRefused;
+                    response = new(1, request.RequestId, failure, state);
                 }
                 await HelperProtocol.WriteAsync(pipe, response, deadline.Token);
             }

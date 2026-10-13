@@ -37,7 +37,9 @@ public sealed class NetworkHelperClient : INetworkHelperClient
             lease = request.LeaseId; // A lost acknowledgement must not be mistaken for a released lease.
             var response = await pipe.SendAsync(HelperOperation.Acquire, request, token).ConfigureAwait(false);
             if (response.Failure != HelperFailure.None || response.State != NetworkSessionState.Applied)
-                throw new UserError("Helper не подтвердил запуск сетевой сессии.");
+                // Причина называется: без неё обрыв и отказ системы выглядят одинаково.
+                throw new UserError("Helper не подтвердил запуск сетевой сессии: " +
+                    response.Failure + ", состояние " + (response.State?.ToString() ?? "нет") + ".");
             pulseCancellation = new CancellationTokenSource();
             pulse = PulseAsync(pulseCancellation.Token);
             // Отсутствие признака трактуется как «не блокируется»: обещать защиту
