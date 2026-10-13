@@ -36,6 +36,7 @@ internal static class SystemTunnelCheckCommand
         var baseline = Probe("https://api.ipify.org");
         Add("исходный выход (до туннеля): " + baseline);
         Add("брандмауэр до туннеля: " + KillSwitchProbe.Describe());
+        Add("резолверы до туннеля: " + KillSwitchProbe.Resolvers());
         // Соединение открывается заранее: именно такие кадры уходили мимо туннеля в
         // захвате, и обрывает ли их блокировка — главный вопрос этого прогона.
         const string earlyHost = "example.com";
@@ -69,6 +70,8 @@ internal static class SystemTunnelCheckCommand
             Add("блокировка трафика мимо туннеля: " + (session.BlocksBypass ? "поставлена" : "НЕ поставлена"));
             Add("брандмауэр при поднятом туннеле: " + KillSwitchProbe.Describe());
             Add(KillSwitchProbe.UseAfter(early, earlyHost));
+            Add("резолверы при поднятом туннеле: " + KillSwitchProbe.Resolvers());
+            Add(KillSwitchProbe.Resolve("api.ipify.org"));
 
             Thread.Sleep(TimeSpan.FromSeconds(Math.Clamp(holdSeconds, 1, 120)));
             var inside = Probe("https://api.ipify.org");

@@ -27,20 +27,37 @@ public sealed class KillSwitchBackend : INetworkSessionBackend
     public static readonly string DhcpRule = ServiceBrand.Name + " — получение адреса в сети";
     public static readonly string DnsRule = ServiceBrand.Name + " — запрет DNS мимо туннеля";
     public static readonly string DnsTcpRule = ServiceBrand.Name + " — запрет DNS по TCP мимо туннеля";
+    public static readonly string TunnelDnsRule = ServiceBrand.Name + " — DNS через туннель";
 
-    // Всё, кроме самого туннеля. Запрет нельзя сузить словом «кроме», зато можно задать
-    // диапазонами: адреса туннеля лежат в /30 и /126, и вокруг них остаётся ровно по две
-    // области. Нужно это затем, что у Windows есть собственные встроенные разрешения
-    // («Основы сетей»), и запрет по умолчанию их не отменяет — DNS сквозь них уходил
-    // на физический адаптер прямо при поднятом туннеле, что и показал захват.
-    private const string OutsideTunnel =
-        "0.0.0.0-172.31.255.0,172.31.255.4-255.255.255.255," +
-        "::-fdfe:dcba:9875:ffff:ffff:ffff:ffff:ffff,fdfe:dcba:9876::4-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
+    // Все адреса, кроме сети туннеля. Запрет нельзя сузить словом «кроме», зато можно
+    // задать диапазонами: сеть туннеля занимает /30 и /126, и вокруг неё остаётся ровно
+    // по две области.
+    //
+    // Нужен такой запрет затем, что у Windows есть собственные встроенные разрешения
+    // («Основы сетей»), и запрет по умолчанию их не отменяет: DNS сквозь них уходил на
+    // физический адаптер прямо при поднятом туннеле — 32 запроса за окно по захвату.
+    //
+    // Сравнение идёт по адресу получателя, а не отправителя. Сначала было наоборот —
+    // «запретить DNS со всех адресов, кроме туннельного», — и на стенде это погасило
+    // разрешение имён целиком: запрет накрыл и запросы к резолверу самого туннеля.
+    // Адрес получателя известен и принадлежит нам, поэтому решение по нему надёжнее.
+    private const string OutsideTunnelNetwork =
+        // Записи выбраны не свободно, а по тому, что брандмауэр принимает и как понимает.
+        // Проверено на стенде: «::1» он отвергает совсем, а «::» принимает, но понимает
+        // как «любой адрес» — такое условие обнуляет исключение, и тогда запрет накрывает
+        // и резолвер самого туннеля, то есть имена перестают разрешаться вовсе.
+        // Поэтому IPv6 задан теми областями, где резолверы и живут, с вырезанной сетью
+        // туннеля: глобальные адреса, link-local и локальные уникальные.
+        "1.0.0.0-172.31.255.0,172.31.255.4-255.255.255.255," +
+        "2000::-3fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff," +
+        "fe80::-febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff," +
+        "fc00::-fdfe:dcba:9875:ffff:ffff:ffff:ffff:ffff," +
+        "fdfe:dcba:9876::4-fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
 
     // Имена правил постоянны и не содержат идентификатора сессии: правило, оставшееся
     // после потери журнала, иначе стало бы невидимым для уборки. Одновременных сессий
     // не бывает — журнал этого не допускает.
-    public static IReadOnlyList<string> RuleNames => new[] { TunnelRule, PeerRule, DhcpRule, DnsRule, DnsTcpRule };
+    public static IReadOnlyList<string> RuleNames => new[] { TunnelRule, PeerRule, DhcpRule, TunnelDnsRule, DnsRule, DnsTcpRule };
 
     private readonly IFirewallPolicy firewall;
     private readonly int[] profiles;
@@ -92,12 +109,18 @@ public sealed class KillSwitchBackend : INetworkSessionBackend
         firewall.AddRule(new FirewallRule(PeerRule, RemoteAddresses: peers));
         firewall.AddRule(new FirewallRule(DhcpRule, WindowsFirewallPolicy.Udp,
             LocalPorts: "68", RemotePorts: "67"));
+        // Резолверу туннеля нужно собственное разрешение. Правило по локальному адресу
+        // его не покрывает: на стенде при запрете по умолчанию имена не разрешались,
+        // хотя сам туннель трафик нёс. Решение принимается по адресу получателя, и этот
+        // адрес принадлежит нам — его ядро само прописывает интерфейсу туннеля.
+        firewall.AddRule(new FirewallRule(TunnelDnsRule,
+            RemoteAddresses: SingBoxTunConfig.TunResolver4 + "," + SingBoxTunConfig.TunResolver6));
         // Запрет сильнее разрешения, поэтому встроенные правила Windows он перебивает.
-        // Выпускается только DNS с адреса самого туннеля, то есть ушедший внутрь него.
+        // Выпускается только DNS к резолверу самого туннеля — он и разрешает имена.
         firewall.AddRule(new FirewallRule(DnsRule, WindowsFirewallPolicy.Udp,
-            LocalAddresses: OutsideTunnel, RemotePorts: "53", Action: FirewallAction.Block));
+            RemoteAddresses: OutsideTunnelNetwork, RemotePorts: "53", Action: FirewallAction.Block));
         firewall.AddRule(new FirewallRule(DnsTcpRule, WindowsFirewallPolicy.Tcp,
-            LocalAddresses: OutsideTunnel, RemotePorts: "53", Action: FirewallAction.Block));
+            RemoteAddresses: OutsideTunnelNetwork, RemotePorts: "53", Action: FirewallAction.Block));
 
         // Разрешения ставятся до запрета: наоборот означало бы окно, в котором наружу
         // не проходит и сам туннель.

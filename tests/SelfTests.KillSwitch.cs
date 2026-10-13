@@ -71,7 +71,7 @@ public static partial class SelfTests
             Assert(kill.Apply(id, change) == NetworkWriteResult.Changed);
             // Иначе осталось бы окно, в котором наружу не проходит и сам туннель.
             var firstBlock = firewall.Log.FindIndex(l => l.StartsWith("outbound", StringComparison.Ordinal));
-            Assert(firewall.Log.Take(firstBlock).Count(l => l.StartsWith("rule+", StringComparison.Ordinal)) == 5);
+            Assert(firewall.Log.Take(firstBlock).Count(l => l.StartsWith("rule+", StringComparison.Ordinal)) == 6);
             Assert(firewall.Outbound.Values.All(a => a == FirewallAction.Block));
             // Адрес туннеля берётся из конфигурации ядра: расхождение закрыло бы туннель наглухо.
             var tunnelRule = firewall.Rules[KillSwitchBackend.TunnelRule];
@@ -80,12 +80,21 @@ public static partial class SelfTests
             Assert(firewall.Rules[KillSwitchBackend.PeerRule].RemoteAddresses == "203.0.113.7");
             // DNS запрещается именно запретом: встроенные разрешения Windows иначе
             // выпускают его на физический адаптер, что и показал захват на стенде.
+            // Резолверу туннеля нужно собственное разрешение: запрет по умолчанию
+            // накрывает и его, и тогда имена не разрешаются вовсе.
+            var tunnelDns = firewall.Rules[KillSwitchBackend.TunnelDnsRule];
+            Assert(tunnelDns.Action == FirewallAction.Allow);
+            Assert(tunnelDns.RemoteAddresses!.Contains(SingBoxTunConfig.TunResolver4, StringComparison.Ordinal));
             foreach (var name in new[] { KillSwitchBackend.DnsRule, KillSwitchBackend.DnsTcpRule })
             {
                 var dns = firewall.Rules[name];
                 Assert(dns.Action == FirewallAction.Block && dns.RemotePorts == "53");
-                // Адрес самого туннеля из запрета исключён, иначе не работал бы и он.
-                Assert(!dns.LocalAddresses!.Contains(SingBoxTunConfig.TunHost4, StringComparison.Ordinal));
+                // Решение принимается по адресу получателя: запрет по адресу отправителя
+                // на стенде погасил и запросы к резолверу самого туннеля.
+                Assert(dns.LocalAddresses is null && dns.RemoteAddresses is not null);
+                // Резолвер туннеля из запрета исключён, иначе имена не разрешались бы вовсе.
+                Assert(!dns.RemoteAddresses!.Contains(SingBoxTunConfig.TunResolver4, StringComparison.Ordinal));
+                Assert(!dns.RemoteAddresses!.Contains(SingBoxTunConfig.TunResolver6, StringComparison.Ordinal));
             }
         }));
         await check("Someone else's outbound setting is a conflict, not something to overwrite", () => Sync(() =>

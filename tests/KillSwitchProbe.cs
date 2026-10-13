@@ -67,6 +67,50 @@ internal static class KillSwitchProbe
         }
     }
 
+    // Разрешение имени и соединение отказывают одинаково — через HttpRequestException.
+    // Чтобы различать их, имя разрешается отдельно.
+    internal static string Resolve(string host)
+    {
+        try
+        {
+            var addresses = System.Net.Dns.GetHostAddresses(host);
+            return addresses.Length == 0
+                ? "имя " + host + " не разрешено: пустой ответ"
+                : "имя " + host + " разрешено в " + addresses[0];
+        }
+        catch (Exception ex) { return "имя " + host + " не разрешено (" + ex.GetType().Name + ")"; }
+    }
+
+    // Какие резолверы видит Windows. При поднятом туннеле запросы обязаны уходить в него,
+    // а не на резолвер физической сети.
+    internal static string Resolvers()
+    {
+        try
+        {
+            var lines = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+                .Where(n => n.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up)
+                .Select(n => n.Name + ": " + string.Join('/', n.GetIPProperties().DnsAddresses.Select(a => a.ToString())));
+            return string.Join(" | ", lines);
+        }
+        catch (Exception ex) { return "прочитать не удалось (" + ex.GetType().Name + ")"; }
+    }
+
+    // Лабораторный приём: свои запреты DNS снимаются на живом туннеле, и разрешение имени
+    // пробуется снова. Это различает две причины, которые снаружи выглядят одинаково, —
+    // запрет DNS и запрет исходящего трафика по умолчанию. Снятие безопасно: сессия при
+    // остановке снимает правила заново и проверяет, что их не осталось.
+    internal static string ResolveWithoutDnsBlock(string host)
+    {
+        try
+        {
+            var policy = WindowsFirewallPolicy.Open();
+            policy.RemoveRule(KillSwitchBackend.DnsRule);
+            policy.RemoveRule(KillSwitchBackend.DnsTcpRule);
+            return "после снятия наших запретов DNS: " + Resolve(host);
+        }
+        catch (Exception ex) { return "снять запреты DNS не удалось (" + ex.GetType().Name + ")"; }
+    }
+
     // Новое соединение при поднятом туннеле должно идти через туннель, а не напрямую.
     // Проверяется отдельно от выходного IP: тут важен сам отказ при обходе.
     internal static string NewDirect(string host, int port)

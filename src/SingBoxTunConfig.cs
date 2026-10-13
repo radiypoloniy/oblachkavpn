@@ -11,6 +11,11 @@ public static class SingBoxTunConfig
     // этих двух мест закрыло бы туннель наглухо, поэтому значение здесь одно.
     public const string TunHost4 = "172.31.255.1";
     public const string TunHost6 = "fdfe:dcba:9876::1";
+    // Резолвер, который ядро прописывает интерфейсу туннеля: следующий адрес сети.
+    // Проверено на стенде — Windows получает именно эту пару вместе с интерфейсом.
+    // Kill switch разрешает DNS только на неё, остальной DNS запрещает.
+    public const string TunResolver4 = "172.31.255.2";
+    public const string TunResolver6 = "fdfe:dcba:9876::2";
 
     public static JsonObject Create(NetworkLeaseRequest request)
     {

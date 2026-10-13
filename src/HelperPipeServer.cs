@@ -4,7 +4,7 @@ using System.IO.Pipes;
 namespace Oblachka;
 
 public sealed class HelperPipeServer(NetworkSession session, string pipeName, Process owner,
-    TimeSpan? heartbeatTimeout = null, TimeSpan? sessionTimeout = null)
+    TimeSpan? heartbeatTimeout = null, TimeSpan? sessionTimeout = null, Action<Exception>? report = null)
 {
     // Обработка Acquire и Release ограничена отдельно и с запасом над ожиданием адаптера.
     public static readonly TimeSpan DefaultSessionTimeout = TimeSpan.FromSeconds(45);
@@ -70,6 +70,10 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                     var state = session.State;
                     var failure = state == NetworkSessionState.RecoveryRequired ? HelperFailure.RecoveryRequired
                         : ex is UserError ? HelperFailure.InvalidRequest : HelperFailure.SystemRefused;
+                    // Причина записывается рядом с журналом: по каналу идёт только вид
+                    // отказа, а сообщения в нём нет намеренно — в нём могли бы оказаться
+                    // адреса узлов. Разбирать отказ без причины нечем.
+                    report?.Invoke(ex);
                     response = new(1, request.RequestId, failure, state);
                 }
                 await HelperProtocol.WriteAsync(pipe, response, deadline.Token);

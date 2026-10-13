@@ -75,7 +75,7 @@ public static class NetworkHelperHost
             using var backend = new SystemNetworkBackend(tunnel, killSwitch);
             using var journal = new NetworkSessionJournal(JournalPath);
             var session = new NetworkSession(journal, backend);
-            var server = new HelperPipeServer(session, parsed.PipeName, owner);
+            var server = new HelperPipeServer(session, parsed.PipeName, owner, report: RecordFailure);
             try
             {
                 server.RunAsync(CancellationToken.None).GetAwaiter().GetResult();
