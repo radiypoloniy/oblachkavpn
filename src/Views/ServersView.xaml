@@ -35,8 +35,8 @@
               </Grid.ColumnDefinitions>
               <local:CountryFlag Code="{Binding Country.Code}" Width="28" Height="20" Stretch="Uniform" VerticalAlignment="Center"/>
               <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                <TextBlock Text="{Binding DisplayName}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                <TextBlock Text="{Binding ListStatus}" FontSize="11" Foreground="#5B6672" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding DisplayName}" FontSize="15" FontWeight="SemiBold" LineHeight="20" LineStackingStrategy="BlockLineHeight" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding ListStatus}" FontSize="11" LineHeight="14" LineStackingStrategy="BlockLineHeight" Foreground="#5B6672" TextTrimming="CharacterEllipsis"/>
               </StackPanel>
               <Border Grid.Column="2" Visibility="{Binding ExternalBadgeVisibility}" Background="#ECEFF3" CornerRadius="6" Padding="7,2" Margin="8,0,0,0" VerticalAlignment="Center"
                       ToolTip="Сторонний источник: подбор и измерения по нему не работают">
