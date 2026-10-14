@@ -26,7 +26,7 @@
     </DataTemplate>
   </UserControl.Resources>
 
-  <DockPanel Margin="14,14,14,12">
+  <DockPanel Margin="20,18,20,16">
     <Border DockPanel.Dock="Top" CornerRadius="12" Background="{DynamicResource CardBg}" Padding="12,10,8,10">
       <DockPanel>
         <Button x:Name="CopyEndpointButton" DockPanel.Dock="Right" Content="Копировать" Style="{StaticResource BtnOutline}" Height="32" Padding="12,0" o:Ui.CornerRadius="8" FontSize="12.5"/>

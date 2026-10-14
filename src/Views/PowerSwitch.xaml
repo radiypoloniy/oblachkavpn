@@ -1,11 +1,12 @@
-<UserControl x:Class="Oblachka.Views.PowerSwitch" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+<UserControl x:Class="Oblachka.Views.PowerSwitch" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:o="clr-namespace:Oblachka"
              Width="160" Height="88">
   <!-- Тумблер главного экрана: ручка слева (выкл), по центру (подключаемся), справа (вкл или сеть закрыта).
        Цвет дорожки меняется наплывом слоёв: так переход плавный и при смене темы. -->
-  <Button x:Name="Surface" Style="{StaticResource Plain}" Click="SurfaceClick">
+  <!-- Скругление и пустая подсветка наведения: иначе вокруг тумблера рисовался прямоугольник. -->
+  <Button x:Name="Surface" Style="{StaticResource Plain}" o:Ui.CornerRadius="44" Tag="Transparent" Click="SurfaceClick">
     <Grid Width="160" Height="88">
       <Border x:Name="Glow" CornerRadius="44" Background="{DynamicResource Ac}" Opacity="0">
-        <Border.Effect><DropShadowEffect x:Name="GlowShadow" BlurRadius="24" ShadowDepth="8" Direction="270" Color="{DynamicResource GlowColor}" Opacity="1"/></Border.Effect>
+        <Border.Effect><DropShadowEffect x:Name="GlowShadow" BlurRadius="22" ShadowDepth="6" Direction="270" Color="{DynamicResource GlowColor}" Opacity="0.75"/></Border.Effect>
       </Border>
       <Border CornerRadius="44" Background="{DynamicResource Off}"/>
       <Border x:Name="MidLayer" CornerRadius="44" Background="{DynamicResource Mid}" Opacity="0"/>

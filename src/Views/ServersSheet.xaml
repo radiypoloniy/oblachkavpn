@@ -7,7 +7,7 @@
       <TextBlock Text="{Binding Title}" Style="{StaticResource Caption}" FontSize="11.5" Margin="10,12,10,4"/>
     </DataTemplate>
     <DataTemplate DataType="{x:Type o:ServerRow}">
-      <Border x:Name="Plate" Height="48" CornerRadius="12" Margin="0,0,0,2" Background="Transparent">
+      <Border x:Name="Plate" Height="54" CornerRadius="12" Margin="0,0,0,2" Background="Transparent">
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
@@ -27,12 +27,12 @@
                 <Path x:Name="IconGlyph" Data="{Binding Icon}" Width="15" Height="15" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Ac}"/>
               </Border>
               <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
-                <TextBlock Text="{Binding Name}" FontSize="14.5" FontWeight="{Binding NameWeight}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Tx}"/>
-                <TextBlock Text="{Binding Note}" FontSize="11.5" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Visibility="{Binding NoteVisibility}"/>
+                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="{Binding NameWeight}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Tx}"/>
+                <TextBlock Text="{Binding Note}" FontSize="12" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Visibility="{Binding NoteVisibility}"/>
               </StackPanel>
               <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding LatencyVisibility}">
                 <Ellipse Width="6" Height="6" Fill="{Binding LatencyDot}" Margin="0,0,6,0"/>
-                <TextBlock Text="{Binding Latency}" FontSize="12.5" Foreground="{DynamicResource Mu2}"/>
+                <TextBlock Text="{Binding Latency}" FontSize="13" Foreground="{DynamicResource Mu2}"/>
               </StackPanel>
             </Grid>
           </Button>
@@ -89,13 +89,13 @@
 
   <Grid>
     <Grid.RowDefinitions>
-      <RowDefinition Height="56"/>
+      <RowDefinition Height="64"/>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
       <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
 
-    <DockPanel Margin="6,0,90,0">
+    <DockPanel Margin="10,0,96,0">
       <Button x:Name="BackButton" Style="{StaticResource IconButton}" Foreground="{DynamicResource Tx}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Назад">
         <Path Data="{StaticResource IcoBack}" Style="{StaticResource Icon}" StrokeThickness="2.2"/>
       </Button>
@@ -105,9 +105,9 @@
       <TextBlock Text="Все серверы" Style="{StaticResource Brand}" Margin="4,0,0,0"/>
     </DockPanel>
 
-    <StackPanel Grid.Row="1" Margin="14,0,14,0">
+    <StackPanel Grid.Row="1" Margin="20,0,20,4">
       <Grid>
-        <TextBox x:Name="SearchBox" Height="40" Padding="34,0,12,0" FontSize="14" VerticalContentAlignment="Center" BorderThickness="0"
+        <TextBox x:Name="SearchBox" Height="42" Padding="34,0,12,0" FontSize="14" VerticalContentAlignment="Center" BorderThickness="0"
                  Background="{DynamicResource Field}" Foreground="{DynamicResource Tx}" CaretBrush="{DynamicResource Tx}" AutomationProperties.Name="Найти сервер">
           <TextBox.Template>
             <ControlTemplate TargetType="TextBox">

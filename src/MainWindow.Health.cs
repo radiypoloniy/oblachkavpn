@@ -34,10 +34,12 @@ public partial class MainWindow
         if (closed || vmTestActive || Dispatcher.HasShutdownStarted) return;
         Dispatcher.BeginInvoke(new Action(() => { if (!closed) nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3); }));
     }
+    // Проверка связи идёт всегда: без неё чип под тумблером не узнает, что туннель работает.
+    // Автовосстановление — отдельное решение, только при включённой настройке.
     private async void PollHealth()
     {
         if (closed || vmTestActive || !backgroundWorkEnabled || operation is not null || recoveryWait is not null || engine.ProcessId is null ||
-            AutoRecover.IsChecked != true || DateTimeOffset.UtcNow < nextHealthCheck) return;
+            DateTimeOffset.UtcNow < nextHealthCheck) return;
         nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(45);
         operation = new CancellationTokenSource(); engineOperation = true; backgroundCheck = true; UpdateControls();
         var shouldRecover = false;

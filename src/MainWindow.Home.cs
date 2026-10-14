@@ -193,10 +193,15 @@ public partial class MainWindow
 
     private void ShowToast()
     {
-        if (string.IsNullOrWhiteSpace(ShellFeedback.Text)) { Toast.Visibility = Visibility.Collapsed; return; }
+        if (string.IsNullOrWhiteSpace(ShellFeedback.Text) || IsRoutine(ShellFeedback.Text)) { Toast.Visibility = Visibility.Collapsed; return; }
         Toast.Visibility = Visibility.Visible;
         toastTimer.Stop(); toastTimer.Start();
     }
+
+    // Ход подключения уже виден в статусе и на тумблере — всплывашка его не дублирует.
+    private static readonly string[] RoutinePrefixes = ["Готовим", "Системный режим запущен", "VPN отключён", "Подключено к ", "Подключение запущено",
+        "Восстанавливаем сеть", "Проверяем подключение", "Проверено серверов", "Загружаем подписку", "Выполняем запрос"];
+    internal static bool IsRoutine(string text) => RoutinePrefixes.Any(p => text.StartsWith(p, StringComparison.Ordinal));
 
     private void MinimizeClick(object sender, RoutedEventArgs args) => WindowState = WindowState.Minimized;
     private void CloseWindowClick(object sender, RoutedEventArgs args) => Close();

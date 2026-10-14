@@ -7,26 +7,26 @@
       <Button x:Name="RowButton" Style="{StaticResource Row}" AutomationProperties.Name="{Binding Name}">
         <Grid>
           <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="28"/>
+            <ColumnDefinition Width="32"/>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
-          <Ellipse Width="28" Height="28" Visibility="{Binding FlagVisibility}" Stroke="#40808CA0" StrokeThickness="1">
+          <Ellipse Width="32" Height="32" Visibility="{Binding FlagVisibility}" Stroke="#40808CA0" StrokeThickness="1">
             <Ellipse.Fill><ImageBrush ImageSource="{Binding Flag}" Stretch="UniformToFill"/></Ellipse.Fill>
           </Ellipse>
-          <Border x:Name="IconPlate" Width="28" Height="28" CornerRadius="14" Background="{DynamicResource Aci}" Visibility="{Binding IconVisibility}">
-            <Path x:Name="IconGlyph" Data="{Binding Icon}" Width="15" Height="15" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Ac}"/>
+          <Border x:Name="IconPlate" Width="32" Height="32" CornerRadius="16" Background="{DynamicResource Aci}" Visibility="{Binding IconVisibility}">
+            <Path x:Name="IconGlyph" Data="{Binding Icon}" Width="16" Height="16" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Ac}"/>
           </Border>
-          <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
-            <TextBlock Text="{Binding Name}" FontSize="14.5" FontWeight="{Binding NameWeight}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Tx}"/>
-            <TextBlock Text="{Binding Note}" FontSize="11.5" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Visibility="{Binding NoteVisibility}"/>
+          <StackPanel Grid.Column="1" Margin="14,0,8,0" VerticalAlignment="Center">
+            <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="{Binding NameWeight}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Tx}"/>
+            <TextBlock Text="{Binding Note}" FontSize="12" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Visibility="{Binding NoteVisibility}"/>
           </StackPanel>
           <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0" Visibility="{Binding LatencyVisibility}">
             <Ellipse Width="6" Height="6" Fill="{Binding LatencyDot}" Margin="0,0,6,0"/>
-            <TextBlock Text="{Binding Latency}" FontSize="12.5" Foreground="{DynamicResource Mu2}"/>
+            <TextBlock Text="{Binding Latency}" FontSize="13" Foreground="{DynamicResource Mu2}"/>
           </StackPanel>
-          <Grid Grid.Column="3" Width="20" Height="20" VerticalAlignment="Center">
+          <Grid Grid.Column="3" Width="22" Height="22" VerticalAlignment="Center">
             <Ellipse x:Name="MarkRing" Stroke="{DynamicResource Ring}" StrokeThickness="1.5"/>
             <Ellipse x:Name="MarkFill" Fill="{DynamicResource Ac}" Visibility="Collapsed"/>
             <Path x:Name="MarkCheck" Data="{StaticResource IcoCheck}" Width="11" Height="11" Stretch="Uniform" Stroke="White" StrokeThickness="3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
@@ -65,15 +65,15 @@
 
   <Grid>
     <Grid.RowDefinitions>
-      <RowDefinition Height="56"/>
+      <RowDefinition Height="64"/>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
-      <RowDefinition Height="44"/>
+      <RowDefinition Height="52"/>
     </Grid.RowDefinitions>
 
     <!-- Шапка. Справа место под кнопки окна (свернуть, закрыть) — их рисует MainWindow. -->
-    <DockPanel Margin="20,0,90,0">
+    <DockPanel Margin="24,0,96,0">
       <Button x:Name="SettingsButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" shell:WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Настройки" ToolTip="Настройки">
         <Path Data="{StaticResource IcoSliders}" Style="{StaticResource Icon}" StrokeThickness="1.8"/>
       </Button>
@@ -81,14 +81,14 @@
     </DockPanel>
 
     <!-- Статус и тумблер -->
-    <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="20,0,20,14">
+    <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="24,4,24,22">
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
         <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{DynamicResource Fa}" VerticalAlignment="Center" Margin="0,2,8,0"/>
-        <TextBlock x:Name="StatusTitle" Text="Не подключено" FontSize="22" FontWeight="Bold"/>
+        <TextBlock x:Name="StatusTitle" Text="Не подключено" FontSize="24" FontWeight="Bold"/>
       </StackPanel>
       <TextBlock x:Name="StatusSub" Text="Нажмите кнопку или выберите сервер" FontSize="13" Foreground="{DynamicResource Mu}" HorizontalAlignment="Center" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" MaxWidth="360"/>
-      <v:PowerSwitch x:Name="Power" Margin="0,16,0,0" HorizontalAlignment="Center"/>
-      <Border x:Name="CheckChip" Height="26" CornerRadius="13" Padding="11,0" Margin="0,12,0,0" HorizontalAlignment="Center" Background="{DynamicResource Field}">
+      <v:PowerSwitch x:Name="Power" Margin="0,22,0,0" HorizontalAlignment="Center"/>
+      <Border x:Name="CheckChip" Height="28" CornerRadius="14" Padding="12,0" Margin="0,16,0,0" HorizontalAlignment="Center" Background="{DynamicResource Field}">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
           <Path x:Name="CheckIcon" Data="{StaticResource IcoCheck}" Width="12" Height="12" Stretch="Uniform" StrokeThickness="3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource OkF}" Margin="0,0,6,0" Visibility="Collapsed"/>
           <TextBlock x:Name="CheckText" Text="Туннель выключен" FontSize="12.5" Foreground="{DynamicResource Mu2}" VerticalAlignment="Center"/>
@@ -99,13 +99,13 @@
     <!-- Объявление сервиса: одна строка, крестик скрывает до следующего нового объявления. -->
     <!-- Особые состояния (экран 15): вместо списка серверов, пока ситуация не разрешится. -->
     <StackPanel Grid.Row="2">
-      <Border x:Name="SubWarn" Margin="14,0,14,8" Padding="12,8,8,8" CornerRadius="10" Background="{DynamicResource SB}" Visibility="Collapsed">
+      <Border x:Name="SubWarn" Margin="20,0,20,12" Padding="14,10,10,10" CornerRadius="12" Background="{DynamicResource SB}" Visibility="Collapsed">
         <DockPanel>
           <Button x:Name="SubWarnRenew" DockPanel.Dock="Right" Content="Продлить" Style="{StaticResource Plain}" Height="30" Padding="12,0" o:Ui.CornerRadius="8" Background="{DynamicResource SBtn}" Foreground="#2E2205" FontSize="12.5" FontWeight="SemiBold"/>
           <TextBlock x:Name="SubWarnText" FontSize="12.5" Foreground="{DynamicResource SF}" VerticalAlignment="Center" TextWrapping="Wrap"/>
         </DockPanel>
       </Border>
-      <Border x:Name="ForeignCard" Margin="14,6,14,0" Padding="16" CornerRadius="14" Background="{DynamicResource WB}" Visibility="Collapsed">
+      <Border x:Name="ForeignCard" Margin="20,6,20,0" Padding="18" CornerRadius="14" Background="{DynamicResource WB}" Visibility="Collapsed">
         <StackPanel>
           <DockPanel>
             <Path Data="{StaticResource IcoWarn}" Width="20" Height="20" Stretch="Uniform" Stroke="{DynamicResource WI}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" VerticalAlignment="Top" Margin="0,1,10,0"/>
@@ -121,7 +121,7 @@
           </Grid>
         </StackPanel>
       </Border>
-      <StackPanel x:Name="RecoveryCard" Margin="14,6,14,0" Visibility="Collapsed">
+      <StackPanel x:Name="RecoveryCard" Margin="20,6,20,0" Visibility="Collapsed">
         <Border CornerRadius="14" Background="{DynamicResource CardBg}" Padding="16,6">
           <StackPanel>
             <DockPanel Height="38">
@@ -143,14 +143,14 @@
         </Border>
         <Button x:Name="RecoveryStop" Content="Остановить" Style="{StaticResource BtnSecondary}" Height="36" o:Ui.CornerRadius="10" FontSize="13" Margin="0,12,0,0"/>
       </StackPanel>
-      <Border x:Name="ClosedCard" Margin="14,6,14,0" Padding="16" CornerRadius="14" Background="{DynamicResource EB}" Visibility="Collapsed">
+      <Border x:Name="ClosedCard" Margin="20,6,20,0" Padding="18" CornerRadius="14" Background="{DynamicResource EB}" Visibility="Collapsed">
         <StackPanel>
           <TextBlock Text="Не удалось найти рабочий сервер. Ничего не утекло мимо туннеля, но и сайты сейчас не открываются." FontSize="13" Foreground="{DynamicResource EF}" TextWrapping="Wrap" LineHeight="19"/>
           <Button x:Name="ClosedPick" Content="Выбрать другой сервер" Style="{StaticResource BtnPrimary}" Height="36" o:Ui.CornerRadius="10" FontSize="13" Margin="0,12,0,0"/>
           <Button x:Name="ClosedOff" Content="Выключить VPN и открыть интернет" Style="{StaticResource BtnOutline}" Height="36" o:Ui.CornerRadius="10" Margin="0,8,0,0" Background="{DynamicResource Bg}" BorderBrush="{DynamicResource EL}" Foreground="{DynamicResource RF}"/>
         </StackPanel>
       </Border>
-      <Border x:Name="AnnounceCard" Margin="14,0,14,8" MinHeight="40" Padding="12,6,4,6" CornerRadius="10" Background="{DynamicResource NB}" Visibility="Collapsed">
+      <Border x:Name="AnnounceCard" Margin="20,0,20,14" MinHeight="44" Padding="14,8,6,8" CornerRadius="12" Background="{DynamicResource NB}" Visibility="Collapsed">
       <DockPanel>
         <Path DockPanel.Dock="Left" Data="{StaticResource IcoSpeaker}" Width="16" Height="16" Stretch="Uniform" Stroke="{DynamicResource Ac}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Margin="0,0,10,0" VerticalAlignment="Center"/>
         <Button x:Name="AnnounceClose" DockPanel.Dock="Right" Style="{StaticResource SmallIconButton}" AutomationProperties.Name="Скрыть объявление" VerticalAlignment="Center">
@@ -162,8 +162,8 @@
     </StackPanel>
 
     <!-- Серверы: автовыбор, избранные и выбранный. -->
-    <DockPanel x:Name="ServerSection" Grid.Row="3" Margin="10,0">
-      <DockPanel DockPanel.Dock="Top" Height="30" Margin="10,0,4,2">
+    <DockPanel x:Name="ServerSection" Grid.Row="3" Margin="14,0">
+      <DockPanel DockPanel.Dock="Top" Height="34" Margin="12,0,4,4">
         <Button x:Name="AllServersButton" DockPanel.Dock="Right" Style="{StaticResource BtnLink}" AutomationProperties.Name="Все серверы">
           <StackPanel Orientation="Horizontal">
             <TextBlock x:Name="AllServersText" Text="Все" VerticalAlignment="Center"/>
@@ -174,14 +174,14 @@
       </DockPanel>
       <ItemsControl x:Name="QuickList" ItemTemplate="{StaticResource ServerRowTemplate}" Focusable="False">
         <ItemsControl.ItemContainerStyle>
-          <Style TargetType="ContentPresenter"><Setter Property="Margin" Value="0,0,0,2"/></Style>
+          <Style TargetType="ContentPresenter"><Setter Property="Margin" Value="0,0,0,4"/></Style>
         </ItemsControl.ItemContainerStyle>
       </ItemsControl>
     </DockPanel>
 
     <!-- Подвал: срок подписки и режим. -->
     <Border Grid.Row="4" BorderBrush="{DynamicResource Divider}" BorderThickness="0,1,0,0">
-      <DockPanel Margin="20,0,10,0">
+      <DockPanel Margin="24,0,14,0">
         <Button x:Name="ModeButton" DockPanel.Dock="Right" Style="{StaticResource BtnGhost}" Height="30" Padding="8,0" o:Ui.CornerRadius="8" AutomationProperties.Name="Режим подключения">
           <StackPanel Orientation="Horizontal">
             <TextBlock x:Name="ModeText" Text="Весь компьютер" FontSize="12" VerticalAlignment="Center"/>

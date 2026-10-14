@@ -142,7 +142,7 @@
 
   <!-- Строка списка: сервер, вариант меню. Выбранная строка подсвечена через Tag-триггер в коде строки. -->
   <Style x:Key="Row" TargetType="Button" BasedOn="{StaticResource Plain}">
-    <Setter Property="Height" Value="48"/>
+    <Setter Property="Height" Value="54"/>
     <Setter Property="o:Ui.CornerRadius" Value="12"/>
     <Setter Property="Padding" Value="10,0,12,0"/>
     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -206,6 +206,16 @@
           </ControlTemplate.Triggers>
         </ControlTemplate>
       </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Подложка с тенью под всплывающими панелями. Тень мягкая и короткая; текст лежит
+       в соседнем слое без эффекта, иначе WPF рисует его размыто. -->
+  <Style x:Key="ShadowLayer" TargetType="Border">
+    <Setter Property="Background" Value="{DynamicResource Pop}"/>
+    <Setter Property="IsHitTestVisible" Value="False"/>
+    <Setter Property="Effect">
+      <Setter.Value><DropShadowEffect BlurRadius="18" ShadowDepth="4" Direction="270" Color="#0D1B30" Opacity="0.13"/></Setter.Value>
     </Setter>
   </Style>
 </ResourceDictionary>

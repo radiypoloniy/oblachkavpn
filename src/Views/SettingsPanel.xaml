@@ -10,9 +10,10 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="ListBoxItem">
-            <Border x:Name="Seg" CornerRadius="8" Background="Transparent" Margin="1,0">
+            <Grid Margin="1,0">
+              <Border x:Name="Seg" CornerRadius="8" Background="Transparent"/>
               <TextBlock x:Name="Label" Text="{Binding}" FontSize="13" Foreground="{DynamicResource Mu}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </Border>
+            </Grid>
             <ControlTemplate.Triggers>
               <Trigger Property="IsSelected" Value="True">
                 <Setter TargetName="Seg" Property="Background" Value="{DynamicResource Seg}"/>
@@ -29,18 +30,18 @@
 
   <Grid>
     <Grid.RowDefinitions>
-      <RowDefinition Height="56"/>
+      <RowDefinition Height="64"/>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
     </Grid.RowDefinitions>
-    <DockPanel Margin="6,0,90,0">
+    <DockPanel Margin="10,0,96,0">
       <Button x:Name="CloseButton" Style="{StaticResource IconButton}" Foreground="{DynamicResource Tx}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Назад">
         <Path Data="{StaticResource IcoBack}" Style="{StaticResource Icon}" StrokeThickness="2.2"/>
       </Button>
       <TextBlock Text="Настройки" Style="{StaticResource Brand}" Margin="4,0,0,0"/>
     </DockPanel>
 
-    <Border Grid.Row="1" Margin="14,0" Height="38" CornerRadius="11" Background="{DynamicResource Field}" Padding="3">
+    <Border Grid.Row="1" Margin="20,0,20,6" Height="40" CornerRadius="12" Background="{DynamicResource Field}" Padding="3">
       <ListBox x:Name="SettingsTabs" ItemContainerStyle="{StaticResource SegItem}" Background="Transparent" BorderThickness="0" Padding="0" SelectedIndex="0"
                ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Разделы настроек">
         <ListBox.Template><ControlTemplate TargetType="ListBox"><ItemsPresenter/></ControlTemplate></ListBox.Template>

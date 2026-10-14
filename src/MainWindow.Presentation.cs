@@ -22,6 +22,8 @@ public partial class MainWindow
             presentedPid = pid;
             sessionStarted = pid is null ? null : DateTimeOffset.UtcNow;
             lastProbe = null; lastCheck = null;
+            // Новое ядро — сразу перепроверяем, иначе чип «Проверяем связь…» ждал бы плановые 45 с.
+            if (pid is not null) nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
         }
         RefreshHome();
         Servers.SearchBox.IsEnabled = ProfilePicker.IsEnabled;

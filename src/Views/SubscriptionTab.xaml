@@ -2,7 +2,7 @@
              xmlns:o="clr-namespace:Oblachka">
   <!-- Настройки → Подписка (экран 12): срок и трафик, обновление списка, устройство, сторонние подписки. -->
   <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <StackPanel Margin="14,14,14,12">
+    <StackPanel Margin="20,18,20,16">
       <Border CornerRadius="14" Background="{DynamicResource CardBg}" Padding="14">
         <StackPanel>
           <DockPanel>

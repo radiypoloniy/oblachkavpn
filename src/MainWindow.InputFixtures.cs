@@ -39,14 +39,14 @@ public partial class MainWindow
             if (ServiceKey.Classify(text) != kind) throw new InvalidOperationException($"Key field misclassified {text}: {ServiceKey.Classify(text)}");
         checks.Add("One key field tells a service key, service and foreign subscription links and profiles apart without a network request");
         field.Clear();
-        // Редизайн: окно 420×660 без изменения размера, шапку рисуют экраны; свернуть и закрыть
+        // Редизайн: окно 460×760 без изменения размера, шапку рисуют экраны; свернуть и закрыть
         // остаются доступными и нажимаются поверх области перетаскивания.
         var chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
-        if (ResizeMode != ResizeMode.CanMinimize || Width != 420 || Height > 660 || chrome is null || chrome.CaptionHeight != 56 ||
+        if (ResizeMode != ResizeMode.CanMinimize || Width != 460 || Height > 760 || chrome is null || chrome.CaptionHeight != 64 ||
             !System.Windows.Shell.WindowChrome.GetIsHitTestVisibleInChrome(MinimizeButton) || !System.Windows.Shell.WindowChrome.GetIsHitTestVisibleInChrome(CloseWindowButton) ||
             !System.Windows.Shell.WindowChrome.GetIsHitTestVisibleInChrome(Home.SettingsButton) ||
             Onboarding.FindName("PasteUrlButton") is not null || !Onboarding.ContinueButton.IsDefault)
             throw new InvalidOperationException("Window chrome or onboarding input does not match the redesign");
-        checks.Add("420×660 window keeps working minimize, close and settings in its own header; onboarding has no duplicate paste button");
+        checks.Add("460×760 window keeps working minimize, close and settings in its own header; onboarding has no duplicate paste button");
     }
 }
