@@ -4,9 +4,11 @@ public sealed record ServerMeasurement(string Fingerprint, DateTimeOffset Time, 
 
 public static class ServerMeasurements
 {
+    public static bool Fresh(ServerMeasurement m, DateTimeOffset now) => m.Time <= now && now - m.Time < TimeSpan.FromMinutes(20);
+
     public static int? Best(IReadOnlyList<Profile> profiles, IReadOnlyDictionary<string, ServerMeasurement> measurements, DateTimeOffset now) =>
         profiles.Select((p, i) => (key: Profiles.Fingerprint(p), i)).Where(x => measurements.TryGetValue(x.key, out var m) &&
-            m.Success && m.Time <= now && now - m.Time < TimeSpan.FromMinutes(20))
+            m.Success && Fresh(m, now))
             .OrderBy(x => measurements[x.key].Milliseconds).Select(x => (int?)x.i).FirstOrDefault();
 
     public static async Task MeasureAsync(IReadOnlyList<Profile> profiles, Func<ITunnelController> factory,

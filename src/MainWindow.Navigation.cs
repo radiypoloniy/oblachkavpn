@@ -22,12 +22,35 @@ public partial class MainWindow
         currentPage = page;
         var welcome = profile is null && page == "Connection";
         Home.Visibility = !welcome && page is "Connection" or "Servers" ? Visibility.Visible : Visibility.Collapsed;
-        if (page == "Servers") { if (Servers.Visibility != Visibility.Visible) { FilterProfiles(); Servers.Open(); } }
+        if (page == "Servers")
+        {
+            if (Servers.Visibility != Visibility.Visible) { FilterProfiles(); Servers.Open(); }
+            if (DateTimeOffset.UtcNow - lastPing > TimeSpan.FromMinutes(5)) QueuePing();
+        }
         else Servers.Visibility = Visibility.Collapsed;
         if (page is "Routes" or "Diagnostics") OpenSettings(page == "Routes" ? 1 : 3);
         else Settings.Visibility = Visibility.Collapsed;
         Onboarding.Visibility = welcome ? Visibility.Visible : Visibility.Collapsed;
         Onboarding.ContinueButton.IsDefault = welcome;
+    }
+
+    // Подписки других клиентов ищутся один раз за запуск и только в настоящем окружении:
+    // проверки интерфейса не должны видеть файлы того, кто их запускает.
+    private bool foreignSearched;
+    private async void FindForeignClients()
+    {
+        if (foreignSearched || !stateRestored || stateStore is null || isolatedPersistence) return;
+        foreignSearched = true;
+        var found = await Task.Run(() => ForeignClients.Find());
+        if (closed || found.Count == 0) return;
+        Onboarding.ForeignList.ItemsSource = found;
+        Onboarding.ForeignPanel.Visibility = Visibility.Visible;
+    }
+
+    private async void ForeignClick(object sender, RoutedEventArgs args)
+    {
+        if ((args.OriginalSource as FrameworkElement)?.DataContext is ForeignSubscription found && operation is null)
+            await ContinueWithAsync(found.Url, clearField: false);
     }
 
     private void SettingsClick(object sender, RoutedEventArgs args) => OpenSettings(null);
@@ -88,9 +111,11 @@ public partial class MainWindow
     // Первый экран: одно поле на всё. Ключ и ссылка своего сервиса — подписка сервиса;
     // ссылка другого сервиса — сторонняя подписка; ссылки профилей и JSON — импорт.
     // После загрузки сразу подключаемся: «Подключиться» и значит подключиться.
-    private async void ContinueSubscription(object sender, RoutedEventArgs args)
+    private async void ContinueSubscription(object sender, RoutedEventArgs args) =>
+        await ContinueWithAsync(Onboarding.KeyInput.Text, clearField: true);
+
+    private async Task ContinueWithAsync(string text, bool clearField)
     {
-        var text = Onboarding.KeyInput.Text;
         try
         {
             // Оставленная аварийно завершённым окном сессия держит сеть закрытой: подписку
@@ -110,7 +135,7 @@ public partial class MainWindow
         }
         catch (UserError ex) { DetailText.Text = ex.Message; return; }
         if (profile is null) return;
-        Onboarding.KeyInput.Clear();
+        if (clearField) Onboarding.KeyInput.Clear();
         Navigate("Connection");
         if (ConnectButton.IsEnabled) ConnectClick(this, new RoutedEventArgs());
     }

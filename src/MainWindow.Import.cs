@@ -57,6 +57,7 @@ public partial class MainWindow
         routeAttempts = Array.Empty<RouteAttempt>();
         ShowProfile();
         FilterProfiles();
+        QueuePing();
     }
     private void ProfileSelectionChanged(object sender, SelectionChangedEventArgs args)
     {

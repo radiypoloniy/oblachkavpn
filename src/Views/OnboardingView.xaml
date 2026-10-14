@@ -26,6 +26,33 @@
           <TextBlock Text="Открыть файл профиля (JSON, txt)" VerticalAlignment="Center"/>
         </StackPanel>
       </Button>
+      <!-- Подписки, найденные в других клиентах на этом компьютере (ForeignClients). Нажатие
+           загружает выбранную и подключает, как «Подключиться» с этой ссылкой в поле. -->
+      <StackPanel x:Name="ForeignPanel" Visibility="Collapsed" Margin="0,22,0,0">
+        <TextBlock Text="Или перенесите из другого приложения" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" Margin="0,0,0,8"/>
+        <ScrollViewer MaxHeight="190" VerticalScrollBarVisibility="Auto">
+          <ItemsControl x:Name="ForeignList">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="{x:Type o:ForeignSubscription}">
+                <Button Style="{StaticResource Row}" Height="56" Margin="0,0,0,6" Background="{DynamicResource Field}" Padding="14,0,12,0"
+                        AutomationProperties.Name="{Binding Client}">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Title, Mode=OneWay}" FontSize="14.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                      <TextBlock Text="{Binding Hint, Mode=OneWay}" FontSize="12" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <Path Grid.Column="1" Data="{StaticResource IcoChevronRight}" Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource Mu2}" StrokeThickness="2" StrokeLineJoin="Round" VerticalAlignment="Center"/>
+                  </Grid>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </StackPanel>
     </StackPanel>
   </DockPanel>
 </UserControl>

@@ -102,14 +102,15 @@ public partial class MainWindow
 
     private ServerRow Row(Profile item)
     {
-        long? latency = measurements.TryGetValue(Profiles.Fingerprint(item), out var measured) && measured.Success ? measured.Milliseconds : null;
+        var measured = LatestMeasurement(item);
+        long? latency = measured is { Success: true } ? measured.Milliseconds : null;
         if (latency is null && runningProfile is not null && ReferenceEquals(item, runningProfile) && lastProbe is { Success: true }) latency = lastProbe.Milliseconds;
         var icon = ServerRow.IconFor(item);
         return new ServerRow
         {
             Profile = item, Name = item.DisplayName, Note = ServerRow.NoteFor(item),
             Flag = icon is null ? FlagImages.Local(item.Country.Code) : null, Icon = icon, IconMuted = !item.IsService,
-            Latency = latency is null ? "" : latency + " мс", LatencyDot = ServerRow.DotFor(latency),
+            Latency = latency is not null ? latency + " мс" : measured is { Success: false } ? "нет ответа" : "", LatencyDot = ServerRow.DotFor(latency),
             Selected = !autoSelect && profile is not null && ProfileSelection.Identity(item) == ProfileSelection.Identity(profile),
             Favorite = favorites.Contains(FavoriteKey(item))
         };
@@ -134,7 +135,7 @@ public partial class MainWindow
     private Profile? BestProfile()
     {
         var all = importedProfiles.ToArray();
-        return ServerMeasurements.Best(all, measurements, DateTimeOffset.UtcNow) is int best ? all[best]
+        return ServerMeasurements.Best(all, EffectiveMeasurements(), DateTimeOffset.UtcNow) is int best ? all[best]
             : profile is { IsService: true } ? profile : all.FirstOrDefault(p => p.IsService) ?? profile;
     }
 

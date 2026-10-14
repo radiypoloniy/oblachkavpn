@@ -15,9 +15,8 @@ public partial class MainWindow
     private static string FavoriteKey(Profile item) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
         System.Text.Encoding.UTF8.GetBytes(item.Source + ":" + item.Name)));
 
-    private long MeasurementOrder(Profile item) => measurements.TryGetValue(Profiles.Fingerprint(item), out var result) &&
-        result.Success && result.Time <= DateTimeOffset.UtcNow && DateTimeOffset.UtcNow - result.Time < TimeSpan.FromMinutes(20)
-            ? result.Milliseconds : long.MaxValue;
+    private long MeasurementOrder(Profile item) => LatestMeasurement(item) is { Success: true } result &&
+        ServerMeasurements.Fresh(result, DateTimeOffset.UtcNow) ? result.Milliseconds : long.MaxValue;
 
     private void WireServerList()
     {

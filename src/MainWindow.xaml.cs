@@ -41,7 +41,7 @@ public partial class MainWindow : Window
         WireViews();
         viewsReady = true;
         Navigate("Connection");
-        presentationTimer.Tick += (_, _) => { RefreshPresentation(); PollHealth(); PollSubscription(); };
+        presentationTimer.Tick += (_, _) => { RefreshPresentation(); PollHealth(); PollSubscription(); PollPing(); };
         presentationTimer.Start();
         SubscribeLifecycle(persistenceEnabled && isolatedStore is null);
         InitSystemProxy(persistenceEnabled && isolatedStore is null);

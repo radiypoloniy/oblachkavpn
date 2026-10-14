@@ -38,7 +38,9 @@ public partial class MainWindow
         Onboarding.ContinueButton.IsEnabled = operation is null;
         Onboarding.KeyInput.IsEnabled = operation is null;
         Onboarding.FileButton.IsEnabled = ImportFileButton.IsEnabled;
+        Onboarding.ForeignList.IsEnabled = operation is null;
         if (profile is not null && Onboarding.Visibility == Visibility.Visible) Navigate("Connection");
+        else if (Onboarding.Visibility == Visibility.Visible) FindForeignClients();
         RefreshTrayPopup();
         RefreshMeasurement();
         FlushStateSave();

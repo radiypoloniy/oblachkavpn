@@ -17,6 +17,14 @@ public static class TestProgram
         if (args.Length == 5 && args[0] == "--export-core-config")
             return ExportCoreConfigCommand.Run(args[1], args[2], args[3], int.Parse(args[4]));
         if (args.Length == 4 && args[0] == "--local-rules-check") return LocalRulesCheckCommand.Run(args[1], args[2], args[3]);
+        // Подписки других клиентов на этом компьютере: клиент, имя и хост, без токенов.
+        // Третий аргумент — подменная папка: в ней ищутся все хранилища (AppData, LocalAppData…).
+        if (args.Length is 2 or 3 && args[0] == "--foreign-clients")
+        {
+            var roots = args.Length == 3 ? new ForeignClients.Roots(args[2], args[2], args[2], args[2]) : null;
+            File.WriteAllLines(args[1], ForeignClients.Find(roots).Select(f => f.Client + " | " + f.Name + " | " + f.Host));
+            return 0;
+        }
         if (args.Length == 3 && args[0] == "--subscription-check") return SubscriptionCheckCommand.Run(args[1], args[2]);
         if (args.Length is 3 or 4 && args[0] == "--import-check")
             return ImportCheckCommand.Run(args[1], args[2], args.Length > 3 && args[3] == "--validate");

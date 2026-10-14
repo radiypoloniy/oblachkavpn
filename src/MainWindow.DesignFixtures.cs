@@ -78,9 +78,20 @@ public partial class MainWindow
     internal void PrepareDesignPreview(string page)
     {
         if (page == "welcome") return;
+        if (page == "welcome-import")
+        {
+            Onboarding.ForeignList.ItemsSource = new[]
+            {
+                new ForeignSubscription("Happ", "sub.example.invalid", "https://sub.example.invalid/sub/a1b2c3d4"),
+                new ForeignSubscription("Throne", "Рабочая", "https://vpn.example.invalid/s/e5f6g7h8"),
+                new ForeignSubscription("v2RayTun", "Liberty", "https://liberty.example.invalid/connection/subs/i9j0"),
+            };
+            Onboarding.ForeignPanel.Visibility = Visibility.Visible;
+            return;
+        }
         LoadPreviewProfiles();
         CheckPreviewControls();
-        if (page == "servers") LoadServerPreview();
+        if (page == "servers") { LoadServerPreview(); LoadPingPreview(); }
         if (page is "foreign" or "closed" or "recovery" or "subscription") PrepareStatePreview(page);
         Navigate(page switch { "servers" => "Servers", "routes" => "Routes", "diagnostics" => "Diagnostics", _ => "Connection" });
         if (page is "settings" or "rules" or "storage" or "help") SettingsClick(this, new RoutedEventArgs());
@@ -93,5 +104,17 @@ public partial class MainWindow
         Import(string.Join("\n", Enumerable.Range(0, 24).Select(i =>
             $"vless://{i + 1:x8}-1111-4111-8111-111111111111@example.invalid:443?security=tls&type=xhttp#" +
             Uri.EscapeDataString(i < names.Length ? names[i] : $"🇩🇪Резервный сервер {i - 5}"))));
+    }
+
+    // Отклики как после запуска: у части узлов ответа нет.
+    private void LoadPingPreview()
+    {
+        var now = DateTimeOffset.UtcNow;
+        foreach (var (item, i) in importedProfiles.Select((p, i) => (p, i)))
+        {
+            var key = Profiles.Fingerprint(item);
+            pings[key] = new(key, now, i % 7 != 5, 40 + i * 23 % 260);
+        }
+        FilterProfiles(); RefreshHome();
     }
 }
