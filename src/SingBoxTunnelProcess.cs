@@ -81,7 +81,7 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         // wintun. Убитое ядро оставляло адаптер «Obl-…» висеть до десятка минут — на
         // настоящей машине за один прогон проверки их набралось десять. Принудительно —
         // только если ядро не ответило.
-        if (!ConsoleInterrupt.Send(process, GracefulStop))
+        if (!ConsoleInterrupt.Send(process, GracefulStop, step => NetworkHelperHost.RecordStep(DateTime.UtcNow.ToString("HH:mm:ss.fff") + " " + step)))
             try { if (!process.HasExited) process.Kill(true); }
             catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { }
         try { process.WaitForExit(5000); } catch (InvalidOperationException) { }
@@ -123,6 +123,16 @@ public static class TunnelInterfaces
         {
             return NetworkInterface.GetAllNetworkInterfaces()
                 .Any(i => string.Equals(i.Name, name, StringComparison.OrdinalIgnoreCase));
+        }
+        catch (NetworkInformationException) { return false; }
+    }
+
+    public static bool IsUp(string name)
+    {
+        try
+        {
+            return NetworkInterface.GetAllNetworkInterfaces()
+                .Any(i => string.Equals(i.Name, name, StringComparison.OrdinalIgnoreCase) && i.OperationalStatus == OperationalStatus.Up);
         }
         catch (NetworkInformationException) { return false; }
     }

@@ -7,9 +7,9 @@ public partial class MainWindow
     {
         Servers.MeasureButton.Click += async (_, _) =>
         {
-            if (operation is not null || engine.ProcessId is not null || profile is null) return;
+            if (operation is not null || profile is null) return;
             if (!importedProfiles.Any(p => p.IsService)) { DetailText.Text = "Измерения выполняются только по узлам вашей подписки."; return; }
-            operation = new CancellationTokenSource(); UpdateControls();
+            operation = new CancellationTokenSource(); measuring = true; UpdateControls();
             try
             {
                 // Измеряем только узлы сервиса: сторонние конфигурации нам не принадлежат,
@@ -22,11 +22,11 @@ public partial class MainWindow
                 QueueStateSave();
             }
             catch (OperationCanceledException) { if (!closed) DetailText.Text = "Измерение завершено по отмене или лимиту пяти минут. Полученные результаты сохранены."; QueueStateSave(); }
-            finally { operation.Dispose(); operation = null; if (!closed) UpdateControls(); }
+            finally { operation.Dispose(); operation = null; measuring = false; if (!closed) UpdateControls(); }
         };
         Servers.BestButton.Click += (_, _) =>
         {
-            if (operation is not null || engine.ProcessId is not null) return;
+            if (operation is not null) return;
             var best = ServerMeasurements.Best(importedProfiles, measurements, DateTimeOffset.UtcNow);
             if (best is null) { DetailText.Text = "Нет успешных измерений за последние 20 минут. Сначала проверьте серверы."; return; }
             Servers.SearchBox.Clear(); Servers.FavoritesOnly.IsChecked = false;

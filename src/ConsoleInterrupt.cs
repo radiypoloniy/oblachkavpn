@@ -18,8 +18,9 @@ internal static class ConsoleInterrupt
     private const uint CtrlBreak = 1;
     private static readonly object Gate = new();
 
-    // true — процесс завершился сам за отведённое время.
-    public static bool Send(Process process, TimeSpan timeout)
+    // true — процесс завершился сам за отведённое время. trace получает исход и код ошибки
+    // Windows: без него отказ мягкой остановки виден только как долгое снятие туннеля.
+    public static bool Send(Process process, TimeSpan timeout, Action<string>? trace = null)
     {
         try
         {
@@ -27,11 +28,17 @@ internal static class ConsoleInterrupt
             lock (Gate)
             {
                 // Своя консоль у помощника быть не должна; если она есть, не трогаем её.
-                if (!AttachConsole((uint)process.Id)) return false;
-                try { if (!GenerateConsoleCtrlEvent(CtrlBreak, (uint)process.Id)) return false; }
+                if (!AttachConsole((uint)process.Id)) { trace?.Invoke("ядро: AttachConsole отказ " + Marshal.GetLastWin32Error()); return false; }
+                try
+                {
+                    if (!GenerateConsoleCtrlEvent(CtrlBreak, (uint)process.Id))
+                    { trace?.Invoke("ядро: GenerateConsoleCtrlEvent отказ " + Marshal.GetLastWin32Error()); return false; }
+                }
                 finally { FreeConsole(); }
             }
-            return process.WaitForExit(timeout);
+            var exited = process.WaitForExit(timeout);
+            trace?.Invoke(exited ? "ядро: остановлено мягко" : "ядро: не ответило на Ctrl+Break");
+            return exited;
         }
         catch (InvalidOperationException) { return false; }
     }

@@ -12,6 +12,7 @@ public partial class MainWindow
 {
     private SystemTunnelSession? systemTunnel;
     private IHelperLifetime? helperLifetime;
+    private bool systemStopping;
 
     private bool SystemTunnelWanted => Settings.SystemTunnel.IsChecked == true;
     private bool SystemTunnelActive => systemTunnel is not null &&
@@ -135,6 +136,8 @@ public partial class MainWindow
         systemTunnel = null;
         helperLifetime = null;
         if (session is null) return;
+        systemStopping = true;
+        if (!closed) UpdateControls();
         try { await session.StopAsync().ConfigureAwait(true); }
         // Прерванная сессия могла уже потерять канал помощника: закрытый канал — тот же отказ.
         catch (Exception ex) when (ex is UserError or IOException or TimeoutException or ObjectDisposedException)
@@ -142,9 +145,10 @@ public partial class MainWindow
         finally
         {
             session.Changed -= OnSystemTunnelChanged;
+            systemStopping = false;
             if (lifetime is not null) await lifetime.DisposeAsync().ConfigureAwait(true);
             // Снятая не до конца сессия видна только по журналу: окно должно о ней сказать.
-            if (!closed) UpdateSystemTunnelNote(null);
+            if (!closed) { UpdateSystemTunnelNote(null); UpdateControls(); }
         }
     }
 

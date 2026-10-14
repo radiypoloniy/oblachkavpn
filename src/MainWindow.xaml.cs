@@ -80,7 +80,7 @@ public partial class MainWindow : Window
             StatusText.Text = state switch
             {
                 ConnectionState.Idle => "Отключено", ConnectionState.Validating => "Проверка профиля",
-                ConnectionState.Starting => "Запуск ядра", ConnectionState.Running => "Прокси запущен",
+                ConnectionState.Starting => "Запуск ядра", ConnectionState.Running => SystemTunnelActive ? "VPN включён" : "Прокси запущен",
                 ConnectionState.Verified => "Туннель проверен", _ => "Подключение прервано"
             };
             StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(state switch
@@ -101,7 +101,8 @@ public partial class MainWindow : Window
         }
         var active = engine.State is not ConnectionState.Idle;
         ConnectButton.IsEnabled = profile is not null && !active && operation is null;
-        StopButton.IsEnabled = active || operation is not null;
+        // Пока системный режим снимается, повторное нажатие ничего не ускорит.
+        StopButton.IsEnabled = (active || operation is not null) && !systemStopping;
         ImportFileButton.IsEnabled = !active && operation is null;
         PasteButton.IsEnabled = !active && operation is null;
         SubscriptionButton.IsEnabled = !active && operation is null;
@@ -109,12 +110,12 @@ public partial class MainWindow : Window
         // Подбор переключает узел, поэтому доступен только внутри своего сервиса.
         FindRouteButton.IsEnabled = profile is { IsService: true } && operation is null;
         // Сервер можно сменить и при работающем подключении: выбор сразу переключает на него.
-        ProfilePicker.IsEnabled = operation is null;
+        ProfilePicker.IsEnabled = operation is null || backgroundCheck;
         ProbeButton.IsEnabled = engine.ProcessId is not null && operation is null;
         ProbeUrl.IsEnabled = operation is null;
         CopyEndpointButton.IsEnabled = engine.ProcessId is not null;
         ReconnectButton.IsEnabled = profile is not null && operation is null;
-        Servers.MeasureButton.IsEnabled = profile is not null && !active && operation is null && importedProfiles.Any(p => p.IsService);
+        Servers.MeasureButton.IsEnabled = profile is not null && operation is null && importedProfiles.Any(p => p.IsService);
         Servers.BestButton.IsEnabled = Servers.MeasureButton.IsEnabled;
         Routes.ValidateRulesButton.IsEnabled = profile is not null && operation is null;
         trayConnect.Enabled = ConnectButton.IsEnabled;

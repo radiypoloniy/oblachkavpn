@@ -31,6 +31,10 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
 
     private readonly Func<ValidatedNetworkLease, CancellationToken, ITunnelProcess> startCore;
     private readonly Func<string, bool> interfaceExists;
+    // Снятие ждёт, пока адаптер перестанет работать, а не пока исчезнет из списка: .NET 10
+    // перечисляет и записи об уже удалённых адаптерах (в состоянии Down). Из-за такой записи
+    // остановка после смены сервера ждала полный срок, 25 с, хотя ядро закрылось за секунду.
+    private readonly Func<string, bool> interfaceUp;
     private readonly TimeSpan timeout;
     private readonly Func<TimeSpan, CancellationToken, Task> delay;
     private ITunnelProcess? core;
@@ -40,10 +44,12 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
     private ValidatedNetworkLease? prepared;
 
     public WindowsTunnelBackend(Func<ValidatedNetworkLease, CancellationToken, ITunnelProcess> startCore,
-        Func<string, bool> interfaceExists, TimeSpan? timeout = null, Func<TimeSpan, CancellationToken, Task>? delay = null)
+        Func<string, bool> interfaceExists, TimeSpan? timeout = null, Func<TimeSpan, CancellationToken, Task>? delay = null,
+        Func<string, bool>? interfaceUp = null)
     {
         this.startCore = startCore;
         this.interfaceExists = interfaceExists;
+        this.interfaceUp = interfaceUp ?? interfaceExists;
         this.timeout = timeout ?? DefaultTimeout;
         this.delay = delay ?? Task.Delay;
     }
@@ -111,7 +117,7 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
         if (halted is null) return NetworkWriteResult.Unchanged;
 
         // Ядро только что остановлено: ждём, пока Windows уберёт адаптер.
-        if (Wait(() => !interfaceExists(name))) return NetworkWriteResult.Changed;
+        if (Wait(() => !interfaceUp(name))) return NetworkWriteResult.Changed;
 
         // Адаптер задержался. На стенде это наблюдалось многократно: Windows убирает
         // wintun уже после смерти процесса, и задержка доходит до минут. Трафик при этом

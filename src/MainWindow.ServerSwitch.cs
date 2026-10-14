@@ -11,35 +11,49 @@ namespace Oblachka;
 // снимается; пользователь видит об этом пояснение.
 //
 // Выбор срабатывает с задержкой: при листании списка стрелками переподключение не должно
-// идти на каждый промелькнувший сервер.
+// идти на каждый промелькнувший сервер. Если в этот момент идёт фоновая проверка связи,
+// выбор человека важнее: проверка отменяется, переключение ждёт её завершения.
 public partial class MainWindow
 {
     private Profile? runningProfile;
     private DispatcherTimer? switchTimer;
+    // Фоновая проверка связи раз в 45 с не должна гасить список серверов.
+    private bool backgroundCheck;
+    // Замер серверов при подключении: «Остановить» отменяет замер, а не подключение.
+    private bool measuring;
 
     private bool ConnectionActive => engine.State is not ConnectionState.Idle || SystemTunnelActive;
+    private bool SwitchPending => profile is not null && runningProfile is not null &&
+        Profiles.Fingerprint(profile) != Profiles.Fingerprint(runningProfile);
 
     private void QueueServerSwitch()
     {
-        // Программная смена выбора (подбор, восстановление) идёт внутри операции и сюда не попадает.
-        if (operation is not null || restoringState || closed || profile is null || runningProfile is null || !ConnectionActive) return;
+        if (restoringState || closed || !ConnectionActive) return;
+        // Программная смена выбора (подбор, восстановление) идёт внутри своей операции.
+        if (operation is not null && !backgroundCheck) return;
         switchTimer ??= CreateSwitchTimer();
         switchTimer.Stop();
-        if (Profiles.Fingerprint(profile) == Profiles.Fingerprint(runningProfile)) return;
+        if (!SwitchPending) return;
+        if (backgroundCheck) operation?.Cancel();
         switchTimer.Start();
     }
 
     private DispatcherTimer CreateSwitchTimer()
     {
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
-        timer.Tick += async (_, _) => { timer.Stop(); await SwitchServerAsync(); };
+        timer.Tick += async (_, _) =>
+        {
+            // Отменённая проверка ещё завершается: ждём следующего тика.
+            if (operation is not null) return;
+            timer.Stop();
+            await SwitchServerAsync();
+        };
         return timer;
     }
 
     private async Task SwitchServerAsync()
     {
-        if (operation is not null || closed || profile is null || runningProfile is null || !ConnectionActive) return;
-        if (Profiles.Fingerprint(profile) == Profiles.Fingerprint(runningProfile)) return;
+        if (operation is not null || closed || profile is null || !ConnectionActive || !SwitchPending) return;
         recoveryWait?.Cancel(); recovery.Reset(); health.Reset(); manualStop = false;
         if (SystemTunnelActive && systemTunnel is { } session)
         {

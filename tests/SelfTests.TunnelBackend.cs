@@ -173,6 +173,23 @@ public static partial class SelfTests
             Assert(recovered!.State == NetworkSessionState.Released);
             Assert(recovered.Changes.All(c => c.State == NetworkChangeState.Restored));
         }));
+        await check("A removed adapter's leftover record does not hold the release for the full timeout", () => Sync(() =>
+        {
+            // Найдено на стенде: после смены сервера остановка ждала 25 с. Ядро закрылось за
+            // секунду, но .NET 10 продолжал перечислять удалённый адаптер в состоянии Down.
+            var id = Guid.NewGuid();
+            var up = false;
+            var waits = 0;
+            var recorded = false; // запись в списке появляется с адаптером и остаётся после него
+            var backend = new WindowsTunnelBackend((_, _) => { up = recorded = true; return new FakeTunnelProcess(); },
+                _ => recorded, TimeSpan.FromSeconds(25), (_, _) => { waits++; return Task.CompletedTask; }, interfaceUp: _ => up);
+            var change = backend.Prepare(NetworkHelperContracts.Validate(Request(id)))[0];
+            Assert(backend.Apply(id, change) == NetworkWriteResult.Changed);
+            waits = 0;
+            up = false; // ядро остановлено, адаптер не работает, но запись о нём осталась
+            Assert(backend.Restore(id, change) == NetworkWriteResult.Changed);
+            Assert(waits == 0);
+        }));
         await check("Another VPN is recognised by the adapter that carries internet traffic", () => Sync(() =>
         {
             // Throne, WireGuard, sing-box — wintun (тип 53); OpenVPN — TAP; встроенный VPN — PPP.

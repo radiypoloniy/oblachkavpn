@@ -39,7 +39,7 @@ public partial class MainWindow
         if (closed || vmTestActive || !backgroundWorkEnabled || operation is not null || recoveryWait is not null || engine.ProcessId is null ||
             AutoRecover.IsChecked != true || DateTimeOffset.UtcNow < nextHealthCheck) return;
         nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(45);
-        operation = new CancellationTokenSource(); engineOperation = true; UpdateControls();
+        operation = new CancellationTokenSource(); engineOperation = true; backgroundCheck = true; UpdateControls();
         var shouldRecover = false;
         try
         {
@@ -55,7 +55,7 @@ public partial class MainWindow
         catch (UserError) { /* Engine exit has its own bounded recovery owner. */ }
         finally
         {
-            operation.Dispose(); operation = null; engineOperation = false;
+            operation.Dispose(); operation = null; engineOperation = false; backgroundCheck = false;
             if (manualStop) engine.Stop();
             if (!closed) UpdateControls();
         }

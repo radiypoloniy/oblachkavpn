@@ -102,7 +102,7 @@ public static class NetworkHelperHost
         var start = core is null
             ? new Func<ValidatedNetworkLease, CancellationToken, ITunnelProcess>((lease, token) => SingBoxTunnelProcess.Start(lease, executable, token))
             : ((lease, _) => core(executable));
-        var tunnel = new WindowsTunnelBackend(start, TunnelInterfaces.Exists);
+        var tunnel = new WindowsTunnelBackend(start, TunnelInterfaces.Exists, interfaceUp: TunnelInterfaces.IsUp);
         // Брандмауэр открывается один раз на весь запуск помощника. Если его нет,
         // режим работает без блокировки, а снять чужую блокировку будет нечем —
         // восстановление сообщит об этом вместо того, чтобы молчать.

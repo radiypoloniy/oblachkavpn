@@ -55,12 +55,15 @@ public partial class MainWindow
     }
     private void StopClick(object sender, RoutedEventArgs args)
     {
+        // Замер серверов при работающем подключении: «Остановить» прерывает замер, а
+        // подключение остаётся. Повторное нажатие уже остановит его.
+        if (measuring && ConnectionActive) { operation?.Cancel(); DetailText.Text = "Замер серверов остановлен. Подключение работает."; return; }
         manualStop = true;
         recoveryWait?.Cancel();
         operation?.Cancel();
         // Системный режим снимает туннель и только потом ядро: иначе маршруты остались бы
         // указывать на мёртвый локальный порт.
-        if (systemTunnel is not null) { _ = StopSystemTunnelAsync(); DetailText.Text = "Останавливаем системный режим…"; return; }
+        if (systemTunnel is not null) { _ = StopSystemTunnelAsync(); StatusText.Text = "Отключаемся…"; DetailText.Text = "Отключаем VPN…"; return; }
         // During startup the async owner tears down the engine; do not race process disposal with it.
         if (operation is null || !engineOperation) engine.Stop();
         else if (engine.State is ConnectionState.Running or ConnectionState.Verified) DetailText.Text = "Отменяем проверку…";
