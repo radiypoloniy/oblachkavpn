@@ -77,8 +77,11 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
         if (interfaceExists(name)) return NetworkWriteResult.Conflict;
 
         var lease = Describe(leaseId, change);
+        // Правила и вход прямого трафика ядра — из проверенной аренды этой сессии: в журнал они не
+        // пишутся (в описании входа — пароль). Потерянный здесь вход (0.10) оставлял «Российские
+        // сайты напрямую» без выхода: ядро слало их на порт, где никого не было.
         if (prepared is { } rules && rules.LeaseId == leaseId)
-            lease = lease with { Sites = rules.SiteRules, Programs = rules.ProgramRules };
+            lease = lease with { Sites = rules.SiteRules, Programs = rules.ProgramRules, CoreDirect = rules.CoreDirect };
         var started = startCore(lease, CancellationToken.None);
         try
         {

@@ -106,6 +106,16 @@ public static partial class SelfTests
                     new System.Text.Json.JsonSerializerOptions { Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } }));
                 var rebuilt = SingBoxTunnelProcess.RequestFor(NetworkHelperContracts.Validate(wire.Lease!));
                 Assert(rebuilt.CoreDirect == entry && SingBoxTunConfig.Create(rebuilt)["route"]!["rules"]![0]!["inbound"] is not null);
+                // И дальше по службе: Prepare → журнал → Apply → запуск ядра туннеля.
+                ValidatedNetworkLease? started = null;
+                using (var backend = new WindowsTunnelBackend((l, _) => { started = l; return new FakeTunnelProcess(); }, _ => started is not null, delay: (_, _) => Task.CompletedTask))
+                {
+                    var validated = NetworkHelperContracts.Validate(wire.Lease!);
+                    var change = backend.Prepare(validated).Single();
+                    Assert(!change.After.Contains(entry.Password));
+                    backend.Apply(validated.LeaseId, change);
+                }
+                Assert(started?.CoreDirect == entry && SingBoxTunnelProcess.RequestFor(started!).CoreDirect == entry);
             }
             finally { Directory.Delete(folder, true); }
         });
