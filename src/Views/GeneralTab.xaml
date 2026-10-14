@@ -1,0 +1,69 @@
+<UserControl x:Class="Oblachka.Views.GeneralTab" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="clr-namespace:Oblachka">
+  <!-- Настройки → Основное (экран 10): режим, надёжность, запуск, тема. -->
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="14,6,14,12">
+      <TextBlock Text="ЧТО ИДЁТ ЧЕРЕЗ VPN" Style="{StaticResource Caption}" FontSize="11.5" Margin="6,10,6,4"/>
+      <Button x:Name="ModeTun" Style="{StaticResource Row}" Height="Auto" Padding="10,9" AutomationProperties.Name="Весь компьютер">
+        <DockPanel>
+          <Ellipse x:Name="ModeTunRadio" Width="18" Height="18" Stroke="{DynamicResource Ring}" StrokeThickness="1.5" Margin="0,0,12,0"/>
+          <StackPanel>
+            <TextBlock Text="Весь компьютер" FontSize="14" FontWeight="SemiBold"/>
+            <TextBlock x:Name="SystemTunnelHint" Text="Игры, мессенджеры и любые программы." Style="{StaticResource Small}" Margin="0,2,0,0"/>
+          </StackPanel>
+        </DockPanel>
+      </Button>
+      <Button x:Name="ModeProxy" Style="{StaticResource Row}" Height="Auto" Padding="10,9" Margin="0,2,0,0" AutomationProperties.Name="Браузеры и программы">
+        <DockPanel>
+          <Ellipse x:Name="ModeProxyRadio" Width="18" Height="18" Stroke="{DynamicResource Ring}" StrokeThickness="1.5" Margin="0,0,12,0"/>
+          <StackPanel>
+            <TextBlock Text="Браузеры и программы" FontSize="14" FontWeight="SemiBold"/>
+            <TextBlock Text="Прокси Windows. Без прав администратора, но не для всех приложений." Style="{StaticResource Small}" Margin="0,2,0,0"/>
+          </StackPanel>
+        </DockPanel>
+      </Button>
+      <!-- Выбор режима хранится в этих флажках: от них зависит вся логика подключения. -->
+      <CheckBox x:Name="SystemTunnel" Visibility="Collapsed"/>
+      <CheckBox x:Name="SystemProxy" Visibility="Collapsed"/>
+      <TextBlock x:Name="SystemTunnelNote" Style="{StaticResource Small}" Margin="10,6,10,0"/>
+      <Button x:Name="RestoreNetwork" Content="Восстановить сеть" Style="{StaticResource BtnOutline}" Height="34" o:Ui.CornerRadius="9" Padding="14,0" HorizontalAlignment="Left" Margin="10,8,0,0" Visibility="Collapsed"/>
+
+      <TextBlock Text="НАДЁЖНОСТЬ" Style="{StaticResource Caption}" FontSize="11.5" Margin="6,14,6,2"/>
+      <DockPanel Margin="10,7,6,7">
+        <CheckBox x:Name="AutoRecover" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Переключать сервер при обрыве"/>
+        <StackPanel>
+          <TextBlock Text="Переключать сервер при обрыве" FontSize="14"/>
+          <TextBlock Text="Проверяем связь каждые 45 с и находим рабочий" Style="{StaticResource Small}"/>
+        </StackPanel>
+      </DockPanel>
+      <!-- В режиме «Весь компьютер» блокировка действует всегда; прокси защитить весь компьютер не может. -->
+      <DockPanel x:Name="KillSwitchRow" Margin="10,7,6,7">
+        <CheckBox DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" IsEnabled="False" AutomationProperties.Name="Без VPN — без интернета, всегда включено"/>
+        <StackPanel>
+          <TextBlock Text="Без VPN — без интернета" FontSize="14"/>
+          <TextBlock Text="В режиме «Весь компьютер» включено всегда" Style="{StaticResource Small}"/>
+        </StackPanel>
+      </DockPanel>
+
+      <TextBlock Text="ЗАПУСК" Style="{StaticResource Caption}" FontSize="11.5" Margin="6,14,6,2"/>
+      <DockPanel Margin="10,6,6,6">
+        <CheckBox x:Name="StartWithWindows" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Запускать вместе с Windows"/>
+        <TextBlock Text="Запускать вместе с Windows" FontSize="14" VerticalAlignment="Center"/>
+      </DockPanel>
+      <DockPanel Margin="10,6,6,6">
+        <CheckBox x:Name="StayInTray" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Крестик сворачивает в трей"/>
+        <TextBlock Text="Крестик сворачивает в трей" FontSize="14" VerticalAlignment="Center"/>
+      </DockPanel>
+      <DockPanel Margin="10,12,6,6">
+        <Border DockPanel.Dock="Right" Height="32" CornerRadius="9" Background="{DynamicResource Field}" Padding="3">
+          <StackPanel Orientation="Horizontal">
+            <Button x:Name="ThemeSystem" Content="Как в Windows" Style="{StaticResource Plain}" Padding="10,0" FontSize="12.5" o:Ui.CornerRadius="7"/>
+            <Button x:Name="ThemeLight" Content="Светлая" Style="{StaticResource Plain}" Padding="10,0" FontSize="12.5" o:Ui.CornerRadius="7" Margin="2,0"/>
+            <Button x:Name="ThemeDark" Content="Тёмная" Style="{StaticResource Plain}" Padding="10,0" FontSize="12.5" o:Ui.CornerRadius="7"/>
+          </StackPanel>
+        </Border>
+        <TextBlock Text="Тема" FontSize="14" VerticalAlignment="Center"/>
+      </DockPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

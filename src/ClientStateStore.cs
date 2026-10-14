@@ -27,6 +27,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     // Системный VPN (TUN). Не запоминался, и после каждого запуска его включали заново.
     // Нет значения — включён, если установлена сетевая служба.
     public bool? SystemTunnel { get; init; }
+    // Тема оформления. Нет значения — «Как в Windows».
+    public ThemeChoice? Theme { get; init; }
     public SubscriptionMetadata? Metadata { get; init; }
     public SiteRule[] RouteRules { get; init; } = Array.Empty<SiteRule>();
     public ProgramRule[] ProgramRules { get; init; } = Array.Empty<ProgramRule>();

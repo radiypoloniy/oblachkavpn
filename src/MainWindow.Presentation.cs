@@ -34,7 +34,6 @@ public partial class MainWindow
         Diagnostics.Heading.Text = lastProbe is { Success: true } ? "Туннель проверен" : "Проверим подключение";
         Diagnostics.LastCheck.Text = lastCheck is null ? "Проверка ещё не выполнялась" : "Последняя проверка " + lastCheck.Value.ToLocalTime().ToString("HH:mm:ss");
         Onboarding.ContinueButton.IsEnabled = operation is null;
-        Settings.SaveStateButton.IsEnabled = stateStore is not null && profile is not null && operation is null && pendingImport is null;
         Onboarding.KeyInput.IsEnabled = operation is null;
         Onboarding.KeyButton.IsEnabled = PasteButton.IsEnabled;
         Onboarding.FileButton.IsEnabled = ImportFileButton.IsEnabled;

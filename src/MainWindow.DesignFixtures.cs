@@ -10,21 +10,31 @@ public partial class MainWindow
         foreach (var page in new[] { "Connection", "Servers", "Routes", "Diagnostics" })
         {
             Navigate(page);
-            // Главный экран или одна временная страница поверх него.
-            var pages = new[] { Servers.Visibility, Routes.Visibility, Diagnostics.Visibility }.Count(v => v == Visibility.Visible);
-            // «Все серверы» выезжает поверх главного экрана; правила и помощь — отдельные страницы.
+            // «Все серверы» — поверх главного экрана; правила и помощь — вкладки настроек.
             var home = page is "Connection" or "Servers";
-            if (home != (Home.Visibility == Visibility.Visible) || home == (PageHost.Visibility == Visibility.Visible) ||
-                pages != (page == "Connection" ? 0 : 1) ||
+            var settings = page is "Routes" or "Diagnostics";
+            if (home != (Home.Visibility == Visibility.Visible) || (page == "Servers") != (Servers.Visibility == Visibility.Visible) ||
+                settings != (Settings.Visibility == Visibility.Visible) ||
+                settings && (Routes.Visibility == Visibility.Visible) != (page == "Routes") ||
+                settings && (Diagnostics.Visibility == Visibility.Visible) != (page == "Diagnostics") ||
                 Onboarding.Visibility == Visibility.Visible || Onboarding.ContinueButton.IsDefault)
-                throw new InvalidOperationException("Navigation displays the wrong pages");
+                throw new InvalidOperationException("Navigation displays the wrong pages: " + page);
         }
+        Navigate("Connection");
         checks.Add("Navigation selects one working page at a time and preserves the imported profile");
         SettingsClick(this, new RoutedEventArgs());
-        if (SettingsOverlay.Visibility != Visibility.Visible) throw new InvalidOperationException("Settings overlay did not open");
+        if (Settings.Visibility != Visibility.Visible) throw new InvalidOperationException("Settings did not open");
+        // Каждая вкладка реально отрисовывается: ключ ресурса, совпавший со стилем, ронял окно
+        // только при показе вкладки, и проверки без отрисовки этого не видели.
+        for (var tab = 0; tab < 4; tab++)
+        {
+            Settings.ShowTab(tab);
+            DesignPreview.Render(this, Path.Combine(AppContext.BaseDirectory, $"preview-settings-{tab}.png"));
+        }
+        Settings.ShowTab(0);
         CloseSettings();
-        if (SettingsOverlay.Visibility != Visibility.Collapsed) throw new InvalidOperationException("Settings overlay did not close");
-        checks.Add("Settings overlay opens and closes independently of the connection lifecycle");
+        if (Settings.Visibility != Visibility.Collapsed) throw new InvalidOperationException("Settings did not close");
+        checks.Add("Settings open and close independently of the connection lifecycle");
         LoadPreviewProfiles();
         var selected = profile;
         Servers.SearchBox.Text = "no-synthetic-match";
@@ -70,8 +80,8 @@ public partial class MainWindow
         CheckPreviewControls();
         if (page == "servers") LoadServerPreview();
         Navigate(page switch { "servers" => "Servers", "routes" => "Routes", "diagnostics" => "Diagnostics", _ => "Connection" });
-        if (page is "settings" or "storage") SettingsClick(this, new RoutedEventArgs());
-        if (page == "storage") { Settings.SettingsTabs.SelectedIndex = 1; Settings.SaveStateButton.IsEnabled = true; }
+        if (page is "settings" or "rules" or "storage" or "help") SettingsClick(this, new RoutedEventArgs());
+        if (page is "rules" or "storage" or "help") Settings.ShowTab(page switch { "rules" => 1, "storage" => 2, _ => 3 });
     }
 
     private void LoadServerPreview()

@@ -60,5 +60,6 @@ public partial class MainWindow
         ModeTunNote.Text = NetworkHelperConnection.ServiceRunning
             ? "Системный VPN: игры и любые программы."
             : "Системный VPN: игры и любые программы. Windows спросит права администратора.";
+        RefreshSettings();
     }
 }

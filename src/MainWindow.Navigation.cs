@@ -15,44 +15,54 @@ public partial class MainWindow
     private IReadOnlyList<Profile> serviceProfiles = Array.Empty<Profile>();
     private IReadOnlyList<Profile> externalProfiles = Array.Empty<Profile>();
 
+    // Экраны нового дизайна: главный; «Все серверы» поверх него; настройки с вкладками
+    // («Правила» и «Помощь» — их вкладки). Без подключений — экран ключа.
     private void Navigate(string page)
     {
         currentPage = page;
         var welcome = profile is null && page == "Connection";
-        // Главный экран — всё, что не временная страница. Без подключений — экран ключа.
-        Home.Visibility = !welcome && page == "Connection" ? Visibility.Visible : Visibility.Collapsed;
-        PageHost.Visibility = page is "Routes" or "Diagnostics" ? Visibility.Visible : Visibility.Collapsed;
-        PageTitle.Text = page switch { "Routes" => "Правила", "Diagnostics" => "Помощь", _ => "" };
-        // «Все серверы» выезжает поверх главного экрана, он остаётся под ней.
-        if (page == "Servers") { Home.Visibility = Visibility.Visible; if (Servers.Visibility != Visibility.Visible) { FilterProfiles(); Servers.Open(); } }
+        Home.Visibility = !welcome && page is "Connection" or "Servers" ? Visibility.Visible : Visibility.Collapsed;
+        if (page == "Servers") { if (Servers.Visibility != Visibility.Visible) { FilterProfiles(); Servers.Open(); } }
         else Servers.Visibility = Visibility.Collapsed;
-        Routes.Visibility = page == "Routes" ? Visibility.Visible : Visibility.Collapsed;
-        Diagnostics.Visibility = page == "Diagnostics" ? Visibility.Visible : Visibility.Collapsed;
+        if (page is "Routes" or "Diagnostics") OpenSettings(page == "Routes" ? 1 : 3);
+        else Settings.Visibility = Visibility.Collapsed;
         Onboarding.Visibility = welcome ? Visibility.Visible : Visibility.Collapsed;
         Onboarding.ContinueButton.IsDefault = welcome;
     }
 
-    private void SettingsClick(object sender, RoutedEventArgs args)
+    private void SettingsClick(object sender, RoutedEventArgs args) => OpenSettings(null);
+
+    private void OpenSettings(int? tab)
     {
-        SettingsOverlay.Visibility = Visibility.Visible;
+        ShowModeMenu(false);
+        if (tab is int index) Settings.ShowTab(index);
+        if (Settings.Visibility != Visibility.Visible)
+        {
+            Settings.Visibility = Visibility.Visible;
+            Settings.BeginAnimation(OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)));
+        }
+        RefreshSettings();
         Settings.CloseButton.Focus();
     }
 
     private void CloseSettings()
     {
-        SettingsOverlay.Visibility = Visibility.Collapsed;
+        Settings.Visibility = Visibility.Collapsed;
+        if (currentPage is "Routes" or "Diagnostics") currentPage = "Connection";
         Home.SettingsButton.Focus();
     }
 
-    private void OverlayMouseDown(object sender, MouseButtonEventArgs args)
-    { if (ReferenceEquals(args.OriginalSource, SettingsOverlay)) CloseSettings(); }
-
     private void ExitApplication() { exitRequested = true; Close(); }
 
+    // Esc закрывает верхний слой: меню режима, настройки, «Все серверы».
     private void WindowKeyDown(object sender, KeyEventArgs args)
     {
-        if (args.Key == Key.Escape && SettingsOverlay.Visibility == Visibility.Visible)
-        { CloseSettings(); args.Handled = true; }
+        if (args.Key != Key.Escape) return;
+        if (ModeMenuLayer.Visibility == Visibility.Visible) ShowModeMenu(false);
+        else if (Settings.Visibility == Visibility.Visible) CloseSettings();
+        else if (Servers.Visibility == Visibility.Visible) Navigate("Connection");
+        else return;
+        args.Handled = true;
     }
 
     // Поиск и порядок панели «Все серверы». Выбранный сервер не теряется, даже если поиск его

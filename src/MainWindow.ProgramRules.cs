@@ -5,18 +5,19 @@ public partial class MainWindow
     private readonly List<ProgramRule> programRules = new();
     private void WireProgramRules()
     {
-        Routes.AddProgramButton.Click += (_, _) =>
+        Routes.AddProgramButton.Click += (_, _) => AddProgramRule(Routes.ProgramName.Text, SiteAction.Tunnel);
+        Routes.ProgramName.KeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Enter) AddProgramRule(Routes.ProgramName.Text, SiteAction.Tunnel); };
+    }
+
+    private void AddProgramRule(string executable, SiteAction action)
+    {
+        try
         {
-            try
-            {
-                var rule = ProgramRoutingPlan.Create(Routes.ProgramName.Text, (SiteAction)Routes.ProgramAction.SelectedIndex);
-                ProgramRoutingPlan.Validate(programRules.Append(rule).ToArray());
-                programRules.Add(rule); Routes.ProgramName.Clear(); RefreshRules(); QueueStateSave();
-            }
-            catch (UserError ex) { DetailText.Text = ex.Message; }
-        };
-        Routes.RemoveProgramButton.Click += (_, _) =>
-        { if (Routes.ProgramList.SelectedItem is ProgramRule rule) { programRules.Remove(rule); RefreshRules(); QueueStateSave(); } };
+            var rule = ProgramRoutingPlan.Create(executable, action);
+            ProgramRoutingPlan.Validate(programRules.Append(rule).ToArray());
+            programRules.Add(rule); Routes.ProgramName.Clear(); RefreshRules(); QueueStateSave();
+        }
+        catch (UserError ex) { DetailText.Text = ex.Message; }
     }
     private async Task ValidateProgramDraftAsync(CancellationToken token)
     {

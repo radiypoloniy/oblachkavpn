@@ -51,7 +51,10 @@ public partial class MainWindow : Window
         Onboarding.BrandText.Text = ServiceBrand.Name;
         // Идентификатор установки виден пользователю: по нему сервис находит устройство
         // в списке, когда надо освободить место в лимите.
-        Settings.DeviceIdText.Text = "Идентификатор устройства: " + DeviceIdentity.Current;
+        // Коротко «a7f3…0c21»: целиком номер виден в подсказке и в отчёте.
+        var device = DeviceIdentity.Current;
+        Settings.DeviceIdText.Text = device.Length > 10 ? device[..4] + "…" + device[^4..] : device;
+        Settings.DeviceIdText.ToolTip = device;
         Closing += OnClosing;
         trayConnect = new Forms.ToolStripMenuItem("Подключить");
         trayStop = new Forms.ToolStripMenuItem("Остановить");
@@ -123,7 +126,7 @@ public partial class MainWindow : Window
         trayConnect.Enabled = ConnectButton.IsEnabled;
         trayStop.Enabled = StopButton.IsEnabled;
         tray.Text = ServiceBrand.Name + " — " + StatusText.Text;
-        EndpointText.Text = engine.ProcessId is not null ? $"SOCKS5  127.0.0.1:{engine.Port}  •  только TCP" : "Адрес SOCKS появится после запуска";
+        EndpointText.Text = engine.ProcessId is not null ? $"socks5://127.0.0.1:{engine.Port}" : "после подключения";
         RefreshPresentation();
     }
     private async void ProbeClick(object sender, RoutedEventArgs args)

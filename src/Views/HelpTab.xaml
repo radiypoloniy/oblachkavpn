@@ -1,0 +1,78 @@
+<UserControl x:Class="Oblachka.Views.HelpTab" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="clr-namespace:Oblachka">
+  <!-- Настройки → Помощь (экран 13): проверка связи, подбор сервера, события сессии, отчёт. -->
+  <DockPanel Margin="14,14,14,12">
+    <Border DockPanel.Dock="Top" CornerRadius="14" Background="{DynamicResource CardBg}" Padding="14,6,14,12">
+      <StackPanel>
+        <DockPanel Height="38">
+          <Ellipse x:Name="CoreOk" Width="18" Height="18" Fill="{DynamicResource Ok}" Margin="0,0,10,0"/>
+          <TextBlock x:Name="CoreState" DockPanel.Dock="Right" Text="не запущено" Foreground="{DynamicResource Mu2}" VerticalAlignment="Center" FontSize="13.5"/>
+          <TextBlock Text="Ядро туннеля" FontSize="13.5" VerticalAlignment="Center"/>
+        </DockPanel>
+        <DockPanel Height="38">
+          <Ellipse x:Name="ProbeOk" Width="18" Height="18" Fill="{DynamicResource Ok}" Margin="0,0,10,0"/>
+          <TextBlock x:Name="TunnelState" DockPanel.Dock="Right" Text="Не проверен" Foreground="{DynamicResource Mu2}" VerticalAlignment="Center" FontSize="13.5"/>
+          <TextBlock Text="HTTPS-запрос через сервер" FontSize="13.5" VerticalAlignment="Center"/>
+        </DockPanel>
+        <DockPanel Height="38">
+          <Ellipse Width="18" Height="18" Stroke="{DynamicResource Ring}" StrokeThickness="1.5" Margin="0,0,10,0"/>
+          <TextBlock DockPanel.Dock="Right" Text="не проверялись" Foreground="{DynamicResource Fa}" VerticalAlignment="Center" FontSize="13.5"/>
+          <TextBlock Text="DNS и IPv6 компьютера" FontSize="13.5" VerticalAlignment="Center"/>
+        </DockPanel>
+        <Grid Margin="0,8,0,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="6"/>
+            <ColumnDefinition Width="1.4*"/>
+            <ColumnDefinition Width="6"/>
+            <ColumnDefinition Width="1.2*"/>
+          </Grid.ColumnDefinitions>
+          <Button x:Name="ProbeButton" Content="Проверить" Style="{StaticResource BtnOutline}" Height="34" o:Ui.CornerRadius="9" FontSize="12.5"/>
+          <Button x:Name="FindRouteButton" Grid.Column="2" Content="Найти сервер" Style="{StaticResource BtnOutline}" Height="34" o:Ui.CornerRadius="9" FontSize="12.5"/>
+          <Button x:Name="ReconnectButton" Grid.Column="4" Content="Переподключить" Style="{StaticResource BtnOutline}" Height="34" o:Ui.CornerRadius="9" FontSize="12.5"/>
+        </Grid>
+        <!-- Сайт проверки: адрес по умолчанию, поле для опытных скрыто. -->
+        <TextBox x:Name="ProbeUrl" Text="https://www.gstatic.com/generate_204" Visibility="Collapsed"/>
+        <TextBlock x:Name="LastCheck" Style="{StaticResource Small}" Margin="2,8,0,0"/>
+        <TextBlock x:Name="NetworkNote" Visibility="Collapsed"/>
+        <TextBlock x:Name="Heading" Visibility="Collapsed"/>
+      </StackPanel>
+    </Border>
+
+    <StackPanel DockPanel.Dock="Bottom">
+      <Border CornerRadius="14" Background="{DynamicResource CardBg}" Padding="14,12">
+        <StackPanel>
+          <TextBlock Text="Не работает? Отправьте отчёт" FontSize="14" FontWeight="SemiBold"/>
+          <TextBlock Text="Без ключей, адресов серверов и истории сайтов" Style="{StaticResource Small}" Margin="0,2,0,8"/>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="8"/>
+              <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Button x:Name="CopyReportButton" Content="Скопировать" Style="{StaticResource BtnPrimary}" Height="36" o:Ui.CornerRadius="10" FontSize="13"/>
+            <Button x:Name="ExportButton" Grid.Column="2" Content="Сохранить файл" Style="{StaticResource BtnOutline}" Height="36" o:Ui.CornerRadius="10"/>
+          </Grid>
+        </StackPanel>
+      </Border>
+      <Button x:Name="VmTunButton" Content="Проверить TUN в виртуалке" Style="{StaticResource BtnGhost}" HorizontalAlignment="Center" Visibility="Collapsed" Margin="0,6,0,0"/>
+      <TextBlock x:Name="VmTunNote" Visibility="Collapsed"/>
+      <TextBlock x:Name="VersionText" FontSize="11.5" Foreground="{DynamicResource Fa}" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+    </StackPanel>
+
+    <StackPanel Margin="0,10,0,10">
+      <TextBlock Text="СОБЫТИЯ СЕССИИ" Style="{StaticResource Caption}" FontSize="11.5" Margin="6,4,6,6"/>
+      <TextBlock x:Name="EventText" Visibility="Collapsed"/>
+      <ItemsControl x:Name="EventList" Margin="6,0" Focusable="False">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <DockPanel Margin="0,0,0,6">
+              <TextBlock Text="{Binding Time, StringFormat={}{0:HH:mm}}" Width="38" FontSize="12.5" Foreground="{DynamicResource Fa}"/>
+              <TextBlock Text="{Binding Message}" FontSize="12.5" Foreground="{DynamicResource Mu}" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </DockPanel>
+</UserControl>

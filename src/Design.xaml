@@ -177,4 +177,35 @@
       </Setter.Value>
     </Setter>
   </Style>
+
+  <!-- Поле ввода: фон field, подсказка из Tag, рамка акцента при фокусе. -->
+  <Style x:Key="FieldBox" TargetType="TextBox">
+    <Setter Property="Background" Value="{DynamicResource Field}"/>
+    <Setter Property="Foreground" Value="{DynamicResource Tx}"/>
+    <Setter Property="CaretBrush" Value="{DynamicResource Tx}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="12,0"/>
+    <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TextBox">
+          <Border x:Name="Plate" CornerRadius="10" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Ac}" BorderThickness="0">
+            <Grid>
+              <TextBlock x:Name="Hint" Text="{TemplateBinding Tag}" Foreground="{DynamicResource Fa}" Margin="{TemplateBinding Padding}" FontSize="{TemplateBinding FontSize}"
+                         VerticalAlignment="{TemplateBinding VerticalContentAlignment}" IsHitTestVisible="False" Visibility="Collapsed" TextTrimming="CharacterEllipsis"/>
+              <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+            </Grid>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="Text" Value=""><Setter TargetName="Hint" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Plate" Property="BorderThickness" Value="2"/>
+              <Setter TargetName="Plate" Property="Background" Value="{DynamicResource Bg}"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
 </ResourceDictionary>

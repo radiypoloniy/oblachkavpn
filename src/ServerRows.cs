@@ -57,3 +57,13 @@ public sealed class ServerRow
 
 // Заголовок группы в панели «Все серверы»: «Избранное», «Облачка», «Сторонние».
 public sealed record SheetHeader(string Title);
+
+// Строка правила во вкладке «Правила»: адрес или программа и метка действия.
+public sealed class RuleRow
+{
+    public required object Rule { get; init; }
+    public required string Text { get; init; }
+    public SiteAction Action { get; init; }
+    public string ActionText => ActionLabel(Action);
+    public static string ActionLabel(SiteAction action) => action switch { SiteAction.Direct => "напрямую", SiteAction.Block => "блок", _ => "через VPN" };
+}

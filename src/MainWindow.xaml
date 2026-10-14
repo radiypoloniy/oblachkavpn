@@ -17,25 +17,8 @@
   <Grid>
     <views:HomeView x:Name="Home"/>
     <views:ServersSheet x:Name="Servers" Visibility="Collapsed"/>
+    <views:SettingsPanel x:Name="Settings" Visibility="Collapsed"/>
 
-    <!-- Временные страницы: прежние экраны, пока их не заменят панели нового дизайна. -->
-    <Grid x:Name="PageHost" Background="{DynamicResource Bg}" Visibility="Collapsed">
-      <Grid.RowDefinitions>
-        <RowDefinition Height="56"/>
-        <RowDefinition Height="*"/>
-      </Grid.RowDefinitions>
-      <DockPanel Margin="6,0,90,0">
-        <Button x:Name="PageBackButton" Style="{StaticResource IconButton}" Foreground="{DynamicResource Tx}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Назад">
-          <Path Data="{StaticResource IcoBack}" Style="{StaticResource Icon}" StrokeThickness="2.2"/>
-        </Button>
-        <TextBlock x:Name="PageTitle" Style="{StaticResource Brand}" Margin="4,0,0,0"/>
-      </DockPanel>
-      <Grid Grid.Row="1">
-
-        <views:RoutesView x:Name="Routes" Visibility="Collapsed"/>
-        <views:DiagnosticsView x:Name="Diagnostics" Visibility="Collapsed"/>
-      </Grid>
-    </Grid>
     <views:OnboardingView x:Name="Onboarding" Visibility="Collapsed" Margin="0,56,0,0" Background="{DynamicResource Bg}"/>
 
     <!-- Меню режима над подвалом. -->
@@ -76,9 +59,6 @@
       <TextBlock x:Name="ShellFeedback" FontSize="12.5" Foreground="{DynamicResource Tx}" TextWrapping="Wrap" MaxHeight="60" TextTrimming="CharacterEllipsis"/>
     </Border>
 
-    <Grid x:Name="SettingsOverlay" Background="{DynamicResource Bg}" Visibility="Collapsed" MouseDown="OverlayMouseDown">
-      <views:SettingsView x:Name="Settings" Margin="0,48,0,0"/>
-    </Grid>
 
     <!-- Кнопки окна поверх всех экранов. -->
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,8,0">

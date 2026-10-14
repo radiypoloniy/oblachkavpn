@@ -18,6 +18,9 @@ public partial class MainWindow
     // Модель выбора сервера: прежний список, теперь вне дерева элементов. Его выбор и событие
     // SelectionChanged ведут смену сервера и сохранение; рисуют список главный экран и панель.
     private readonly ListBox ProfilePicker = new();
+    // Правила и помощь теперь вкладки настроек; имена элементов прежние.
+    private Views.RulesTab Routes => Settings.Rules;
+    private Views.HelpTab Diagnostics => Settings.Help;
     private Button ImportFileButton => Servers.ImportFileButton;
     private Button PasteButton => Servers.PasteButton;
     private Button SubscriptionButton => Servers.SubscriptionButton;
@@ -52,8 +55,8 @@ public partial class MainWindow
         Diagnostics.ExportButton.Click += ExportReportClick;
         Diagnostics.CopyReportButton.Click += CopyReportClick;
         WireHome();
+        WireSettings();
         Servers.BackButton.Click += (_, _) => Navigate("Connection");
-        PageBackButton.Click += (_, _) => Navigate("Connection");
         Servers.SearchBox.TextChanged += (_, _) => FilterProfiles();
         Onboarding.KeyButton.Click += PasteClick;
         Onboarding.FileButton.Click += ImportFileClick;
@@ -64,10 +67,7 @@ public partial class MainWindow
         AutoRecover.Click += (_, _) => QueueStateSave();
         Settings.AutoRefresh.Click += (_, _) => QueueStateSave();
         Settings.CloseButton.Click += (_, _) => CloseSettings();
-        Settings.ManageSubscriptionButton.Click += (_, _) => { CloseSettings(); Navigate("Servers"); };
-        Settings.SaveStateButton.Click += SaveStateClick;
         Settings.AddExternalButton.Click += AddExternalClick;
         Settings.RemoveExternalButton.Click += RemoveExternalClick;
-        Settings.OpenDiagnosticsButton.Click += (_, _) => { CloseSettings(); Navigate("Diagnostics"); };
     }
 }

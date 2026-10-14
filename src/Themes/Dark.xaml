@@ -3,7 +3,7 @@
        тема меняется заменой словаря без перезапуска (ThemeManager). Источник — design/redesign-2026-10-14. -->
   <SolidColorBrush x:Key="Page" Color="#0A0D12"/>
   <SolidColorBrush x:Key="Bg" Color="#11151D"/>
-  <SolidColorBrush x:Key="Card" Color="#1A1F29"/>
+  <SolidColorBrush x:Key="CardBg" Color="#1A1F29"/>
   <SolidColorBrush x:Key="Field" Color="#1E2430"/>
   <SolidColorBrush x:Key="Seg" Color="#2A3240"/>
   <SolidColorBrush x:Key="Tx" Color="#E6EAF2"/>
