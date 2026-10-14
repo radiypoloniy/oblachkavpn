@@ -45,7 +45,7 @@
                   </Grid.ColumnDefinitions>
                   <StackPanel>
                     <TextBlock Text="Системный прокси Windows"/>
-                    <TextBlock Text="Браузеры и большинство программ идут через Облачку, пока подключение запущено. Прежние настройки возвращаются после остановки. Права администратора не нужны." Style="{StaticResource MutedText}" FontSize="13" MaxWidth="400" TextWrapping="Wrap" HorizontalAlignment="Left" Margin="0,2,0,0"/>
+                    <TextBlock Text="Браузеры и большинство программ идут через Облачка, пока подключение запущено. Прежние настройки возвращаются после остановки. Права администратора не нужны." Style="{StaticResource MutedText}" FontSize="13" MaxWidth="400" TextWrapping="Wrap" HorizontalAlignment="Left" Margin="0,2,0,0"/>
                   </StackPanel>
                   <CheckBox x:Name="SystemProxy" Grid.Column="1" Style="{StaticResource Switch}" AutomationProperties.Name="Системный прокси Windows"/>
                 </Grid>

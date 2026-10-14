@@ -43,7 +43,7 @@ public partial class MainWindow
         Hide();
         if (trayHintShown) return;
         trayHintShown = true;
-        tray.ShowBalloonTip(4000, ServiceBrand.Name, "Облачка продолжает работать в трее. Выйти — через меню значка: «Завершить».", System.Windows.Forms.ToolTipIcon.Info);
+        tray.ShowBalloonTip(4000, ServiceBrand.Name, "Облачка продолжают работать в трее. Выйти — через меню значка: «Завершить».", System.Windows.Forms.ToolTipIcon.Info);
     }
 
     private void ShowTrayPopup()

@@ -1,4 +1,4 @@
-﻿; Установщик Облачки. Собирается .\build-installer.ps1, вручную ISCC не запускать:
+﻿; Установщик Облачков. Собирается .\build-installer.ps1, вручную ISCC не запускать:
 ; скрипт готовит самодостаточную сборку и передаёт Version, Revision, SourceDir, OutputDir.
 ;
 ; Главное, что делает установщик сверх копирования файлов, — сетевая служба:
@@ -19,7 +19,7 @@ AppVersion={#Version}
 AppVerName=Облачка {#Version}
 AppPublisher=Облачка
 VersionInfoVersion={#Version}
-VersionInfoDescription=Установщик Облачки
+VersionInfoDescription=Установщик Облачков
 DefaultDirName={autopf}\Oblachka
 DisableDirPage=yes
 DisableProgramGroupPage=yes
@@ -57,7 +57,7 @@ Name: "{autodesktop}\Облачка"; Filename: "{app}\Oblachka.exe"; Tasks: des
 
 [Run]
 ; Окно запускается от имени пользователя, а не администратора, который ставил программу.
-Filename: "{app}\Oblachka.exe"; Description: "Запустить Облачку"; Flags: postinstall nowait skipifsilent runasoriginaluser
+Filename: "{app}\Oblachka.exe"; Description: "Запустить Облачка"; Flags: postinstall nowait skipifsilent runasoriginaluser
 
 [Registry]
 ; Автозапуск включает сам пользователь в настройках; при удалении запись убирается.

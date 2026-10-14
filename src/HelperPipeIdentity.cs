@@ -96,7 +96,7 @@ public static class HelperPipeIdentity
     public static void ServiceServer(NamedPipeClientStream pipe, int servicePid)
     {
         if (servicePid <= 0 || !GetNamedPipeServerProcessId(pipe.SafePipeHandle, out var pid) || pid != servicePid)
-            throw new UserError("Канал службы открыт не службой Облачки.");
+            throw new UserError("Канал службы открыт не службой Облачков.");
     }
 
     // Путь исполняемого файла. Открывается с минимальным правом: так окно может узнать путь

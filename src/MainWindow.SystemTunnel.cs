@@ -29,8 +29,8 @@ public partial class MainWindow
         Settings.SystemTunnel.IsChecked = service;
         if (service) Settings.SystemProxy.IsChecked = false;
         Settings.SystemTunnelHint.Text = "Весь трафик компьютера идёт через туннель, включая игры и программы без настроек прокси. " +
-            (service ? "Работает через службу Облачки, права администратора не нужны."
-                     : "Служба Облачки не установлена: права администратора запрашиваются при каждом включении.");
+            (service ? "Работает через службу Облачков, права администратора не нужны."
+                     : "Служба Облачков не установлена: права администратора запрашиваются при каждом включении.");
         UpdateModeText();
         UpdateSystemTunnelNote(null);
     }
