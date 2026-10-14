@@ -85,15 +85,25 @@ public partial class MainWindow
         RenderSheet();
     }
 
-    // Первый экран принимает ключ сервиса. Подписка другого сервиса идёт отдельным путём,
-    // через «Вставить ссылку или JSON», и там же показывается соответствующая подсказка.
+    // Первый экран: одно поле на всё. Ключ и ссылка своего сервиса — подписка сервиса;
+    // ссылка другого сервиса — сторонняя подписка; ссылки профилей и JSON — импорт.
+    // После загрузки сразу подключаемся: «Подключиться» и значит подключиться.
     private async void ContinueSubscription(object sender, RoutedEventArgs args)
     {
+        var text = Onboarding.KeyInput.Text;
         try
         {
-            await LoadSubscriptionAsync(new[] { ServiceKey.ToSubscriptionUrl(Onboarding.KeyInput.Text) }, 0);
-            if (profile is not null) Onboarding.KeyInput.Clear();
+            switch (ServiceKey.Classify(text))
+            {
+                case ServiceKey.InputKind.Profiles: Import(text); break;
+                case ServiceKey.InputKind.ExternalUrl: await LoadSubscriptionAsync(SubscriptionMirrors.ParseSources(text), 0); break;
+                default: await LoadSubscriptionAsync(new[] { ServiceKey.ToSubscriptionUrl(text) }, 0); break;
+            }
         }
-        catch (UserError ex) { DetailText.Text = ex.Message; }
+        catch (UserError ex) { DetailText.Text = ex.Message; return; }
+        if (profile is null) return;
+        Onboarding.KeyInput.Clear();
+        Navigate("Connection");
+        if (ConnectButton.IsEnabled) ConnectClick(this, new RoutedEventArgs());
     }
 }

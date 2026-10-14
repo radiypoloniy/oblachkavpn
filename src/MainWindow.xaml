@@ -19,7 +19,7 @@
     <views:ServersSheet x:Name="Servers" Visibility="Collapsed"/>
     <views:SettingsPanel x:Name="Settings" Visibility="Collapsed"/>
 
-    <views:OnboardingView x:Name="Onboarding" Visibility="Collapsed" Margin="0,56,0,0" Background="{DynamicResource Bg}"/>
+    <views:OnboardingView x:Name="Onboarding" Visibility="Collapsed"/>
 
     <!-- Меню режима над подвалом. -->
     <Grid x:Name="ModeMenuLayer" Background="Transparent" Visibility="Collapsed" MouseDown="ModeMenuLayerMouseDown">

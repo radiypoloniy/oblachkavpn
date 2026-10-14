@@ -15,12 +15,30 @@ public static class ServiceKey
         input.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
 
     // Возвращает полный адрес подписки сервиса. Бросает UserError с текстом для пользователя.
+    // Что вставили в единственное поле первого запуска: ключ, ссылку своего сервиса, ссылку
+    // подписки другого сервиса или сами профили (vless://, trojan://, hy2://, JSON, список).
+    public enum InputKind { ServiceKey, ServiceUrl, ExternalUrl, Profiles }
+
+    public static InputKind Classify(string input)
+    {
+        var text = (input ?? "").Trim();
+        var first = text.Split('\n', 2)[0].Trim();
+        if (text.StartsWith('{') || text.StartsWith('[') || ShareLinks.IsLink(first)) return InputKind.Profiles;
+        if (first.Contains("://", StringComparison.Ordinal) || first.Contains('/'))
+        {
+            var url = first.Contains("://", StringComparison.Ordinal) ? first : "https://" + first;
+            return Uri.TryCreate(url, UriKind.Absolute, out var uri) && !ServiceBrand.IsServiceHost(uri.Host)
+                ? InputKind.ExternalUrl : InputKind.ServiceUrl;
+        }
+        return text.Contains('\n') ? InputKind.Profiles : InputKind.ServiceKey;
+    }
+
     public static string ToSubscriptionUrl(string input)
     {
-        if (input is null) throw new UserError("Введи ключ подписки.");
+        if (input is null) throw new UserError("Введите ключ подписки.");
         // Пробелы внутри ключа — почти всегда следствие копирования из переписки.
         var text = new string(input.Where(c => !char.IsWhiteSpace(c)).ToArray());
-        if (text.Length == 0) throw new UserError("Введи ключ подписки.");
+        if (text.Length == 0) throw new UserError("Введите ключ подписки.");
         if (text.Length > 8 * 1024) throw new UserError("Это слишком длинно для ключа подписки.");
 
         if (text.Contains("://", StringComparison.Ordinal)) return FromUrl(text);
@@ -35,7 +53,7 @@ public static class ServiceKey
     private static string FromUrl(string text)
     {
         if (!Uri.TryCreate(text, UriKind.Absolute, out var uri))
-            throw new UserError("Не удалось прочитать адрес. Введи ключ подписки или полную ссылку сервиса.");
+            throw new UserError("Не удалось прочитать адрес. Введите ключ подписки или полную ссылку сервиса.");
         if (uri.Scheme != Uri.UriSchemeHttps)
             throw new UserError("Ссылка подписки должна начинаться с https://.");
         if (uri.UserInfo.Length > 0 || uri.Fragment.Length > 0)

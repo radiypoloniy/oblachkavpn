@@ -30,7 +30,7 @@ public partial class MainWindow
             var temporary = new MainWindow(false, new ClientStateStore(temporaryPath));
             try
             {
-                temporary.Onboarding.RememberSubscription.IsChecked = false;
+                temporary.Settings.Subscription.Remember.IsChecked = false;
                 await temporary.LoadSubscriptionAsync(sources, 0, (_, _, _) => Task.FromResult(new MirrorResult(imported, 0, 1)));
                 temporary.FlushStateSave();
                 if (File.Exists(temporaryPath)) throw new InvalidOperationException("Opt-out still saves subscription secrets");

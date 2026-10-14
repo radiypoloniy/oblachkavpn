@@ -35,7 +35,6 @@ public partial class MainWindow
         Diagnostics.LastCheck.Text = lastCheck is null ? "Проверка ещё не выполнялась" : "Последняя проверка " + lastCheck.Value.ToLocalTime().ToString("HH:mm:ss");
         Onboarding.ContinueButton.IsEnabled = operation is null;
         Onboarding.KeyInput.IsEnabled = operation is null;
-        Onboarding.KeyButton.IsEnabled = PasteButton.IsEnabled;
         Onboarding.FileButton.IsEnabled = ImportFileButton.IsEnabled;
         if (profile is not null && Onboarding.Visibility == Visibility.Visible) Navigate("Connection");
         RefreshTrayPopup();

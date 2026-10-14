@@ -58,11 +58,8 @@ public partial class MainWindow
         WireSettings();
         Servers.BackButton.Click += (_, _) => Navigate("Connection");
         Servers.SearchBox.TextChanged += (_, _) => FilterProfiles();
-        Onboarding.KeyButton.Click += PasteClick;
         Onboarding.FileButton.Click += ImportFileClick;
         Onboarding.ContinueButton.Click += ContinueSubscription;
-        Onboarding.RememberSubscription.Checked += (_, _) => rememberConnections = true;
-        Onboarding.RememberSubscription.Unchecked += (_, _) => rememberConnections = false;
         Settings.StayInTray.Click += (_, _) => QueueStateSave();
         AutoRecover.Click += (_, _) => QueueStateSave();
         Settings.AutoRefresh.Click += (_, _) => QueueStateSave();

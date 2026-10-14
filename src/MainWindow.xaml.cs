@@ -48,7 +48,6 @@ public partial class MainWindow : Window
         InitSystemTunnel(persistenceEnabled && isolatedStore is null);
         InitStartup(persistenceEnabled && isolatedStore is null);
         Settings.VersionText.Text = BuildIdentity.Label;
-        Onboarding.BrandText.Text = ServiceBrand.Name;
         // Идентификатор установки виден пользователю: по нему сервис находит устройство
         // в списке, когда надо освободить место в лимите.
         // Коротко «a7f3…0c21»: целиком номер виден в подсказке и в отчёте.

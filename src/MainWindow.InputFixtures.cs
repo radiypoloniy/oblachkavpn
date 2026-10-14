@@ -25,13 +25,19 @@ public partial class MainWindow
             throw new InvalidOperationException("Subscription field cannot replace selected text");
         checks.Add("Subscription text and caret fit the input viewport; selected text remains editable");
 
-        // Подписка другого сервиса — не ошибка ввода: у неё отдельное место в интерфейсе,
-        // и сетевого запроса по чужому хосту клиент не делает.
-        field.Text = "https://sub.other-service.invalid/sub/foreign-token";
-        Onboarding.ContinueButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
-        if (!DetailText.Text.Contains("Другие подписки") || profile is not null || engine.ProcessId is not null)
-            throw new InvalidOperationException("Foreign subscription host is not routed to the external-subscription section: " + DetailText.Text);
-        checks.Add("Foreign subscription host is rejected with a pointer to external subscriptions, without a network request");
+        // Одно поле на всё: что вставлено, определяется без сети.
+        var cases = new (string Text, ServiceKey.InputKind Kind)[]
+        {
+            ("hRDbej1hw9YC7rEc-QktKA5Rh", ServiceKey.InputKind.ServiceKey),
+            (serviceUrl, ServiceKey.InputKind.ServiceUrl),
+            ("https://sub.other-service.invalid/sub/foreign-token", ServiceKey.InputKind.ExternalUrl),
+            ("sub.other-service.invalid/sub/foreign-token", ServiceKey.InputKind.ExternalUrl),
+            ("vless://11111111-1111-4111-8111-111111111111@example.invalid:443?security=tls#x", ServiceKey.InputKind.Profiles),
+            ("{\"outbounds\":[]}", ServiceKey.InputKind.Profiles)
+        };
+        foreach (var (text, kind) in cases)
+            if (ServiceKey.Classify(text) != kind) throw new InvalidOperationException($"Key field misclassified {text}: {ServiceKey.Classify(text)}");
+        checks.Add("One key field tells a service key, service and foreign subscription links and profiles apart without a network request");
         field.Clear();
         // Редизайн: окно 420×660 без изменения размера, шапку рисуют экраны; свернуть и закрыть
         // остаются доступными и нажимаются поверх области перетаскивания.
