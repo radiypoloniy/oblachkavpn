@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace Oblachka;
@@ -24,48 +23,7 @@ public partial class MainWindow
             sessionStarted = pid is null ? null : DateTimeOffset.UtcNow;
             lastProbe = null; lastCheck = null;
         }
-        var busy = state is ConnectionState.Starting or ConnectionState.Validating;
-        var color = state switch
-        {
-            ConnectionState.Verified => "#18A577", ConnectionState.Running => "#2E63ED",
-            ConnectionState.Failed => "#D14539", _ => busy || findingRoute ? "#E49B19" : "#8A96A8"
-        };
-        var foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
-        StatusDot.Fill = foreground;
-        StatusText.Foreground = foreground;
-        Connection.StatusBadge.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(state switch
-        {
-            ConnectionState.Verified => "#E6F5EF", ConnectionState.Running => "#ECF1FF",
-            ConnectionState.Failed => "#FCEEEB", _ => busy || findingRoute ? "#FFF4E1" : "#F0F2F6"
-        }));
-        Connection.Headline.Text = findingRoute ? "Ищем маршрут" : state switch
-        {
-            ConnectionState.Idle => "Туннель выключен", ConnectionState.Verified => "Подключено",
-            ConnectionState.Running => systemTunnel?.State == SystemTunnelState.Running ? "Системный VPN запущен" : "Подключение запущено",
-            ConnectionState.Failed => "Подключение прервано", _ => "Подключаемся"
-        };
-        Connection.Subtitle.Text = findingRoute ? "Проверим до шести подключений, не дольше двух минут" : state switch
-        {
-            ConnectionState.Verified => "Запрос через выбранный сервер выполнен",
-            ConnectionState.Running => systemTunnel?.State == SystemTunnelState.Running
-                ? "Системный туннель готов. Проверка связи доступна в диагностике"
-                : systemProxyPort != 0 ? "Прокси Windows включён. Проверка связи доступна в диагностике"
-                : "Локальный прокси готов. Настройте его в нужной программе и проверьте связь",
-            ConnectionState.Failed => "Попробуйте снова или выберите другой сервер",
-            ConnectionState.Idle => "Включите выбранное подключение", _ => "Проверяем профиль и запускаем ядро"
-        };
-        var canStop = StopButton.IsEnabled;
-        ConnectButton.Visibility = canStop ? Visibility.Collapsed : Visibility.Visible;
-        StopButton.Visibility = canStop ? Visibility.Visible : Visibility.Collapsed;
-        StopButton.Background = foreground;
-        StopButton.Foreground = foreground;
-        Connection.Statistics.Visibility = pid is null ? Visibility.Collapsed : Visibility.Visible;
-        Connection.SessionTime.Text = sessionStarted is null ? "0:00:00" : (DateTimeOffset.UtcNow - sessionStarted.Value).ToString(@"h\:mm\:ss");
-        Connection.RequestTime.Text = lastProbe is { Success: true } ? $"{lastProbe.Milliseconds} мс" : lastProbe is null ? "Не проверен" : "Не прошёл";
-        Connection.CheckTunnelButton.IsEnabled = ProbeButton.IsEnabled;
-        MiniStatusText.Text = StatusText.Text;
-        MiniStatusText.Foreground = foreground;
-        MiniProfile.Text = profile?.DisplayName ?? "Локальный SOCKS5";
+        RefreshHome();
         Servers.SelectedName.Text = profile?.DisplayName ?? "Выберите подключение";
         Servers.SelectedTransport.Text = profile?.Transport ?? "—";
         Servers.SelectedCore.Text = profile is null ? "Ядро выберется по формату профиля" : profile.Core == CoreKind.Xray ? "Xray 26.9.9" : "sing-box 1.14.3";

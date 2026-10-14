@@ -15,38 +15,31 @@ public partial class MainWindow
     private IReadOnlyList<Profile> serviceProfiles = Array.Empty<Profile>();
     private IReadOnlyList<Profile> externalProfiles = Array.Empty<Profile>();
 
-    private void NavigationChecked(object sender, RoutedEventArgs args)
-    {
-        if (viewsReady && sender is RadioButton button && button.Tag is string page) Navigate(page);
-    }
-
     private void Navigate(string page)
     {
         currentPage = page;
         var welcome = profile is null && page == "Connection";
-        Connection.Visibility = !welcome && page == "Connection" ? Visibility.Visible : Visibility.Collapsed;
+        // Главный экран — всё, что не временная страница. Без подключений — экран ключа.
+        Home.Visibility = !welcome && page == "Connection" ? Visibility.Visible : Visibility.Collapsed;
+        PageHost.Visibility = page is "Servers" or "Routes" or "Diagnostics" ? Visibility.Visible : Visibility.Collapsed;
+        PageTitle.Text = page switch { "Servers" => "Все серверы", "Routes" => "Правила", "Diagnostics" => "Помощь", _ => "" };
         Servers.Visibility = page == "Servers" ? Visibility.Visible : Visibility.Collapsed;
         Routes.Visibility = page == "Routes" ? Visibility.Visible : Visibility.Collapsed;
         Diagnostics.Visibility = page == "Diagnostics" ? Visibility.Visible : Visibility.Collapsed;
         Onboarding.Visibility = welcome ? Visibility.Visible : Visibility.Collapsed;
         Onboarding.ContinueButton.IsDefault = welcome;
-        Sidebar.Visibility = welcome ? Visibility.Collapsed : Visibility.Visible;
-        SidebarColumn.Width = new GridLength(welcome ? 0 : 210);
-        var navigation = page switch { "Servers" => ServersNav, "Routes" => RoutesNav, "Diagnostics" => DiagnosticsNav, _ => ConnectionNav };
-        if (navigation.IsChecked != true) navigation.IsChecked = true;
     }
 
     private void SettingsClick(object sender, RoutedEventArgs args)
     {
         SettingsOverlay.Visibility = Visibility.Visible;
-        Settings.MaxHeight = Math.Max(300, (ActualHeight > 0 ? ActualHeight : Height) - 70);
         Settings.CloseButton.Focus();
     }
 
     private void CloseSettings()
     {
         SettingsOverlay.Visibility = Visibility.Collapsed;
-        ConnectionNav.Focus();
+        Home.SettingsButton.Focus();
     }
 
     private void OverlayMouseDown(object sender, MouseButtonEventArgs args)

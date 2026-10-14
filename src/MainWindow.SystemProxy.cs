@@ -49,22 +49,16 @@ public partial class MainWindow
         { DetailText.Text = ex is UserError ? ex.Message : "Не удалось изменить настройки прокси Windows. Проверьте их вручную: Параметры → Сеть и Интернет → Прокси."; }
     }
 
+    // Режим в подвале главного экрана и отметки в его меню.
     private void UpdateModeText()
     {
-        if (SystemTunnelWanted)
-        {
-            Connection.ModeTitle.Text = "Системный VPN";
-            Connection.ModeSubtitle.Text = "Трафик компьютера через TUN";
-            Connection.ModeNote.Text = NetworkHelperConnection.ServiceRunning
-                ? "Весь трафик компьютера идёт через туннель, мимо него ничего не уходит. Режим меняется в настройках."
-                : "Весь трафик компьютера идёт через туннель. Служба не установлена: при подключении Windows спросит права администратора.";
-            return;
-        }
-        var system = Settings.SystemProxy.IsChecked == true;
-        Connection.ModeTitle.Text = system ? "Системный прокси" : "Только через туннель";
-        Connection.ModeSubtitle.Text = system ? "Браузеры и программы с настройками Windows" : "Программы с настроенным SOCKS5";
-        Connection.ModeNote.Text = system
-            ? "Пока подключение запущено, прокси Windows указывает на Облачка. После остановки прежние настройки возвращаются. Игры, UDP и программы без поддержки прокси идут напрямую."
-            : "Сейчас туннель используют программы с настроенным SOCKS5. Остальные подключения компьютера не меняются. Системный прокси включается в настройках.";
+        var tunnel = SystemTunnelWanted;
+        var proxy = !tunnel && Settings.SystemProxy.IsChecked == true;
+        Home.ModeText.Text = tunnel ? "Весь компьютер" : proxy ? "Браузеры и программы" : "Только SOCKS";
+        MarkRadio(ModeTunRadio, tunnel);
+        MarkRadio(ModeProxyRadio, proxy);
+        ModeTunNote.Text = NetworkHelperConnection.ServiceRunning
+            ? "Системный VPN: игры и любые программы."
+            : "Системный VPN: игры и любые программы. Windows спросит права администратора.";
     }
 }

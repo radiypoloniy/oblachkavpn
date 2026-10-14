@@ -18,14 +18,14 @@ public partial class MainWindow
 
         // Срок на главном экране: раньше он был виден только в настройках.
         var shortSummary = subscriptionMetadata?.ShortSummary(now);
-        Connection.PlanTile.Text = string.IsNullOrWhiteSpace(shortSummary) ? "Нет данных" : shortSummary;
+        Home.PlanText.Text = string.IsNullOrWhiteSpace(shortSummary) ? "" : shortSummary;
 
         // Объявление панели. Текст чужой, поэтому он уже очищен и обрезан в SubscriptionMetadata,
         // показывается как обычный текст и только при наличии подписки сервиса.
         var announce = serviceProfiles.Count > 0 ? subscriptionMetadata?.Announce : null;
-        Connection.AnnounceText.Text = announce ?? "";
-        Connection.AnnounceTitle.Text = subscriptionMetadata?.Title is { } title ? title : "Сообщение сервиса";
-        Connection.AnnounceCard.Visibility = announce is null
+        Home.AnnounceText.Text = announce ?? "";
+        // Скрытое крестиком объявление не возвращается, пока сервис не пришлёт новое.
+        Home.AnnounceCard.Visibility = announce is null || announce == dismissedAnnounce
             ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;
     }
 }

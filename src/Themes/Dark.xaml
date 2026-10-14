@@ -1,0 +1,52 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Токены оформления (Dark). Ключи одинаковы в обеих темах: цвета берутся только через DynamicResource,
+       тема меняется заменой словаря без перезапуска (ThemeManager). Источник — design/redesign-2026-10-14. -->
+  <SolidColorBrush x:Key="Page" Color="#0A0D12"/>
+  <SolidColorBrush x:Key="Bg" Color="#11151D"/>
+  <SolidColorBrush x:Key="Card" Color="#1A1F29"/>
+  <SolidColorBrush x:Key="Field" Color="#1E2430"/>
+  <SolidColorBrush x:Key="Seg" Color="#2A3240"/>
+  <SolidColorBrush x:Key="Tx" Color="#E6EAF2"/>
+  <SolidColorBrush x:Key="Mu" Color="#9BA6B8"/>
+  <SolidColorBrush x:Key="Mu2" Color="#8D98AB"/>
+  <SolidColorBrush x:Key="Fa" Color="#6F7B8F"/>
+  <SolidColorBrush x:Key="Divider" Color="#232A36"/>
+  <SolidColorBrush x:Key="Ac" Color="#4F7FF2"/>
+  <SolidColorBrush x:Key="Acs" Color="#1C2840"/>
+  <SolidColorBrush x:Key="Aci" Color="#1E2A45"/>
+  <SolidColorBrush x:Key="Hov" Color="#1A202A"/>
+  <SolidColorBrush x:Key="Hovs" Color="#22304D"/>
+  <SolidColorBrush x:Key="Ring" Color="#3A4355"/>
+  <SolidColorBrush x:Key="OkB" Color="#12301F"/>
+  <SolidColorBrush x:Key="OkF" Color="#5CCB8C"/>
+  <SolidColorBrush x:Key="Ok" Color="#2FB36A"/>
+  <SolidColorBrush x:Key="NB" Color="#1A2440"/>
+  <SolidColorBrush x:Key="NF" Color="#C9D4EA"/>
+  <SolidColorBrush x:Key="WB" Color="#2E2416"/>
+  <SolidColorBrush x:Key="WF" Color="#E7D3B8"/>
+  <SolidColorBrush x:Key="WI" Color="#F0A257"/>
+  <SolidColorBrush x:Key="WL" Color="#4A3A26"/>
+  <SolidColorBrush x:Key="EB" Color="#2E1A1A"/>
+  <SolidColorBrush x:Key="EF" Color="#EFC9C7"/>
+  <SolidColorBrush x:Key="EI" Color="#F07B74"/>
+  <SolidColorBrush x:Key="EL" Color="#4A2A2A"/>
+  <SolidColorBrush x:Key="ETrack" Color="#4A2526"/>
+  <SolidColorBrush x:Key="SB" Color="#2D2612"/>
+  <SolidColorBrush x:Key="SF" Color="#EBDDB6"/>
+  <SolidColorBrush x:Key="SBtn" Color="#F2B01E"/>
+  <SolidColorBrush x:Key="RB" Color="#361B1B"/>
+  <SolidColorBrush x:Key="RF" Color="#F08A84"/>
+  <SolidColorBrush x:Key="Off" Color="#2A3140"/>
+  <SolidColorBrush x:Key="Mid" Color="#34508F"/>
+  <SolidColorBrush x:Key="MidI" Color="#6F92E8"/>
+  <SolidColorBrush x:Key="Knob" Color="#F4F6FA"/>
+  <SolidColorBrush x:Key="Pop" Color="#1C222D"/>
+  <SolidColorBrush x:Key="B2" Color="#232A36"/>
+  <SolidColorBrush x:Key="BL" Color="#333C4C"/>
+  <SolidColorBrush x:Key="Sky" Color="#161C28"/>
+  <SolidColorBrush x:Key="Cloud" Color="#26314A"/>
+  <SolidColorBrush x:Key="RingSoft" Color="#2C3547"/>
+  <SolidColorBrush x:Key="FootWarn" Color="#F2B01E"/>
+  <Color x:Key="ShadowColor">#80000000</Color>
+  <Color x:Key="GlowColor">#594F7FF2</Color>
+</ResourceDictionary>

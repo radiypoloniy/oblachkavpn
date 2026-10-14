@@ -10,8 +10,11 @@ public partial class MainWindow
         foreach (var page in new[] { "Connection", "Servers", "Routes", "Diagnostics" })
         {
             Navigate(page);
-            var shown = new[] { Connection.Visibility, Servers.Visibility, Routes.Visibility, Diagnostics.Visibility }.Count(v => v == Visibility.Visible);
-            if (shown != 1 || Onboarding.Visibility == Visibility.Visible || Sidebar.Visibility != Visibility.Visible || Onboarding.ContinueButton.IsDefault)
+            // Главный экран или одна временная страница поверх него.
+            var pages = new[] { Servers.Visibility, Routes.Visibility, Diagnostics.Visibility }.Count(v => v == Visibility.Visible);
+            var home = page == "Connection";
+            if (home != (Home.Visibility == Visibility.Visible) || home == (PageHost.Visibility == Visibility.Visible) || pages != (home ? 0 : 1) ||
+                Onboarding.Visibility == Visibility.Visible || Onboarding.ContinueButton.IsDefault)
                 throw new InvalidOperationException("Navigation displays the wrong pages");
         }
         checks.Add("Navigation selects one working page at a time and preserves the imported profile");
@@ -31,14 +34,15 @@ public partial class MainWindow
         await ConnectCoreAsync();
         await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
         RefreshPresentation();
-        if (Connection.ConnectButton.Visibility != Visibility.Collapsed || Connection.StopButton.Visibility != Visibility.Visible ||
-            Connection.Statistics.Visibility != Visibility.Visible || Connection.Headline.Text != "Подключение запущено" || Diagnostics.TunnelState.Text != "Не проверен")
+        // Локальный прокси — «Подключено», а не «Защищено»: весь компьютер через туннель не идёт.
+        if (Home.Power.State != Views.PowerState.On || Home.StatusTitle.Text != "Подключено" ||
+            Home.CheckIcon.Visibility == Visibility.Visible || Diagnostics.TunnelState.Text != "Не проверен")
             throw new InvalidOperationException("Running proxy falsely appears verified or power switch is wrong");
         Navigate("Connection");
         DesignPreview.Render(this, Path.Combine(AppContext.BaseDirectory, "preview-running.png"));
         StopClick(this, new RoutedEventArgs());
         await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
-        if (Connection.StopButton.Visibility != Visibility.Collapsed || Connection.ConnectButton.Visibility != Visibility.Visible || Connection.Statistics.Visibility != Visibility.Collapsed)
+        if (Home.Power.State != Views.PowerState.Off || Home.StatusTitle.Text != "Не подключено")
             throw new InvalidOperationException("Stopped connection retains running presentation");
         checks.Add("Power switch and statistics track the real process; startup never claims a verified tunnel");
         Settings.StayInTray.IsChecked = true;

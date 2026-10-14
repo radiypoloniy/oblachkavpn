@@ -1,0 +1,56 @@
+using System.Windows;
+using System.Windows.Media;
+
+namespace Oblachka;
+
+// Строка списка серверов нового главного экрана и панели «Все серверы».
+//
+// Число справа — время HTTPS-запроса через сервер (ServerMeasurements), не ping: в интерфейсе
+// оно показано просто как «142 мс». Цвет точки: < 160 мс зелёный, < 250 мс жёлтый, иначе
+// оранжевый; нет замера — самый бледный текст.
+public sealed class ServerRow
+{
+    public Profile? Profile { get; init; }
+    public bool IsAuto { get; init; }
+    public required string Name { get; init; }
+    public string? Note { get; init; }
+    public ImageSource? Flag { get; init; }
+    public Geometry? Icon { get; init; }
+    public bool IconOnAccent { get; init; }
+    public bool IconMuted { get; init; }
+    public string Latency { get; init; } = "";
+    public Brush? LatencyDot { get; init; }
+    public bool Selected { get; init; }
+    public bool Favorite { get; init; }
+    public bool CanFavorite => !IsAuto;
+
+    public Visibility FlagVisibility => Flag is null ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility IconVisibility => Flag is null ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility NoteVisibility => string.IsNullOrEmpty(Note) ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility LatencyVisibility => string.IsNullOrEmpty(Latency) ? Visibility.Collapsed : Visibility.Visible;
+    public FontWeight NameWeight => Selected ? FontWeights.SemiBold : FontWeights.Normal;
+
+    private static readonly Brush Fast = Frozen(0x2F, 0xB3, 0x6A), Medium = Frozen(0xD9, 0xA0, 0x1E), Slow = Frozen(0xD9, 0x73, 0x1E);
+    private static Brush Frozen(byte r, byte g, byte b) { var brush = new SolidColorBrush(Color.FromRgb(r, g, b)); brush.Freeze(); return brush; }
+
+    public static Brush? DotFor(long? milliseconds) => milliseconds switch
+    {
+        null => Application.Current?.TryFindResource("Fa") as Brush,
+        < 160 => Fast,
+        < 250 => Medium,
+        _ => Slow
+    };
+
+    // Значок вместо флага: игры и звонки, обход белых списков, сторонняя подписка.
+    public static Geometry? IconFor(Profile profile)
+    {
+        var name = profile.DisplayName.ToLowerInvariant();
+        var key = !profile.IsService ? "IcoExternal"
+            : name.Contains("игр") || name.Contains("звонк") ? "IcoGame"
+            : name.Contains("бел") || name.Contains("обход") ? "IcoRoute"
+            : null;
+        return key is null ? null : Application.Current?.TryFindResource(key) as Geometry;
+    }
+
+    public static string? NoteFor(Profile profile) => !profile.IsService ? "сторонняя подписка" : null;
+}

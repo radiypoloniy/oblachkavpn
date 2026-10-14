@@ -49,14 +49,13 @@ public partial class MainWindow
         subscriptionMetadata = new SubscriptionMetadata(null, null, 0, DateTimeOffset.UtcNow.AddDays(5))
         { Title = "Облачка", Announce = "Доступен обход белых списков" };
         UpdateSubscriptionSummary();
-        if (Connection.AnnounceCard.Visibility != Visibility.Visible ||
-            Connection.AnnounceText.Text != "Доступен обход белых списков" ||
-            Connection.AnnounceTitle.Text != "Облачка" ||
-            !Connection.PlanTile.Text.StartsWith("Подписка ещё "))
-            throw new InvalidOperationException("Panel announcement or plan is not shown: " + Connection.PlanTile.Text);
+        if (Home.AnnounceCard.Visibility != Visibility.Visible ||
+            Home.AnnounceText.Text != "Доступен обход белых списков" ||
+            !Home.PlanText.Text.StartsWith("Подписка ещё "))
+            throw new InvalidOperationException("Panel announcement or plan is not shown: " + Home.PlanText.Text);
         subscriptionMetadata = null;
         UpdateSubscriptionSummary();
-        if (Connection.AnnounceCard.Visibility != Visibility.Collapsed || Connection.PlanTile.Text != "Нет данных")
+        if (Home.AnnounceCard.Visibility != Visibility.Collapsed || Home.PlanText.Text != "")
             throw new InvalidOperationException("Stale announcement survives an empty subscription");
         checks.Add("Panel announcement and plan appear on the main screen and disappear without subscription data");
 
@@ -75,7 +74,7 @@ public partial class MainWindow
             throw new InvalidOperationException("Isolated UI fixture can start the privileged system mode");
         checks.Add("Isolated UI fixture cannot launch the VM TUN host or the privileged system mode");
         CheckSystemModes(checks);
-        if (Onboarding.Visibility != Visibility.Visible || Sidebar.Visibility != Visibility.Collapsed)
+        if (Onboarding.Visibility != Visibility.Visible || Home.Visibility != Visibility.Collapsed)
             throw new InvalidOperationException("Empty client does not show subscription onboarding");
         checks.Add("Empty client opens subscription onboarding without fabricated subscription claims");
         CheckSubscriptionInput(checks);

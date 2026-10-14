@@ -33,9 +33,14 @@ public partial class MainWindow
             throw new InvalidOperationException("Foreign subscription host is not routed to the external-subscription section: " + DetailText.Text);
         checks.Add("Foreign subscription host is rejected with a pointer to external subscriptions, without a network request");
         field.Clear();
-        if (WindowStyle != WindowStyle.SingleBorderWindow || ResizeMode != ResizeMode.CanResize ||
-            System.Windows.Shell.WindowChrome.GetWindowChrome(this) is not null || Onboarding.FindName("PasteUrlButton") is not null || !Onboarding.ContinueButton.IsDefault)
-            throw new InvalidOperationException("Window still uses custom caption buttons or redundant paste action");
-        checks.Add("Native Windows caption handles window actions; onboarding retains standard editable input without a duplicate paste button");
+        // Редизайн: окно 420×660 без изменения размера, шапку рисуют экраны; свернуть и закрыть
+        // остаются доступными и нажимаются поверх области перетаскивания.
+        var chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
+        if (ResizeMode != ResizeMode.CanMinimize || Width != 420 || Height > 660 || chrome is null || chrome.CaptionHeight != 56 ||
+            !System.Windows.Shell.WindowChrome.GetIsHitTestVisibleInChrome(MinimizeButton) || !System.Windows.Shell.WindowChrome.GetIsHitTestVisibleInChrome(CloseWindowButton) ||
+            !System.Windows.Shell.WindowChrome.GetIsHitTestVisibleInChrome(Home.SettingsButton) ||
+            Onboarding.FindName("PasteUrlButton") is not null || !Onboarding.ContinueButton.IsDefault)
+            throw new InvalidOperationException("Window chrome or onboarding input does not match the redesign");
+        checks.Add("420×660 window keeps working minimize, close and settings in its own header; onboarding has no duplicate paste button");
     }
 }

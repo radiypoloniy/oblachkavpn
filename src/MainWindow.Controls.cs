@@ -6,12 +6,15 @@ namespace Oblachka;
 // View-local controls are exposed here to keep existing operation ownership in MainWindow.
 public partial class MainWindow
 {
-    private Button ConnectButton => Connection.ConnectButton;
-    private Button StopButton => Connection.StopButton;
-    private TextBlock StatusText => Connection.StatusText;
-    private Ellipse StatusDot => Connection.StatusDot;
-    private TextBlock ProfileNameText => Connection.ProfileNameText;
-    private TextBlock TransportText => Connection.TransportText;
+    // Держатели состояния подключения вне дерева элементов. Логика окна выставляет им
+    // IsEnabled и Text, как прежним кнопкам; новый главный экран (MainWindow.Home) читает их
+    // и рисует один тумблер вместо двух кнопок.
+    private readonly Button ConnectButton = new();
+    private readonly Button StopButton = new();
+    private readonly TextBlock StatusText = new();
+    private readonly Ellipse StatusDot = new();
+    private readonly TextBlock ProfileNameText = new();
+    private readonly TextBlock TransportText = new();
     private ListBox ProfilePicker => Servers.ProfilePicker;
     private Button ImportFileButton => Servers.ImportFileButton;
     private Button PasteButton => Servers.PasteButton;
@@ -46,11 +49,9 @@ public partial class MainWindow
         CopyEndpointButton.Click += CopyEndpointClick;
         Diagnostics.ExportButton.Click += ExportReportClick;
         Diagnostics.CopyReportButton.Click += CopyReportClick;
-        Connection.ChangeServerButton.Click += (_, _) => Navigate("Servers");
-        // Карточка режима на главном экране ведёт к его переключателю в настройках.
-        Connection.RoutesButton.Click += SettingsClick;
-        Connection.CheckTunnelButton.Click += (_, _) => Navigate("Diagnostics");
+        WireHome();
         Servers.UseServerButton.Click += (_, _) => Navigate("Connection");
+        PageBackButton.Click += (_, _) => Navigate("Connection");
         Servers.SearchBox.TextChanged += (_, _) => FilterProfiles();
         Onboarding.KeyButton.Click += PasteClick;
         Onboarding.FileButton.Click += ImportFileClick;

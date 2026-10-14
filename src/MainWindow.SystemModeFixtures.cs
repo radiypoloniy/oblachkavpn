@@ -14,7 +14,7 @@ public partial class MainWindow
         SystemTunnelToggled(this, new RoutedEventArgs());
         if (Settings.SystemProxy.IsChecked == true)
             throw new InvalidOperationException("System VPN left the Windows proxy enabled at the same time");
-        if (Connection.ModeTitle.Text != "Системный VPN")
+        if (Home.ModeText.Text != "Весь компьютер")
             throw new InvalidOperationException("Main screen still claims the Windows proxy after switching to system VPN");
         checks.Add("System VPN and the Windows proxy cannot be enabled at the same time");
 

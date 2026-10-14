@@ -11,6 +11,8 @@ public static class DesignPreview
         FlagImages.AllowNetwork = false;
         var app = new Application();
         var main = new MainWindow(persistenceEnabled: false);
+        if (page.EndsWith("-dark", StringComparison.Ordinal)) { ThemeManager.Apply(ThemeChoice.Dark); page = page[..^5]; }
+        else ThemeManager.Apply(ThemeChoice.Light);
         Window? popup = null;
         try
         {

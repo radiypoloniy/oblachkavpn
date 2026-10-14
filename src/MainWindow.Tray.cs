@@ -66,7 +66,7 @@ public partial class MainWindow
     {
         trayPopup?.Refresh(StatusText.Text, profile?.DisplayName ?? "Добавьте подключение", profile?.Transport ?? "Подписка, ключ или файл",
             lastProbe is { Success: true } ? "Туннель проверен" : "Туннель не проверен",
-            sessionStarted is null ? "Туннель выключен" : Connection.SessionTime.Text + " в сети",
+            sessionStarted is null ? "Туннель выключен" : SessionDuration + " в сети",
             StopButton.IsEnabled, StopButton.IsEnabled || ConnectButton.IsEnabled);
     }
 
