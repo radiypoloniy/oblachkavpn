@@ -12,7 +12,8 @@ foreach ($required in @((Join-Path $test 'Oblachka.Tests.exe'), (Join-Path $veri
 $revision = (git -C $root rev-parse --short HEAD).Trim()
 if (git -C $root status --porcelain -- src tests real-check) { throw 'Есть незакоммиченные изменения в src, tests или real-check: комплект должен соответствовать ревизии.' }
 
-$name = 'Oblachka-check-0.9.1-' + $revision
+$version = ([xml](Get-Content -LiteralPath (Join-Path $root 'src\Oblachka.csproj') -Raw)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+$name = 'Oblachka-check-' + $version + '-' + $revision
 $stage = Join-Path $root ('dist\' + $name)
 if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
 New-Item -ItemType Directory -Force (Join-Path $stage 'tools') | Out-Null
