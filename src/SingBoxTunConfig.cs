@@ -58,6 +58,9 @@ public static class SingBoxTunConfig
             ["route"] = new JsonObject
             {
                 ["auto_detect_interface"] = true, ["final"] = "local-core",
+                // Без явного включения правила по процессу (программы, прямой трафик ядра) молча
+                // не срабатывают: проверено на стенде, трафик ядра шёл по кругу.
+                ["find_process"] = true,
                 // Порядок важен: DNS перехватывается первым правилом и уходит на DoH внутри
                 // туннеля. Остальной UDP идёт в туннель наравне с TCP.
                 ["rules"] = new JsonArray(
