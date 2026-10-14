@@ -61,7 +61,7 @@ Filename: "{app}\Oblachka.exe"; Description: "Запустить Облачку"
 
 [Registry]
 ; Автозапуск включает сам пользователь в настройках; при удалении запись убирается.
-Root: HKCU; Subkey: "SoftwareMicrosoftWindowsCurrentVersionRun"; ValueName: "Oblachka"; ValueType: none; Flags: uninsdeletevalue dontcreatekey
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "Oblachka"; ValueType: none; Flags: uninsdeletevalue dontcreatekey
 
 [UninstallRun]
 ; Сначала служба: её остановка снимает сессию и возвращает обычную сеть. Убить её процесс
