@@ -93,6 +93,14 @@ public partial class MainWindow
         var text = Onboarding.KeyInput.Text;
         try
         {
+            // Оставленная аварийно завершённым окном сессия держит сеть закрытой: подписку
+            // тогда не загрузить. Снимаем её до загрузки, как и обычное подключение.
+            if (NetworkHelperConnection.ServiceRunning && SessionLeft(NetworkService.JournalPath))
+            {
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+                try { await RecoverServiceSessionAsync(timeout.Token); }
+                catch (Exception ex) when (ex is IOException or TimeoutException or OperationCanceledException) { }
+            }
             switch (ServiceKey.Classify(text))
             {
                 case ServiceKey.InputKind.Profiles: Import(text); break;
