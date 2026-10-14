@@ -60,6 +60,7 @@ public static class Program
             app.DispatcherUnhandledException += (_, e) =>
             {
                 // Don't show Exception.Message: a parser/transport exception could contain credentials.
+                CrashLog.Write(e.Exception);
                 MessageBox.Show("Приложение завершится из-за внутренней ошибки. Перезапустите его; работа ядра будет остановлена.", ServiceBrand.Name);
                 e.Handled = true; app.Shutdown(1);
             };
