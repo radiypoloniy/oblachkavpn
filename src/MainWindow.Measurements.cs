@@ -55,7 +55,9 @@ public partial class MainWindow
         {
             await ServerPing.PingAllAsync(targets, (item, milliseconds) => Dispatcher.BeginInvoke(() =>
             {
-                if (closed || token.IsCancellationRequested) return;
+                // Подключение в режиме «Весь компьютер» началось во время замера: ответы, пришедшие
+                // после этого, мерили бы туннель или упирались бы в защиту.
+                if (closed || token.IsCancellationRequested || !CanPing) return;
                 var key = Profiles.Fingerprint(item);
                 pings[key] = new(key, DateTimeOffset.UtcNow, milliseconds is not null, milliseconds ?? 0);
                 PingsChanged();
@@ -74,7 +76,9 @@ public partial class MainWindow
     // «Весь компьютер» это же обновляет устаревшие.
     private void PollPing()
     {
-        if (IsVisible && DateTimeOffset.UtcNow - lastPing > TimeSpan.FromMinutes(10)) QueuePing();
+        var age = DateTimeOffset.UtcNow - lastPing;
+        // Откликов нет совсем (замер оборвало подключение «Весь компьютер») — повтор вскоре после выключения.
+        if (IsVisible && (age > TimeSpan.FromMinutes(10) || pings.Count == 0 && age > TimeSpan.FromSeconds(30))) QueuePing();
     }
 
     // Отклики приходят по одному: перестраиваем видимое не чаще раза в 150 мс.

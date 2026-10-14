@@ -55,6 +55,11 @@ public static partial class SelfTests
             await ServerPing.PingAllAsync(new[] { xray, hy2 }, (p, ms) => { lock (results) results[p.Name] = ms; }, CancellationToken.None,
                 (host, port, _) => Task.FromResult<long?>(host == "203.0.113.7" && port == 8443 ? 42 : null));
             Assert(results.Count == 1 && results[xray.Name] == 42);
+            // Запрет на этом компьютере — не «нет ответа»: результат не сообщается.
+            results.Clear();
+            await ServerPing.PingAllAsync(new[] { xray }, (p, ms) => { lock (results) results[p.Name] = ms; }, CancellationToken.None,
+                (_, _, _) => Task.FromResult<long?>(ServerPing.Blocked));
+            Assert(results.Count == 0);
         });
     }
 }

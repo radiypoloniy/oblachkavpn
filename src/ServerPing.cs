@@ -13,6 +13,7 @@ namespace Oblachka;
 public static class ServerPing
 {
     public const int Parallel = 8;
+    public const long Blocked = -1;
     public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(3);
 
     public static (string Host, int Port)? Endpoint(Profile profile)
@@ -31,6 +32,8 @@ public static class ServerPing
     }
 
     // Отклик каждого узла приходит в measured по мере готовности: null — узел не ответил.
+    // Соединение, запрещённое на этом компьютере (защита «Весь компьютер» пропускает к узлам
+    // только ядро), про узел ничего не говорит: такой результат не сообщается вовсе.
     public static async Task PingAllAsync(IReadOnlyList<Profile> profiles, Action<Profile, long?> measured, CancellationToken token,
         Func<string, int, CancellationToken, Task<long?>>? ping = null)
     {
@@ -43,7 +46,7 @@ public static class ServerPing
             {
                 var result = await (ping ?? PingAsync)(endpoint.Host, endpoint.Port, token).ConfigureAwait(false);
                 token.ThrowIfCancellationRequested();
-                measured(profile, result);
+                if (result is not Blocked) measured(profile, result);
             }
             finally { gate.Release(); }
         }).ToArray();
@@ -66,6 +69,7 @@ public static class ServerPing
             return Math.Max(1, clock.ElapsedMilliseconds);
         }
         catch (OperationCanceledException) when (!token.IsCancellationRequested) { return null; }
+        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AccessDenied) { return Blocked; }
         catch (SocketException) { return null; }
     }
 }
