@@ -67,10 +67,14 @@ internal static class KillSwitchProbe
     // Сопоставляются с аудитом WFP гостя (vm-kit/wfp-audit.ps1), который пишет время по
     // тем же часам. Захват снаружи для этого не годится: часы гостя под VirtualBox
     // расходятся с часами захвата на секунды.
+    // У службы файлы в ProgramData, у помощника с UAC — рядом с данными пользователя.
+    internal static string TracePath => NetworkHelperConnection.ServiceRunning ? Path.Combine(NetworkService.DataRoot, "helper-trace.txt") : NetworkHelperHost.TracePath;
+    internal static string FailurePath => NetworkHelperConnection.ServiceRunning ? Path.Combine(NetworkService.DataRoot, "helper-failure.txt") : NetworkHelperHost.FailurePath;
+
     internal static IEnumerable<string> HelperSteps()
     {
-        if (!File.Exists(NetworkHelperHost.TracePath)) return new[] { "шаги помощника: файла нет" };
-        return File.ReadAllLines(NetworkHelperHost.TracePath).TakeLast(12).Select(l => "шаг помощника: " + l);
+        if (!File.Exists(TracePath)) return new[] { "шаги помощника: файла нет" };
+        return File.ReadAllLines(TracePath).TakeLast(12).Select(l => "шаг помощника: " + l);
     }
 
     // Соединение, открытое до туннеля, и оставленное живым.

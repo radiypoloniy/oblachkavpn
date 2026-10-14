@@ -4,13 +4,14 @@ namespace Oblachka;
 
 // Системный режим: весь трафик компьютера через туннель.
 //
-// Привилегированную часть выполняет отдельный процесс, запускаемый по запросу с явным
-// повышением прав. Окно прав администратора не требует и ядром в этом режиме не управляет:
-// порядок запуска и остановки держит SystemTunnelSession.
+// Привилегированную часть выполняет сетевая служба, если она установлена, иначе отдельный
+// процесс, запускаемый по запросу с явным повышением прав. Окно прав администратора не
+// требует и ядром в этом режиме не управляет: порядок запуска и остановки держит
+// SystemTunnelSession.
 public partial class MainWindow
 {
     private SystemTunnelSession? systemTunnel;
-    private HelperProcessLifetime? helperLifetime;
+    private IHelperLifetime? helperLifetime;
 
     private bool SystemTunnelWanted => Settings.SystemTunnel.IsChecked == true;
     private bool SystemTunnelActive => systemTunnel is not null &&
@@ -24,22 +25,29 @@ public partial class MainWindow
         UpdateSystemTunnelNote(null);
     }
 
-    // Сессия, не снятая прошлым запуском: помощник погиб, а защита на фильтрах осталась и
-    // держит сеть закрытой. Снимает её только помощник — при своём запуске он восстанавливает
-    // сеть по журналу, — поэтому окно предлагает запустить его, а не молчит.
-    private static bool NetworkLeftChanged =>
-        NetworkSessionJournal.PeekState(NetworkHelperHost.JournalPath) is { } state && state != NetworkSessionState.Released;
+    // Сессия, не снятая прошлым запуском, держит сеть закрытой: у помощника — потому что он
+    // погиб, а фильтры остались; у службы — потому что окно завершилось аварийно, и служба
+    // намеренно держит защиту. Окно предлагает восстановить сеть, а не молчит.
+    private static bool NetworkLeftChanged => SessionLeft(NetworkHelperHost.JournalPath) || SessionLeft(NetworkService.JournalPath);
+    private static bool SessionLeft(string journal) =>
+        NetworkSessionJournal.PeekState(journal) is { } state && state != NetworkSessionState.Released;
 
     private async Task RestoreNetworkAsync()
     {
         if (systemTunnel is not null || operation is not null) return;
         Settings.RestoreNetwork.IsEnabled = false;
-        DetailText.Text = "Восстанавливаем сеть. Подтвердите запрос прав администратора.";
+        var service = NetworkHelperConnection.ServiceRunning;
+        DetailText.Text = service ? "Восстанавливаем сеть." : "Восстанавливаем сеть. Подтвердите запрос прав администратора.";
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-            var lifetime = await HelperProcessLifetime.ConnectAsync(NetworkHelperLauncher.Launch, timeout.Token).ConfigureAwait(true);
-            await lifetime.DisposeAsync().ConfigureAwait(true);
+            if (service) await RecoverServiceSessionAsync(timeout.Token).ConfigureAwait(true);
+            else
+            {
+                // Помощник с UAC восстанавливает сеть по журналу при своём запуске.
+                var lifetime = await HelperProcessLifetime.ConnectAsync(NetworkHelperLauncher.Launch, timeout.Token).ConfigureAwait(true);
+                await lifetime.DisposeAsync().ConfigureAwait(true);
+            }
         }
         catch (Exception ex) when (ex is UserError or IOException or TimeoutException or OperationCanceledException or ObjectDisposedException) { }
         finally { Settings.RestoreNetwork.IsEnabled = true; }
@@ -47,6 +55,12 @@ public partial class MainWindow
             ? "Сеть восстановить не удалось. Перезагрузите компьютер: фильтры защиты после перезагрузки не сохраняются."
             : "Сеть восстановлена.";
         UpdateSystemTunnelNote(null);
+    }
+
+    private static async Task RecoverServiceSessionAsync(CancellationToken token)
+    {
+        await using var lifetime = await NetworkHelperConnection.ConnectAsync(token).ConfigureAwait(true);
+        await lifetime.Client.RecoverAsync(token).ConfigureAwait(true);
     }
 
     private void SystemTunnelToggled(object sender, RoutedEventArgs args)
@@ -73,9 +87,13 @@ public partial class MainWindow
         // Прерванная сессия (помощник потерян) ещё держит свои объекты. Новая не должна
         // их перезаписать: иначе прежний помощник остался бы без владельца.
         if (systemTunnel is not null || helperLifetime is not null) await StopSystemTunnelAsync().ConfigureAwait(true);
-        DetailText.Text = "Готовим системный режим. Подтвердите запрос прав администратора.";
+        var service = NetworkHelperConnection.ServiceRunning;
+        DetailText.Text = service ? "Готовим системный режим." : "Готовим системный режим. Подтвердите запрос прав администратора.";
+        // Сессия, оставленная аварийно завершённым окном, держит сеть закрытой, и адреса
+        // узлов не разрешить. Её снимают до подготовки, затем ставят новую.
+        if (service && SessionLeft(NetworkService.JournalPath)) await RecoverServiceSessionAsync(token).ConfigureAwait(true);
         var plans = await TunnelEndpoints.PrepareSetAsync(SystemCandidates(profile), token).ConfigureAwait(true);
-        helperLifetime = await HelperProcessLifetime.ConnectAsync(NetworkHelperLauncher.Launch, token).ConfigureAwait(true);
+        helperLifetime = await NetworkHelperConnection.ConnectAsync(token).ConfigureAwait(true);
         var session = new SystemTunnelSession(engine, helperLifetime.Client);
         session.Changed += OnSystemTunnelChanged;
         systemTunnel = session;
@@ -159,9 +177,11 @@ public partial class MainWindow
             SystemTunnelState.RecoveryRequired =>
                 "Системный режим остановлен не полностью. Нажмите «Остановить», затем «Восстановить сеть».",
             SystemTunnelState.Failed => "Системный режим прерван. Подключение остановлено.",
-            // Граница, о которой обязано сказать пояснение: блокировка держится, пока
-            // работает приложение. Завершение окна снимает режим вместе с ней.
-            _ => "Весь трафик компьютера пойдёт через туннель, а мимо туннеля будет заблокирован фильтрами Windows. Блокировка действует, пока приложение работает: при его завершении она снимается вместе с режимом."
+            // Граница, о которой обязано сказать пояснение. Без службы блокировка держится,
+            // пока работает приложение; со службой — и после его аварийного завершения.
+            _ => NetworkHelperConnection.ServiceRunning
+                ? "Весь трафик компьютера пойдёт через туннель, а мимо туннеля будет заблокирован фильтрами Windows. Если приложение завершится аварийно, блокировка останется до его следующего запуска."
+                : "Весь трафик компьютера пойдёт через туннель, а мимо туннеля будет заблокирован фильтрами Windows. Блокировка действует, пока приложение работает: при его завершении она снимается вместе с режимом."
         };
     }
 

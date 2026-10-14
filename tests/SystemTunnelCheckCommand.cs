@@ -55,7 +55,8 @@ internal static class SystemTunnelCheckCommand
         Add("брандмауэр до туннеля: " + KillSwitchProbe.Describe());
         // Окно с таким VPN системный режим не запускает; прогон идёт дальше, чтобы было видно, что ломается.
         Add("другой VPN забрал трафик: " + (ForeignTunnel.Find() ?? "нет"));
-        try { File.Delete(NetworkHelperHost.TracePath); } catch (IOException) { }
+        // Файл службы пользователю не удалить; шаги этого прогона всё равно последние.
+        try { File.Delete(KillSwitchProbe.TracePath); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         Add("резолверы до туннеля: " + KillSwitchProbe.Resolvers());
         // Соединение открывается заранее: именно такие кадры уходили мимо туннеля в
         // захвате, и обрывает ли их блокировка — главный вопрос этого прогона.
@@ -63,7 +64,7 @@ internal static class SystemTunnelCheckCommand
         var early = KillSwitchProbe.OpenBefore(earlyHost, 80, log);
 
         var engine = new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), "");
-        HelperProcessLifetime? helper = null;
+        IHelperLifetime? helper = null;
         SystemTunnelSession? session = null;
         try
         {
@@ -85,8 +86,9 @@ internal static class SystemTunnelCheckCommand
             catch (UserError ex) { Add("до туннеля ядро не запустилось: " + ex.Message); }
             finally { engine.Stop(); }
 
-            helper = HelperProcessLifetime.ConnectAsync(NetworkHelperLauncher.Launch, token.Token).GetAwaiter().GetResult();
-            Add("помощник запущен и канал установлен");
+            helper = NetworkHelperConnection.ConnectAsync(token.Token).GetAwaiter().GetResult();
+            Add("владелец сессии: " + (helper.IsService ? "служба" : "помощник с UAC") + ", канал установлен");
+            var service = helper.IsService;
 
             session = new SystemTunnelSession(engine, helper.Client);
             var states = new List<string>();
@@ -152,7 +154,8 @@ internal static class SystemTunnelCheckCommand
             Add("итоговые переходы: " + string.Join(" → ", states));
             // Журнал занят помощником, пока тот жив: следующему он нужен свободным.
             helper.DisposeAsync().AsTask().GetAwaiter().GetResult(); helper = null;
-            SystemTunnelHelperLoss.Run(plan, engine, Add, () => Probe("https://api.ipify.org"));
+            if (service) SystemTunnelOwnerLoss.Run(plan, Add, () => Probe("https://api.ipify.org"));
+            else SystemTunnelHelperLoss.Run(plan, engine, Add, () => Probe("https://api.ipify.org"));
             SystemTunnelRules.Run(plan, engine, Add, url => Probe(url));
         }
         catch (Exception ex)
@@ -168,8 +171,8 @@ internal static class SystemTunnelCheckCommand
             Add("состояние сессии: " + (session?.State.ToString() ?? "нет"));
             // Помощник завершается в своём процессе, и со стороны это выглядит обрывом.
             // Его собственная причина лежит рядом с журналом.
-            Add("причина у помощника: " + (File.Exists(NetworkHelperHost.FailurePath)
-                ? File.ReadAllText(NetworkHelperHost.FailurePath) : "файла нет"));
+            Add("причина у помощника: " + (File.Exists(KillSwitchProbe.FailurePath)
+                ? File.ReadAllText(KillSwitchProbe.FailurePath) : "файла нет"));
             Add("брандмауэр после отказа: " + KillSwitchProbe.Describe());
             Add("остались поднятые интерфейсы: " + TunnelInterfaces.DescribeLeft());
             Save();

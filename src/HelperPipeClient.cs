@@ -26,6 +26,22 @@ public sealed class HelperPipeClient : IAsyncDisposable
         catch { await pipe.DisposeAsync(); throw; }
     }
 
+    // Канал службы один на всех: пока он занят другим окном, подключение ждёт.
+    public static async Task<HelperPipeClient> ConnectServiceAsync(int servicePid, CancellationToken token)
+    {
+        var pipe = new NamedPipeClientStream(".", HelperPipeIdentity.ServicePipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+            timeout.CancelAfter(ServiceConnectTimeout); await pipe.ConnectAsync(timeout.Token);
+            HelperPipeIdentity.ServiceServer(pipe, servicePid);
+            return new(pipe);
+        }
+        catch { await pipe.DisposeAsync(); throw; }
+    }
+
+    public static readonly TimeSpan ServiceConnectTimeout = TimeSpan.FromSeconds(10);
+
     // Короткие команды и длинные — разные сроки. Acquire и Release ждут появления или
     // исчезновения сетевого адаптера, и это десятки секунд: на стенде клиент сдавался
     // через 10 секунд, рвал канал и помечал сессию как требующую восстановления, хотя

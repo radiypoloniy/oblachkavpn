@@ -71,6 +71,19 @@ public sealed class NetworkHelperClient : INetworkHelperClient
         return NetworkSessionState.Released;
     }
 
+    // Снять сессию, оставленную прежним владельцем (окно завершилось аварийно при службе).
+    public async Task<NetworkSessionState> RecoverAsync(CancellationToken token)
+    {
+        await operations.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            if (lease is not null) throw new UserError("Сначала остановите своё подключение.");
+            var response = await pipe.SendAsync(HelperOperation.Recover, null, token).ConfigureAwait(false);
+            return response.State ?? NetworkSessionState.Released;
+        }
+        finally { operations.Release(); }
+    }
+
     private async Task PulseAsync(CancellationToken token)
     {
         try

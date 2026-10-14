@@ -12,6 +12,10 @@ public static class Program
         // Привилегированная половина системного режима. Запускается самим приложением
         // с явным повышением прав; окно продолжает работать без прав администратора.
         if (args.Length == 3 && args[0] == NetworkHelperHost.Argument) return NetworkHelperHost.Run(args);
+        // Сетевая служба и её установка (установщик, права администратора).
+        if (args.Length == 1 && args[0] == NetworkService.Argument) return NetworkService.Run();
+        if (args.Length == 1 && args[0] == NetworkServiceControl.InstallArgument) return NetworkServiceControl.Install();
+        if (args.Length == 1 && args[0] == NetworkServiceControl.UninstallArgument) return NetworkServiceControl.Uninstall();
         if (args.Length == 2 && args[0] == "--vm-tun-host") return VmTunWindow.Run(args[1]);
         if (args.Length == 4 && args[0] == "--prepare-vm-tun")
         {

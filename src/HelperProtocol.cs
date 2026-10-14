@@ -4,7 +4,8 @@ using System.Text.Json.Serialization;
 
 namespace Oblachka;
 
-public enum HelperOperation { Acquire, Release, Heartbeat }
+// Recover снимает сессию, оставленную прежним владельцем: у службы она переживает окно.
+public enum HelperOperation { Acquire, Release, Heartbeat, Recover }
 // SystemRefused — отказ самой системы, а не ошибка в запросе. Без него такой отказ
 // вылетал мимо ответа и завершал помощника: клиент видел обрыв канала вместо причины.
 public enum HelperFailure { None, InvalidRequest, Busy, RecoveryRequired, SystemRefused }
@@ -66,9 +67,9 @@ public static class HelperProtocol
     {
         if (request.Version != 1 || request.RequestId == Guid.Empty || !Enum.IsDefined(request.Operation))
             throw new UserError("Неизвестная команда helper.");
-        if (request.Operation == HelperOperation.Heartbeat)
+        if (request.Operation is HelperOperation.Heartbeat or HelperOperation.Recover)
         {
-            if (request.Lease is not null) throw new UserError("Heartbeat не принимает сетевые параметры.");
+            if (request.Lease is not null) throw new UserError(request.Operation + " не принимает сетевые параметры.");
             return;
         }
         if (request.Lease is null) throw new UserError("Отсутствует команда сетевой сессии.");

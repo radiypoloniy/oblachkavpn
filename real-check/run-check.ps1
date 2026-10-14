@@ -113,8 +113,10 @@ $filters = Join-Path $work 'wfp-filters.xml'
 netsh wfp show filters file="$filters" | Out-Null
 $left = @(Select-String -LiteralPath $filters -Pattern '6f1a3c52-0b7e-4d0e-9a1d-0b1a5c7e2f02' -ErrorAction SilentlyContinue).Count
 Remove-Item -LiteralPath $filters -ErrorAction SilentlyContinue
-$journal = Join-Path $env:LOCALAPPDATA 'Oblachka\network-session.json'
-$state = if (Test-Path -LiteralPath $journal) { (Get-Content -LiteralPath $journal -Raw | ConvertFrom-Json).State } else { 'нет журнала' }
+# Журнал помощника с UAC — у пользователя, журнал службы — в ProgramData.
+$journal = @((Join-Path $env:LOCALAPPDATA 'Oblachka\network-session.json'), (Join-Path $env:ProgramData 'Oblachka\network-session.json')) |
+    Where-Object { Test-Path -LiteralPath $_ } | Sort-Object { (Get-Item -LiteralPath $_).LastWriteTime } | Select-Object -Last 1
+$state = if ($journal) { (Get-Content -LiteralPath $journal -Raw | ConvertFrom-Json).State } else { 'нет журнала' }
 $online = try { (Invoke-WebRequest -UseBasicParsing -TimeoutSec 15 'http://www.msftconnecttest.com/connecttest.txt').StatusCode -eq 200 } catch { $false }
 Note ('Итог: фильтров Облачки осталось ' + $left + ', журнал: ' + $state + ', интернет: ' + $(if ($online) { 'работает' } else { 'НЕ РАБОТАЕТ' }))
 if ($left -gt 0 -or -not $online) {

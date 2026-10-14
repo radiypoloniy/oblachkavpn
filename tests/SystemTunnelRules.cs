@@ -10,12 +10,12 @@ internal static class SystemTunnelRules
 {
     internal static void Run(TunnelEndpointPlan plan, Engine engine, Action<string> add, Func<string, string> probe)
     {
-        HelperProcessLifetime? helper = null;
+        IHelperLifetime? helper = null;
         SystemTunnelSession? session = null;
         try
         {
             using var token = new CancellationTokenSource(TimeSpan.FromMinutes(2));
-            helper = HelperProcessLifetime.ConnectAsync(NetworkHelperLauncher.Launch, token.Token).GetAwaiter().GetResult();
+            helper = NetworkHelperConnection.ConnectAsync(token.Token).GetAwaiter().GetResult();
             session = new SystemTunnelSession(engine, helper.Client);
             session.StartWithSparesAsync(new[] { plan }, token.Token,
                 [RoutingPlan.Create("ipify.org", SiteAction.Direct), RoutingPlan.Create("example.com", SiteAction.Block)],

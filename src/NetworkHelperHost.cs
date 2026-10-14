@@ -23,16 +23,19 @@ public static class NetworkHelperHost
         return new(args[1], owner);
     }
 
-    public static string JournalPath => Path.Combine(ClientDataPaths.Root, "network-session.json");
-    public static string FailurePath => Path.Combine(ClientDataPaths.Root, "helper-failure.txt");
-    public static string TracePath => Path.Combine(ClientDataPaths.Root, "helper-trace.txt");
+    // Помощник с UAC пишет рядом с данными пользователя, служба — в ProgramData (UseDataRoot).
+    private static string root = ClientDataPaths.Root;
+    internal static void UseDataRoot(string path) => root = path;
+    public static string JournalPath => Path.Combine(root, "network-session.json");
+    public static string FailurePath => Path.Combine(root, "helper-failure.txt");
+    public static string TracePath => Path.Combine(root, "helper-trace.txt");
 
     // Отметки шагов сессии: время UTC и вид изменения. Файл не растёт без предела.
     internal static void RecordStep(string line)
     {
         try
         {
-            Directory.CreateDirectory(ClientDataPaths.Root);
+            Directory.CreateDirectory(root);
             if (File.Exists(TracePath) && new FileInfo(TracePath).Length > 64 * 1024) File.Delete(TracePath);
             File.AppendAllText(TracePath, line + Environment.NewLine, new System.Text.UTF8Encoding(false));
         }
@@ -47,7 +50,7 @@ public static class NetworkHelperHost
         try
         {
             var line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + ex.GetType().Name + ": " + ex.Message;
-            Directory.CreateDirectory(ClientDataPaths.Root);
+            Directory.CreateDirectory(root);
             File.WriteAllText(FailurePath, line, new System.Text.UTF8Encoding(true));
         }
         catch (Exception write) when (write is IOException or UnauthorizedAccessException) { }
@@ -74,26 +77,8 @@ public static class NetworkHelperHost
 
         using (owner)
         {
-            var executable = Path.Combine(AppContext.BaseDirectory, "tools", "sing-box.exe");
-            var start = core is null
-                ? new Func<ValidatedNetworkLease, CancellationToken, ITunnelProcess>((lease, token) => SingBoxTunnelProcess.Start(lease, executable, token))
-                : ((lease, _) => core(executable));
-            using var tunnel = new WindowsTunnelBackend(start, TunnelInterfaces.Exists);
-            // Брандмауэр открывается один раз на весь запуск помощника. Если его нет,
-            // режим работает без блокировки, а снять чужую блокировку будет нечем —
-            // восстановление сообщит об этом вместо того, чтобы молчать.
-            KillSwitchBackend? killSwitch = null;
-            try { killSwitch = new KillSwitchBackend(WindowsFirewallPolicy.Open()); }
-            catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException) { }
-            // Служба фильтрации проверяется открытием движка: если её нет, защита остаётся
-            // за брандмауэром. Движок открывается заново на каждое изменение.
-            WfpProtectionBackend? wfp = null;
-            try { using (WfpEngine.Open()) { } wfp = new WfpProtectionBackend(WfpEngine.Open); }
-            catch (Exception ex) when (ex is IOException or DllNotFoundException or EntryPointNotFoundException) { }
-            using var backend = new SystemNetworkBackend(tunnel, killSwitch, wfp);
-            using var journal = new NetworkSessionJournal(JournalPath);
-            var session = new NetworkSession(journal, backend, RecordStep);
-            var server = new HelperPipeServer(session, parsed.PipeName, owner, report: RecordFailure);
+            using var host = CreateSession(core);
+            var server = new HelperPipeServer(host.Session, parsed.PipeName, owner, report: RecordFailure);
             try
             {
                 server.RunAsync(CancellationToken.None).GetAwaiter().GetResult();
@@ -108,6 +93,36 @@ public static class NetworkHelperHost
                 return 2;
             }
         }
+    }
+
+    // Сетевая сессия с настоящими backend: общая для помощника с UAC и для службы.
+    internal static SessionHost CreateSession(Func<string, ITunnelProcess>? core)
+    {
+        var executable = Path.Combine(AppContext.BaseDirectory, "tools", "sing-box.exe");
+        var start = core is null
+            ? new Func<ValidatedNetworkLease, CancellationToken, ITunnelProcess>((lease, token) => SingBoxTunnelProcess.Start(lease, executable, token))
+            : ((lease, _) => core(executable));
+        var tunnel = new WindowsTunnelBackend(start, TunnelInterfaces.Exists);
+        // Брандмауэр открывается один раз на весь запуск помощника. Если его нет,
+        // режим работает без блокировки, а снять чужую блокировку будет нечем —
+        // восстановление сообщит об этом вместо того, чтобы молчать.
+        KillSwitchBackend? killSwitch = null;
+        try { killSwitch = new KillSwitchBackend(WindowsFirewallPolicy.Open()); }
+        catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException) { }
+        // Служба фильтрации проверяется открытием движка: если её нет, защита остаётся
+        // за брандмауэром. Движок открывается заново на каждое изменение.
+        WfpProtectionBackend? wfp = null;
+        try { using (WfpEngine.Open()) { } wfp = new WfpProtectionBackend(WfpEngine.Open); }
+        catch (Exception ex) when (ex is IOException or DllNotFoundException or EntryPointNotFoundException) { }
+        var backend = new SystemNetworkBackend(tunnel, killSwitch, wfp);
+        var journal = new NetworkSessionJournal(JournalPath);
+        return new(new NetworkSession(journal, backend, RecordStep), tunnel, backend, journal);
+    }
+
+    internal sealed class SessionHost(NetworkSession session, params IDisposable[] resources) : IDisposable
+    {
+        public NetworkSession Session => session;
+        public void Dispose() { foreach (var resource in resources.Reverse()) resource.Dispose(); }
     }
 }
 

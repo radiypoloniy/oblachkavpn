@@ -48,6 +48,7 @@ public static partial class SelfTests
         await ArchitectureChecksAsync(CheckAsync);
         await NetworkSessionChecksAsync(CheckAsync, root);
         await HelperPipeChecksAsync(CheckAsync, root);
+        await ServiceChecksAsync(CheckAsync);
         await TunConfigurationChecksAsync(CheckAsync);
         await SystemSessionChecksAsync(CheckAsync);
         await SystemHoldChecksAsync(CheckAsync);
