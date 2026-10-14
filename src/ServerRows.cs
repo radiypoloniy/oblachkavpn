@@ -54,3 +54,6 @@ public sealed class ServerRow
 
     public static string? NoteFor(Profile profile) => !profile.IsService ? "сторонняя подписка" : null;
 }
+
+// Заголовок группы в панели «Все серверы»: «Избранное», «Облачка», «Сторонние».
+public sealed record SheetHeader(string Title);

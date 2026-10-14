@@ -12,8 +12,10 @@ public partial class MainWindow
             Navigate(page);
             // Главный экран или одна временная страница поверх него.
             var pages = new[] { Servers.Visibility, Routes.Visibility, Diagnostics.Visibility }.Count(v => v == Visibility.Visible);
-            var home = page == "Connection";
-            if (home != (Home.Visibility == Visibility.Visible) || home == (PageHost.Visibility == Visibility.Visible) || pages != (home ? 0 : 1) ||
+            // «Все серверы» выезжает поверх главного экрана; правила и помощь — отдельные страницы.
+            var home = page is "Connection" or "Servers";
+            if (home != (Home.Visibility == Visibility.Visible) || home == (PageHost.Visibility == Visibility.Visible) ||
+                pages != (page == "Connection" ? 0 : 1) ||
                 Onboarding.Visibility == Visibility.Visible || Onboarding.ContinueButton.IsDefault)
                 throw new InvalidOperationException("Navigation displays the wrong pages");
         }

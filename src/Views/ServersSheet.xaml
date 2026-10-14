@@ -1,0 +1,177 @@
+<UserControl x:Class="Oblachka.Views.ServersSheet" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="clr-namespace:Oblachka" xmlns:sys="clr-namespace:System;assembly=System.Runtime" FontFamily="{StaticResource UiFont}" Foreground="{DynamicResource Tx}" Background="{DynamicResource Bg}">
+  <!-- Панель «Все серверы» (экран 09): выезжает поверх главного окна. Группы: автовыбор, избранное,
+       свои узлы, сторонние. Звезда справа переключает избранное, клик по строке — подключение. -->
+  <UserControl.Resources>
+    <DataTemplate DataType="{x:Type o:SheetHeader}">
+      <TextBlock Text="{Binding Title}" Style="{StaticResource Caption}" FontSize="11.5" Margin="10,12,10,4"/>
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type o:ServerRow}">
+      <Border x:Name="Plate" Height="48" CornerRadius="12" Margin="0,0,0,2" Background="Transparent">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+          <Button x:Name="RowButton" Style="{StaticResource Row}" Padding="10,0,6,0" AutomationProperties.Name="{Binding Name}">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="28"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <Ellipse Width="28" Height="28" Visibility="{Binding FlagVisibility}" Stroke="#40808CA0" StrokeThickness="1">
+                <Ellipse.Fill><ImageBrush ImageSource="{Binding Flag}" Stretch="UniformToFill"/></Ellipse.Fill>
+              </Ellipse>
+              <Border x:Name="IconPlate" Width="28" Height="28" CornerRadius="14" Background="{DynamicResource Aci}" Visibility="{Binding IconVisibility}">
+                <Path x:Name="IconGlyph" Data="{Binding Icon}" Width="15" Height="15" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Ac}"/>
+              </Border>
+              <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Name}" FontSize="14.5" FontWeight="{Binding NameWeight}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Tx}"/>
+                <TextBlock Text="{Binding Note}" FontSize="11.5" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Visibility="{Binding NoteVisibility}"/>
+              </StackPanel>
+              <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding LatencyVisibility}">
+                <Ellipse Width="6" Height="6" Fill="{Binding LatencyDot}" Margin="0,0,6,0"/>
+                <TextBlock Text="{Binding Latency}" FontSize="12.5" Foreground="{DynamicResource Mu2}"/>
+              </StackPanel>
+            </Grid>
+          </Button>
+          <Button x:Name="StarButton" Grid.Column="1" Tag="star" Style="{StaticResource IconButton}" Width="36" Height="36" Margin="0,0,4,0"
+                  AutomationProperties.Name="Избранное" Visibility="Visible">
+            <Path x:Name="StarGlyph" Data="{StaticResource IcoStar}" Width="17" Height="17" Stretch="Uniform" StrokeThickness="1.8" StrokeLineJoin="Round" Stroke="{DynamicResource Fa}" Fill="Transparent"/>
+          </Button>
+        </Grid>
+      </Border>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding Selected}" Value="True">
+          <Setter TargetName="Plate" Property="Background" Value="{DynamicResource Acs}"/>
+          <Setter TargetName="RowButton" Property="Tag" Value="Transparent"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Favorite}" Value="True">
+          <Setter TargetName="StarGlyph" Property="Fill" Value="#F2B01E"/>
+          <Setter TargetName="StarGlyph" Property="Stroke" Value="#F2B01E"/>
+          <Setter TargetName="StarButton" Property="AutomationProperties.Name" Value="Убрать из избранного"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding CanFavorite}" Value="False">
+          <Setter TargetName="StarButton" Property="Visibility" Value="Collapsed"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding IconOnAccent}" Value="True">
+          <Setter TargetName="IconPlate" Property="Background" Value="{DynamicResource Ac}"/>
+          <Setter TargetName="IconGlyph" Property="Stroke" Value="White"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding IconMuted}" Value="True">
+          <Setter TargetName="IconPlate" Property="Background" Value="{DynamicResource Field}"/>
+          <Setter TargetName="IconGlyph" Property="Stroke" Value="{DynamicResource Mu2}"/>
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+    <!-- Чипы сортировки — это ListBox: выбранный чип и есть порядок. -->
+    <Style x:Key="ChipItem" TargetType="ListBoxItem">
+      <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ListBoxItem">
+            <Border x:Name="Chip" Height="30" CornerRadius="15" Padding="12,0" Margin="0,0,6,0" Background="{DynamicResource Field}">
+              <TextBlock x:Name="Label" Text="{Binding}" FontSize="12.5" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="Chip" Property="Background" Value="{DynamicResource Ac}"/>
+                <Setter TargetName="Label" Property="Foreground" Value="White"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </UserControl.Resources>
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="56"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <DockPanel Margin="6,0,90,0">
+      <Button x:Name="BackButton" Style="{StaticResource IconButton}" Foreground="{DynamicResource Tx}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Назад">
+        <Path Data="{StaticResource IcoBack}" Style="{StaticResource Icon}" StrokeThickness="2.2"/>
+      </Button>
+      <Button x:Name="RefreshButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Обновить подписку" ToolTip="Обновить подписку">
+        <Path Data="{StaticResource IcoRefresh}" Style="{StaticResource Icon}" Width="18" Height="18"/>
+      </Button>
+      <TextBlock Text="Все серверы" Style="{StaticResource Brand}" Margin="4,0,0,0"/>
+    </DockPanel>
+
+    <StackPanel Grid.Row="1" Margin="14,0,14,0">
+      <Grid>
+        <TextBox x:Name="SearchBox" Height="40" Padding="34,0,12,0" FontSize="14" VerticalContentAlignment="Center" BorderThickness="0"
+                 Background="{DynamicResource Field}" Foreground="{DynamicResource Tx}" CaretBrush="{DynamicResource Tx}" AutomationProperties.Name="Найти сервер">
+          <TextBox.Template>
+            <ControlTemplate TargetType="TextBox">
+              <Border x:Name="Plate" CornerRadius="10" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Ac}" BorderThickness="0">
+                <Grid>
+                  <TextBlock x:Name="Hint" Text="Страна или название" Foreground="{DynamicResource Fa}" Margin="36,0,12,0" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed"/>
+                  <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                </Grid>
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="Text" Value=""><Setter TargetName="Hint" Property="Visibility" Value="Visible"/></Trigger>
+                <Trigger Property="IsKeyboardFocused" Value="True">
+                  <Setter TargetName="Plate" Property="BorderThickness" Value="2"/>
+                  <Setter TargetName="Plate" Property="Background" Value="{DynamicResource Bg}"/>
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </TextBox.Template>
+        </TextBox>
+        <Path Data="{StaticResource IcoSearch}" Width="16" Height="16" Stretch="Uniform" Stroke="{DynamicResource Fa}" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+              HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0" IsHitTestVisible="False"/>
+      </Grid>
+      <DockPanel Margin="0,10,0,0">
+        <TextBlock x:Name="MeasuredAgo" DockPanel.Dock="Right" FontSize="12" Foreground="{DynamicResource Fa}" VerticalAlignment="Center"/>
+        <ListBox x:Name="SortOrder" ItemContainerStyle="{StaticResource ChipItem}" Background="Transparent" BorderThickness="0" Padding="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Порядок серверов" SelectedIndex="0">
+          <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ListBox.ItemsPanel>
+          <ListBox.Template><ControlTemplate TargetType="ListBox"><ItemsPresenter/></ControlTemplate></ListBox.Template>
+          <sys:String>По отклику</sys:String>
+          <sys:String>По названию</sys:String>
+          <sys:String>Как в подписке</sys:String>
+        </ListBox>
+      </DockPanel>
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0" Padding="10,0">
+      <StackPanel>
+        <ItemsControl x:Name="SheetList" Focusable="False"/>
+        <Button x:Name="AddButton" Style="{StaticResource Row}" Height="44" Margin="0,6,0,0" Foreground="{DynamicResource Ac}" AutomationProperties.Name="Добавить ключ, ссылку или файл">
+          <StackPanel Orientation="Horizontal">
+            <Border Width="28" Height="28" CornerRadius="14" BorderBrush="{DynamicResource Ring}" BorderThickness="1.5">
+              <Path Data="{StaticResource IcoPlus}" Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource Ac}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+            </Border>
+            <TextBlock Text="Добавить ключ, ссылку или файл" FontSize="13.5" Margin="12,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
+        <StackPanel x:Name="AddPanel" Margin="50,0,0,8" Visibility="Collapsed">
+          <Button x:Name="PasteButton" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Content="Вставить из буфера обмена"/>
+          <Button x:Name="ImportFileButton" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Content="Открыть файл профиля (JSON, txt)"/>
+          <Button x:Name="SubscriptionButton" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Content="Адреса подписки…"/>
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+
+    <Border Grid.Row="3" BorderBrush="{DynamicResource Divider}" BorderThickness="0,1,0,0" Padding="14,10">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="8"/>
+          <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Button x:Name="MeasureButton" Style="{StaticResource BtnSecondary}" Content="Проверить все"/>
+        <Button x:Name="BestButton" Grid.Column="2" Style="{StaticResource BtnPrimary}" Content="Подключить лучший"/>
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

@@ -1,5 +1,12 @@
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media;
+
 namespace Oblachka;
 
+// Панель «Все серверы»: группы, избранное, порядок. Выбор идёт через ProfilePicker
+// (модель вне дерева), клик по строке подключает так же, как на главном экране.
 public partial class MainWindow
 {
     private readonly HashSet<string> favorites = new(StringComparer.Ordinal);
@@ -15,17 +22,53 @@ public partial class MainWindow
     private void WireServerList()
     {
         Servers.SortOrder.SelectionChanged += (_, _) => FilterProfiles();
-        Servers.FavoritesOnly.Click += (_, _) => FilterProfiles();
-        Servers.FavoriteButton.Click += (_, _) =>
-        {
-            if (profile is null || operation is not null || engine.State != ConnectionState.Idle) return;
-            var key = FavoriteKey(profile);
-            if (!favorites.Remove(key)) favorites.Add(key);
-            FilterProfiles();
-            QueueStateSave();
-        };
+        Servers.SheetList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(SheetRowClick));
     }
 
+    private void SheetRowClick(object sender, RoutedEventArgs args)
+    {
+        if (args.OriginalSource is not Button { DataContext: ServerRow row } button) return;
+        if (Equals(button.Tag, "star")) { if (row.Profile is not null) ToggleFavorite(row.Profile); return; }
+        PickServer(row.IsAuto ? null : row.Profile);
+        Navigate("Connection");
+    }
+
+    private void ToggleFavorite(Profile item)
+    {
+        var key = FavoriteKey(item);
+        if (!favorites.Remove(key)) favorites.Add(key);
+        RenderSheet();
+        RefreshHome();
+        QueueStateSave();
+    }
+
+    // Группы: автовыбор (без поиска), избранное, узлы сервиса, сторонние без проверок.
+    private void RenderSheet()
+    {
+        if (!viewsReady) return;
+        var shown = ProfilePicker.Items.OfType<Profile>().ToArray();
+        var items = new List<object>();
+        if (Servers.SearchBox.Text.Trim().Length == 0)
+            items.Add(new ServerRow
+            {
+                IsAuto = true, Name = "Автовыбор", Selected = autoSelect, IconOnAccent = true, Icon = TryFindResource("IcoAuto") as Geometry,
+                Note = autoSelect && profile is not null ? "сейчас: " + profile.DisplayName : "самый быстрый отклик"
+            });
+        void Group(string title, IEnumerable<Profile> members)
+        {
+            var rows = members.Select(Row).ToArray();
+            if (rows.Length == 0) return;
+            items.Add(new SheetHeader(title));
+            items.AddRange(rows);
+        }
+        Group("ИЗБРАННОЕ", shown.Where(p => favorites.Contains(FavoriteKey(p))));
+        Group(ServiceBrand.Name.ToUpperInvariant(), shown.Where(p => p.IsService && !favorites.Contains(FavoriteKey(p))));
+        Group("СТОРОННИЕ · БЕЗ ПРОВЕРОК", shown.Where(p => !p.IsService && !favorites.Contains(FavoriteKey(p))));
+        Servers.SheetList.ItemsSource = items;
+        RefreshMeasurement();
+    }
+
+    // Подпись строки для отчёта и старых проверок: замер, давность, избранное.
     private void RefreshServerLabels()
     {
         foreach (var item in importedProfiles)
@@ -40,11 +83,7 @@ public partial class MainWindow
 
     private void RefreshServerListControls()
     {
-        Servers.SortOrder.IsEnabled = ProfilePicker.IsEnabled;
-        Servers.FavoritesOnly.IsEnabled = ProfilePicker.IsEnabled;
-        Servers.FavoriteButton.IsEnabled = ProfilePicker.IsEnabled && profile is not null;
-        Servers.FavoriteButton.Content = profile is not null && favorites.Contains(FavoriteKey(profile))
-            ? "Убрать из избранного" : "Добавить в избранное";
+        // Только подписи: панель перестраивается по изменению данных, а не каждую секунду.
         RefreshServerLabels();
     }
 }

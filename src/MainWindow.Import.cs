@@ -50,10 +50,6 @@ public partial class MainWindow
         ProfilePicker.ItemsSource = combined;
         importedProfiles = combined;
         Servers.SearchBox.Clear();
-        ProfilePicker.Visibility = Visibility.Visible;
-        Servers.SubscriptionSummary.Text = externalProfiles.Count > 0
-            ? $"Подключений: {combined.Length} · свои {serviceProfiles.Count} · сторонние {externalProfiles.Count}"
-            : $"Подключений: {combined.Length}";
         UpdateSubscriptionSummary();
         RefreshExternalSummary();
         ProfilePicker.SelectedIndex = selection;

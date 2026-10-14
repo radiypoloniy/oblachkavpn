@@ -7,39 +7,32 @@ namespace Oblachka;
 
 public partial class MainWindow
 {
+    // «Все серверы» в окне 420×660: длинный список прокручивается, строки по 48 px,
+    // кнопки внизу не обрезаны, выбор последнего сервера доступен.
     private async Task CheckCompactServerLayoutAsync(List<string> checks)
     {
         var savedProfiles = importedProfiles.ToArray();
-        var savedWidth = Width; var savedHeight = Height;
         try
         {
-            Width = 960; Height = 660;
             LoadServerPreview(); Navigate("Servers");
+            UpdateLayout();
+            await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
             DesignPreview.Render(this, Path.Combine(AppContext.BaseDirectory, "preview-servers-compact.png"));
-            var viewer = Descendants<ScrollViewer>(ProfilePicker).First();
-            var scrollbar = Descendants<ScrollBar>(viewer).First(s => s.Orientation == Orientation.Vertical);
-            if (scrollbar.ActualWidth > 10.5 || scrollbar.Template.FindName("PART_Track", scrollbar) is not Track track ||
-                track.Thumb is null || track.DecreaseRepeatButton is null || track.IncreaseRepeatButton is null)
-                throw new InvalidOperationException("Compact scrollbar has incorrect width or lacks functional track parts");
-            var firstRow = (ListBoxItem)ProfilePicker.ItemContainerGenerator.ContainerFromIndex(0);
-            if (firstRow.ActualHeight > 48 || firstRow.ActualHeight < 40)
-                throw new InvalidOperationException("Server rows have excessive height or insufficient click area");
+            var viewer = Descendants<ScrollViewer>(Servers).First(v => v.Content is StackPanel);
+            var rows = Descendants<Border>(Servers.SheetList).Where(b => b.Name == "Plate" && b.TemplatedParent is ContentPresenter).ToArray();
+            if (rows.Length < 24 || rows.Any(r => r.ActualHeight != 48))
+                throw new InvalidOperationException("Server rows are missing or not 48 px high: " + rows.Length + " / " + string.Join(",", rows.Select(r => r.ActualHeight).Distinct()));
             viewer.ScrollToEnd();
             await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
-            ProfilePicker.UpdateLayout();
-            if (viewer.VerticalOffset <= 0) throw new InvalidOperationException("Custom scrollbar cannot scroll the list");
-            ProfilePicker.SelectedIndex = 23; ProfilePicker.ScrollIntoView(ProfilePicker.SelectedItem);
-            ProfilePicker.UpdateLayout();
-            var lastRow = ProfilePicker.ItemContainerGenerator.ContainerFromIndex(23) as ListBoxItem;
-            if (lastRow is null || profile?.DisplayName != "Резервный сервер 18" || !lastRow.IsSelected)
-                throw new InvalidOperationException("End-of-list selection was lost in compact layout");
-            if (Servers.UseServerButton.ActualWidth < 120 || Servers.UseServerButton.ActualHeight < 32)
-                throw new InvalidOperationException("Connection action is clipped in compact layout");
-            checks.Add("960×660 server layout uses compact rows and a thin functional scrollbar; end-of-list selection remains available");
+            if (viewer.VerticalOffset <= 0) throw new InvalidOperationException("Server sheet cannot scroll the list");
+            ProfilePicker.SelectedIndex = 23;
+            if (profile?.DisplayName != "Резервный сервер 18") throw new InvalidOperationException("End-of-list selection was lost");
+            if (Servers.MeasureButton.ActualWidth < 150 || Servers.BestButton.ActualWidth < 150 || Servers.BestButton.ActualHeight < 40)
+                throw new InvalidOperationException("Sheet actions are clipped in the 420×660 window");
+            checks.Add("420×660 server sheet scrolls 24 rows of 48 px; actions stay unclipped and end-of-list selection remains available");
         }
         finally
         {
-            Width = savedWidth; Height = savedHeight;
             ApplyImport(new ImportResult(savedProfiles, 0, 0)); Navigate("Connection");
         }
     }

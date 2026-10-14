@@ -21,9 +21,11 @@ public partial class MainWindow
         var welcome = profile is null && page == "Connection";
         // Главный экран — всё, что не временная страница. Без подключений — экран ключа.
         Home.Visibility = !welcome && page == "Connection" ? Visibility.Visible : Visibility.Collapsed;
-        PageHost.Visibility = page is "Servers" or "Routes" or "Diagnostics" ? Visibility.Visible : Visibility.Collapsed;
-        PageTitle.Text = page switch { "Servers" => "Все серверы", "Routes" => "Правила", "Diagnostics" => "Помощь", _ => "" };
-        Servers.Visibility = page == "Servers" ? Visibility.Visible : Visibility.Collapsed;
+        PageHost.Visibility = page is "Routes" or "Diagnostics" ? Visibility.Visible : Visibility.Collapsed;
+        PageTitle.Text = page switch { "Routes" => "Правила", "Diagnostics" => "Помощь", _ => "" };
+        // «Все серверы» выезжает поверх главного экрана, он остаётся под ней.
+        if (page == "Servers") { Home.Visibility = Visibility.Visible; if (Servers.Visibility != Visibility.Visible) { FilterProfiles(); Servers.Open(); } }
+        else Servers.Visibility = Visibility.Collapsed;
         Routes.Visibility = page == "Routes" ? Visibility.Visible : Visibility.Collapsed;
         Diagnostics.Visibility = page == "Diagnostics" ? Visibility.Visible : Visibility.Collapsed;
         Onboarding.Visibility = welcome ? Visibility.Visible : Visibility.Collapsed;
@@ -53,24 +55,24 @@ public partial class MainWindow
         { CloseSettings(); args.Handled = true; }
     }
 
+    // Поиск и порядок панели «Все серверы». Выбранный сервер не теряется, даже если поиск его
+    // скрыл: модель выбора остаётся прежней, меняется только показанный список.
     private void FilterProfiles()
     {
-        if (!viewsReady || operation is not null || engine.State != ConnectionState.Idle) return;
+        if (!viewsReady) return;
         var query = Servers.SearchBox.Text.Trim();
         var selected = profile;
         RefreshServerLabels();
-        var visible = importedProfiles.Where(p => (p.Country.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || p.Name.Contains(query, StringComparison.OrdinalIgnoreCase)) &&
-            (Servers.FavoritesOnly.IsChecked != true || favorites.Contains(FavoriteKey(p))));
+        var visible = importedProfiles.Where(p => p.Country.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || p.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
         visible = Servers.SortOrder.SelectedIndex switch
         {
+            0 => visible.OrderBy(MeasurementOrder),
             1 => visible.OrderBy(p => p.DisplayName, StringComparer.CurrentCultureIgnoreCase),
-            2 => visible.OrderBy(p => p.Country.Name, StringComparer.CurrentCultureIgnoreCase).ThenBy(p => p.DisplayName, StringComparer.CurrentCultureIgnoreCase),
-            3 => visible.OrderBy(MeasurementOrder),
             _ => visible
         };
         ProfilePicker.ItemsSource = visible.ToArray();
         ProfilePicker.SelectedItem = selected;
-        Servers.SubscriptionSummary.Text = $"Подключений: {importedProfiles.Count}, показано: {ProfilePicker.Items.Count}";
+        RenderSheet();
     }
 
     // Первый экран принимает ключ сервиса. Подписка другого сервиса идёт отдельным путём,

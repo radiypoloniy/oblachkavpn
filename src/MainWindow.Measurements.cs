@@ -18,27 +18,20 @@ public partial class MainWindow
                 var done = 0;
                 await ServerMeasurements.MeasureAsync(measured,
                     () => new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), ""),
-                    result => { measurements[result.Fingerprint] = result; if (!closed) { DetailText.Text = $"Проверено серверов: {++done} из {measured.Length}. Можно остановить."; RefreshMeasurement(); } }, operation.Token);
+                    result => { measurements[result.Fingerprint] = result; if (!closed) { DetailText.Text = $"Проверено серверов: {++done} из {measured.Length}. Можно остановить."; RenderSheet(); RefreshHome(); } }, operation.Token);
                 QueueStateSave();
             }
             catch (OperationCanceledException) { if (!closed) DetailText.Text = "Измерение завершено по отмене или лимиту пяти минут. Полученные результаты сохранены."; QueueStateSave(); }
             finally { operation.Dispose(); operation = null; measuring = false; if (!closed) UpdateControls(); }
         };
-        Servers.BestButton.Click += (_, _) =>
-        {
-            if (operation is not null) return;
-            var best = ServerMeasurements.Best(importedProfiles, measurements, DateTimeOffset.UtcNow);
-            if (best is null) { DetailText.Text = "Нет успешных измерений за последние 20 минут. Сначала проверьте серверы."; return; }
-            Servers.SearchBox.Clear(); Servers.FavoritesOnly.IsChecked = false;
-            ProfilePicker.ItemsSource = importedProfiles; ProfilePicker.SelectedIndex = best.Value;
-            FilterProfiles();
-            DetailText.Text = "Выбран сервер с наименьшим временем успешного HTTPS-запроса.";
-        };
+        // «Подключить лучший» — то же, что «Автовыбор»: лучший по свежим замерам и сразу подключение.
+        Servers.BestButton.Click += (_, _) => { if (operation is null) { PickServer(null); Navigate("Connection"); } };
     }
+    // «3 мин» над списком: давность последнего замера.
     private void RefreshMeasurement()
     {
-        if (profile is null || !measurements.TryGetValue(Profiles.Fingerprint(profile), out var result)) { Servers.MeasurementDetails.Text = "Ещё не проверяли. Измерение выполняет HTTPS-запрос через сервер."; return; }
-        var age = DateTimeOffset.UtcNow - result.Time;
-        Servers.MeasurementDetails.Text = (result.Success ? $"Запрос: {result.Milliseconds} мс" : "Проверка не прошла") + $" · {result.Time.ToLocalTime():HH:mm}" + (age >= TimeSpan.FromMinutes(20) ? " · устарело" : "") + ". Это время запроса, не ping и не скорость.";
+        var last = measurements.Values.Select(m => (DateTimeOffset?)m.Time).Max();
+        var age = last is null ? (TimeSpan?)null : DateTimeOffset.UtcNow - last.Value;
+        Servers.MeasuredAgo.Text = age is null ? "" : age < TimeSpan.FromMinutes(1) ? "только что" : age < TimeSpan.FromHours(1) ? (int)age.Value.TotalMinutes + " мин" : last!.Value.ToLocalTime().ToString("HH:mm");
     }
 }

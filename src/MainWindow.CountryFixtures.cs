@@ -20,11 +20,12 @@ public partial class MainWindow
                 throw new InvalidOperationException($"Synthetic country case {code}: resolved {parsed.Country.Code}/{parsed.Country.Name}, name={parsed.Name}");
             // Имя отдельно от результата проверки: он не заменяет название подписки.
             var labels = RenderRow(parsed);
-            if (labels.Length != 2 || labels[0].Text != parsed.DisplayName || labels[0].Text == countryName || labels[1].Text != "Не проверен")
+            // Без замера строка показывает только имя: «не проверен» не загромождает список.
+            if (labels.Length != 1 || labels[0].Text != parsed.DisplayName || labels[0].Text == countryName)
                 throw new InvalidOperationException("Server row replaces its subscription name with a country or includes extra labels: " + string.Join(" | ", labels.Select(l => l.Text)) + " (всего " + labels.Length + ")");
             // Сторонний узел: то же имя плюс видимая пометка источника.
             var foreignLabels = RenderRow(parsed with { Source = ProfileSource.External });
-            if (foreignLabels.Length != 3 || foreignLabels[0].Text != parsed.DisplayName || foreignLabels[1].Text != "Не проверен" || foreignLabels[2].Text != "Сторонний")
+            if (foreignLabels.Length != 2 || foreignLabels[0].Text != parsed.DisplayName || foreignLabels[1].Text != "сторонняя подписка")
                 throw new InvalidOperationException("External node is not marked in the server list: " + string.Join(" | ", foreignLabels.Select(l => l.Text)));
             if (Profiles.Fingerprint(parsed) != Profiles.Fingerprint(parsed with { Name = "Другое имя" }))
                 throw new InvalidOperationException("Country presentation changes connection identity");
@@ -41,8 +42,9 @@ public partial class MainWindow
     // Рендерит одну строку списка по шаблону и возвращает её видимые подписи.
     private TextBlock[] RenderRow(Profile profile)
     {
-        var row = (FrameworkElement)ProfilePicker.ItemTemplate.LoadContent();
-        row.DataContext = profile;
+        var template = (DataTemplate)Servers.Resources[new DataTemplateKey(typeof(ServerRow))];
+        var row = (FrameworkElement)template.LoadContent();
+        row.DataContext = Row(profile);
         row.Measure(new Size(400, 100)); row.Arrange(new Rect(0, 0, 400, 100)); row.UpdateLayout();
         // IsVisible требует подключения к дереву окна, поэтому смотрим Visibility по цепочке
         // родителей: скрытая пометка источника не должна считаться подписью строки.

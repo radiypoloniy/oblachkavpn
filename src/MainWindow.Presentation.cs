@@ -24,10 +24,6 @@ public partial class MainWindow
             lastProbe = null; lastCheck = null;
         }
         RefreshHome();
-        Servers.SelectedName.Text = profile?.DisplayName ?? "Выберите подключение";
-        Servers.SelectedTransport.Text = profile?.Transport ?? "—";
-        Servers.SelectedCore.Text = profile is null ? "Ядро выберется по формату профиля" : profile.Core == CoreKind.Xray ? "Xray 26.9.9" : "sing-box 1.14.3";
-        Servers.UseServerButton.IsEnabled = profile is not null;
         Servers.SearchBox.IsEnabled = ProfilePicker.IsEnabled;
         RefreshServerListControls();
         Diagnostics.CoreState.Text = pid is null ? "Не запущен" : "Готов";

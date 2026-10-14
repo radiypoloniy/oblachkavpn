@@ -20,6 +20,7 @@ public partial class MainWindow
     private string? dismissedAnnounce;
     // «Автовыбор»: сервер выбирается по свежим замерам, а при обрыве подбор переключает сам.
     private bool autoSelect;
+    private string? quickSignature;
     private readonly DispatcherTimer toastTimer = new() { Interval = TimeSpan.FromSeconds(6) };
 
     private void WireHome()
@@ -69,7 +70,11 @@ public partial class MainWindow
         Home.CheckIcon.Visibility = checkedOk ? Visibility.Visible : Visibility.Collapsed;
 
         Home.AllServersText.Text = "Все " + importedProfiles.Count;
-        Home.QuickList.ItemsSource = QuickRows();
+        // Список меняется, только если изменилось видимое: иначе ежесекундное обновление
+        // перезапускало бы анимацию отметки и сбрасывало наведение.
+        var rows = QuickRows();
+        var signature = string.Join('\n', rows.Select(r => r.Name + "|" + r.Note + "|" + r.Selected + "|" + r.Latency + "|" + r.Favorite));
+        if (signature != quickSignature) { quickSignature = signature; Home.QuickList.ItemsSource = rows; }
     }
 
     // Автовыбор, затем избранные (без избранного — первые узлы сервиса), до пяти строк.

@@ -15,7 +15,9 @@ public partial class MainWindow
     private readonly Ellipse StatusDot = new();
     private readonly TextBlock ProfileNameText = new();
     private readonly TextBlock TransportText = new();
-    private ListBox ProfilePicker => Servers.ProfilePicker;
+    // Модель выбора сервера: прежний список, теперь вне дерева элементов. Его выбор и событие
+    // SelectionChanged ведут смену сервера и сохранение; рисуют список главный экран и панель.
+    private readonly ListBox ProfilePicker = new();
     private Button ImportFileButton => Servers.ImportFileButton;
     private Button PasteButton => Servers.PasteButton;
     private Button SubscriptionButton => Servers.SubscriptionButton;
@@ -50,7 +52,7 @@ public partial class MainWindow
         Diagnostics.ExportButton.Click += ExportReportClick;
         Diagnostics.CopyReportButton.Click += CopyReportClick;
         WireHome();
-        Servers.UseServerButton.Click += (_, _) => Navigate("Connection");
+        Servers.BackButton.Click += (_, _) => Navigate("Connection");
         PageBackButton.Click += (_, _) => Navigate("Connection");
         Servers.SearchBox.TextChanged += (_, _) => FilterProfiles();
         Onboarding.KeyButton.Click += PasteClick;
