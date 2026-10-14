@@ -19,12 +19,16 @@ public partial class MainWindow
         if (!enabled) { Settings.StartWithWindows.IsEnabled = false; return; }
         try { Settings.StartWithWindows.IsChecked = AppInstance.StartsWithWindows; }
         catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException) { Settings.StartWithWindows.IsEnabled = false; }
-        Settings.StartWithWindows.Click += (_, _) =>
+        // Checked/Unchecked, а не Click: переключение с клавиатуры специальных средств и
+        // UI Automation не порождает Click, и выбор не сохранялся бы.
+        void Apply(bool on)
         {
-            try { AppInstance.StartsWithWindows = Settings.StartWithWindows.IsChecked == true; }
+            try { if (AppInstance.StartsWithWindows != on) AppInstance.StartsWithWindows = on; }
             catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
-            { Settings.StartWithWindows.IsChecked = AppInstance.StartsWithWindows; DetailText.Text = "Не удалось изменить автозапуск."; }
-        };
+            { DetailText.Text = "Не удалось изменить автозапуск."; }
+        }
+        Settings.StartWithWindows.Checked += (_, _) => Apply(true);
+        Settings.StartWithWindows.Unchecked += (_, _) => Apply(false);
     }
 
     // Запуск из автозапуска: окно создаётся как обычно (по нему инициализируется состояние),
