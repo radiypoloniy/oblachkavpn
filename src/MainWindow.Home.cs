@@ -44,8 +44,11 @@ public partial class MainWindow
     private void RefreshHome()
     {
         if (!viewsReady) return;
-        var running = engine.State is ConnectionState.Running or ConnectionState.Verified;
-        var busy = engine.State is ConnectionState.Starting or ConnectionState.Validating || operation is not null && engineOperation && !backgroundCheck;
+        // В системном режиме ядро окна поднимается раньше туннеля: «Защищено» — только когда
+        // служба подтвердила туннель, до этого идёт подключение.
+        var tunnelStarting = systemTunnel?.State == SystemTunnelState.Starting;
+        var running = engine.State is ConnectionState.Running or ConnectionState.Verified && !tunnelStarting;
+        var busy = engine.State is ConnectionState.Starting or ConnectionState.Validating || tunnelStarting || operation is not null && engineOperation && !backgroundCheck;
         var holding = systemTunnel?.State == SystemTunnelState.Holding;
         var name = (runningProfile ?? profile)?.DisplayName ?? "";
         var (title, sub, power, dot) =

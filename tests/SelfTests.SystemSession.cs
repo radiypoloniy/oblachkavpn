@@ -44,6 +44,17 @@ public static partial class SelfTests
             await ExpectUserErrorAsync(() => session.StartAsync(new(Profiles.Parse(link), new[] { "192.0.2.1" }), CancellationToken.None));
             Assert(session.State == SystemTunnelState.Idle && core.ProcessId is null && calls.Contains("helper:release"));
         });
+        await check("Stop during helper acquisition lets it finish, then releases: no orphaned session", async () =>
+        {
+            var calls = new List<string>(); var core = new SessionCore(calls); var helper = new SessionHelper(calls);
+            using var stop = new CancellationTokenSource();
+            helper.DuringAcquire = stop.Cancel;
+            await using var session = new SystemTunnelSession(core, helper);
+            try { await session.StartAsync(new(Profiles.Parse(link), new[] { "192.0.2.1" }), stop.Token); throw new InvalidOperationException("Start was not cancelled"); }
+            catch (OperationCanceledException) { }
+            Assert(session.State == SystemTunnelState.Idle && core.ProcessId is null);
+            Assert(calls.IndexOf("helper:release") > calls.IndexOf("helper:acquire"));
+        });
         await check("Lost helper connection triggers asynchronous cleanup outside the event callback", async () =>
         {
             var calls = new List<string>(); var core = new SessionCore(calls); var helper = new SessionHelper(calls);
@@ -113,10 +124,18 @@ public static partial class SelfTests
         public void Lose() => ConnectionLost?.Invoke();
         public bool Blocking = true;
         public string[] LastPeers = Array.Empty<string>();
+        // Как настоящий канал: отмена посреди Acquire закрывает канал, и Release уже не пройдёт.
+        public Action? DuringAcquire;
+        private bool pipeLost;
         public Task<bool> AcquireAsync(NetworkLeaseRequest request, CancellationToken token)
-        { calls.Add("helper:acquire"); LastPeers = request.PeerAddresses; if (FailAcquire) throw new UserError("fixture"); return Task.FromResult(Blocking); }
+        {
+            calls.Add("helper:acquire"); LastPeers = request.PeerAddresses; if (FailAcquire) throw new UserError("fixture");
+            DuringAcquire?.Invoke();
+            if (token.IsCancellationRequested) { pipeLost = true; throw new OperationCanceledException(token); }
+            return Task.FromResult(Blocking);
+        }
         public Task<NetworkSessionState> ReleaseAsync(CancellationToken token)
-        { calls.Add("helper:release"); return Task.FromResult(ReleaseState); }
+        { calls.Add("helper:release"); if (pipeLost) throw new IOException("pipe closed"); return Task.FromResult(ReleaseState); }
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }

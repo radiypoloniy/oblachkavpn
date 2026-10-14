@@ -84,8 +84,13 @@ public sealed class SystemTunnelSession : IAsyncDisposable
                 var peers = plans.SelectMany(p => p.Peers).Distinct(StringComparer.Ordinal).ToArray();
                 await core.StartAsync(current.PinnedProfile, token).ConfigureAwait(false);
                 leasePort = core.Port;
+                // Запрос к помощнику не прерывается отменой: отмена посреди него закрывает канал,
+                // служба считает окно погибшим и держит сеть закрытой, а Release уже не дойдёт.
+                // Запрос ограничен своим сроком в канале; отмена проверяется после него, и
+                // сессия снимается обычным Release.
                 BlocksBypass = await helper.AcquireAsync(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, leasePort, peers,
-                    sites?.ToArray(), programs?.ToArray()), token).ConfigureAwait(false);
+                    sites?.ToArray(), programs?.ToArray()), CancellationToken.None).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
                 Set(SystemTunnelState.Running);
             }
             catch
