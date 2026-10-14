@@ -144,7 +144,11 @@ public partial class MainWindow
         if (session is null) return;
         systemStopping = true;
         if (!closed) UpdateControls();
-        try { await session.StopAsync().ConfigureAwait(true); }
+        try
+        {
+            await session.StopAsync().ConfigureAwait(true);
+            if (!closed && session.State == SystemTunnelState.Idle && DetailText.Text == "Отключаем VPN…") DetailText.Text = "VPN отключён.";
+        }
         // Прерванная сессия могла уже потерять канал помощника: закрытый канал — тот же отказ.
         catch (Exception ex) when (ex is UserError or IOException or TimeoutException or ObjectDisposedException)
         { if (!closed) DetailText.Text = "Системный режим остановлен не полностью. Проверьте сетевые настройки."; }
