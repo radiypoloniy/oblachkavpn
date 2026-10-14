@@ -82,6 +82,7 @@ public partial class MainWindow
         LoadPreviewProfiles(); CheckPreviewControls();
         CheckServiceControls(checks);
         CheckClientBlocks(checks);
+        CheckSpecialStates(checks);
         checks.Add("Synthetic subscription updates picker, actions and tray");
         for (var i = 0; i < 2; i++)
         {

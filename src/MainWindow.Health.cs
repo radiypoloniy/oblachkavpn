@@ -67,7 +67,7 @@ public partial class MainWindow
     {
         if (operation is not null || profile is null) return;
         var delay = recovery.NextDelay(DateTimeOffset.UtcNow);
-        if (delay is null) { DetailText.Text = "Автовосстановление исчерпало три попытки за две минуты. Подключи вручную."; nextHealthCheck = DateTimeOffset.MaxValue; return; }
+        if (delay is null) { networkClosed = SystemTunnelActive; DetailText.Text = "Автовосстановление исчерпало три попытки за две минуты. Подключитесь вручную."; nextHealthCheck = DateTimeOffset.MaxValue; RefreshHome(); return; }
         operation = new CancellationTokenSource(); engineOperation = true; findingRoute = true; UpdateControls();
         try
         {
@@ -87,9 +87,14 @@ public partial class MainWindow
                 RecordProbe(new(true, result.Attempts[^1].Milliseconds, "Соединение восстановлено"));
                 DetailText.Text = "Соединение восстановлено; выбран рабочий сервер.";
             }
-            else if (!closed) DetailText.Text = SystemTunnelActive
-                ? "Рабочий сервер не найден. Блокировка остаётся: выберите сервер и подключитесь или нажмите «Остановить»."
-                : "Рабочий сервер не найден. Автоподбор завершён; подключи вручную.";
+            else if (!closed)
+            {
+                // Под защитой сеть остаётся закрытой: главный экран покажет «Интернет закрыт».
+                networkClosed = SystemTunnelActive;
+                DetailText.Text = SystemTunnelActive
+                    ? "Рабочий сервер не найден. Блокировка остаётся: выберите сервер и подключитесь или нажмите «Остановить»."
+                    : "Рабочий сервер не найден. Автоподбор завершён; подключитесь вручную.";
+            }
         }
         catch (OperationCanceledException) { }
         catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }

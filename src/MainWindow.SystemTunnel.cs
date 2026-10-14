@@ -93,7 +93,8 @@ public partial class MainWindow
     private async Task StartSystemTunnelAsync(CancellationToken token)
     {
         if (profile is null) throw new UserError("Сначала выберите сервер.");
-        if (ForeignTunnel.Find() is { } foreign) throw new UserError(ForeignTunnel.Explain(foreign));
+        if (ForeignTunnel.Find() is { } foreign) { foreignVpn = foreign; throw new UserError(ForeignTunnel.Explain(foreign)); }
+        foreignVpn = null;
         // Прерванная сессия (помощник потерян) ещё держит свои объекты. Новая не должна
         // их перезаписать: иначе прежний помощник остался бы без владельца.
         if (systemTunnel is not null || helperLifetime is not null) await StopSystemTunnelAsync().ConfigureAwait(true);

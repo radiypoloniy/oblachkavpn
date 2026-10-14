@@ -19,6 +19,7 @@ public partial class MainWindow
         // Срок на главном экране: раньше он был виден только в настройках.
         var shortSummary = subscriptionMetadata?.ShortSummary(now);
         Home.PlanText.Text = string.IsNullOrWhiteSpace(shortSummary) ? "" : shortSummary;
+        ApplySubscriptionWarning();
 
         // Объявление панели. Текст чужой, поэтому он уже очищен и обрезан в SubscriptionMetadata,
         // показывается как обычный текст и только при наличии подписки сервиса.

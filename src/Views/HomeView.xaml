@@ -97,7 +97,60 @@
     </StackPanel>
 
     <!-- Объявление сервиса: одна строка, крестик скрывает до следующего нового объявления. -->
-    <Border x:Name="AnnounceCard" Grid.Row="2" Margin="14,0,14,8" MinHeight="40" Padding="12,6,4,6" CornerRadius="10" Background="{DynamicResource NB}" Visibility="Collapsed">
+    <!-- Особые состояния (экран 15): вместо списка серверов, пока ситуация не разрешится. -->
+    <StackPanel Grid.Row="2">
+      <Border x:Name="SubWarn" Margin="14,0,14,8" Padding="12,8,8,8" CornerRadius="10" Background="{DynamicResource SB}" Visibility="Collapsed">
+        <DockPanel>
+          <Button x:Name="SubWarnRenew" DockPanel.Dock="Right" Content="Продлить" Style="{StaticResource Plain}" Height="30" Padding="12,0" o:Ui.CornerRadius="8" Background="{DynamicResource SBtn}" Foreground="#2E2205" FontSize="12.5" FontWeight="SemiBold"/>
+          <TextBlock x:Name="SubWarnText" FontSize="12.5" Foreground="{DynamicResource SF}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        </DockPanel>
+      </Border>
+      <Border x:Name="ForeignCard" Margin="14,6,14,0" Padding="16" CornerRadius="14" Background="{DynamicResource WB}" Visibility="Collapsed">
+        <StackPanel>
+          <DockPanel>
+            <Path Data="{StaticResource IcoWarn}" Width="20" Height="20" Stretch="Uniform" Stroke="{DynamicResource WI}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" VerticalAlignment="Top" Margin="0,1,10,0"/>
+            <StackPanel>
+              <TextBlock x:Name="ForeignTitle" FontSize="14.5" FontWeight="SemiBold" Foreground="{DynamicResource Tx}" TextWrapping="Wrap"/>
+              <TextBlock x:Name="ForeignText" FontSize="13" Foreground="{DynamicResource WF}" TextWrapping="Wrap" Margin="0,4,0,0" LineHeight="19"/>
+            </StackPanel>
+          </DockPanel>
+          <Grid Margin="0,12,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/></Grid.ColumnDefinitions>
+            <Button x:Name="ForeignRetry" Content="Проверить снова" Style="{StaticResource BtnPrimary}" Height="36" o:Ui.CornerRadius="10" FontSize="13"/>
+            <Button x:Name="ForeignProxy" Grid.Column="2" Content="Только браузеры" Style="{StaticResource BtnOutline}" Height="36" o:Ui.CornerRadius="10" Background="{DynamicResource Bg}" BorderBrush="{DynamicResource WL}"/>
+          </Grid>
+        </StackPanel>
+      </Border>
+      <StackPanel x:Name="RecoveryCard" Margin="14,6,14,0" Visibility="Collapsed">
+        <Border CornerRadius="14" Background="{DynamicResource CardBg}" Padding="16,6">
+          <StackPanel>
+            <DockPanel Height="38">
+              <Border Width="20" Height="20" CornerRadius="10" Background="#D9731E" Margin="0,0,10,0"><TextBlock Text="!" Foreground="White" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+              <TextBlock x:Name="RecoveryRounds" DockPanel.Dock="Right" FontSize="13.5" Foreground="{DynamicResource Mu2}" VerticalAlignment="Center"/>
+              <TextBlock Text="Два сайта не ответили" FontSize="13.5" VerticalAlignment="Center"/>
+            </DockPanel>
+            <DockPanel Height="38">
+              <Ellipse x:Name="RecoverySpinner" Width="20" Height="20" Stroke="{DynamicResource Ac}" StrokeThickness="2" StrokeDashArray="8 4" Margin="0,0,10,0" RenderTransformOrigin="0.5,0.5">
+                <Ellipse.RenderTransform><RotateTransform x:Name="RecoverySpin"/></Ellipse.RenderTransform>
+              </Ellipse>
+              <TextBlock x:Name="RecoveryStep" Text="Ищем рабочий сервер" FontSize="13.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </DockPanel>
+            <DockPanel x:Name="RecoveryLockRow" Height="38">
+              <Path Data="{StaticResource IcoLock}" Width="20" Height="20" Stretch="Uniform" Stroke="{DynamicResource Mu}" StrokeThickness="2" Margin="0,0,10,0"/>
+              <TextBlock Text="Пока переключаемся, мимо VPN ничего не уходит" FontSize="13" Foreground="{DynamicResource Mu}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+            </DockPanel>
+          </StackPanel>
+        </Border>
+        <Button x:Name="RecoveryStop" Content="Остановить" Style="{StaticResource BtnSecondary}" Height="36" o:Ui.CornerRadius="10" FontSize="13" Margin="0,12,0,0"/>
+      </StackPanel>
+      <Border x:Name="ClosedCard" Margin="14,6,14,0" Padding="16" CornerRadius="14" Background="{DynamicResource EB}" Visibility="Collapsed">
+        <StackPanel>
+          <TextBlock Text="Не удалось найти рабочий сервер. Ничего не утекло мимо туннеля, но и сайты сейчас не открываются." FontSize="13" Foreground="{DynamicResource EF}" TextWrapping="Wrap" LineHeight="19"/>
+          <Button x:Name="ClosedPick" Content="Выбрать другой сервер" Style="{StaticResource BtnPrimary}" Height="36" o:Ui.CornerRadius="10" FontSize="13" Margin="0,12,0,0"/>
+          <Button x:Name="ClosedOff" Content="Выключить VPN и открыть интернет" Style="{StaticResource BtnOutline}" Height="36" o:Ui.CornerRadius="10" Margin="0,8,0,0" Background="{DynamicResource Bg}" BorderBrush="{DynamicResource EL}" Foreground="{DynamicResource RF}"/>
+        </StackPanel>
+      </Border>
+      <Border x:Name="AnnounceCard" Margin="14,0,14,8" MinHeight="40" Padding="12,6,4,6" CornerRadius="10" Background="{DynamicResource NB}" Visibility="Collapsed">
       <DockPanel>
         <Path DockPanel.Dock="Left" Data="{StaticResource IcoSpeaker}" Width="16" Height="16" Stretch="Uniform" Stroke="{DynamicResource Ac}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Margin="0,0,10,0" VerticalAlignment="Center"/>
         <Button x:Name="AnnounceClose" DockPanel.Dock="Right" Style="{StaticResource SmallIconButton}" AutomationProperties.Name="Скрыть объявление" VerticalAlignment="Center">
@@ -106,9 +159,10 @@
         <TextBlock x:Name="AnnounceText" FontSize="12.5" Foreground="{DynamicResource NF}" TextWrapping="Wrap" VerticalAlignment="Center" LineHeight="17"/>
       </DockPanel>
     </Border>
+    </StackPanel>
 
     <!-- Серверы: автовыбор, избранные и выбранный. -->
-    <DockPanel Grid.Row="3" Margin="10,0">
+    <DockPanel x:Name="ServerSection" Grid.Row="3" Margin="10,0">
       <DockPanel DockPanel.Dock="Top" Height="30" Margin="10,0,4,2">
         <Button x:Name="AllServersButton" DockPanel.Dock="Right" Style="{StaticResource BtnLink}" AutomationProperties.Name="Все серверы">
           <StackPanel Orientation="Horizontal">

@@ -46,6 +46,17 @@ public static class ForeignTunnel
         (type == PropVirtual || type == (int)NetworkInterfaceType.Ppp ||
          description.Contains("TAP-", StringComparison.OrdinalIgnoreCase));
 
+    // Название программы вместо имени адаптера: «Throne», а не «throne-tun».
+    public static string FriendlyName(string adapter)
+    {
+        var name = adapter.ToLowerInvariant();
+        (string Key, string Title)[] known = [("throne", "Throne"), ("nekobox", "NekoBox"), ("nekoray", "NekoRay"), ("hiddify", "Hiddify"),
+            ("amnezia", "AmneziaVPN"), ("wireguard", "WireGuard"), ("wg", "WireGuard"), ("openvpn", "OpenVPN"), ("tap", "OpenVPN"),
+            ("outline", "Outline"), ("clash", "Clash"), ("mihomo", "Clash"), ("v2ray", "v2rayN"), ("happ", "Happ"), ("proton", "Proton VPN")];
+        foreach (var (key, title) in known) if (name.Contains(key, StringComparison.Ordinal)) return title;
+        return "«" + adapter + "»";
+    }
+
     public static string Explain(string adapter) =>
         "Включён другой VPN (адаптер «" + adapter + "»), и он забирает весь трафик в свой туннель. " +
         "Вместе с ним системный режим не работает: каждый VPN закрывает DNS другого, и сайты не открываются. " +

@@ -36,6 +36,7 @@ public partial class MainWindow
         toastTimer.Tick += (_, _) => { toastTimer.Stop(); Toast.Visibility = Visibility.Collapsed; };
         DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock)).AddValueChanged(ShellFeedback, (_, _) => ShowToast());
         ThemeManager.Changed += RefreshHome;
+        WireStates();
     }
 
     private string SessionDuration => sessionStarted is null ? "0:00:00" : (DateTimeOffset.UtcNow - sessionStarted.Value).ToString(@"h\:mm\:ss");
@@ -68,6 +69,7 @@ public partial class MainWindow
         Home.CheckChip.SetResourceReference(Border.BackgroundProperty, checkedOk ? "OkB" : "Field");
         Home.CheckText.SetResourceReference(TextBlock.ForegroundProperty, checkedOk ? "OkF" : "Mu2");
         Home.CheckIcon.Visibility = checkedOk ? Visibility.Visible : Visibility.Collapsed;
+        ApplySpecialState(running);
 
         Home.AllServersText.Text = "Все " + importedProfiles.Count;
         // Список меняется, только если изменилось видимое: иначе ежесекундное обновление

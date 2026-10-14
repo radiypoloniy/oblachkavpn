@@ -79,6 +79,7 @@ public partial class MainWindow
         LoadPreviewProfiles();
         CheckPreviewControls();
         if (page == "servers") LoadServerPreview();
+        if (page is "foreign" or "closed" or "recovery" or "subscription") PrepareStatePreview(page);
         Navigate(page switch { "servers" => "Servers", "routes" => "Routes", "diagnostics" => "Diagnostics", _ => "Connection" });
         if (page is "settings" or "rules" or "storage" or "help") SettingsClick(this, new RoutedEventArgs());
         if (page is "rules" or "storage" or "help") Settings.ShowTab(page switch { "rules" => 1, "storage" => 2, _ => 3 });
