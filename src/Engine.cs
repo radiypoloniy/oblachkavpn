@@ -18,7 +18,15 @@ public sealed class Engine : ITunnelController
     private bool stopping;
     private int preferredPort;
     public int Port { get; private set; }
-    public int? ProcessId => process is { HasExited: false } ? process.Id : null;
+    public int? ProcessId => Alive(process, null) is { } p ? p.Id : null;
+
+    // Процесс жив и тот же. Поле читается один раз: его может обнулить остановка с другого потока,
+    // а у остановленного процесса HasExited бросает исключение.
+    private static Process? Alive(Process? candidate, int? pid)
+    {
+        try { return candidate is { HasExited: false } && (pid is null || candidate.Id == pid) ? candidate : null; }
+        catch (InvalidOperationException) { return null; }
+    }
     public ConnectionState State { get; private set; }
     public event Action<ConnectionState, string>? Changed;
 #if TEST_HOOKS
@@ -83,26 +91,27 @@ public sealed class Engine : ITunnelController
             }
             token.ThrowIfCancellationRequested();
             Set(ConnectionState.Starting, "Запускаем " + adapter.Label);
-            job = new ProcessJob();
-            process = new Process { StartInfo = StartInfo(adapter.RunArguments), EnableRaisingEvents = true };
-            process.Exited += OnExited;
-            process.Start();
-            try { job.Attach(process); } catch { TryKill(process); throw; }
+            var startedJob = new ProcessJob(); job = startedJob;
+            var started = new Process { StartInfo = StartInfo(adapter.RunArguments), EnableRaisingEvents = true };
+            process = started;
+            started.Exited += OnExited;
+            started.Start();
+            try { startedJob.Attach(started); } catch { TryKill(started); throw; }
 #if TEST_HOOKS
-            process.OutputDataReceived += (_, args) => { if (args.Data is not null) FixtureTrace?.Invoke(args.Data); };
-            process.ErrorDataReceived += (_, args) => { if (args.Data is not null) FixtureTrace?.Invoke(args.Data); };
+            started.OutputDataReceived += (_, args) => { if (args.Data is not null) FixtureTrace?.Invoke(args.Data); };
+            started.ErrorDataReceived += (_, args) => { if (args.Data is not null) FixtureTrace?.Invoke(args.Data); };
 #endif
             // Потоки ядра всё равно вычитываются: без этого процесс может заблокироваться на записи.
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-            await process.StandardInput.WriteAsync(config.AsMemory(), token);
-            process.StandardInput.Close();
+            started.BeginOutputReadLine();
+            started.BeginErrorReadLine();
+            await started.StandardInput.WriteAsync(config.AsMemory(), token);
+            started.StandardInput.Close();
             using var startup = CancellationTokenSource.CreateLinkedTokenSource(token);
             startup.CancelAfter(TimeSpan.FromSeconds(8));
             while (true)
             {
                 startup.Token.ThrowIfCancellationRequested();
-                if (process.HasExited) throw new UserError("Ядро завершилось при запуске. Проверьте профиль или попробуйте другой локальный порт.");
+                if (!ReferenceEquals(Alive(process, null), started)) throw new UserError("Ядро завершилось при запуске. Проверьте профиль или попробуйте другой локальный порт.");
                 try
                 {
                     using var client = new TcpClient();
@@ -118,7 +127,7 @@ public sealed class Engine : ITunnelController
                 await Task.Delay(100, startup.Token);
             }
             token.ThrowIfCancellationRequested();
-            if (process.HasExited) throw new UserError("Ядро завершилось при запуске.");
+            if (!ReferenceEquals(Alive(process, null), started)) throw new UserError("Ядро завершилось при запуске.");
             Set(ConnectionState.Running, "Локальный прокси готов. Туннель ещё не проверен.");
         }
         catch (OperationCanceledException) { Stop(); throw; }
@@ -128,8 +137,8 @@ public sealed class Engine : ITunnelController
 
     public async Task<ProbeResult> ProbeAsync(Uri target, CancellationToken token)
     {
-        if (process is null || process.HasExited) throw new UserError("Сначала запустите подключение.");
-        var pid = process.Id;
+        if (Alive(process, null) is not { } current) throw new UserError("Сначала запустите подключение.");
+        var pid = current.Id;
         var port = Port;
         var watch = Stopwatch.StartNew();
         using var handler = new SocketsHttpHandler
@@ -143,7 +152,7 @@ public sealed class Engine : ITunnelController
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, target);
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
-            if (process is null || process.HasExited || process.Id != pid) throw new UserError("Подключение остановлено во время проверки.");
+            if (Alive(process, pid) is null) throw new UserError("Подключение остановлено во время проверки.");
             if (!response.IsSuccessStatusCode)
             {
                 Set(ConnectionState.Running, "Сайт проверки вернул ошибку; это не доказывает отказ всего туннеля.");
@@ -155,7 +164,7 @@ public sealed class Engine : ITunnelController
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            if (process is { HasExited: false } && process.Id == pid) Set(ConnectionState.Running, "Ядро работает, но запрос через туннель не выполнен.");
+            if (Alive(process, pid) is not null) Set(ConnectionState.Running, "Ядро работает, но запрос через туннель не выполнен.");
             return new(false, watch.ElapsedMilliseconds, "Запрос не прошёл. Причина может быть в профиле, сервере, сети или выбранном сайте.", ProbeFailure.Reachability);
         }
     }
@@ -172,17 +181,20 @@ public sealed class Engine : ITunnelController
     {
         if (!stopping && ReferenceEquals(sender, process)) Set(ConnectionState.Failed, adapter.Label + " неожиданно остановился. Остановите подключение и запустите его заново.");
     }
+    // Останавливают с разных потоков: окно (подбор, кнопка) и сессия системного режима.
+    // Процесс и задание забираются атомарно — второй вызов видит null, а не полуразобранный
+    // объект (раньше это роняло окно NullReferenceException при автовосстановлении).
     public void Stop()
     {
         stopping = true;
-        if (process is not null)
+        var running = Interlocked.Exchange(ref process, null);
+        if (running is not null)
         {
-            process.Exited -= OnExited;
-            TryKill(process);
-            process.Dispose();
-            process = null;
+            running.Exited -= OnExited;
+            TryKill(running);
+            running.Dispose();
         }
-        job?.Dispose(); job = null;
+        Interlocked.Exchange(ref job, null)?.Dispose();
         Port = 0;
         Set(ConnectionState.Idle, "Подключение остановлено");
     }
