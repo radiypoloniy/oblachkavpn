@@ -173,6 +173,18 @@ public static partial class SelfTests
             Assert(recovered!.State == NetworkSessionState.Released);
             Assert(recovered.Changes.All(c => c.State == NetworkChangeState.Restored));
         }));
+        await check("Another VPN is recognised by the adapter that carries internet traffic", () => Sync(() =>
+        {
+            // Throne, WireGuard, sing-box — wintun (тип 53); OpenVPN — TAP; встроенный VPN — PPP.
+            Assert(ForeignTunnel.IsForeign("throne-tun", 53, "sing-tun Tunnel"));
+            Assert(ForeignTunnel.IsForeign("OpenVPN", 6, "TAP-Windows Adapter V9"));
+            Assert(ForeignTunnel.IsForeign("Работа", (int)System.Net.NetworkInformation.NetworkInterfaceType.Ppp, "WAN Miniport (IKEv2)"));
+            // Свой туннель и обычные сети не в счёт, в том числе Hyper-V с внешним коммутатором.
+            Assert(!ForeignTunnel.IsForeign(WindowsTunnelBackend.InterfaceName(Guid.NewGuid()), 53, "sing-tun Tunnel"));
+            Assert(!ForeignTunnel.IsForeign("Беспроводная сеть", 71, "Intel(R) Wi-Fi 6E AX210 160MHz"));
+            Assert(!ForeignTunnel.IsForeign("vEthernet (External)", 6, "Hyper-V Virtual Ethernet Adapter"));
+            Assert(ForeignTunnel.Explain("throne-tun").Contains("«throne-tun»", StringComparison.Ordinal));
+        }));
         await Task.CompletedTask;
     }
 }
