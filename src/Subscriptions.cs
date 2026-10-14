@@ -117,9 +117,10 @@ public static class Subscriptions
         var title = SubscriptionMetadata.DecodeText(Header("profile-title"));
         var announce = SubscriptionMetadata.DecodeText(Header("announce"));
         var interval = SubscriptionMetadata.ParseUpdateInterval(Header("profile-update-interval"));
-        if (usage is null && title is null && announce is null && interval is null) return null;
+        var routing = RoutingProfile.ParseHapp(Header("routing"));
+        if (usage is null && title is null && announce is null && interval is null && routing is null) return null;
         return (usage ?? new SubscriptionMetadata(null, null, null, null))
-            with { Title = title, Announce = announce, UpdateInterval = interval };
+            with { Title = title, Announce = announce, UpdateInterval = interval, Routing = routing };
     }
 
     public static async Task<ImportResult> FetchAsync(string url, CancellationToken token, int? socksPort = null)

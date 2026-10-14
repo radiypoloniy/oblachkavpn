@@ -159,6 +159,17 @@
         <TextBlock x:Name="AnnounceText" FontSize="12.5" Foreground="{DynamicResource NF}" TextWrapping="Wrap" VerticalAlignment="Center" LineHeight="17"/>
       </DockPanel>
     </Border>
+    <!-- Сервис прислал маршрутизацию (заголовок routing): предложение включить и скачать базы. -->
+    <Border x:Name="RoutingOffer" Margin="20,0,20,14" Padding="14,12,14,12" CornerRadius="12" Background="{DynamicResource CardBg}" Visibility="Collapsed">
+      <StackPanel>
+        <TextBlock x:Name="RoutingOfferTitle" Text="Сервис предлагает маршрутизацию" FontSize="13.5" FontWeight="SemiBold"/>
+        <TextBlock x:Name="RoutingOfferText" FontSize="12.5" Foreground="{DynamicResource Mu}" TextWrapping="Wrap" LineHeight="17" Margin="0,4,0,10"/>
+        <StackPanel Orientation="Horizontal">
+          <Button x:Name="RoutingOfferAccept" Content="Включить" Style="{StaticResource BtnPrimary}" Height="32" Padding="14,0" o:Ui.CornerRadius="8" FontSize="12.5"/>
+          <Button x:Name="RoutingOfferDecline" Content="Не надо" Style="{StaticResource BtnGhost}" Height="32" Padding="12,0" Margin="6,0,0,0" FontSize="12.5"/>
+        </StackPanel>
+      </StackPanel>
+    </Border>
     </StackPanel>
 
     <!-- Серверы: автовыбор, избранные и выбранный. -->

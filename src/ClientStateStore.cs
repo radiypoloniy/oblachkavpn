@@ -34,6 +34,11 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public ProgramRule[] ProgramRules { get; init; } = Array.Empty<ProgramRule>();
     public ServerMeasurement[] Measurements { get; init; } = Array.Empty<ServerMeasurement>();
     public string[] Favorites { get; init; } = Array.Empty<string>();
+    // Маршрутизация сервиса (последняя присланная), решение по ней (нет значения — ещё не
+    // спрашивали) и встроенный набор «Российские сайты напрямую».
+    public RoutingProfile? ProviderRouting { get; init; }
+    public bool? UseProviderRouting { get; init; }
+    public bool RussiaDirect { get; init; }
 }
 
 // The OS binds the encrypted file to the current Windows user. Never stage plaintext on disk.

@@ -20,7 +20,7 @@ public partial class MainWindow
         var target = profile;
         manualStop = false;
         // Правила сайтов: в обычном режиме — у ядра подключения, в системном — у ядра туннеля.
-        if (engine is Engine core) core.SiteRules = SystemTunnelWanted ? Array.Empty<SiteRule>() : siteRules.ToArray();
+        if (engine is Engine core) { core.SiteRules = SystemTunnelWanted ? Array.Empty<SiteRule>() : siteRules.ToArray(); core.Routing = CurrentRouting(); }
         operation = new CancellationTokenSource();
         engineOperation = true;
         UpdateControls();

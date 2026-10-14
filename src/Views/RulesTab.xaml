@@ -53,10 +53,36 @@
     </Border>
 
     <Grid DockPanel.Dock="Top" Margin="0,10,0,0">
-      <DockPanel x:Name="SiteInput">
+      <StackPanel x:Name="SiteInput">
+      <!-- Списки: встроенный «Российские сайты напрямую» и маршрутизация сервиса. Категории
+           разворачиваются из баз адресов, которые скачиваются по согласию. -->
+      <Border CornerRadius="12" Background="{DynamicResource CardBg}" Padding="12,10,12,10" Margin="0,0,0,10">
+        <StackPanel>
+          <DockPanel>
+            <CheckBox x:Name="RussiaDirect" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Российские сайты напрямую"/>
+            <StackPanel>
+              <TextBlock Text="Российские сайты напрямую" FontSize="13.5" FontWeight="SemiBold"/>
+              <TextBlock Text="Госуслуги, банки, маркетплейсы и почти весь рунет — без VPN" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap"/>
+            </StackPanel>
+          </DockPanel>
+          <DockPanel x:Name="ProviderRoutingRow" Margin="0,10,0,0" Visibility="Collapsed">
+            <CheckBox x:Name="ProviderRouting" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Маршрутизация сервиса"/>
+            <StackPanel>
+              <TextBlock x:Name="ProviderRoutingTitle" Text="Правила сервиса" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+              <TextBlock x:Name="ProviderRoutingText" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap"/>
+            </StackPanel>
+          </DockPanel>
+          <DockPanel Margin="0,10,0,0">
+            <Button x:Name="GeoButton" DockPanel.Dock="Right" Content="Скачать" Style="{StaticResource BtnLink}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            <TextBlock x:Name="GeoStatus" Text="Базы адресов не скачаны" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+          </DockPanel>
+        </StackPanel>
+      </Border>
+      <DockPanel>
         <Button x:Name="AddRuleButton" DockPanel.Dock="Right" Content="Добавить" Style="{StaticResource BtnPrimary}" Height="38" Padding="14,0" o:Ui.CornerRadius="10" FontSize="13" Margin="8,0,0,0"/>
         <TextBox x:Name="RuleDomain" Style="{StaticResource FieldBox}" Height="38" Tag="example.com — с поддоменами" FontSize="13.5" AutomationProperties.Name="Новое правило для сайта"/>
       </DockPanel>
+      </StackPanel>
       <!-- Программы выбираются из списка компьютера (AppPicker), а не вписываются именем файла. -->
       <StackPanel x:Name="ProgramInput" Visibility="Collapsed">
         <Button x:Name="ChooseProgramsButton" Style="{StaticResource BtnPrimary}" Height="40" o:Ui.CornerRadius="10" FontSize="13.5">

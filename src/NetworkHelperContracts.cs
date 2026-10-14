@@ -13,16 +13,19 @@ public sealed record NetworkLeaseRequest(
     [property: JsonRequired] int LoopbackPort,
     [property: JsonRequired] string[] PeerAddresses,
     SiteRule[]? Sites = null,
-    ProgramRule[]? Programs = null);
+    ProgramRule[]? Programs = null,
+    // Ядро окна само отправляет часть трафика напрямую (списки маршрутизации). Этот трафик
+    // возвращается в туннель, и ядро туннеля выпускает его наружу по пути ядра Облачков.
+    bool? CoreDirect = null);
 // Правила сайтов и программ — ограниченные данные: домены и имена .exe без путей,
 // проверенные теми же правилами, что и в окне. Конфигурацию ядра помощник строит сам.
 public sealed record ValidatedNetworkLease(Guid LeaseId, NetworkLeaseAction Action, int LoopbackPort, IReadOnlyList<IPAddress> Peers,
-    IReadOnlyList<SiteRule>? Sites = null, IReadOnlyList<ProgramRule>? Programs = null)
+    IReadOnlyList<SiteRule>? Sites = null, IReadOnlyList<ProgramRule>? Programs = null, bool CoreDirect = false)
 {
     public IReadOnlyList<SiteRule> SiteRules => Sites ?? Array.Empty<SiteRule>();
     public IReadOnlyList<ProgramRule> ProgramRules => Programs ?? Array.Empty<ProgramRule>();
     // Есть ли трафик, который пользователь сам отправил мимо туннеля.
-    public bool HasDirect => SiteRules.Any(r => r.Action == SiteAction.Direct) || ProgramRules.Any(r => r.Action == SiteAction.Direct);
+    public bool HasDirect => CoreDirect || SiteRules.Any(r => r.Action == SiteAction.Direct) || ProgramRules.Any(r => r.Action == SiteAction.Direct);
 }
 
 // A future privileged helper accepts bounded network intent, never profiles, tokens or shell commands.
@@ -58,7 +61,7 @@ public static class NetworkHelperContracts
             throw new UserError("Неверная версия или идентификатор сетевой сессии.");
         if (request.Action == NetworkLeaseAction.Release)
         {
-            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 })
+            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 } || request.CoreDirect == true)
                 throw new UserError("Завершение сессии не принимает сетевые параметры.");
             return new(request.LeaseId, request.Action, 0, Array.Empty<IPAddress>());
         }
@@ -84,6 +87,6 @@ public static class NetworkHelperContracts
         var programs = request.Programs ?? Array.Empty<ProgramRule>();
         RoutingPlan.Validate(sites);
         ProgramRoutingPlan.Validate(programs);
-        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs);
+        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs, request.CoreDirect == true);
     }
 }

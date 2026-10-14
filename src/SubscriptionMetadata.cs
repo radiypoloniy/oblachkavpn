@@ -9,6 +9,8 @@ public sealed record SubscriptionMetadata(long? Upload, long? Download, long? To
     public string? Title { get; init; }
     public string? Announce { get; init; }
     public TimeSpan? UpdateInterval { get; init; }
+    // Маршрутизация сервиса из заголовка routing (формат Happ). Включается только с согласия.
+    public RoutingProfile? Routing { get; init; }
 
     public const int MaxTextLength = 300;
     public static readonly TimeSpan MinUpdateInterval = TimeSpan.FromMinutes(30);

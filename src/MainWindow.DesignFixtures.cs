@@ -93,6 +93,15 @@ public partial class MainWindow
         CheckPreviewControls();
         if (page == "servers") { LoadServerPreview(); LoadPingPreview(); }
         if (page is "foreign" or "closed" or "recovery" or "subscription") PrepareStatePreview(page);
+        if (page is "routing-offer" or "rules-lists")
+        {
+            var header = "happ://routing/add/" + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+                "{\"Name\":\"Облачка/рутинг\",\"DirectSites\":[\"domain:.ru\",\"geosite:category-ru\"],\"DirectIp\":[\"10.0.0.0/8\"]}"));
+            ReceiveRouting(RoutingProfile.ParseHapp(header)!);
+            if (page == "rules-lists") { useProviderRouting = true; Routes.RussiaDirect.IsChecked = true; RefreshRouting(); SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(1); }
+            else Navigate("Connection");
+            return;
+        }
         if (page is "apps" or "apps-rules")
         {
             // Настоящий каталог этого компьютера, собранный сразу: снимок делается синхронно.

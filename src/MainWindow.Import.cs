@@ -34,6 +34,7 @@ public partial class MainWindow
             subscriptionMetadata = result.Metadata;
         }
         else externalProfiles = result.Profiles;
+        if (result.Metadata?.Routing is { } routing) ReceiveRouting(routing);
         ApplyProfiles(preserveSelection);
         DetailText.Text = $"Добавлено подключений: {result.Profiles.Count}.";
         if (result.Unsupported + result.Invalid > 0) DetailText.Text += $" Пропущено: неподдерживаемых {result.Unsupported}, некорректных {result.Invalid}.";

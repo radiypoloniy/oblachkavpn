@@ -32,7 +32,9 @@ public static class RoutingPlan
         foreach (var rule in rules)
             if (rule is null || Create(rule.Domain, rule.Action).Domain != rule.Domain || !seen.Add(rule.Domain)) throw new UserError("Правила повреждены или повторяются.");
     }
-    public static JsonObject Compile(CoreAdapter adapter, Profile profile, int port, IReadOnlyList<SiteRule> rules)
+    // routing — списки сервиса и встроенные наборы (CompiledRouting). Идут после правил
+    // пользователя: явное правило сайта сильнее списка.
+    public static JsonObject Compile(CoreAdapter adapter, Profile profile, int port, IReadOnlyList<SiteRule> rules, CompiledRouting? routing = null)
     {
         Validate(rules);
         if (profile.Core != adapter.Kind) throw new UserError("Ядро не соответствует профилю.");
@@ -40,8 +42,19 @@ public static class RoutingPlan
         var outbounds = (JsonArray)config["outbounds"]!;
         var xray = adapter.Kind == CoreKind.Xray;
         var tunnelTag = outbounds[0]!["tag"]!.GetValue<string>();
-        if (rules.Any(r => r.Action == SiteAction.Direct)) outbounds.Add(xray ? new JsonObject { ["tag"] = "user-direct", ["protocol"] = "freedom" } : new JsonObject { ["tag"] = "user-direct", ["type"] = "direct" });
-        if (xray && rules.Any(r => r.Action == SiteAction.Block)) outbounds.Add(new JsonObject { ["tag"] = "user-block", ["protocol"] = "blackhole" });
+        if (routing is { IsEmpty: true }) routing = null;
+        if (rules.Any(r => r.Action == SiteAction.Direct) || routing?.HasDirect == true)
+            outbounds.Add(xray ? new JsonObject { ["tag"] = "user-direct", ["protocol"] = "freedom" } : new JsonObject { ["tag"] = "user-direct", ["type"] = "direct" });
+        if (xray && (rules.Any(r => r.Action == SiteAction.Block) || routing?.Block.IsEmpty == false))
+            outbounds.Add(new JsonObject { ["tag"] = "user-block", ["protocol"] = "blackhole" });
+        // В системном режиме ядро получает из туннеля соединения по IP: имя сайта берётся из
+        // TLS/HTTP/QUIC (sniffing), иначе списки доменов не сработали бы. Маршрут — по имени,
+        // соединение — на исходный адрес (routeOnly), чтобы не делать лишний DNS.
+        if (routing is not null || rules.Count > 0)
+        {
+            if (xray) config["inbounds"]![0]!["sniffing"] = new JsonObject { ["enabled"] = true, ["destOverride"] = new JsonArray("http", "tls", "quic"), ["routeOnly"] = true };
+            else ((JsonArray)config["route"]!["rules"]!).Insert(0, new JsonObject { ["action"] = "sniff" });
+        }
         var compiled = new JsonArray();
         foreach (var rule in rules.OrderByDescending(r => r.Domain.Count(c => c == '.')))
         {
@@ -52,15 +65,24 @@ public static class RoutingPlan
                     ? new JsonObject { ["domain_suffix"] = new JsonArray(rule.Domain), ["action"] = "reject" }
                     : new JsonObject { ["domain_suffix"] = new JsonArray(rule.Domain), ["outbound"] = destination });
         }
+        if (routing is not null)
+            foreach (var node in xray ? routing.XrayRules(tunnelTag, "user-direct", "user-block") : routing.SingBoxRules(tunnelTag, "user-direct"))
+                compiled.Add(node!.DeepClone());
         var route = (JsonObject)config[xray ? "routing" : "route"]!;
         // Правила ядра идут впереди пользовательских: для sing-box это перехват DNS.
         var original = (JsonArray)route["rules"]!;
         if (xray)
         {
             foreach (var node in original) compiled.Add(node!.DeepClone());
+            // Списки без «всё остальное через VPN»: последнее правило уводит прочее напрямую.
+            if (routing is { GlobalProxy: false }) compiled[^1]!["outboundTag"] = "user-direct";
             route["rules"] = compiled;
         }
-        else foreach (var node in compiled) original.Add(node!.DeepClone());
+        else
+        {
+            foreach (var node in compiled) original.Add(node!.DeepClone());
+            if (routing is { GlobalProxy: false }) route["final"] = "user-direct";
+        }
         return config;
     }
 }

@@ -110,7 +110,7 @@ public partial class MainWindow
         systemTunnel = session;
         // Правила сайтов и программ исполняет ядро туннеля у помощника; ядро окна в этом
         // режиме правил не несёт (Engine.SiteRules пуст), иначе «напрямую» шло бы из него.
-        await session.StartWithSparesAsync(plans, token, siteRules.ToArray(), programRules.ToArray()).ConfigureAwait(true);
+        await session.StartWithSparesAsync(plans, token, siteRules.ToArray(), programRules.ToArray(), (engine as Engine)?.Routing?.HasDirect == true).ConfigureAwait(true);
     }
 
     // Выбранный узел первым, затем запасные в том порядке, в каком их переберёт подбор.

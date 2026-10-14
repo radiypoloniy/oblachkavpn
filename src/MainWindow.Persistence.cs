@@ -34,7 +34,8 @@ public partial class MainWindow
         Settings.StayInTray.IsChecked == true, AutoRecover.IsChecked == true)
         { SelectedName = profile?.Name, ExternalSources = externalSources.ToArray(), AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, CloseToTray = Settings.StayInTray.IsChecked == true, SystemTunnel = Settings.SystemTunnel.IsChecked == true, Theme = ThemeManager.Choice, Metadata = subscriptionMetadata, RouteRules = siteRules.ToArray(), ProgramRules = programRules.ToArray(),
             Favorites = favorites.Where(f => importedProfiles.Any(p => FavoriteKey(p) == f)).Take(Subscriptions.MaxProfiles).ToArray(),
-            Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray() };
+            Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
+            ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = Routes.RussiaDirect.IsChecked == true };
 
     private void SaveStateClick(object sender, RoutedEventArgs args)
     {
@@ -82,6 +83,10 @@ public partial class MainWindow
         programRules.Clear(); programRules.AddRange(snapshot.ProgramRules); RefreshRules();
         measurements.Clear(); foreach (var measurement in snapshot.Measurements) measurements[measurement.Fingerprint] = measurement;
         favorites.Clear(); foreach (var favorite in snapshot.Favorites) favorites.Add(favorite);
+        // Профиль из файла проверяется так же, как присланный сервисом.
+        providerRouting = snapshot.ProviderRouting?.Normalized(); useProviderRouting = snapshot.UseProviderRouting;
+        Routes.RussiaDirect.IsChecked = snapshot.RussiaDirect;
+        RefreshRouting();
         // Снимок хранит оба набора вперемешку: раскладываем обратно по источникам.
         serviceProfiles = restored.Where(p => p.IsService).ToArray();
         externalProfiles = restored.Where(p => !p.IsService).ToArray();

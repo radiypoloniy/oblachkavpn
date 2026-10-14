@@ -131,8 +131,11 @@ public partial class MainWindow
         if (host.Length == 0) { Routes.WhereResult.Text = ""; return; }
         var rule = siteRules.Where(r => host == r.Domain || host.EndsWith("." + r.Domain, StringComparison.Ordinal))
             .OrderByDescending(r => r.Domain.Length).FirstOrDefault();
-        Routes.WhereResult.Text = "→ " + RuleRow.ActionLabel(rule?.Action ?? SiteAction.Tunnel) + (rule is null ? "" : " · " + rule.Domain);
-        Routes.WhereResult.SetResourceReference(TextBlock.ForegroundProperty, (rule?.Action ?? SiteAction.Tunnel) switch
+        // Правило пользователя сильнее списков; списки — сильнее «всё остальное через VPN».
+        var listed = rule is null ? whereRouting?.Decide(host) : null;
+        var action = rule?.Action ?? listed ?? SiteAction.Tunnel;
+        Routes.WhereResult.Text = "→ " + RuleRow.ActionLabel(action) + (rule is not null ? " · " + rule.Domain : listed is not null ? " · по спискам" : "");
+        Routes.WhereResult.SetResourceReference(TextBlock.ForegroundProperty, action switch
         { SiteAction.Direct => "OkF", SiteAction.Block => "RF", _ => "Ac" });
     }
 }
