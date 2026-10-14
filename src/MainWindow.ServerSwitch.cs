@@ -29,8 +29,8 @@ public partial class MainWindow
     private void QueueServerSwitch()
     {
         if (restoringState || closed || !ConnectionActive) return;
-        // Программная смена выбора (подбор, восстановление) идёт внутри своей операции.
-        if (operation is not null && !backgroundCheck) return;
+        // Подбор сам меняет выбор, это не просьба человека переключиться.
+        if (findingRoute) return;
         switchTimer ??= CreateSwitchTimer();
         switchTimer.Stop();
         if (!SwitchPending) return;

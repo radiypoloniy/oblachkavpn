@@ -15,6 +15,9 @@ public partial class MainWindow
     private async Task ConnectCoreAsync()
     {
         if (vmTestActive || profile is null || operation is not null) return;
+        // Что запускаем, фиксируется сразу: выбор в списке может смениться, пока идёт запуск,
+        // и тогда переключение на новый выбор выполнится следом (QueueServerSwitch).
+        var target = profile;
         manualStop = false;
         // Правила сайтов: в обычном режиме — у ядра подключения, в системном — у ядра туннеля.
         if (engine is Engine core) core.SiteRules = SystemTunnelWanted ? Array.Empty<SiteRule>() : siteRules.ToArray();
@@ -31,27 +34,27 @@ public partial class MainWindow
             {
                 await session.SwitchAsync(profile, operation.Token);
                 nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
-                runningProfile = profile;
+                runningProfile = target;
                 if (!closed) DetailText.Text = "Подключено к " + profile.DisplayName + ". Блокировка не снималась.";
             }
             else if (SystemTunnelWanted)
             {
                 await StartSystemTunnelAsync(operation.Token);
                 nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
-                runningProfile = profile;
+                runningProfile = target;
                 if (!closed) DetailText.Text = "Системный режим запущен: весь трафик идёт через туннель.";
             }
             else
             {
                 await engine.StartAsync(profile, operation.Token);
                 nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
-                runningProfile = profile;
+                runningProfile = target;
                 if (!closed) DetailText.Text = "Подключение запущено. Проверьте туннель в диагностике.";
             }
         }
         catch (OperationCanceledException) { if (!closed) DetailText.Text = "Запуск отменён или истёк срок ожидания. Можно попробовать снова."; }
         catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }
-        finally { if (manualStop) engine.Stop(); operation.Dispose(); operation = null; engineOperation = false; if (!closed) { UpdateControls(); if (engine.State == ConnectionState.Failed) ScheduleRecovery(); } }
+        finally { if (manualStop) engine.Stop(); operation.Dispose(); operation = null; engineOperation = false; if (!closed) { UpdateControls(); if (engine.State == ConnectionState.Failed) ScheduleRecovery(); else QueueServerSwitch(); } }
     }
     private void StopClick(object sender, RoutedEventArgs args)
     {

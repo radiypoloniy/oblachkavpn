@@ -110,7 +110,9 @@ public partial class MainWindow : Window
         // Подбор переключает узел, поэтому доступен только внутри своего сервиса.
         FindRouteButton.IsEnabled = profile is { IsService: true } && operation is null;
         // Сервер можно сменить и при работающем подключении: выбор сразу переключает на него.
-        ProfilePicker.IsEnabled = operation is null || backgroundCheck;
+        // Список закрыт только на время подбора: он сам выбирает сервер. Выбор во время запуска
+        // или проверки запоминается и выполняется, как только они закончатся.
+        ProfilePicker.IsEnabled = !findingRoute;
         ProbeButton.IsEnabled = engine.ProcessId is not null && operation is null;
         ProbeUrl.IsEnabled = operation is null;
         CopyEndpointButton.IsEnabled = engine.ProcessId is not null;
