@@ -37,7 +37,7 @@ public partial class MainWindow
         string? url = null;
         button.Click += (_, _) => { url = input.Text; input.Clear(); dialog.DialogResult = true; };
         dialog.Closed += (_, _) => input.Clear();
-        dialog.Content = panel;
+        dialog.Content = panel; StyleDialog(dialog);
         if (dialog.ShowDialog() != true || url is null) return;
         try
         {

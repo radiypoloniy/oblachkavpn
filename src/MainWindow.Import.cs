@@ -80,7 +80,7 @@ public partial class MainWindow
         string? url = null;
         button.Click += (_, _) => { url = input.Text; input.Clear(); dialog.DialogResult = true; };
         dialog.Closed += (_, _) => input.Clear();
-        dialog.Content = panel;
+        dialog.Content = panel; StyleDialog(dialog);
         if (dialog.ShowDialog() != true || url is null) return;
         try { await LoadSubscriptionAsync(SubscriptionMirrors.ParseSources(url), 0); }
         catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }
@@ -142,7 +142,7 @@ public partial class MainWindow
         var button = new Button { Content = "Добавить профиль", Margin = new Thickness(0, 14, 0, 0), HorizontalAlignment = HorizontalAlignment.Right };
         DockPanel.SetDock(button, Dock.Bottom); panel.Children.Add(button);
         var input = new TextBox { AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MaxLength = Profiles.MaxBytes };
-        panel.Children.Add(input); dialog.Content = panel;
+        panel.Children.Add(input); dialog.Content = panel; StyleDialog(dialog);
         button.Click += (_, _) => { Import(input.Text); input.Clear(); dialog.Close(); };
         dialog.Closed += (_, _) => input.Clear();
         dialog.ShowDialog();
