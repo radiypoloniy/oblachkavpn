@@ -66,6 +66,7 @@ public partial class MainWindow
     {
         if (ProfilePicker.SelectedItem is not Profile selected) return;
         profile = selected; ShowProfile(); UpdateControls(); QueueStateSave();
+        QueueServerSwitch();
     }
     private void ShowProfile()
     {

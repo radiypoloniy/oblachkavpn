@@ -108,7 +108,8 @@ public partial class MainWindow : Window
         RefreshButton.IsEnabled = (subscriptionSources.Count > 0 || externalSources.Count > 0) && operation is null;
         // Подбор переключает узел, поэтому доступен только внутри своего сервиса.
         FindRouteButton.IsEnabled = profile is { IsService: true } && operation is null;
-        ProfilePicker.IsEnabled = !active && operation is null;
+        // Сервер можно сменить и при работающем подключении: выбор сразу переключает на него.
+        ProfilePicker.IsEnabled = operation is null;
         ProbeButton.IsEnabled = engine.ProcessId is not null && operation is null;
         ProbeUrl.IsEnabled = operation is null;
         CopyEndpointButton.IsEnabled = engine.ProcessId is not null;
@@ -159,7 +160,7 @@ public partial class MainWindow : Window
             {
                 var index = candidates[found];
                 Servers.SearchBox.Clear(); ProfilePicker.ItemsSource = importedProfiles;
-                ProfilePicker.SelectedIndex = index; profile = profiles[index]; ShowProfile();
+                ProfilePicker.SelectedIndex = index; profile = profiles[index]; runningProfile = profile; ShowProfile();
                 RecordProbe(new ProbeResult(true, result.Attempts[^1].Milliseconds, "Запрос выполнен"));
                 DetailText.Text = $"Работающее подключение найдено. Попыток: {result.Attempts.Count}.";
             }
@@ -189,7 +190,7 @@ public partial class MainWindow : Window
     {
         FlushStateSave();
         if (!exitRequested && Settings.StayInTray.IsChecked == true && !Application.Current.Dispatcher.HasShutdownStarted)
-        { args.Cancel = true; Hide(); return; }
+        { args.Cancel = true; HideToTray(); return; }
         closed = true;
         try { vmTestProcess?.CloseMainWindow(); } catch (InvalidOperationException) { }
         presentationTimer.Stop();

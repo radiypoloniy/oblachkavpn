@@ -22,6 +22,15 @@ public partial class MainWindow
         Settings.SystemTunnel.Click += SystemTunnelToggled;
         Settings.RestoreNetwork.Click += async (_, _) => await RestoreNetworkAsync();
         if (!enabled) { Settings.SystemTunnel.IsEnabled = false; return; }
+        // Установленная служба — значит, системный VPN готов к работе без запроса прав: он и
+        // включён по умолчанию. Сохранённый выбор пользователя применяется позже, при загрузке.
+        var service = NetworkHelperConnection.ServiceRunning;
+        Settings.SystemTunnel.IsChecked = service;
+        if (service) Settings.SystemProxy.IsChecked = false;
+        Settings.SystemTunnelHint.Text = "Весь трафик компьютера идёт через туннель, включая игры и программы без настроек прокси. " +
+            (service ? "Работает через службу Облачки, права администратора не нужны."
+                     : "Служба Облачки не установлена: права администратора запрашиваются при каждом включении.");
+        UpdateModeText();
         UpdateSystemTunnelNote(null);
     }
 

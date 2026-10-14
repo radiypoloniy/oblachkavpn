@@ -47,7 +47,8 @@ public partial class MainWindow
         Diagnostics.ExportButton.Click += ExportReportClick;
         Diagnostics.CopyReportButton.Click += CopyReportClick;
         Connection.ChangeServerButton.Click += (_, _) => Navigate("Servers");
-        Connection.RoutesButton.Click += (_, _) => Navigate("Routes");
+        // Карточка режима на главном экране ведёт к его переключателю в настройках.
+        Connection.RoutesButton.Click += SettingsClick;
         Connection.CheckTunnelButton.Click += (_, _) => Navigate("Diagnostics");
         Servers.UseServerButton.Click += (_, _) => Navigate("Connection");
         Servers.SearchBox.TextChanged += (_, _) => FilterProfiles();

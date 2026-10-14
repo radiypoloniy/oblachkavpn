@@ -55,7 +55,9 @@ public partial class MainWindow
         {
             Connection.ModeTitle.Text = "Системный VPN";
             Connection.ModeSubtitle.Text = "Трафик компьютера через TUN";
-            Connection.ModeNote.Text = "Выбран системный режим. Для запуска сетевого помощника нужны права администратора. Состояние блокировки обхода показано в настройках.";
+            Connection.ModeNote.Text = NetworkHelperConnection.ServiceRunning
+                ? "Весь трафик компьютера идёт через туннель, мимо него ничего не уходит. Режим меняется в настройках."
+                : "Весь трафик компьютера идёт через туннель. Служба не установлена: при подключении Windows спросит права администратора.";
             return;
         }
         var system = Settings.SystemProxy.IsChecked == true;

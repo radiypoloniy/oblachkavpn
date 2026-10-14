@@ -23,9 +23,10 @@ public partial class MainWindow
         // «UDP», пока его работа внутри туннеля не была доказана, потом — упоминание
         // трафика мимо туннеля, пока блокировки не было вовсе, потом — зависимости от
         // брандмауэра Windows. Теперь блокировка на фильтрах WFP, и её граница — срок
-        // жизни приложения: при завершении окна режим снимается вместе с блокировкой.
+        // жизни приложения (без службы) или следующего запуска (со службой): о ней обязано
+        // говорить пояснение в обоих случаях.
         var idle = Settings.SystemTunnelNote.Text;
-        if (!idle.Contains("мимо") || !idle.Contains("завершении"))
+        if (!idle.Contains("мимо") || !idle.Contains("заверш"))
             throw new InvalidOperationException("System mode note hides its limits: " + idle);
         UpdateSystemTunnelNote(SystemTunnelState.RecoveryRequired);
         if (!Settings.SystemTunnelNote.Text.Contains("не полностью"))

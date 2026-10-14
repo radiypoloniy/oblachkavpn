@@ -114,6 +114,7 @@ public partial class MainWindow
                 throw new InvalidOperationException("Deferred refresh lost selected connection");
             checks.Add("UI start/stop cycle " + (i + 1) + " correctly owns its Xray and action states");
         }
+        await CheckLiveServerSwitch(checks);
         await ConnectCoreAsync();
         // Синтетические адреса стенда ведут на fixture.invalid, то есть это сторонняя
         // подписка: её адреса лежат в externalSources.

@@ -7,6 +7,17 @@ public partial class MainWindow
 {
     private TrayPopup? trayPopup;
 
+    // Крестик прячет окно, подключение продолжает работать. Один раз за запуск об этом
+    // говорится: иначе кажется, что программа закрылась, а VPN почему-то остался.
+    private bool trayHintShown;
+    private void HideToTray()
+    {
+        Hide();
+        if (trayHintShown) return;
+        trayHintShown = true;
+        tray.ShowBalloonTip(4000, ServiceBrand.Name, "Облачка продолжает работать в трее. Выйти — через меню значка: «Завершить».", System.Windows.Forms.ToolTipIcon.Info);
+    }
+
     private void ShowTrayPopup()
     {
         if (closed) return;

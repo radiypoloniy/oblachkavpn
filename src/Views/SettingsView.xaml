@@ -31,7 +31,7 @@
                         <ColumnDefinition Width="Auto"/>
                       </Grid.ColumnDefinitions>
                       <TextBlock Text="При закрытии оставаться в трее" VerticalAlignment="Center"/>
-                      <CheckBox x:Name="StayInTray" Grid.Column="1" Style="{StaticResource Switch}" AutomationProperties.Name="При закрытии оставаться в трее"/>
+                      <CheckBox x:Name="StayInTray" Grid.Column="1" Style="{StaticResource Switch}" IsChecked="True" AutomationProperties.Name="При закрытии оставаться в трее"/>
                     </Grid>
                   </Border>
                 </StackPanel>
@@ -59,7 +59,7 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel>
                       <TextBlock Text="Системный VPN"/>
-                      <TextBlock Text="Весь трафик компьютера идёт через туннель, включая программы без настроек прокси. Потребуется разрешение на права администратора при каждом включении." Style="{StaticResource MutedText}" FontSize="13" MaxWidth="400" TextWrapping="Wrap"/>
+                      <TextBlock x:Name="SystemTunnelHint" Text="Весь трафик компьютера идёт через туннель, включая игры и программы без настроек прокси." Style="{StaticResource MutedText}" FontSize="13" MaxWidth="400" TextWrapping="Wrap"/>
                     </StackPanel>
                     <CheckBox x:Name="SystemTunnel" Grid.Column="1" Style="{StaticResource Switch}" AutomationProperties.Name="Системный VPN"/>
                   </Grid>
@@ -90,9 +90,8 @@
                       </Grid.ColumnDefinitions>
                       <StackPanel>
                         <TextBlock Text="Блокировать интернет без VPN"/>
-                        <TextBlock Text="Появится с системным режимом" Style="{StaticResource MutedText}" FontSize="13"/>
+                        <TextBlock Text="Всегда действует в системном VPN: при обрыве связи программы не пойдут мимо туннеля." Style="{StaticResource MutedText}" FontSize="13" MaxWidth="400" TextWrapping="Wrap"/>
                       </StackPanel>
-                      <CheckBox Grid.Column="1" Style="{StaticResource Switch}" IsEnabled="False" AutomationProperties.Name="Блокировка интернета недоступна"/>
                     </Grid>
                   </Border>
                 </StackPanel>

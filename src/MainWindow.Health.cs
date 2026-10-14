@@ -83,7 +83,7 @@ public partial class MainWindow
             {
                 var index = candidates[found];
                 Servers.SearchBox.Clear(); ProfilePicker.ItemsSource = importedProfiles;
-                ProfilePicker.SelectedIndex = index; profile = profiles[index]; health.Reset();
+                ProfilePicker.SelectedIndex = index; profile = profiles[index]; runningProfile = profile; health.Reset();
                 RecordProbe(new(true, result.Attempts[^1].Milliseconds, "Соединение восстановлено"));
                 DetailText.Text = "Соединение восстановлено; выбран рабочий сервер.";
             }

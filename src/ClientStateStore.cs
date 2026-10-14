@@ -21,6 +21,12 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public string[] ExternalSources { get; init; } = Array.Empty<string>();
     public bool AutoRefresh { get; init; } = true;
     public bool SystemProxy { get; init; }
+    // Сворачивание в трей при закрытии. Появилось в 0.9.2 и по умолчанию включено; прежний
+    // StayInTray по умолчанию был выключен, и крестик закрывал приложение вместе с VPN.
+    public bool? CloseToTray { get; init; }
+    // Системный VPN (TUN). Не запоминался, и после каждого запуска его включали заново.
+    // Нет значения — включён, если установлена сетевая служба.
+    public bool? SystemTunnel { get; init; }
     public SubscriptionMetadata? Metadata { get; init; }
     public SiteRule[] RouteRules { get; init; } = Array.Empty<SiteRule>();
     public ProgramRule[] ProgramRules { get; init; } = Array.Empty<ProgramRule>();
