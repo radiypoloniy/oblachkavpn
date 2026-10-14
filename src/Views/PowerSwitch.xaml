@@ -2,12 +2,15 @@
              Width="160" Height="88">
   <!-- Тумблер главного экрана: ручка слева (выкл), по центру (подключаемся), справа (вкл или сеть закрыта).
        Цвет дорожки меняется наплывом слоёв: так переход плавный и при смене темы. -->
-  <!-- Скругление и пустая подсветка наведения: иначе вокруг тумблера рисовался прямоугольник. -->
-  <Button x:Name="Surface" Style="{StaticResource Plain}" o:Ui.CornerRadius="44" Tag="Transparent" Click="SurfaceClick">
+  <!-- Свечение лежит вне кнопки, а у кнопки нет отступа. Раньше содержимое с отступом кнопки
+       не помещалось в 160×88, WPF обрезал контрол по границам, и тень свечения превращалась
+       в прямоугольник, а правый край дорожки срезался. -->
+  <Grid Width="160" Height="88">
+    <Border x:Name="Glow" CornerRadius="44" Background="{DynamicResource Ac}" Opacity="0" IsHitTestVisible="False">
+      <Border.Effect><DropShadowEffect x:Name="GlowShadow" BlurRadius="22" ShadowDepth="6" Direction="270" Color="{DynamicResource GlowColor}" Opacity="0.75"/></Border.Effect>
+    </Border>
+  <Button x:Name="Surface" Style="{StaticResource Plain}" o:Ui.CornerRadius="44" Tag="Transparent" Padding="0" Click="SurfaceClick">
     <Grid Width="160" Height="88">
-      <Border x:Name="Glow" CornerRadius="44" Background="{DynamicResource Ac}" Opacity="0">
-        <Border.Effect><DropShadowEffect x:Name="GlowShadow" BlurRadius="22" ShadowDepth="6" Direction="270" Color="{DynamicResource GlowColor}" Opacity="0.75"/></Border.Effect>
-      </Border>
       <Border CornerRadius="44" Background="{DynamicResource Off}"/>
       <Border x:Name="MidLayer" CornerRadius="44" Background="{DynamicResource Mid}" Opacity="0"/>
       <Border x:Name="OnLayer" CornerRadius="44" Background="{DynamicResource Ac}" Opacity="0"/>
@@ -25,4 +28,5 @@
       </Border>
     </Grid>
   </Button>
+  </Grid>
 </UserControl>

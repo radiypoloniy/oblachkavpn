@@ -93,6 +93,12 @@ public partial class MainWindow
         CheckPreviewControls();
         if (page == "servers") { LoadServerPreview(); LoadPingPreview(); }
         if (page is "foreign" or "closed" or "recovery" or "subscription") PrepareStatePreview(page);
+        if (page == "power-on") { Navigate("Connection"); RefreshHome(); Home.Power.State = Views.PowerState.On;
+            // Снимок делается сразу, анимация ещё не прошла: ставим её итог.
+            var power = Home.Power;
+            foreach (var layer in new UIElement[] { power.Glow, power.OnLayer }) { layer.BeginAnimation(OpacityProperty, null); layer.Opacity = 1; }
+            power.Slide.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, null); power.Slide.X = 72;
+            return; }
         Navigate(page switch { "servers" => "Servers", "routes" => "Routes", "diagnostics" => "Diagnostics", _ => "Connection" });
         if (page is "settings" or "rules" or "storage" or "help") SettingsClick(this, new RoutedEventArgs());
         if (page is "rules" or "storage" or "help") Settings.ShowTab(page switch { "rules" => 1, "storage" => 2, _ => 3 });
