@@ -22,7 +22,7 @@
                       <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="Запускать вместе с Windows" VerticalAlignment="Center"/>
-                    <CheckBox Grid.Column="1" Style="{StaticResource Switch}" IsEnabled="False" ToolTip="Добавим после установщика" AutomationProperties.Name="Автозапуск недоступен"/>
+                    <CheckBox x:Name="StartWithWindows" Grid.Column="1" Style="{StaticResource Switch}" AutomationProperties.Name="Запускать вместе с Windows"/>
                   </Grid>
                   <Border BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="0,16">
                     <Grid>
@@ -64,7 +64,7 @@
                     <CheckBox x:Name="SystemTunnel" Grid.Column="1" Style="{StaticResource Switch}" AutomationProperties.Name="Системный VPN"/>
                   </Grid>
                   <TextBlock x:Name="SystemTunnelNote" Style="{StaticResource MutedText}" FontSize="12" Margin="0,10,0,0" TextWrapping="Wrap"
-                             Text="Блокировка трафика мимо VPN пока не реализована: при обрыве туннеля программы пойдут напрямую. Работа UDP в этом режиме проверена не полностью."/>
+                             Text="Весь трафик компьютера пойдёт через туннель, а мимо туннеля будет заблокирован фильтрами Windows."/>
                   <Button x:Name="RestoreNetwork" Content="Восстановить сеть" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="Collapsed"/>
                 </StackPanel>
               </Border>

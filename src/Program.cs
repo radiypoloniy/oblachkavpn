@@ -51,8 +51,9 @@ public static class Program
         if (args.Length > 1 && args[0] == "--preview")
             return DesignPreview.Capture(args[1], args.Length > 2 ? args[2] : "welcome", args.Length > 3 && args[3] == "compact");
 #endif
-        using var mutex = new Mutex(true, "Local\\Oblachka-" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(AppContext.BaseDirectory.ToLowerInvariant())))[..16], out var first);
-        if (!first) { MessageBox.Show("Эта сборка уже запущена.", ServiceBrand.Name); return 1; }
+        using var mutex = new Mutex(true, AppInstance.MutexName, out var first);
+        // Уже запущена (например, свёрнута в трей): показываем её окно вместо ошибки.
+        if (!first) { AppInstance.SignalFirst(); return 0; }
         try
         {
             var app = new Application();
@@ -63,7 +64,9 @@ public static class Program
                 e.Handled = true; app.Shutdown(1);
             };
             var window = new MainWindow();
+            if (args.Contains(AppInstance.TrayArgument)) window.StartHiddenInTray();
             app.Exit += (_, _) => window.Close();
+            AppInstance.ListenForShow(window.ShowFromSignal);
             return app.Run(window);
         }
         catch

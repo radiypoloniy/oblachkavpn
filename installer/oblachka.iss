@@ -59,6 +59,10 @@ Name: "{autodesktop}\Облачка"; Filename: "{app}\Oblachka.exe"; Tasks: des
 ; Окно запускается от имени пользователя, а не администратора, который ставил программу.
 Filename: "{app}\Oblachka.exe"; Description: "Запустить Облачку"; Flags: postinstall nowait skipifsilent runasoriginaluser
 
+[Registry]
+; Автозапуск включает сам пользователь в настройках; при удалении запись убирается.
+Root: HKCU; Subkey: "SoftwareMicrosoftWindowsCurrentVersionRun"; ValueName: "Oblachka"; ValueType: none; Flags: uninsdeletevalue dontcreatekey
+
 [UninstallRun]
 ; Сначала служба: её остановка снимает сессию и возвращает обычную сеть. Убить её процесс
 ; нельзя — тогда фильтры защиты остались бы до перезагрузки.

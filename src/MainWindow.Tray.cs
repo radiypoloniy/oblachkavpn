@@ -10,6 +10,30 @@ public partial class MainWindow
     // Крестик прячет окно, подключение продолжает работать. Один раз за запуск об этом
     // говорится: иначе кажется, что программа закрылась, а VPN почему-то остался.
     private bool trayHintShown;
+
+    // Повторный запуск с ярлыка будит этот экземпляр (AppInstance) из другого потока.
+    public void ShowFromSignal() => Dispatcher.BeginInvoke(new Action(ShowWindow));
+
+    private void InitStartup(bool enabled)
+    {
+        if (!enabled) { Settings.StartWithWindows.IsEnabled = false; return; }
+        try { Settings.StartWithWindows.IsChecked = AppInstance.StartsWithWindows; }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException) { Settings.StartWithWindows.IsEnabled = false; }
+        Settings.StartWithWindows.Click += (_, _) =>
+        {
+            try { AppInstance.StartsWithWindows = Settings.StartWithWindows.IsChecked == true; }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+            { Settings.StartWithWindows.IsChecked = AppInstance.StartsWithWindows; DetailText.Text = "Не удалось изменить автозапуск."; }
+        };
+    }
+
+    // Запуск из автозапуска: окно создаётся как обычно (по нему инициализируется состояние),
+    // но сразу прячется — Облачка в трее.
+    public void StartHiddenInTray()
+    {
+        ShowInTaskbar = false; WindowState = WindowState.Minimized;
+        Loaded += (_, _) => { Hide(); ShowInTaskbar = true; WindowState = WindowState.Normal; trayHintShown = true; };
+    }
     private void HideToTray()
     {
         Hide();
