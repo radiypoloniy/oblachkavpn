@@ -59,7 +59,9 @@ public partial class MainWindow
         {
             if (!session.CanSwitchTo(profile))
             {
-                DetailText.Text = "Переподключаемся на сторонний сервер: на это время защита снимается.";
+                DetailText.Text = profile.IsService
+                    ? "Этот сервер не вошёл в набор защиты при подключении: переподключаемся, на это время защита снимается."
+                    : "Переподключаемся на сторонний сервер: на это время защита снимается.";
                 await StopSystemTunnelAsync();
             }
             else DetailText.Text = "Переключаемся на " + profile.DisplayName + ". Блокировка не снимается.";

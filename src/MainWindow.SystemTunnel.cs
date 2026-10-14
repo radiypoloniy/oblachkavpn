@@ -118,8 +118,14 @@ public partial class MainWindow
         var profiles = importedProfiles.ToArray();
         var candidates = RouteCandidates.For(profiles, selected);
         if (candidates.Length == 0) return new[] { selected };
+        // Сначала порядок автоподбора (выбранный и пять запасных), затем остальные узлы сервиса:
+        // на них переключаются вручную, и защита должна разрешать их с самого начала. Иначе
+        // смена сервера на такой узел снимала блокировку на время переподключения.
+        // Лишнее по лимиту адресов отбросит TunnelEndpoints.PrepareSetAsync.
         return RouteSearch.Order(candidates.Length, RouteCandidates.StartAt(candidates, profiles, selected))
-            .Select(i => profiles[candidates[i]]).ToArray();
+            .Select(i => profiles[candidates[i]])
+            .Concat(candidates.Select(i => profiles[i]))
+            .DistinctBy(ProfileSelection.Identity).ToArray();
     }
 
     // В системном режиме подбор не трогает ядро напрямую: переключение идёт через сессию,
