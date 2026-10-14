@@ -43,7 +43,7 @@ public partial class MainWindow
     private void RefreshRules()
     {
         Routes.RuleList.ItemsSource = siteRules.Select(r => new RuleRow { Rule = r, Text = r.Domain, Action = r.Action }).ToArray();
-        Routes.ProgramList.ItemsSource = programRules.Select(r => new RuleRow { Rule = r, Text = r.Executable, Action = r.Action }).ToArray();
+        Routes.ProgramList.ItemsSource = programRules.Select(ProgramRow).ToArray();
         if (viewsReady) UpdateWhere();
     }
 }

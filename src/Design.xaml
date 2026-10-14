@@ -218,4 +218,25 @@
       <Setter.Value><DropShadowEffect BlurRadius="18" ShadowDepth="4" Direction="270" Color="#0D1B30" Opacity="0.13"/></Setter.Value>
     </Setter>
   </Style>
+
+  <!-- Чипы-переключатели — это ListBox: выбранный чип и есть значение (порядок серверов, действие правила). -->
+  <Style x:Key="ChipItem" TargetType="ListBoxItem">
+    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ListBoxItem">
+          <Border x:Name="Chip" Height="30" CornerRadius="15" Padding="12,0" Margin="0,0,6,0" Background="{DynamicResource Field}">
+            <TextBlock x:Name="Label" Text="{Binding}" FontSize="12.5" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="Chip" Property="Background" Value="{DynamicResource Ac}"/>
+              <Setter TargetName="Label" Property="Foreground" Value="White"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
 </ResourceDictionary>

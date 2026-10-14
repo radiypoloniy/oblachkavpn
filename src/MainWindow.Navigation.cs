@@ -29,7 +29,7 @@ public partial class MainWindow
         }
         else Servers.Visibility = Visibility.Collapsed;
         if (page is "Routes" or "Diagnostics") OpenSettings(page == "Routes" ? 1 : 3);
-        else Settings.Visibility = Visibility.Collapsed;
+        else { Settings.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed; }
         Onboarding.Visibility = welcome ? Visibility.Visible : Visibility.Collapsed;
         Onboarding.ContinueButton.IsDefault = welcome;
     }
@@ -71,6 +71,7 @@ public partial class MainWindow
     private void CloseSettings()
     {
         Settings.Visibility = Visibility.Collapsed;
+        Picker.Visibility = Visibility.Collapsed;
         if (currentPage is "Routes" or "Diagnostics") currentPage = "Connection";
         Home.SettingsButton.Focus();
     }
@@ -82,6 +83,7 @@ public partial class MainWindow
     {
         if (args.Key != Key.Escape) return;
         if (ModeMenuLayer.Visibility == Visibility.Visible) ShowModeMenu(false);
+        else if (Picker.Visibility == Visibility.Visible) CloseAppPicker();
         else if (Settings.Visibility == Visibility.Visible) CloseSettings();
         else if (Servers.Visibility == Visibility.Visible) Navigate("Connection");
         else return;

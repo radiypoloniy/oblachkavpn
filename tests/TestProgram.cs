@@ -25,6 +25,16 @@ public static class TestProgram
             File.WriteAllLines(args[1], ForeignClients.Find(roots).Select(f => f.Client + " | " + f.Name + " | " + f.Host));
             return 0;
         }
+        // Каталог программ этого компьютера, как его видит выбор программ в правилах.
+        if (args.Length == 2 && args[0] == "--installed-apps")
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            var apps = InstalledApps.Find();
+            var lines = apps.Select(a => a.Name + " | " + a.Executable + (a.Running ? " | запущена" : "")).ToList();
+            lines.Insert(0, $"Программ {apps.Count}, за {clock.ElapsedMilliseconds} мс; поиск «тел»: " + string.Join(", ", InstalledApps.Search(apps, "тел").Take(3).Select(a => a.Name)));
+            File.WriteAllLines(args[1], lines);
+            return 0;
+        }
         if (args.Length == 3 && args[0] == "--ping-check") return PingCheckCommand.Run(args[1], args[2]);
         if (args.Length == 3 && args[0] == "--subscription-check") return SubscriptionCheckCommand.Run(args[1], args[2]);
         if (args.Length is 3 or 4 && args[0] == "--import-check")

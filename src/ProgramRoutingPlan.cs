@@ -13,7 +13,7 @@ public static class ProgramRoutingPlan
     {
         executable = executable.Trim();
         if (!Enum.IsDefined(action) || executable.Length is < 5 or > 120 || !executable.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ||
-            executable.Contains("..") || executable.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '.' or '-' or '_' or ' ')))
+            executable.Contains("..") || executable.Any(c => !(char.IsLetterOrDigit(c) || c is '.' or '-' or '_' or ' ' or '(' or ')' or '+')))
             throw new UserError("Укажите имя программы, например steam.exe, без пути к файлу.");
         return new(executable, action);
     }

@@ -3,17 +3,25 @@
   <!-- Настройки → Правила (экран 11): локальный прокси, правила сайтов и программ, «Куда пойдёт сайт?». -->
   <UserControl.Resources>
     <DataTemplate DataType="{x:Type o:RuleRow}">
-      <Border Height="42" BorderBrush="{DynamicResource Divider}" BorderThickness="0,0,0,1" Padding="6,0,2,0">
+      <Border MinHeight="42" Padding="6,4,2,4" BorderBrush="{DynamicResource Divider}" BorderThickness="0,0,0,1">
         <DockPanel>
           <Button DockPanel.Dock="Right" Tag="delete" Style="{StaticResource SmallIconButton}" Width="30" Height="30" Foreground="{DynamicResource Fa}" AutomationProperties.Name="Удалить правило">
             <Path Data="{StaticResource IcoClose}" Style="{StaticResource Icon}" Width="13" Height="13" StrokeThickness="2.4"/>
           </Button>
           <Button x:Name="Badge" DockPanel.Dock="Right" Tag="cycle" Style="{StaticResource Plain}" Height="26" Padding="10,0" o:Ui.CornerRadius="13" Margin="0,0,6,0"
                   FontSize="12" FontWeight="SemiBold" Content="{Binding ActionText}" Background="{DynamicResource Aci}" Foreground="{DynamicResource Ac}" AutomationProperties.Name="Сменить действие"/>
-          <TextBlock Text="{Binding Text}" FontFamily="{StaticResource MonoFont}" FontSize="13.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+          <Image Source="{Binding Icon}" Width="22" Height="22" Margin="0,0,10,0" Visibility="{Binding IconVisibility}" RenderOptions.BitmapScalingMode="HighQuality"/>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock x:Name="RuleText" Text="{Binding Text}" FontFamily="{StaticResource MonoFont}" FontSize="13.5" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Text="{Binding Sub}" FontSize="11.5" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Visibility="{Binding SubVisibility}"/>
+          </StackPanel>
         </DockPanel>
       </Border>
       <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding Plain}" Value="True">
+          <Setter TargetName="RuleText" Property="FontFamily" Value="{StaticResource UiFont}"/>
+          <Setter TargetName="RuleText" Property="FontSize" Value="14"/>
+        </DataTrigger>
         <DataTrigger Binding="{Binding Action}" Value="Direct">
           <Setter TargetName="Badge" Property="Background" Value="{DynamicResource OkB}"/>
           <Setter TargetName="Badge" Property="Foreground" Value="{DynamicResource OkF}"/>
@@ -49,10 +57,17 @@
         <Button x:Name="AddRuleButton" DockPanel.Dock="Right" Content="Добавить" Style="{StaticResource BtnPrimary}" Height="38" Padding="14,0" o:Ui.CornerRadius="10" FontSize="13" Margin="8,0,0,0"/>
         <TextBox x:Name="RuleDomain" Style="{StaticResource FieldBox}" Height="38" Tag="example.com — с поддоменами" FontSize="13.5" AutomationProperties.Name="Новое правило для сайта"/>
       </DockPanel>
-      <DockPanel x:Name="ProgramInput" Visibility="Collapsed">
-        <Button x:Name="AddProgramButton" DockPanel.Dock="Right" Content="Добавить" Style="{StaticResource BtnPrimary}" Height="38" Padding="14,0" o:Ui.CornerRadius="10" FontSize="13" Margin="8,0,0,0"/>
-        <TextBox x:Name="ProgramName" Style="{StaticResource FieldBox}" Height="38" Tag="Имя программы, например steam.exe" FontSize="13.5" AutomationProperties.Name="Новое правило для программы"/>
-      </DockPanel>
+      <!-- Программы выбираются из списка компьютера (AppPicker), а не вписываются именем файла. -->
+      <StackPanel x:Name="ProgramInput" Visibility="Collapsed">
+        <Button x:Name="ChooseProgramsButton" Style="{StaticResource BtnPrimary}" Height="40" o:Ui.CornerRadius="10" FontSize="13.5">
+          <StackPanel Orientation="Horizontal">
+            <Path Data="{StaticResource IcoPlus}" Width="14" Height="14" Stretch="Uniform" Stroke="White" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Margin="0,0,8,0"/>
+            <TextBlock Text="Выбрать программы" VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
+        <TextBlock x:Name="ProgramModeNote" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" Margin="2,8,0,0"
+                   Text="Действуют в режиме «Весь компьютер»."/>
+      </StackPanel>
     </Grid>
 
     <StackPanel DockPanel.Dock="Bottom">

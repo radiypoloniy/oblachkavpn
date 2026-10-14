@@ -18,6 +18,7 @@
     <views:HomeView x:Name="Home"/>
     <views:ServersSheet x:Name="Servers" Visibility="Collapsed"/>
     <views:SettingsPanel x:Name="Settings" Visibility="Collapsed"/>
+    <views:AppPicker x:Name="Picker" Visibility="Collapsed"/>
 
     <views:OnboardingView x:Name="Onboarding" Visibility="Collapsed"/>
 

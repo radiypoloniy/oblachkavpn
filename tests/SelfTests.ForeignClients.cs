@@ -45,6 +45,27 @@ public static partial class SelfTests
             }
             finally { Directory.Delete(root, true); }
         }));
+        await check("Installed apps: names lose versions, search understands translit and the wrong layout, own files are hidden", () => Sync(() =>
+        {
+            Assert(InstalledApps.CleanName("WinSCP 6.5.5") == "WinSCP");
+            Assert(InstalledApps.CleanName("Inno Setup, версия 6.7.3") == "Inno Setup");
+            Assert(InstalledApps.CleanName("Python 3.14.3 (64-bit)") == "Python");
+            Assert(InstalledApps.CleanName("IDLE (Python 3.14 64-bit)") == "IDLE");
+            Assert(InstalledApps.CleanName("7-Zip File Manager") == "7-Zip File Manager");
+            Assert(InstalledApps.Translit("тел") == "tel" && InstalledApps.SwapLayout("еуд") == "tel" && InstalledApps.SwapLayout("tel") == "еуд");
+            var apps = new[] { new InstalledApp("Telegram", "Telegram.exe", "", false), new InstalledApp("Steam", "steam.exe", "", false), new InstalledApp("Яндекс Музыка", "music.exe", "", false) };
+            Assert(InstalledApps.Search(apps, "тел").Single().Name == "Telegram");
+            Assert(InstalledApps.Search(apps, "ыеуф").Single().Name == "Steam");
+            Assert(InstalledApps.Search(apps, "музыка").Single().Name == "Яндекс Музыка");
+            Assert(InstalledApps.Search(apps, "").Count == 3);
+            var mixed = new[] { new InstalledApp("NekoBox", "nekobox.exe", "", false), new InstalledApp("Telegram", "Telegram.exe", "", false) };
+            Assert(InstalledApps.Search(mixed, "т")[0].Name == "Telegram");
+            Assert(!InstalledApps.Acceptable("xray.exe", @"C:\Program Files\Oblachka\tools\xray.exe"));
+            Assert(!InstalledApps.Acceptable("unins000.exe", @"C:\Program Files\App\unins000.exe"));
+            Assert(!InstalledApps.Acceptable("python-3.14.exe", @"C:\ProgramData\Package Cache\{x}\python-3.14.exe"));
+            Assert(InstalledApps.Acceptable("Telegram.exe", @"C:\Users\u\AppData\Roaming\Telegram Desktop\Telegram.exe"));
+            Assert(ProgramRoutingPlan.Create("Яндекс Музыка.exe", SiteAction.Direct).Executable == "Яндекс Музыка.exe");
+        }));
         await check("Server ping: endpoints from Xray and sing-box VLESS, Hysteria2 skipped, results per profile", async () =>
         {
             var xray = Profiles.Parse("vless://11111111-1111-4111-8111-111111111111@203.0.113.7:8443?security=reality&sni=example.org&pbk=fixturekey#X");

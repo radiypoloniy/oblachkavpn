@@ -64,6 +64,12 @@ public sealed class RuleRow
     public required object Rule { get; init; }
     public required string Text { get; init; }
     public SiteAction Action { get; init; }
+    // У программы из каталога: значок, человеческое имя в Text и имя файла под ним.
+    public ImageSource? Icon { get; init; }
+    public string? Sub { get; init; }
+    public bool Plain => Sub is not null;
+    public Visibility IconVisibility => Icon is null ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility SubVisibility => Sub is null ? Visibility.Collapsed : Visibility.Visible;
     public string ActionText => ActionLabel(Action);
     public static string ActionLabel(SiteAction action) => action switch { SiteAction.Direct => "напрямую", SiteAction.Block => "блок", _ => "через VPN" };
 }

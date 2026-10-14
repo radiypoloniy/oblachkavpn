@@ -93,6 +93,23 @@ public partial class MainWindow
         CheckPreviewControls();
         if (page == "servers") { LoadServerPreview(); LoadPingPreview(); }
         if (page is "foreign" or "closed" or "recovery" or "subscription") PrepareStatePreview(page);
+        if (page is "apps" or "apps-rules")
+        {
+            // Настоящий каталог этого компьютера, собранный сразу: снимок делается синхронно.
+            appCatalog = InstalledApps.Find().Select(a => new Views.AppRow(a, AppIcons.For(a.Path))).ToArray();
+            SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(1); Routes.ShowSites(false);
+            if (page == "apps-rules")
+            {
+                foreach (var (exe, action) in new[] { ("Telegram.exe", SiteAction.Direct), ("Steam.exe", SiteAction.Direct), ("chrome.exe", SiteAction.Tunnel), ("game.exe", SiteAction.Block) })
+                    AddProgramRule(exe, action);
+                return;
+            }
+            OpenAppPicker(); Picker.Load(appCatalog, AddedPrograms());
+            Picker.SearchBox.Text = "т";
+            foreach (var row in Picker.AppList.Items.OfType<Views.AppRow>().Take(2)) row.Checked = true;
+            Picker.AddButton.IsEnabled = true; Picker.AddButton.Content = "Добавить (2)";
+            return;
+        }
         if (page == "power-on") { Navigate("Connection"); RefreshHome(); Home.Power.State = Views.PowerState.On;
             // Снимок делается сразу, анимация ещё не прошла: ставим её итог.
             var power = Home.Power;
