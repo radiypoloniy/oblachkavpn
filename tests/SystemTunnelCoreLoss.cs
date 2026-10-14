@@ -9,7 +9,7 @@ internal static class SystemTunnelCoreLoss
     {
         var pid = engine.ProcessId;
         if (pid is null) { add("смерть ядра: ядра нет, сценарий пропущен"); return; }
-        var interfaces = string.Join(',', TunnelInterfaces.Ours());
+        var interfaces = string.Join(',', TunnelInterfaces.Ours(upOnly: true));
         try { System.Diagnostics.Process.GetProcessById(pid.Value).Kill(); }
         catch (Exception ex) { add("смерть ядра: завершить не удалось (" + ex.GetType().Name + ")"); return; }
         var deadline = DateTime.UtcNow.AddSeconds(10);
@@ -22,7 +22,7 @@ internal static class SystemTunnelCoreLoss
             using var token = new CancellationTokenSource(TimeSpan.FromSeconds(40));
             session.SwitchAsync(null, token.Token).GetAwaiter().GetResult();
             add("смерть ядра: перезапуск — " + session.State + ", порт " + engine.Port +
-                ", интерфейс " + (string.Join(',', TunnelInterfaces.Ours()) == interfaces ? "прежний" : "ДРУГОЙ"));
+                ", интерфейс " + (string.Join(',', TunnelInterfaces.Ours(upOnly: true)) == interfaces ? "прежний" : "ДРУГОЙ"));
             Thread.Sleep(3000);
             add("смерть ядра: выходной IP после перезапуска: " + probe());
         }

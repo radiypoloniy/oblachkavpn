@@ -15,6 +15,7 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
     private readonly Process process;
     private readonly ProcessJob job;
     private bool stopped;
+    internal static readonly TimeSpan GracefulStop = TimeSpan.FromSeconds(5);
 
     private SingBoxTunnelProcess(Process process, ProcessJob job)
     {
@@ -41,7 +42,9 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         {
             UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true,
             RedirectStandardOutput = true, RedirectStandardError = true,
-            WorkingDirectory = AppContext.BaseDirectory
+            WorkingDirectory = AppContext.BaseDirectory,
+            // Своя группа процессов: мягкую остановку получает только ядро (ConsoleInterrupt).
+            CreateNewProcessGroup = true
         };
         foreach (var argument in adapter.RunArguments) start.ArgumentList.Add(argument);
         foreach (var key in start.Environment.Keys
@@ -74,8 +77,13 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
     {
         if (stopped) return;
         stopped = true;
-        try { if (!process.HasExited) process.Kill(true); }
-        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { }
+        // Сначала ядро просят завершиться самому: тогда sing-box удаляет свой адаптер
+        // wintun. Убитое ядро оставляло адаптер «Obl-…» висеть до десятка минут — на
+        // настоящей машине за один прогон проверки их набралось десять. Принудительно —
+        // только если ядро не ответило.
+        if (!ConsoleInterrupt.Send(process, GracefulStop))
+            try { if (!process.HasExited) process.Kill(true); }
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { }
         try { process.WaitForExit(5000); } catch (InvalidOperationException) { }
         job.Dispose();   // Закрытие задания добивает всё, что ядро могло породить.
         process.Dispose();
@@ -119,14 +127,24 @@ public static class TunnelInterfaces
         catch (NetworkInformationException) { return false; }
     }
 
-    public static IReadOnlyList<string> Ours()
+    // Список .NET включает и записи об уже удалённых адаптерах: они остаются в Windows
+    // навсегда в состоянии Down, в «Сетевых подключениях» их нет. На настоящей машине
+    // такие записи приняли за десять неснятых адаптеров. Живой — только поднятый.
+    public static IReadOnlyList<string> Ours(bool upOnly = false)
     {
         try
         {
             return NetworkInterface.GetAllNetworkInterfaces()
                 .Where(i => i.Name.StartsWith(WindowsTunnelBackend.InterfacePrefix, StringComparison.OrdinalIgnoreCase))
+                .Where(i => !upOnly || i.OperationalStatus == OperationalStatus.Up)
                 .Select(i => i.Name).ToArray();
         }
         catch (NetworkInformationException) { return Array.Empty<string>(); }
+    }
+
+    public static string DescribeLeft()
+    {
+        var up = Ours(upOnly: true);
+        return (up.Count == 0 ? "нет" : string.Join(',', up)) + "; записей об удалённых: " + (Ours().Count - up.Count);
     }
 }

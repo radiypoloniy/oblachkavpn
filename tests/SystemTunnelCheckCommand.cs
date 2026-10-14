@@ -53,6 +53,8 @@ internal static class SystemTunnelCheckCommand
         if (!baseline6.StartsWith("ошибка", StringComparison.Ordinal)) own6 = baseline6;
         Add("исходный IPv6 (до туннеля): " + baseline6);
         Add("брандмауэр до туннеля: " + KillSwitchProbe.Describe());
+        // Окно с таким VPN системный режим не запускает; прогон идёт дальше, чтобы было видно, что ломается.
+        Add("другой VPN забрал трафик: " + (ForeignTunnel.Find() ?? "нет"));
         try { File.Delete(NetworkHelperHost.TracePath); } catch (IOException) { }
         Add("резолверы до туннеля: " + KillSwitchProbe.Resolvers());
         // Соединение открывается заранее: именно такие кадры уходили мимо туннеля в
@@ -92,7 +94,7 @@ internal static class SystemTunnelCheckCommand
             session.StartAsync(plan, token.Token).GetAwaiter().GetResult();
             Add("состояние сессии: " + session.State);
             Add("переходы: " + string.Join(" → ", states));
-            Add("интерфейсы туннеля: " + string.Join(',', TunnelInterfaces.Ours()));
+            Add("интерфейсы туннеля: " + string.Join(',', TunnelInterfaces.Ours(upOnly: true)));
             Add("локальный порт ядра: " + engine.Port);
 
             Add("блокировка трафика мимо туннеля: " + (session.BlocksBypass ? "поставлена" : "НЕ поставлена"));
@@ -104,7 +106,8 @@ internal static class SystemTunnelCheckCommand
             Add(KillSwitchProbe.Resolve("api.ipify.org"));
             // Три пути по отдельности: без имени (только TCP через туннель), через локальный
             // SOCKS ядра (ядро → узел, туннель не участвует) и обычный запрос по имени.
-            Add("без DNS, по адресу 1.1.1.1: " + Probe("https://1.1.1.1/cdn-cgi/trace", "ip="));
+            var byAddress = Probe("https://1.1.1.1/cdn-cgi/trace", "ip=");
+            Add("без DNS, по адресу 1.1.1.1: " + byAddress);
             Add("через SOCKS ядра: " + Socks(engine));
 
             var inside6 = SessionWatch.Ipv6(url => Probe(url));
@@ -117,8 +120,13 @@ internal static class SystemTunnelCheckCommand
             Add("второй источник: " + second);
             // Вывод делается сравнением с измеренным исходным выходом, а не с зашитым адресом.
             // Ошибка — не «другой выход»: раньше отказ всех запросов читался как успех.
+            // По адресу через туннель прошло, по имени нет — сломан только DNS. Раньше это
+            // читалось как «связи нет», хотя туннель работал (прогон с Throne).
+            var tunnelByAddress = byAddress.StartsWith("ip=", StringComparison.Ordinal) && byAddress != "ip=" + baseline;
             Add(inside.StartsWith("ошибка", StringComparison.Ordinal)
-                ? "ВЫВОД: через туннель связи нет — перенаправление НЕ подтверждено"
+                ? tunnelByAddress
+                    ? "ВЫВОД: по адресу трафик идёт через туннель (выход " + byAddress[3..] + "), но имена не разрешаются — НЕ работает DNS"
+                    : "ВЫВОД: через туннель связи нет — перенаправление НЕ подтверждено"
                 : inside == baseline
                     ? "ВЫВОД: выход не изменился — перенаправление НЕ подтверждено"
                     : "ВЫВОД: выход изменился с " + baseline + " на " + inside + " — перенаправление подтверждено");
@@ -129,13 +137,15 @@ internal static class SystemTunnelCheckCommand
 
             session.StopAsync().GetAwaiter().GetResult();
             Add("после остановки состояние: " + session.State);
-            Add("остались интерфейсы: " + (TunnelInterfaces.Ours().Count == 0 ? "нет" : string.Join(',', TunnelInterfaces.Ours())));
+            Add("остались поднятые интерфейсы: " + TunnelInterfaces.DescribeLeft());
             Add("брандмауэр после остановки: " + KillSwitchProbe.Describe());
             Add("после остановки " + WfpStateProbe.Describe());
             foreach (var step in KillSwitchProbe.HelperSteps()) Add(step);
             early?.Dispose();
             var after = Probe("https://api.ipify.org");
             Add("выходной IP после остановки: " + after);
+            // Другой VPN перестраивает маршруты после нашего ухода не мгновенно.
+            if (after != baseline) { Thread.Sleep(5000); after = Probe("https://api.ipify.org"); Add("выходной IP через 5 с: " + after); }
             Add(after == baseline
                 ? "ВЫВОД: выход вернулся к исходному — откат подтверждён"
                 : "ВНИМАНИЕ: выход после остановки отличается от исходного");
@@ -161,7 +171,7 @@ internal static class SystemTunnelCheckCommand
             Add("причина у помощника: " + (File.Exists(NetworkHelperHost.FailurePath)
                 ? File.ReadAllText(NetworkHelperHost.FailurePath) : "файла нет"));
             Add("брандмауэр после отказа: " + KillSwitchProbe.Describe());
-            Add("остались интерфейсы: " + (TunnelInterfaces.Ours().Count == 0 ? "нет" : string.Join(',', TunnelInterfaces.Ours())));
+            Add("остались поднятые интерфейсы: " + TunnelInterfaces.DescribeLeft());
             Save();
             try { session?.StopAsync().GetAwaiter().GetResult(); } catch { }
             try { if (helper is not null) helper.DisposeAsync().AsTask().GetAwaiter().GetResult(); } catch { }
