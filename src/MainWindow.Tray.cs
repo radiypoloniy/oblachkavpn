@@ -52,7 +52,7 @@ public partial class MainWindow
         trayPopup?.Close();
         var popup = new TrayPopup(
             () => { if (StopButton.IsEnabled) StopClick(this, new RoutedEventArgs()); else ConnectClick(this, new RoutedEventArgs()); },
-            ShowWindow, ExitApplication);
+            ShowWindow, ExitApplication, row => PickServer(row.IsAuto ? null : row.Profile));
         trayPopup = popup;
         popup.Closed += (_, _) => { if (ReferenceEquals(trayPopup, popup)) trayPopup = null; };
         RefreshTrayPopup();
@@ -62,19 +62,15 @@ public partial class MainWindow
         popup.Show();
     }
 
-    private void RefreshTrayPopup()
-    {
-        trayPopup?.Refresh(StatusText.Text, profile?.DisplayName ?? "Добавьте подключение", profile?.Transport ?? "Подписка, ключ или файл",
-            lastProbe is { Success: true } ? "Туннель проверен" : "Туннель не проверен",
-            sessionStarted is null ? "Туннель выключен" : SessionDuration + " в сети",
-            StopButton.IsEnabled, StopButton.IsEnabled || ConnectButton.IsEnabled);
-    }
+    // Трей повторяет главный экран: тот же статус и быстрая смена — автовыбор и три сервера.
+    private void RefreshTrayPopup() => trayPopup?.Refresh(Home.StatusTitle.Text,
+        ConnectionActive ? Home.StatusSub.Text : Home.ModeText.Text,
+        StopButton.IsEnabled, StopButton.IsEnabled || ConnectButton.IsEnabled, QuickRows().Take(4).ToArray());
 
     internal TrayPopup CreateTrayPreview()
     {
         var popup = new TrayPopup(() => { }, () => { }, () => { });
-        popup.Refresh(StatusText.Text, profile?.DisplayName ?? "Добавьте подключение", profile?.Transport ?? "Подписка, ключ или файл",
-            "Туннель не проверен", "Туннель выключен", false, profile is not null);
+        popup.Refresh(Home.StatusTitle.Text, Home.ModeText.Text, false, profile is not null, QuickRows().Take(4).ToArray());
         return popup;
     }
 }
