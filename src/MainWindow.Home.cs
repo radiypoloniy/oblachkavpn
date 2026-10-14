@@ -179,6 +179,9 @@ public partial class MainWindow
         SystemTunnelToggled(this, new RoutedEventArgs());
         SyncSystemProxy(engine.State);
         UpdateModeText();
+        // Состояние кнопок после остановки обновляется событием движка асинхронно: здесь оно
+        // ещё прежнее. Без явного обновления переход «Браузеры → Весь компьютер» не переподключал.
+        UpdateControls();
         if (reconnect && ConnectButton.IsEnabled) await ConnectCoreAsync();
     }
 
