@@ -55,7 +55,14 @@ public partial class MainWindow
         RefreshRouting();
         QueueStateSave();
         await DownloadGeoAsync(force: false);
-        if (!closed && ConnectionActive) DetailText.Text = "Списки применятся со следующего подключения.";
+        // Списки исполняет ядро подключения: чтобы они заработали, подключение перезапускается,
+        // как при смене режима. Во время запуска или замера не трогаем — применятся при следующем.
+        if (closed || !ConnectionActive) return;
+        if (operation is not null || systemStopping) { DetailText.Text = "Списки применятся со следующего подключения."; return; }
+        manualStop = true; recoveryWait?.Cancel();
+        if (systemTunnel is not null) await StopSystemTunnelAsync(); else engine.Stop();
+        UpdateControls();
+        if (!closed && ConnectButton.IsEnabled) { await ConnectCoreAsync(); DetailText.Text = "Списки включены, подключение перезапущено."; }
     }
 
     // Недостающие базы скачиваются; force — обновить и имеющиеся.
