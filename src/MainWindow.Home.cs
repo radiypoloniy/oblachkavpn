@@ -126,13 +126,25 @@ public partial class MainWindow
         PickServer(row.IsAuto ? null : row.Profile);
     }
 
-    private void PickServer(Profile? chosen)
+    private async void PickServer(Profile? chosen)
     {
         autoSelect = chosen is null;
+        QueueStateSave();
+        // Сразу после запуска отклики ещё идут: подождать их до 3 с лучше, чем взять текущий.
+        if (autoSelect) await WaitForPingsAsync();
         var target = chosen ?? BestProfile();
         if (target is not null) SelectProfile(target);
         RefreshHome();
         if (!ConnectionActive && ConnectButton.IsEnabled) ConnectClick(this, new RoutedEventArgs());
+    }
+
+    // При «Автовыборе» каждое включение начинается с лучшего по свежим замерам сервера,
+    // а не с того, что выбрался в прошлый раз.
+    private async Task PickBestBeforeConnectAsync()
+    {
+        if (!autoSelect || ConnectionActive) return;
+        await WaitForPingsAsync();
+        if (BestProfile() is { } best && (profile is null || ProfileSelection.Identity(best) != ProfileSelection.Identity(profile))) SelectProfile(best);
     }
 
     private Profile? BestProfile()

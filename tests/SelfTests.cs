@@ -31,6 +31,7 @@ public static partial class SelfTests
         await ServiceKeyChecksAsync(CheckAsync);
         await ForeignClientChecksAsync(CheckAsync);
         await RoutingChecksAsync(CheckAsync);
+        await AutoSelectChecksAsync(CheckAsync);
         await AliasChecksAsync(CheckAsync, root);
         await SourceChecksAsync(CheckAsync, root);
         await PanelHeaderChecksAsync(CheckAsync, root);

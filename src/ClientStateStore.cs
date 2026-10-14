@@ -39,6 +39,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public RoutingProfile? ProviderRouting { get; init; }
     public bool? UseProviderRouting { get; init; }
     public bool RussiaDirect { get; init; }
+    // «Автовыбор» на главном экране: переживает перезапуск.
+    public bool AutoSelect { get; init; }
 }
 
 // The OS binds the encrypted file to the current Windows user. Never stage plaintext on disk.

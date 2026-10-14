@@ -35,7 +35,7 @@ public partial class MainWindow
         { SelectedName = profile?.Name, ExternalSources = externalSources.ToArray(), AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, CloseToTray = Settings.StayInTray.IsChecked == true, SystemTunnel = Settings.SystemTunnel.IsChecked == true, Theme = ThemeManager.Choice, Metadata = subscriptionMetadata, RouteRules = siteRules.ToArray(), ProgramRules = programRules.ToArray(),
             Favorites = favorites.Where(f => importedProfiles.Any(p => FavoriteKey(p) == f)).Take(Subscriptions.MaxProfiles).ToArray(),
             Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
-            ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = Routes.RussiaDirect.IsChecked == true };
+            ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = Routes.RussiaDirect.IsChecked == true, AutoSelect = autoSelect };
 
     private void SaveStateClick(object sender, RoutedEventArgs args)
     {
@@ -86,6 +86,7 @@ public partial class MainWindow
         // Профиль из файла проверяется так же, как присланный сервисом.
         providerRouting = snapshot.ProviderRouting?.Normalized(); useProviderRouting = snapshot.UseProviderRouting;
         Routes.RussiaDirect.IsChecked = snapshot.RussiaDirect;
+        autoSelect = snapshot.AutoSelect;
         RefreshRouting();
         // Снимок хранит оба набора вперемешку: раскладываем обратно по источникам.
         serviceProfiles = restored.Where(p => p.IsService).ToArray();

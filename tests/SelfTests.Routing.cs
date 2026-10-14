@@ -88,9 +88,36 @@ public static partial class SelfTests
                 Assert(NetworkHelperContracts.Validate(lease).HasDirect);
                 await CoreConfigurationCheck.ValidateTunAsync(lease, CancellationToken.None);
                 ExpectUserError(() => NetworkHelperContracts.Validate(new(1, Guid.NewGuid(), NetworkLeaseAction.Release, 0, [], CoreDirect: true)));
+                // Тот же путь, что у службы: запрос из канала → проверенная аренда → запрос ядру
+                // туннеля. Флаг не должен теряться ни на одном шаге.
+                var wire = HelperProtocol.Parse<HelperRequest>(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new HelperRequest(1, Guid.NewGuid(), HelperOperation.Acquire, lease),
+                    new System.Text.Json.JsonSerializerOptions { Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } }));
+                var rebuilt = SingBoxTunnelProcess.RequestFor(NetworkHelperContracts.Validate(wire.Lease!));
+                Assert(rebuilt.CoreDirect == true && SingBoxTunConfig.Create(rebuilt)["route"]!["rules"]![1]!["process_path"] is not null);
             }
             finally { Directory.Delete(folder, true); }
         });
+    }
+
+    private static async Task AutoSelectChecksAsync(Func<string, Func<Task>, Task> check)
+    {
+        await check("Auto-select tries any subscription node from fastest to slowest, unknown next, failed and the broken one last", () => Sync(() =>
+        {
+            var nodes = Enumerable.Range(0, 5).Select(i => Profiles.Parse(link.Replace("#Test", "#N" + i))).ToArray();
+            var now = DateTimeOffset.UtcNow;
+            var known = new Dictionary<string, ServerMeasurement>
+            {
+                [nodes[0].Name] = new("0", now, true, 300), [nodes[1].Name] = new("1", now, false, 0),
+                [nodes[3].Name] = new("3", now, true, 40), [nodes[4].Name] = new("4", now, true, 90)
+            };
+            ServerMeasurement? Latest(Profile p) => known.TryGetValue(p.Name, out var m) ? m : null;
+            // Сторонние узлы: без «Автовыбора» перебор только по себе, с ним — по всем.
+            Assert(RouteCandidates.For(nodes, nodes[2]).SequenceEqual(new[] { 2 }));
+            var all = RouteCandidates.For(nodes, nodes[2], anyNode: true);
+            Assert(all.Length == 5);
+            Assert(RouteCandidates.ByLatency(all, nodes, Latest, failed: nodes[3]).SequenceEqual(new[] { 4, 0, 2, 1, 3 }));
+            Assert(RouteCandidates.ByLatency(all, nodes, Latest).SequenceEqual(new[] { 3, 4, 0, 2, 1 }));
+        }));
     }
 
     // Минимальная запись protobuf для синтетических баз.

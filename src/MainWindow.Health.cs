@@ -34,8 +34,12 @@ public partial class MainWindow
         if (closed || vmTestActive || Dispatcher.HasShutdownStarted) return;
         Dispatcher.BeginInvoke(new Action(() => { if (!closed) nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3); }));
     }
+    // Переключать сервер при обрыве: по настройке или потому что выбран «Автовыбор» —
+    // выбрав его, человек сам попросил, чтобы сервер подбирался без него.
+    private bool AutoSwitching => autoSelect || AutoRecover.IsChecked == true;
+
     // Проверка связи идёт всегда: без неё чип под тумблером не узнает, что туннель работает.
-    // Автовосстановление — отдельное решение, только при включённой настройке.
+    // Автовосстановление — отдельное решение: по настройке или при «Автовыборе».
     private async void PollHealth()
     {
         if (closed || vmTestActive || !backgroundWorkEnabled || operation is not null || recoveryWait is not null || engine.ProcessId is null ||
@@ -49,8 +53,15 @@ public partial class MainWindow
             if (!closed && !manualStop)
             {
                 RecordProbe(round.Results.FirstOrDefault(r => r.Success) ?? round.Results[^1]);
-                shouldRecover = health.ShouldRecover;
-                if (!round.Reachable) DetailText.Text = $"Проверка связи не прошла: {health.FailedRounds} из 3. Проверяем два независимых сайта.";
+                // При «Автовыборе» обрыв подтверждается быстрее: вторая проверка через 10 с, и двух
+                // неудачных подряд достаточно. Иначе — три проверки, повтор через 20 с.
+                var limit = autoSelect ? 2 : 3;
+                shouldRecover = health.FailedRounds >= limit;
+                if (!round.Reachable)
+                {
+                    nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(autoSelect ? 10 : 20);
+                    DetailText.Text = $"Проверка связи не прошла: {health.FailedRounds} из {limit}. Проверяем два независимых сайта.";
+                }
             }
         }
         catch (OperationCanceledException) { }
@@ -61,7 +72,7 @@ public partial class MainWindow
             if (manualStop) engine.Stop();
             if (!closed) UpdateControls();
         }
-        if (closed || vmTestActive || manualStop || AutoRecover.IsChecked != true) return;
+        if (closed || vmTestActive || manualStop || !AutoSwitching) return;
         if (shouldRecover) await RecoverUnreachableAsync();
         else if (engine.State == ConnectionState.Failed) ScheduleRecovery();
     }
@@ -75,9 +86,19 @@ public partial class MainWindow
         {
             await Task.Delay(delay.Value, operation.Token);
             var profiles = importedProfiles.ToArray();
-            var candidates = RouteCandidates.For(profiles, profile);
-            var result = await CreateRouteSearch().FindAsync(candidates.Select(i => profiles[i]).ToArray(),
-                RouteCandidates.StartAt(candidates, profiles, profile), TunnelHealth.Targets[0], operation.Token);
+            int[] candidates; int start;
+            if (autoSelect)
+            {
+                // Упавший узел помечается: ни автовыбор, ни следующий подбор не начнут с него.
+                MarkMeasured(profile, null);
+                candidates = RouteCandidates.ByLatency(RouteCandidates.For(profiles, profile, anyNode: true), profiles, LatestMeasurement, failed: profile);
+                start = 0;
+            }
+            else { candidates = RouteCandidates.For(profiles, profile); start = RouteCandidates.StartAt(candidates, profiles, profile); }
+            var result = await CreateRouteSearch().FindAsync(candidates.Select(i => profiles[i]).ToArray(), start, TunnelHealth.Targets[0], operation.Token);
+            // Итог каждой попытки — тоже замер: автовыбор учтёт его в следующий раз.
+            foreach (var attempt in result.Attempts)
+                MarkMeasured(profiles[candidates[attempt.ProfileIndex]], attempt.Outcome == "Verified" ? attempt.Milliseconds : null);
             // Нумерация попыток возвращается к позициям в общем списке: отчёт диагностики
             // должен ссылаться на то, что видит пользователь.
             routeAttempts = result.Attempts.Select(a => a with { ProfileIndex = candidates[a.ProfileIndex] }).ToArray();

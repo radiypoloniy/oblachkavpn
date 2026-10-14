@@ -117,6 +117,11 @@ public partial class MainWindow
     private Profile[] SystemCandidates(Profile selected)
     {
         var profiles = importedProfiles.ToArray();
+        // «Автовыбор»: запасные — все узлы, от быстрых к медленным; в лимит адресов защиты
+        // попадают лучшие, и подбор под блокировкой сможет на них перейти.
+        if (autoSelect)
+            return new[] { selected }.Concat(RouteCandidates.ByLatency(RouteCandidates.For(profiles, selected, anyNode: true), profiles, LatestMeasurement)
+                .Select(i => profiles[i])).DistinctBy(ProfileSelection.Identity).ToArray();
         var candidates = RouteCandidates.For(profiles, selected);
         if (candidates.Length == 0) return new[] { selected };
         // Сначала порядок автоподбора (выбранный и пять запасных), затем остальные узлы сервиса:

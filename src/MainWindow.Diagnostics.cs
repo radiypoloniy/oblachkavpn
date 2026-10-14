@@ -12,7 +12,7 @@ public partial class MainWindow
 {
     private async void ScheduleRecovery()
     {
-        if (closed || vmTestActive || manualStop || operation is not null || recoveryWait is not null || AutoRecover.IsChecked != true || profile is null) return;
+        if (closed || vmTestActive || manualStop || operation is not null || recoveryWait is not null || !AutoSwitching || profile is null) return;
         var delay = recovery.NextDelay(DateTimeOffset.UtcNow);
         if (delay is null) { DetailText.Text = "После трёх попыток за две минуты восстановление приостановлено. Проверьте сеть или выберите другой сервер и подключитесь вручную."; return; }
         recoveryWait = new CancellationTokenSource();
@@ -20,7 +20,7 @@ public partial class MainWindow
         {
             DetailText.Text = $"Ядро остановилось. Повторный запуск через {delay.Value.TotalSeconds:0} с…";
             await Task.Delay(delay.Value, recoveryWait.Token);
-            if (!closed && !manualStop && operation is null && engine.State == ConnectionState.Failed && AutoRecover.IsChecked == true)
+            if (!closed && !manualStop && operation is null && engine.State == ConnectionState.Failed && AutoSwitching)
             { engine.Stop(); await ConnectCoreAsync(); }
         }
         catch (OperationCanceledException) { }

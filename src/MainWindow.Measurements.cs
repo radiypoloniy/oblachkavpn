@@ -39,11 +39,20 @@ public partial class MainWindow
     // Окна проверок и превью (без сохранения состояния) в сеть не ходят.
     private bool CanPing => systemTunnel is null && !closed && importedProfiles.Count > 0 && stateStore is not null && !isolatedPersistence;
 
+    private Task pingTask = Task.CompletedTask;
+
     private void QueuePing()
     {
         if (pinging is not null) { pingQueued = true; return; }
         if (!CanPing) return;
-        _ = PingServersAsync();
+        pingTask = PingServersAsync();
+    }
+
+    private async Task WaitForPingsAsync()
+    {
+        if (pinging is null && pings.Count > 0) return;
+        if (pinging is null) QueuePing();
+        await Task.WhenAny(pingTask, Task.Delay(TimeSpan.FromSeconds(3)));
     }
 
     private async Task PingServersAsync()
@@ -70,6 +79,14 @@ public partial class MainWindow
             pinging.Dispose(); pinging = null;
             if (pingQueued && !closed) QueuePing();
         }
+    }
+
+    // Итог проверки узла в работе (подбор, автовосстановление): null — не ответил.
+    private void MarkMeasured(Profile item, long? milliseconds)
+    {
+        var key = Profiles.Fingerprint(item);
+        pings[key] = new(key, DateTimeOffset.UtcNow, milliseconds is not null, Math.Max(1, milliseconds ?? 0));
+        PingsChanged();
     }
 
     // Пока окно открыто, отклики обновляются раз в 10 минут; после выключения режима

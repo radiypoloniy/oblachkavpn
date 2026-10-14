@@ -28,10 +28,16 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         get { try { return !process.HasExited; } catch (InvalidOperationException) { return false; } }
     }
 
+    // Обратно в запрос — со всеми полями аренды. Потерянный здесь CoreDirect (0.10, 885e71d)
+    // оставлял туннель без правила для прямого трафика ядра: он возвращался ядру по кругу,
+    // и сайты из списков «напрямую» не открывались.
+    internal static NetworkLeaseRequest RequestFor(ValidatedNetworkLease lease) =>
+        new(1, lease.LeaseId, NetworkLeaseAction.Acquire, lease.LoopbackPort, lease.Peers.Select(p => p.ToString()).ToArray(),
+            lease.SiteRules.ToArray(), lease.ProgramRules.ToArray(), lease.CoreDirect ? true : null);
+
     internal static ITunnelProcess Start(ValidatedNetworkLease lease, string executable, CancellationToken token)
     {
-        var request = new NetworkLeaseRequest(1, lease.LeaseId, NetworkLeaseAction.Acquire, lease.LoopbackPort,
-            lease.Peers.Select(p => p.ToString()).ToArray(), lease.SiteRules.ToArray(), lease.ProgramRules.ToArray());
+        var request = RequestFor(lease);
         var adapter = new CoreAdapter(CoreKind.SingBox, executable);
         // Конфигурацию проверяет само ядро до запуска: отказ виден до изменения сети.
         var ipv6 = PhysicalNetwork.HasGlobalIpv6();

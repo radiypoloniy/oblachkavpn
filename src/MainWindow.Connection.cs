@@ -10,6 +10,7 @@ public partial class MainWindow
     {
         manualStop = false;
         recoveryWait?.Cancel(); recovery.Reset(); health.Reset();
+        await PickBestBeforeConnectAsync();
         await ConnectCoreAsync();
     }
     private async Task ConnectCoreAsync()
