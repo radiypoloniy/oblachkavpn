@@ -81,19 +81,31 @@ public static partial class SelfTests
                 Assert(singConfig["route"]!["rules"]![0]!["action"]!.GetValue<string>() == "sniff" && singConfig["route"]!["final"]!.GetValue<string>() == "user-direct");
                 await CoreConfigurationCheck.ValidateAsync(singBox, singConfig, CancellationToken.None);
 
-                var lease = NetworkAcquire() with { CoreDirect = true };
+                // «Весь компьютер»: «напрямую» ядро отдаёт на локальный вход ядра туннеля с паролем сессии.
+                var entry = CoreDirectEntry.Create(23456);
+                var tunCore = RoutingPlan.Compile(xray, Profiles.Parse(link), 10808, [], routing, entry);
+                var direct = ((JsonArray)tunCore["outbounds"]!).Single(o => o!["tag"]!.GetValue<string>() == "user-direct")!;
+                Assert(direct["protocol"]!.GetValue<string>() == "socks" && direct["settings"]!["servers"]![0]!["port"]!.GetValue<int>() == 23456);
+                await CoreConfigurationCheck.ValidateAsync(xray, tunCore, CancellationToken.None);
+                await CoreConfigurationCheck.ValidateAsync(singBox, RoutingPlan.Compile(singBox, hy2, 10808, [], routing, entry), CancellationToken.None);
+
+                var lease = NetworkAcquire() with { CoreDirect = entry };
                 var tun = SingBoxTunConfig.Create(lease);
                 var tunRules = (JsonArray)tun["route"]!["rules"]!;
-                Assert(tunRules[1]!["process_path"]!.AsArray().Count == 2 && tunRules[1]!["outbound"]!.GetValue<string>() == SingBoxTunConfig.UserDirect);
+                Assert(tunRules[0]!["inbound"]![0]!.GetValue<string>() == SingBoxTunConfig.CoreDirectInbound && tunRules[0]!["outbound"]!.GetValue<string>() == SingBoxTunConfig.UserDirect);
+                var inbound = ((JsonArray)tun["inbounds"]!).Single(i => i!["tag"]!.GetValue<string>() == SingBoxTunConfig.CoreDirectInbound)!;
+                Assert(inbound["listen"]!.GetValue<string>() == "127.0.0.1" && inbound["users"]![0]!["password"]!.GetValue<string>() == entry.Password);
                 Assert(NetworkHelperContracts.Validate(lease).HasDirect);
                 await CoreConfigurationCheck.ValidateTunAsync(lease, CancellationToken.None);
-                ExpectUserError(() => NetworkHelperContracts.Validate(new(1, Guid.NewGuid(), NetworkLeaseAction.Release, 0, [], CoreDirect: true)));
+                ExpectUserError(() => NetworkHelperContracts.Validate(new(1, Guid.NewGuid(), NetworkLeaseAction.Release, 0, [], CoreDirect: entry)));
+                ExpectUserError(() => NetworkHelperContracts.Validate(lease with { CoreDirect = entry with { Password = "short" } }));
+                ExpectUserError(() => NetworkHelperContracts.Validate(lease with { CoreDirect = entry with { Port = 80 } }));
                 // Тот же путь, что у службы: запрос из канала → проверенная аренда → запрос ядру
-                // туннеля. Флаг не должен теряться ни на одном шаге.
+                // туннеля. Вход не должен теряться ни на одном шаге.
                 var wire = HelperProtocol.Parse<HelperRequest>(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new HelperRequest(1, Guid.NewGuid(), HelperOperation.Acquire, lease),
                     new System.Text.Json.JsonSerializerOptions { Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } }));
                 var rebuilt = SingBoxTunnelProcess.RequestFor(NetworkHelperContracts.Validate(wire.Lease!));
-                Assert(rebuilt.CoreDirect == true && SingBoxTunConfig.Create(rebuilt)["route"]!["rules"]![1]!["process_path"] is not null);
+                Assert(rebuilt.CoreDirect == entry && SingBoxTunConfig.Create(rebuilt)["route"]!["rules"]![0]!["inbound"] is not null);
             }
             finally { Directory.Delete(folder, true); }
         });

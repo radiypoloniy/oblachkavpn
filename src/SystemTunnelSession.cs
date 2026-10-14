@@ -70,7 +70,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
 
     // Первый план запускается, остальные только разрешаются: их адреса входят в аренду.
     public async Task StartWithSparesAsync(IReadOnlyList<TunnelEndpointPlan> prepared, CancellationToken token,
-        IReadOnlyList<SiteRule>? sites = null, IReadOnlyList<ProgramRule>? programs = null, bool coreDirect = false)
+        IReadOnlyList<SiteRule>? sites = null, IReadOnlyList<ProgramRule>? programs = null, CoreDirectEntry? coreDirect = null)
     {
         if (prepared.Count == 0) throw new UserError("Нет подготовленного сервера для системного режима.");
         await operations.WaitAsync(token).ConfigureAwait(false);
@@ -89,7 +89,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
                 // Запрос ограничен своим сроком в канале; отмена проверяется после него, и
                 // сессия снимается обычным Release.
                 BlocksBypass = await helper.AcquireAsync(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, leasePort, peers,
-                    sites?.ToArray(), programs?.ToArray(), coreDirect ? true : null), CancellationToken.None).ConfigureAwait(false);
+                    sites?.ToArray(), programs?.ToArray(), coreDirect), CancellationToken.None).ConfigureAwait(false);
                 token.ThrowIfCancellationRequested();
                 Set(SystemTunnelState.Running);
             }

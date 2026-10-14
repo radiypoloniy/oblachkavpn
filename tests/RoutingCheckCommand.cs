@@ -40,8 +40,8 @@ internal static class RoutingCheckCommand
                 CoreConfigurationCheck.ValidateAsync(singBox, RoutingPlan.Compile(singBox, hy2, 10808, [], routing), timeout.Token).GetAwaiter().GetResult();
                 lines.Add("sing-box принял конфигурацию");
             }
-            CoreConfigurationCheck.ValidateTunAsync(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, 10808, ["192.0.2.1"], CoreDirect: true), timeout.Token).GetAwaiter().GetResult();
-            lines.Add("Туннель с CoreDirect принят");
+            CoreConfigurationCheck.ValidateTunAsync(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, 10808, ["192.0.2.1"], CoreDirect: CoreDirectEntry.Create(23456)), timeout.Token).GetAwaiter().GetResult();
+            lines.Add("Туннель с входом прямого трафика принят");
             File.WriteAllLines(reportPath, lines);
             return 0;
         }

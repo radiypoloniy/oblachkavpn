@@ -15,6 +15,24 @@ public sealed record SiteRule(string Domain, SiteAction Action)
 // правила исполняет ядро туннеля (SingBoxTunConfig), а здесь список пуст.
 public static class RoutingPlan
 {
+    private static JsonObject DirectOutbound(bool xray, CoreDirectEntry? entry) => entry is null
+        ? xray ? new JsonObject { ["tag"] = "user-direct", ["protocol"] = "freedom" } : new JsonObject { ["tag"] = "user-direct", ["type"] = "direct" }
+        : xray
+            ? new JsonObject
+            {
+                ["tag"] = "user-direct", ["protocol"] = "socks",
+                ["settings"] = new JsonObject { ["servers"] = new JsonArray(new JsonObject
+                {
+                    ["address"] = "127.0.0.1", ["port"] = entry.Port,
+                    ["users"] = new JsonArray(new JsonObject { ["user"] = entry.User, ["pass"] = entry.Password })
+                }) }
+            }
+            : new JsonObject
+            {
+                ["tag"] = "user-direct", ["type"] = "socks", ["server"] = "127.0.0.1", ["server_port"] = entry.Port,
+                ["version"] = "5", ["username"] = entry.User, ["password"] = entry.Password
+            };
+
     public static SiteRule Create(string domain, SiteAction action)
     {
         domain = domain.Trim().TrimEnd('.');
@@ -34,7 +52,10 @@ public static class RoutingPlan
     }
     // routing — списки сервиса и встроенные наборы (CompiledRouting). Идут после правил
     // пользователя: явное правило сайта сильнее списка.
-    public static JsonObject Compile(CoreAdapter adapter, Profile profile, int port, IReadOnlyList<SiteRule> rules, CompiledRouting? routing = null)
+    // directEntry — режим «Весь компьютер»: «напрямую» ядро отдаёт на локальный вход ядра туннеля
+    // (CoreDirectEntry), иначе его прямое соединение снова попало бы в туннель.
+    public static JsonObject Compile(CoreAdapter adapter, Profile profile, int port, IReadOnlyList<SiteRule> rules, CompiledRouting? routing = null,
+        CoreDirectEntry? directEntry = null)
     {
         Validate(rules);
         if (profile.Core != adapter.Kind) throw new UserError("Ядро не соответствует профилю.");
@@ -44,7 +65,7 @@ public static class RoutingPlan
         var tunnelTag = outbounds[0]!["tag"]!.GetValue<string>();
         if (routing is { IsEmpty: true }) routing = null;
         if (rules.Any(r => r.Action == SiteAction.Direct) || routing?.HasDirect == true)
-            outbounds.Add(xray ? new JsonObject { ["tag"] = "user-direct", ["protocol"] = "freedom" } : new JsonObject { ["tag"] = "user-direct", ["type"] = "direct" });
+            outbounds.Add(DirectOutbound(xray, directEntry));
         if (xray && (rules.Any(r => r.Action == SiteAction.Block) || routing?.Block.IsEmpty == false))
             outbounds.Add(new JsonObject { ["tag"] = "user-block", ["protocol"] = "blackhole" });
         // В системном режиме ядро получает из туннеля соединения по IP: имя сайта берётся из

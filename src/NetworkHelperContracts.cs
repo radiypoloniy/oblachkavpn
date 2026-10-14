@@ -14,18 +14,35 @@ public sealed record NetworkLeaseRequest(
     [property: JsonRequired] string[] PeerAddresses,
     SiteRule[]? Sites = null,
     ProgramRule[]? Programs = null,
-    // Ядро окна само отправляет часть трафика напрямую (списки маршрутизации). Этот трафик
-    // возвращается в туннель, и ядро туннеля выпускает его наружу по пути ядра Облачков.
-    bool? CoreDirect = null);
+    // Ядро окна само отправляет часть трафика напрямую (списки маршрутизации). Отдаёт оно его
+    // ядру туннеля через отдельный локальный вход SOCKS с паролем этой сессии, а ядро туннеля
+    // выпускает всё, что пришло туда, мимо туннеля. Распознавание процесса для этого не годится:
+    // на стенде правило по пути ядра не срабатывало, и трафик шёл по кругу.
+    CoreDirectEntry? CoreDirect = null);
+
+public sealed record CoreDirectEntry(
+    [property: JsonRequired] int Port,
+    [property: JsonRequired] string User,
+    [property: JsonRequired] string Password)
+{
+    public static CoreDirectEntry Create(int port) => new(port, Secret(), Secret());
+    private static string Secret() => Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
+    public void Validate()
+    {
+        static bool Token(string? value) => value is { Length: >= 16 and <= 64 } && value.All(char.IsAsciiLetterOrDigit);
+        if (Port is < 1024 or > 65535 || !Token(User) || !Token(Password))
+            throw new UserError("Неверные параметры прямого выхода ядра.");
+    }
+}
 // Правила сайтов и программ — ограниченные данные: домены и имена .exe без путей,
 // проверенные теми же правилами, что и в окне. Конфигурацию ядра помощник строит сам.
 public sealed record ValidatedNetworkLease(Guid LeaseId, NetworkLeaseAction Action, int LoopbackPort, IReadOnlyList<IPAddress> Peers,
-    IReadOnlyList<SiteRule>? Sites = null, IReadOnlyList<ProgramRule>? Programs = null, bool CoreDirect = false)
+    IReadOnlyList<SiteRule>? Sites = null, IReadOnlyList<ProgramRule>? Programs = null, CoreDirectEntry? CoreDirect = null)
 {
     public IReadOnlyList<SiteRule> SiteRules => Sites ?? Array.Empty<SiteRule>();
     public IReadOnlyList<ProgramRule> ProgramRules => Programs ?? Array.Empty<ProgramRule>();
     // Есть ли трафик, который пользователь сам отправил мимо туннеля.
-    public bool HasDirect => CoreDirect || SiteRules.Any(r => r.Action == SiteAction.Direct) || ProgramRules.Any(r => r.Action == SiteAction.Direct);
+    public bool HasDirect => CoreDirect is not null || SiteRules.Any(r => r.Action == SiteAction.Direct) || ProgramRules.Any(r => r.Action == SiteAction.Direct);
 }
 
 // A future privileged helper accepts bounded network intent, never profiles, tokens or shell commands.
@@ -61,7 +78,7 @@ public static class NetworkHelperContracts
             throw new UserError("Неверная версия или идентификатор сетевой сессии.");
         if (request.Action == NetworkLeaseAction.Release)
         {
-            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 } || request.CoreDirect == true)
+            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 } || request.CoreDirect is not null)
                 throw new UserError("Завершение сессии не принимает сетевые параметры.");
             return new(request.LeaseId, request.Action, 0, Array.Empty<IPAddress>());
         }
@@ -87,6 +104,8 @@ public static class NetworkHelperContracts
         var programs = request.Programs ?? Array.Empty<ProgramRule>();
         RoutingPlan.Validate(sites);
         ProgramRoutingPlan.Validate(programs);
-        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs, request.CoreDirect == true);
+        request.CoreDirect?.Validate();
+        if (request.CoreDirect?.Port == request.LoopbackPort) throw new UserError("Прямой выход ядра совпадает с портом ядра.");
+        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs, request.CoreDirect);
     }
 }

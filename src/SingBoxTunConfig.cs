@@ -80,11 +80,18 @@ public static class SingBoxTunConfig
     {
         var rules = (JsonArray)config["route"]!["rules"]!;
         if (lease.HasDirect) ((JsonArray)config["outbounds"]!).Add(new JsonObject { ["type"] = "direct", ["tag"] = UserDirect });
-        // Прямой трафик ядра окна (списки маршрутизации) — первым после DNS: иначе правило сайта
-        // «через VPN» вернуло бы его ядру, а ядро снова отправило бы напрямую — петля.
-        // Путь, а не имя: ядра лежат в папке программы, куда пишет только администратор.
-        if (lease.CoreDirect)
-            rules.Add(new JsonObject { ["process_path"] = new JsonArray(CorePaths.Select(p => (JsonNode?)p).ToArray()), ["outbound"] = UserDirect });
+        // Прямой трафик ядра окна (списки маршрутизации) приходит на свой локальный вход с паролем
+        // сессии и уходит мимо туннеля. Правило — самое первое, раньше перехвата DNS: этот трафик
+        // ядро уже разобрало, и возвращать его ядру нельзя — получилась бы петля.
+        if (lease.CoreDirect is { } entry)
+        {
+            ((JsonArray)config["inbounds"]!).Add(new JsonObject
+            {
+                ["type"] = "socks", ["tag"] = CoreDirectInbound, ["listen"] = "127.0.0.1", ["listen_port"] = entry.Port,
+                ["users"] = new JsonArray(new JsonObject { ["username"] = entry.User, ["password"] = entry.Password })
+            });
+            rules.Insert(0, new JsonObject { ["inbound"] = new JsonArray(CoreDirectInbound), ["outbound"] = UserDirect });
+        }
         if (lease.SiteRules.Count > 0) rules.Add(new JsonObject { ["action"] = "sniff" });
         foreach (var rule in lease.ProgramRules)
             rules.Add(Route(new JsonObject { ["process_name"] = new JsonArray(rule.Executable) }, rule.Action));
@@ -93,7 +100,7 @@ public static class SingBoxTunConfig
     }
 
     public const string UserDirect = "user-direct";
-    public static IEnumerable<string> CorePaths => new[] { "xray.exe", "sing-box.exe" }.Select(f => Path.Combine(AppContext.BaseDirectory, "tools", f));
+    public const string CoreDirectInbound = "core-direct";
 
     private static JsonObject Route(JsonObject match, SiteAction action)
     {

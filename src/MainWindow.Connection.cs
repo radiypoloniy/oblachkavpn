@@ -21,7 +21,15 @@ public partial class MainWindow
         var target = profile;
         manualStop = false;
         // Правила сайтов: в обычном режиме — у ядра подключения, в системном — у ядра туннеля.
-        if (engine is Engine core) { core.SiteRules = SystemTunnelWanted ? Array.Empty<SiteRule>() : siteRules.ToArray(); core.Routing = CurrentRouting(); }
+        if (engine is Engine core)
+        {
+            core.SiteRules = SystemTunnelWanted ? Array.Empty<SiteRule>() : siteRules.ToArray();
+            core.Routing = CurrentRouting();
+            // Новый вход прямого трафика — только на новую сессию «Весь компьютер»; перезапуск ядра
+            // под действующей сессией сохраняет её вход.
+            if (!(SystemTunnelWanted && SystemTunnelActive))
+                core.DirectEntry = SystemTunnelWanted && core.Routing?.HasDirect == true ? CoreDirectEntry.Create(Engine.FreePort()) : null;
+        }
         operation = new CancellationTokenSource();
         engineOperation = true;
         UpdateControls();

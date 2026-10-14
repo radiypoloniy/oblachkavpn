@@ -47,15 +47,17 @@ public sealed class Engine : ITunnelController
     // Списки сервиса и встроенные наборы: исполняет ядро подключения в обоих режимах. В системном
     // режиме его прямой трафик возвращается в туннель и выпускается правилом CoreDirect службы.
     public CompiledRouting? Routing { get; set; }
+    // Локальный вход ядра туннеля для прямого трафика (только «Весь компьютер»).
+    public CoreDirectEntry? DirectEntry { get; set; }
 
     public Task StartAsync(Profile profile, CancellationToken token)
     {
         if (process is not null) throw new UserError("Сначала остановите текущее подключение.");
         var filename = profile.Core == CoreKind.Xray ? "xray.exe" : "sing-box.exe";
         adapter = new(profile.Core, Path.Combine(Path.GetDirectoryName(adapter.Executable)!, filename));
-        var rules = SiteRules; var routing = Routing;
+        var rules = SiteRules; var routing = Routing; var entry = DirectEntry;
         return rules.Count == 0 && routing is null ? StartAsync(profile.Outbound, token)
-            : StartCoreAsync(port => RoutingPlan.Compile(adapter, profile, port, rules, routing), token);
+            : StartCoreAsync(port => RoutingPlan.Compile(adapter, profile, port, rules, routing, entry), token);
     }
 
     internal async Task StartCoreAsync(Func<int, JsonObject> configFactory, CancellationToken token)
@@ -204,7 +206,7 @@ public sealed class Engine : ITunnelController
         catch (InvalidOperationException) { }
         catch (System.ComponentModel.Win32Exception) { }
     }
-    private static int FreePort(int preferred = 0)
+    public static int FreePort(int preferred = 0)
     {
         var listener = new TcpListener(IPAddress.Loopback, preferred);
         try
