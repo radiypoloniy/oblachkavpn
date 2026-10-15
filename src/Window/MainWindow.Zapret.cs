@@ -93,13 +93,14 @@ public partial class MainWindow
                 var probe = await StartAndProbeAsync(names[i], exclude, token);
                 if (probe is null) continue;
                 if (probe.All) { Done(names[i], network); return; }
-                // Частичный успех засчитывается, только если стратегия открывает больше, чем без обхода:
-                // иначе сайты пошли бы мимо VPN и сломались (например, заблокированные по DNS).
-                if (probe.Passed > Math.Max(best?.Passed ?? 0, baseline.Passed)) best = (names[i], probe.Passed);
+                if (probe.Passed > (best?.Passed ?? -1)) best = (names[i], probe.Passed);
             }
-            if (best is { } partial && await TryStrategyAsync(partial.Name, exclude, token, acceptPartial: true)) { Done(partial.Name, network, partial: true); return; }
+            // Частичного успеха нет: открылся YouTube, но не Discord — и Discord, работавший через VPN,
+            // сломался бы напрямую. Мимо VPN — только если открываются все проверочные сайты.
             await ZapretCallAsync(new(ZapretAction.Stop));
-            Note("Рабочую стратегию в этой сети не нашли — эти сайты идут через VPN.");
+            var total = ZapretProbe.Targets.Length;
+            Note($"Рабочую стратегию не нашли — эти сайты идут через VPN. Без обхода открылось {baseline.Passed} из {total}" +
+                (best is { } top ? $", лучшая стратегия «{top.Name}» — {top.Passed} из {total}." : "."));
         }
         catch (OperationCanceledException) { await ZapretCallAsync(new(ZapretAction.Stop)); Note("Подбор остановлен — эти сайты идут через VPN."); }
         finally
@@ -109,19 +110,18 @@ public partial class MainWindow
             if (!closed) await ApplyZapretRoutingAsync();
         }
 
-        void Done(string choice, string network, bool partial = false)
+        void Done(string choice, string network)
         {
             zapretChoices[network] = choice; QueueStateSave();
             Note(choice == NoneNeeded ? "В этой сети эти сайты открываются и без обхода — идут напрямую."
-                : (partial ? "Частично работает стратегия «" : "Работает стратегия «") + choice + "». Сайты из списка идут напрямую.");
+                : "Работает стратегия «" + choice + "». Сайты из списка идут напрямую.");
         }
     }
 
-    private async Task<bool> TryStrategyAsync(string name, string[] exclude, CancellationToken token, bool acceptPartial = false)
+    private async Task<bool> TryStrategyAsync(string name, string[] exclude, CancellationToken token)
     {
         if (name == NoneNeeded) { await ZapretCallAsync(new(ZapretAction.Stop)); return (await ZapretProbe.RunAsync(ProbePort, token)).All; }
-        var probe = await StartAndProbeAsync(name, exclude, token);
-        return probe is { All: true } || acceptPartial && probe is { Passed: > 0 };
+        return (await StartAndProbeAsync(name, exclude, token)) is { All: true };
     }
 
     private async Task<ZapretProbeResult?> StartAndProbeAsync(string name, string[] exclude, CancellationToken token)

@@ -29,7 +29,8 @@ public partial class MainWindow
             // Новый вход прямого трафика — только на новую сессию «Весь компьютер»; перезапуск ядра
             // под действующей сессией сохраняет её вход.
             if (!(SystemTunnelWanted && SystemTunnelActive))
-                core.DirectEntry = SystemTunnelWanted && core.Routing?.HasDirect == true ? CoreDirectEntry.Create(Engine.FreePort()) : null;
+                // С zapret вход нужен заранее: его сайты включаются в «напрямую» без переподключения туннеля.
+                core.DirectEntry = SystemTunnelWanted && (core.Routing?.HasDirect == true || zapretEnabled) ? CoreDirectEntry.Create(Engine.FreePort()) : null;
         }
         operation = new CancellationTokenSource();
         engineOperation = true;
