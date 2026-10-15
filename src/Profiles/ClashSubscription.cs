@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Oblachka;
 
-// Подписки Clash / Mihomo (YAML): раздел proxies переводится в ссылки vless://, trojan://, hy2://
+// Подписки Clash / Mihomo (YAML): раздел proxies переводится в ссылки (vless, trojan, hy2 — здесь, остальные — в ClashProxies)
 // и проходит через тот же разбор и те же проверки, что и обычная подписка (ShareLinks).
 // YAML разбирается ровно настолько, насколько он нужен для proxies: блоки, списки, {…} и […],
 // кавычки, комментарии. Якоря, многострочные строки и теги не поддерживаются — такие записи
@@ -86,7 +86,7 @@ public static class ClashSubscription
             Put("sni", S("sni")); Put("obfs", S("obfs")); Put("obfs-password", S("obfs-password")); Put("mport", S("ports"));
             return "hy2://" + Uri.EscapeDataString(password) + "@" + host + ":" + port + Query(q) + "#" + Uri.EscapeDataString(name);
         }
-        return null;
+        return ClashProxies.Link(p, type, host, port, name);
     }
 
     private static string Query(List<(string Key, string Value)> q) =>

@@ -17,6 +17,17 @@ public static class TestProgram
         if (args.Length == 5 && args[0] == "--export-core-config")
             return ExportCoreConfigCommand.Run(args[1], args[2], args[3], int.Parse(args[4]));
         if (args.Length == 4 && args[0] == "--local-rules-check") return LocalRulesCheckCommand.Run(args[1], args[2], args[3]);
+        // Конфигурация ядра для одной ссылки (или файла с ней) тем же кодом, что в приложении:
+        // для проверки протокола на локальном сервере. В файле — учётные данные из ссылки.
+        if (args.Length == 4 && args[0] == "--link-config")
+        {
+            var text = File.Exists(args[1]) ? File.ReadAllText(args[1]) : args[1];
+            var profile = Subscriptions.Parse(text).Profiles[0];
+            var adapter = new CoreAdapter(profile.Core, Path.Combine(AppContext.BaseDirectory, "tools", profile.Core == CoreKind.Xray ? "xray.exe" : "sing-box.exe"));
+            File.WriteAllText(args[2], adapter.RuntimeConfig(profile.Outbound, int.Parse(args[3])).ToJsonString());
+            Console.WriteLine(profile.Core + " | " + profile.Transport);
+            return 0;
+        }
         // Подписки других клиентов на этом компьютере: клиент, имя и хост, без токенов.
         // Третий аргумент — подменная папка: в ней ищутся все хранилища (AppData, LocalAppData…).
         if (args.Length is 2 or 3 && args[0] == "--foreign-clients")

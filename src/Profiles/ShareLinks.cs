@@ -3,16 +3,20 @@ using System.Text.Json.Nodes;
 
 namespace Oblachka;
 
-// Share links: vless://, trojan://, hysteria2:// (hy2://). Unknown parameters fail with their names only, never values.
-public static class ShareLinks
+// Share links: vless://, trojan://, hysteria2:// (hy2://); ss://, vmess://, tuic://, anytls://, wireguard:// (wg://)
+// — в ShareLinksExtra. Unknown parameters fail with their names only, never values.
+public static partial class ShareLinks
 {
-    private static readonly string[] Schemes = { "vless://", "trojan://", "hysteria2://", "hy2://" };
+    private static readonly string[] Schemes = { "vless://", "trojan://", "hysteria2://", "hy2://", "ss://", "vmess://", "tuic://", "anytls://", "wireguard://", "wg://" };
     private static readonly string[] StreamKeys = { "type", "security", "sni", "fp", "pbk", "sid", "spx", "pqv", "alpn", "ech", "allowInsecure", "insecure", "host", "path", "mode", "extra", "serviceName", "authority", "headerType" };
 
     public static bool IsLink(string line) => Schemes.Any(s => line.StartsWith(s, StringComparison.OrdinalIgnoreCase));
 
     public static Profile Parse(string input)
     {
+        // У ss:// и vmess:// внутри base64, их обычный разбор адреса не прочитает.
+        if (input.StartsWith("ss://", StringComparison.OrdinalIgnoreCase)) return Shadowsocks(input);
+        if (input.StartsWith("vmess://", StringComparison.OrdinalIgnoreCase)) return Vmess(input);
         if (!Uri.TryCreate(input, UriKind.Absolute, out var uri) || string.IsNullOrWhiteSpace(uri.Host))
             throw new UserError("Не удалось прочитать ссылку подключения.");
         var q = Query(uri);
@@ -22,6 +26,9 @@ public static class ShareLinks
             "vless" => Vless(uri, q, name),
             "trojan" => Trojan(uri, q, name),
             "hysteria2" or "hy2" => Hysteria2(uri, q, name),
+            "tuic" => Tuic(uri, q, name),
+            "anytls" => AnyTls(uri, q, name),
+            "wireguard" or "wg" => WireGuardLink(uri, q, name),
             _ => throw new UserError("Этот тип ссылки пока не поддерживается.")
         };
     }
@@ -34,7 +41,7 @@ public static class ShareLinks
             var pair = part.Split('=', 2);
             var key = Uri.UnescapeDataString(pair[0]);
             if (!q.TryAdd(key, pair.Length > 1 ? Uri.UnescapeDataString(pair[1].Replace("+", " ")) : ""))
-                throw new UserError("В ссылке повторяется параметр " + SafeKey(key) + ". Экспортируй профиль как JSON.");
+                throw new UserError("В ссылке повторяется параметр " + SafeKey(key) + ". Экспортируйте профиль как JSON.");
         }
         return q;
     }
@@ -44,7 +51,7 @@ public static class ShareLinks
         var set = new HashSet<string>(known, StringComparer.OrdinalIgnoreCase);
         var unknown = q.Keys.Where(k => !set.Contains(k)).Select(SafeKey).Take(5).ToArray();
         if (unknown.Length > 0)
-            throw new UserError("Ссылка содержит незнакомые параметры: " + string.Join(", ", unknown) + ". Импортируй клиентский JSON или сообщи разработчику эти названия.");
+            throw new UserError("Ссылка содержит незнакомые параметры: " + string.Join(", ", unknown) + ". Импортируйте клиентский JSON или сообщите разработчику эти названия.");
     }
 
     // Names only: values may carry keys or passwords.
@@ -112,7 +119,7 @@ public static class ShareLinks
                 if (q.ContainsKey("extra"))
                 {
                     try { xhttp["extra"] = JsonNode.Parse(Get(q, "extra")) as JsonObject ?? throw new UserError("extra должен быть JSON-объектом."); }
-                    catch (JsonException) { throw new UserError("Не удалось прочитать XHTTP extra. Импортируй Xray JSON."); }
+                    catch (JsonException) { throw new UserError("Не удалось прочитать XHTTP extra. Импортируйте Xray JSON."); }
                 }
                 stream["xhttpSettings"] = xhttp;
                 break;

@@ -14,7 +14,7 @@
     </Grid>
     <StackPanel>
       <TextBlock Text="Вставьте ключ —&#x0a;и всё готово" FontSize="26" FontWeight="Bold" LineHeight="31" Margin="0,32,0,0"/>
-      <TextBlock Text="Подойдёт ключ Облачков, ссылка подписки другого сервиса или отдельный профиль vless://, trojan://, hy2://."
+      <TextBlock Text="Подойдёт ключ Облачков, ссылка подписки другого сервиса или отдельное подключение: vless://, vmess://, ss://, trojan://, hy2://, tuic://, файл WireGuard."
                  FontSize="14" Foreground="{DynamicResource Mu}" TextWrapping="Wrap" LineHeight="21" Margin="0,8,0,0"/>
       <TextBlock Text="Ключ или ссылка" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" Margin="0,26,0,6"/>
       <TextBox x:Name="KeyInput" Style="{StaticResource FieldBox}" Height="96" Tag="Ctrl+V" MaxLength="20480" AcceptsReturn="True" TextWrapping="Wrap"

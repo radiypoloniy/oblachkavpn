@@ -34,7 +34,7 @@ Xray и sing-box внутри, подписки любого сервиса, м�
 
 **Подписки и серверы**
 - Подписки любого сервиса: Base64-список ссылок, Xray JSON, sing-box JSON, Clash / Mihomo YAML.
-- Протоколы: **VLESS** (TCP, XHTTP, WebSocket, gRPC, HTTPUpgrade; TLS и REALITY), **Trojan**, **Hysteria2**.
+- Протоколы: **VLESS** (TCP, XHTTP, WebSocket, gRPC, HTTPUpgrade; TLS и REALITY), **Trojan**, **VMess**, **Shadowsocks** (AEAD и 2022), **Hysteria2**, **TUIC**, **AnyTLS**, **WireGuard** (в том числе файлы `.conf`).
 - **Несколько подписок сразу**: у каждой своя вкладка, как в Throne. Отдельные ссылки собираются во «Вручную».
 - Трафик и срок подписки, резервные адреса подписки, автообновление.
 - Добавление по ссылке, файлу, **QR-коду с экрана** и ссылкам `oblachka://` из браузера.

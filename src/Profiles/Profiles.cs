@@ -67,12 +67,12 @@ public static class Profiles
         try
         {
             var root = JsonNode.Parse(input, documentOptions: new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip }) as JsonObject
-                ?? throw new UserError("Нужна ссылка vless://, trojan://, hy2:// или JSON-объект Xray / sing-box.");
+                ?? throw new UserError("Нужна ссылка подключения или JSON-объект Xray / sing-box.");
             JsonObject outbound;
-            if (root["outbounds"] is JsonArray outbounds)
+            if (root["outbounds"] is JsonArray || root["endpoints"] is JsonArray)
             {
-                var candidates = outbounds.OfType<JsonObject>().Where(n => IsXrayProtocol(n) || SingBoxProfiles.IsSupported(n)).ToList();
-                if (candidates.Count != 1) throw new UserError("В конфигурации должен быть ровно один VLESS/Trojan outbound. Экспортируй нужное подключение отдельно.");
+                var candidates = Entries(root).Where(n => IsXrayProtocol(n) || SingBoxProfiles.IsSupported(n)).ToList();
+                if (candidates.Count != 1) throw new UserError("В конфигурации должно быть ровно одно подключение. Экспортируйте нужное отдельно.");
                 outbound = (JsonObject)candidates[0].DeepClone();
             }
             else outbound = (JsonObject)root.DeepClone();
@@ -83,20 +83,34 @@ public static class Profiles
         { throw new UserError("Не удалось прочитать JSON. Нужен клиентский outbound Xray или sing-box."); }
     }
 
+    // Выходы полной конфигурации: outbounds и (у sing-box) endpoints — там живёт WireGuard.
+    internal static IEnumerable<JsonObject> Entries(JsonObject config) =>
+        (config["outbounds"] as JsonArray ?? new JsonArray()).Concat(config["endpoints"] as JsonArray ?? new JsonArray()).OfType<JsonObject>();
+
     public static Profile FromOutbound(JsonObject outbound, string name)
     {
         RejectExternalResources(outbound);
         var protocol = outbound["protocol"]?.GetValue<string>();
-        if (protocol is not ("vless" or "trojan"))
-            throw new UserError("В этой сборке через Xray поддерживаются VLESS и Trojan.");
+        if (protocol is not ("vless" or "trojan" or "vmess" or "shadowsocks"))
+            throw new UserError("Через Xray поддерживаются VLESS, Trojan, VMess и Shadowsocks.");
         if (outbound["proxySettings"] is not null || outbound["sendThrough"] is not null)
             throw new UserError("Профиль с цепочкой или привязкой интерфейса пока не поддерживается.");
         var settings = outbound["settings"] as JsonObject ?? throw new UserError("В профиле нет settings.");
-        if (protocol == "vless") ValidateVless(settings); else ValidateTrojan(settings);
-        var stream = outbound["streamSettings"] as JsonObject ?? throw new UserError("В профиле нет streamSettings.");
+        switch (protocol)
+        {
+            case "vless": ValidateVless(settings); break;
+            case "trojan": ValidateTrojan(settings); break;
+            default: XrayProtocols.Validate(protocol, settings); break;
+        }
+        // У Shadowsocks streamSettings может не быть вовсе: шифрует сам протокол.
+        var stream = outbound["streamSettings"] as JsonObject ?? (protocol == "shadowsocks" ? new JsonObject() : throw new UserError("В профиле нет streamSettings."));
+        outbound["streamSettings"] ??= stream;
         var security = stream["security"]?.GetValue<string>() ?? "none";
-        // Keep this first build on encrypted public transports, including for optional VLESS Encryption.
-        if (security is not ("tls" or "reality")) throw new UserError("Первая сборка принимает профили с TLS или REALITY.");
+        // VLESS и Trojan сами не шифруют — только с TLS или REALITY. VMess и Shadowsocks
+        // шифруют сами (проверено в XrayProtocols), TLS для них не обязателен.
+        if (security is not ("tls" or "reality") && protocol is "vless" or "trojan")
+            throw new UserError("VLESS и Trojan принимаются только с TLS или REALITY.");
+        if (security is not ("tls" or "reality" or "none")) throw new UserError("Этот вид защиты соединения не поддерживается.");
         if (HasInsecureTls(stream))
             throw new UserError("Профиль отключает проверку TLS-сертификата. Используйте профиль с проверкой сертификата.");
         var network = stream["method"]?.GetValue<string>() ?? stream["network"]?.GetValue<string>() ?? "tcp";
@@ -106,15 +120,16 @@ public static class Profiles
         var sockopt = stream["sockopt"] as JsonObject;
         if (sockopt?["dialerProxy"] is not null) throw new UserError("Профиль с дополнительным dialerProxy пока не поддерживается.");
         outbound["tag"] = "tunnel";
-        var label = (protocol == "trojan" ? "TROJAN · " : "") + network.ToUpperInvariant() + " / " + security.ToUpperInvariant();
+        var label = (protocol == "vless" ? "" : protocol.ToUpperInvariant() + " · ") + network.ToUpperInvariant() +
+            (security == "none" ? "" : " / " + security.ToUpperInvariant());
         return new Profile(SafeName(name), label, outbound);
     }
 
-    // Server entry of a validated Xray outbound: vnext[0] for VLESS, servers[0] for Trojan.
-    internal static JsonObject XrayEndpoint(JsonObject outbound) => (outbound["protocol"]?.GetValue<string>() == "trojan"
+    // Server entry of a validated Xray outbound: vnext[0] for VLESS/VMess, servers[0] for Trojan/Shadowsocks.
+    internal static JsonObject XrayEndpoint(JsonObject outbound) => (outbound["protocol"]?.GetValue<string>() is "trojan" or "shadowsocks"
         ? outbound["settings"]!["servers"]![0] : outbound["settings"]!["vnext"]![0])!.AsObject();
 
-    internal static bool IsXrayProtocol(JsonObject outbound) => outbound["protocol"]?.GetValue<string>() is "vless" or "trojan";
+    internal static bool IsXrayProtocol(JsonObject outbound) => outbound["protocol"]?.GetValue<string>() is "vless" or "trojan" or "vmess" or "shadowsocks";
 
     private static void ValidateVless(JsonObject settings)
     {

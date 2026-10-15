@@ -22,18 +22,21 @@ public sealed record ImportResult(IReadOnlyList<Profile> Profiles, int Unsupport
 public static class Subscriptions
 {
     public const int MaxProfiles = 200;
+    public const string SupportedList = "VLESS, Trojan, VMess, Shadowsocks, Hysteria2, TUIC, AnyTLS, WireGuard";
     public static ImportResult Parse(string input)
     {
         if (Encoding.UTF8.GetByteCount(input) > Profiles.MaxBytes) throw new UserError("Подписка больше 1 МБ. Используйте отдельную группу подключений.");
         input = input.Trim();
         if (input.StartsWith('<')) throw new UserError("Получена веб-страница. Нужна ссылка на подписку, а не личный кабинет.");
         if (input.Length == 0) throw new UserError("Подписка пуста.");
+        // Файл WireGuard (.conf) — одно подключение, не подписка.
+        if (WireGuardConfig.Looks(input)) return new(new[] { WireGuardConfig.Parse(input) }, 0, 0);
         // Clash / Mihomo: раздел proxies переводится в ссылки и разбирается как обычная подписка.
         var clashUnsupported = 0;
         if (ClashSubscription.Looks(input))
         {
             var links = ClashSubscription.ToLinks(input, out clashUnsupported);
-            if (links.Count == 0) throw new UserError("В подписке Clash нет поддерживаемых подключений (VLESS, Trojan, Hysteria2).");
+            if (links.Count == 0) throw new UserError("В подписке Clash нет поддерживаемых подключений (" + SupportedList + ").");
             input = string.Join('\n', links);
         }
         else if (!input.Contains("://") && !input.StartsWith('{') && !input.StartsWith('['))
@@ -45,7 +48,7 @@ public static class Subscriptions
                 input = new UTF8Encoding(false, true).GetString(Convert.FromBase64String(base64)).Trim();
             }
             catch (Exception ex) when (ex is FormatException or DecoderFallbackException)
-            { throw new UserError("Не удалось прочитать подписку. Поддерживаются ссылки VLESS/Trojan/Hysteria2, Base64 и клиентский JSON Xray / sing-box."); }
+            { throw new UserError("Не удалось прочитать подписку. Поддерживаются ссылки " + SupportedList + ", Base64, Clash и клиентский JSON Xray / sing-box."); }
         }
         var profiles = new List<Profile>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -75,9 +78,9 @@ public static class Subscriptions
                 if (items.Count > MaxProfiles) throw new UserError("В подписке больше 200 конфигураций.");
                 foreach (var item in items)
                 {
-                    if (item is JsonObject obj && obj["outbounds"] is JsonArray outbounds)
+                    if (item is JsonObject obj && (obj["outbounds"] is JsonArray || obj["endpoints"] is JsonArray))
                     {
-                        foreach (var outbound in outbounds.OfType<JsonObject>())
+                        foreach (var outbound in Profiles.Entries(obj))
                         {
                             if (!Profiles.IsXrayProtocol(outbound) && !SingBoxProfiles.IsSupported(outbound)) { unsupported++; continue; }
                             var named = outbound.DeepClone();
@@ -111,7 +114,7 @@ public static class Subscriptions
                 else unsupported++;
             }
         }
-        if (profiles.Count == 0) throw new UserError("В подписке нет поддерживаемых профилей (VLESS, Trojan, Hysteria2 с TLS/REALITY)." + (reasons.Count > 0 ? " Причина: " + reasons[0] : " Проверьте формат подписки."));
+        if (profiles.Count == 0) throw new UserError("В подписке нет поддерживаемых профилей (" + SupportedList + ")." + (reasons.Count > 0 ? " Причина: " + reasons[0] : " Проверьте формат подписки."));
         return new(profiles, unsupported + clashUnsupported, invalid) { Reasons = reasons, Duplicates = duplicates };
     }
     private static string CleanLabel(string name) => new(name.Where(c => !char.IsControl(c)).Take(80).ToArray());

@@ -64,7 +64,7 @@ public static partial class SelfTests
         await CheckAsync("Mixed subscription imports VLESS, Trojan and Hysteria2 and reports skip reasons", () => Sync(() =>
         {
             var source = Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Join("\n", link, trojanLink, hy2Link,
-                "ss://fixture@example.com:443", trojanLink.Replace("type=ws", "type=ws&security=none"))));
+                "socks://fixture@example.com:1080", trojanLink.Replace("type=ws", "type=ws&security=none"))));
             var result = Subscriptions.Parse(source);
             Assert(result.Profiles.Count == 3 && result.Unsupported == 1 && result.Invalid == 1 && result.Reasons.Count == 1);
             Assert(result.Profiles.Select(p => p.Core).Distinct().Count() == 2);

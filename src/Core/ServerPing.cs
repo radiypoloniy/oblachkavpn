@@ -18,16 +18,7 @@ public static class ServerPing
 
     public static (string Host, int Port)? Endpoint(Profile profile)
     {
-        try
-        {
-            if (profile.Core == CoreKind.Xray)
-            {
-                var peer = Profiles.XrayEndpoint(profile.Outbound);
-                return (peer["address"]!.GetValue<string>(), peer["port"]!.GetValue<int>());
-            }
-            if (profile.Outbound["type"]?.GetValue<string>() != "vless") return null;
-            return (profile.Outbound["server"]!.GetValue<string>(), profile.Outbound["server_port"]!.GetValue<int>());
-        }
+        try { return ProfileServer.IsUdp(profile) ? null : ProfileServer.Of(profile); }
         catch (Exception ex) when (ex is InvalidOperationException or FormatException or NullReferenceException or ArgumentException) { return null; }
     }
 
