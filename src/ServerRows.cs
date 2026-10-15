@@ -55,7 +55,18 @@ public sealed class ServerRow
     public static string? NoteFor(Profile profile) => !profile.IsService ? "сторонняя подписка" : null;
 }
 
-// Заголовок группы в панели «Все серверы»: «Избранное», «Облачка», «Сторонние».
+// Строка «Настройки → Подписка»: подписка или «Вручную».
+public sealed class GroupRow
+{
+    public required ProfileGroup Group { get; init; }
+    public required string Title { get; init; }
+    public required string Sub { get; init; }
+    public Visibility RefreshVisibility => Group.IsSubscription ? Visibility.Visible : Visibility.Collapsed;
+    public string RefreshName => "Обновить «" + Title + "»";
+    public string RemoveName => "Убрать «" + Title + "»";
+}
+
+// Заголовок группы в панели «Все серверы»: «Избранное», затем подписки по именам.
 public sealed record SheetHeader(string Title);
 
 // Строка правила во вкладке «Правила»: адрес или программа и метка действия.

@@ -11,9 +11,6 @@ public partial class MainWindow
     private bool exitRequested;
     // Общий список для интерфейса: сначала узлы сервиса, затем сторонние.
     private IReadOnlyList<Profile> importedProfiles = Array.Empty<Profile>();
-    // Наборы живут раздельно, поэтому загрузка одного не стирает другой.
-    private IReadOnlyList<Profile> serviceProfiles = Array.Empty<Profile>();
-    private IReadOnlyList<Profile> externalProfiles = Array.Empty<Profile>();
 
     // Экраны нового дизайна: главный; «Все серверы» поверх него; настройки с вкладками
     // («Правила» и «Помощь» — их вкладки). Без подключений — экран ключа.
@@ -100,7 +97,9 @@ public partial class MainWindow
         var query = Servers.SearchBox.Text.Trim();
         var selected = profile;
         RefreshServerLabels();
-        var visible = importedProfiles.Where(p => p.Country.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || p.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
+        var tab = Servers.GroupTabs.SelectedIndex > 0 && Servers.GroupTabs.SelectedIndex <= groups.Count ? groups[Servers.GroupTabs.SelectedIndex - 1].Id : null;
+        var visible = importedProfiles.Where(p => (tab is null || p.Group == tab) &&
+            (p.Country.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || p.Name.Contains(query, StringComparison.OrdinalIgnoreCase)));
         visible = Servers.SortOrder.SelectedIndex switch
         {
             0 => visible.OrderBy(MeasurementOrder),

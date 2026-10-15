@@ -3,12 +3,11 @@ namespace Oblachka;
 public partial class MainWindow
 {
     private readonly SubscriptionSchedule subscriptionSchedule = new();
-    private SubscriptionMetadata? subscriptionMetadata;
     private async void PollSubscription()
     {
-        if (closed || vmTestActive || !backgroundWorkEnabled || subscriptionSources.Count == 0 || operation is not null || recoveryWait is not null ||
+        if (closed || vmTestActive || !backgroundWorkEnabled || !groups.Any(g => g.IsSubscription) || operation is not null || recoveryWait is not null ||
             pendingImport is not null || Settings.AutoRefresh.IsChecked != true || !subscriptionSchedule.IsDue(DateTimeOffset.UtcNow)) return;
-        await LoadSubscriptionAsync(subscriptionSources, preferredSource);
+        await RefreshAllAsync();
     }
     private void UpdateSubscriptionSummary()
     {
@@ -23,7 +22,7 @@ public partial class MainWindow
 
         // Объявление панели. Текст чужой, поэтому он уже очищен и обрезан в SubscriptionMetadata,
         // показывается как обычный текст и только при наличии подписки сервиса.
-        var announce = serviceProfiles.Count > 0 ? subscriptionMetadata?.Announce : null;
+        var announce = serviceProfiles.Count > 0 ? ServiceGroup?.Metadata?.Announce : null;
         Home.AnnounceText.Text = announce ?? "";
         // Скрытое крестиком объявление не возвращается, пока сервис не пришлёт новое.
         Home.AnnounceCard.Visibility = announce is null || announce == dismissedAnnounce

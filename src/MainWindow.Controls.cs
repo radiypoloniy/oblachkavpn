@@ -68,6 +68,7 @@ public partial class MainWindow
         Settings.AutoRefresh.Click += (_, _) => QueueStateSave();
         Settings.CloseButton.Click += (_, _) => CloseSettings();
         Settings.AddExternalButton.Click += AddExternalClick;
-        Settings.RemoveExternalButton.Click += RemoveExternalClick;
+        Settings.Subscription.GroupList.AddHandler(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, new System.Windows.RoutedEventHandler(GroupRowClick));
+        Servers.GroupTabs.SelectionChanged += (_, _) => FilterProfiles();
     }
 }

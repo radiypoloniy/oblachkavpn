@@ -61,8 +61,8 @@ public partial class MainWindow
             items.AddRange(rows);
         }
         Group("ИЗБРАННОЕ", shown.Where(p => favorites.Contains(FavoriteKey(p))));
-        Group(ServiceBrand.Name.ToUpperInvariant(), shown.Where(p => p.IsService && !favorites.Contains(FavoriteKey(p))));
-        Group("СТОРОННИЕ · БЕЗ ПРОВЕРОК", shown.Where(p => !p.IsService && !favorites.Contains(FavoriteKey(p))));
+        foreach (var group in groups)
+            Group(group.Name.ToUpperInvariant(), shown.Where(p => p.Group == group.Id && !favorites.Contains(FavoriteKey(p))));
         Servers.SheetList.ItemsSource = items;
         RefreshMeasurement();
     }

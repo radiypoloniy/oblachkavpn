@@ -32,6 +32,8 @@ public sealed record Profile(string Name, string Transport, JsonObject Outbound,
         presentation.Handlers?.Invoke(this, new(nameof(ListStatus)));
     }
     public ProfileSource Source { get; init; } = ProfileSource.External;
+    // Группа (вкладка) узла: подписка или «Вручную» (ProfileGroup). В прежних снимках её нет.
+    public string Group { get; init; } = "";
     public ServerCountry Country => CountryCatalog.Resolve(Name);
     public string DisplayName => ServerLabels.DisplayName(Name);
     public bool IsService => Source == ProfileSource.Service;

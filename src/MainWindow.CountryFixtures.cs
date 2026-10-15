@@ -25,7 +25,8 @@ public partial class MainWindow
                 throw new InvalidOperationException("Server row replaces its subscription name with a country or includes extra labels: " + string.Join(" | ", labels.Select(l => l.Text)) + " (всего " + labels.Length + ")");
             // Сторонний узел: то же имя плюс видимая пометка источника.
             var foreignLabels = RenderRow(parsed with { Source = ProfileSource.External });
-            if (foreignLabels.Length != 2 || foreignLabels[0].Text != parsed.DisplayName || foreignLabels[1].Text != "сторонняя подписка")
+            // Пометка — имя подписки узла; узел без подписки — «вручную».
+            if (foreignLabels.Length != 2 || foreignLabels[0].Text != parsed.DisplayName || foreignLabels[1].Text != "вручную")
                 throw new InvalidOperationException("External node is not marked in the server list: " + string.Join(" | ", foreignLabels.Select(l => l.Text)));
             if (Profiles.Fingerprint(parsed) != Profiles.Fingerprint(parsed with { Name = "Другое имя" }))
                 throw new InvalidOperationException("Country presentation changes connection identity");

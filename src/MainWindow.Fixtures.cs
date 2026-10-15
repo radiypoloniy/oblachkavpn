@@ -15,7 +15,8 @@ public partial class MainWindow
     {
         // Предпросмотр загружает сторонние профили: подключиться можно, подбирать маршрут
         // и измерять — нет, это действия только по узлам своей подписки.
-        if (ProfilePicker.Items.Count != 2 || !ConnectButton.IsEnabled || StopButton.IsEnabled || ProbeButton.IsEnabled || !trayConnect.Enabled || trayStop.Enabled)
+        // Подписка, загруженная по ходу проверок, живёт рядом с ручными узлами (группы), поэтому «не меньше двух».
+        if (ProfilePicker.Items.Count < 2 || !ConnectButton.IsEnabled || StopButton.IsEnabled || ProbeButton.IsEnabled || !trayConnect.Enabled || trayStop.Enabled)
             throw new InvalidOperationException("Imported-profile controls have incorrect state");
         if (FindRouteButton.IsEnabled || Servers.MeasureButton.IsEnabled)
             throw new InvalidOperationException("Route search or measurement is offered for a third-party node");
@@ -84,6 +85,15 @@ public partial class MainWindow
         CheckClientBlocks(checks);
         CheckSpecialStates(checks);
         checks.Add("Synthetic subscription updates picker, actions and tray");
+        // Узлы предпросмотра — как подписка: дальше её же обновление на ходу переименует выбранный
+        // узел. С группами обновление другой подписки выбор во «Вручную» не трогает.
+        var fixtureSources = SubscriptionMirrors.ParseSources("https://fixture.invalid/primary\nhttps://backup.invalid/mirror");
+        var preview = new ImportResult(importedProfiles.Take(2).ToArray(), 0, 0);
+        await LoadSubscriptionAsync(fixtureSources, 0, (_, _, _) => Task.FromResult(new MirrorResult(preview, 0, 1)));
+        RemoveGroup(ProfileGroup.ManualId);
+        ProfilePicker.SelectedIndex = 0;
+        if (groups.Count != 1 || !groups[0].IsSubscription || ProfilePicker.Items.Count != 2)
+            throw new InvalidOperationException("Fixture subscription group was not created");
         for (var i = 0; i < 2; i++)
         {
             await ConnectCoreAsync();
@@ -138,6 +148,7 @@ public partial class MainWindow
         await CheckRedesignAsync(checks);
         await CheckCompactServerLayoutAsync(checks);
         CheckSavedSession(checks);
+        await CheckGroupsAsync(checks);
         await CheckTrayOpenAsync(checks);
         await CheckRememberedSubscriptionAsync(checks);
         return checks;

@@ -4,6 +4,7 @@ public partial class MainWindow
 {
     private void CheckSavedSession(List<string> checks)
     {
+        serviceProfiles = Array.Empty<Profile>(); externalProfiles = Array.Empty<Profile>(); profile = null;
         LoadServerPreview();
         ProfilePicker.SelectedIndex = 3;
         subscriptionSources = new[] { "https://fixture.invalid/sub/synthetic-token" }; preferredSource = 0;

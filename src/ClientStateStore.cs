@@ -10,6 +10,8 @@ public sealed record SavedProfile(string Name, JsonObject Outbound)
     // Источник появился в 0.9. В снимках прежних версий его нет, и тогда он выводится
     // по адресам подписки: см. RestoreProfiles.
     public ProfileSource? Source { get; init; }
+    // Группа появилась в 0.11; в прежних снимках её выводит ProfileGroups.FromLegacy.
+    public string? Group { get; init; }
 }
 public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string? SelectedFingerprint,
     string[] SubscriptionSources, int PreferredSource, bool StayInTray, bool AutoRecover)
@@ -41,6 +43,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public bool RussiaDirect { get; init; }
     // «Автовыбор» на главном экране: переживает перезапуск.
     public bool AutoSelect { get; init; }
+    // Подписки и «Вручную» (0.11). Нет значения — снимок прежней версии.
+    public ProfileGroup[]? Groups { get; init; }
 }
 
 // The OS binds the encrypted file to the current Windows user. Never stage plaintext on disk.
@@ -107,12 +111,12 @@ public sealed class ClientStateStore(string path)
         // подписки: список целиком с хостов сервиса — это узлы сервиса, иначе сторонние.
         var inferred = ServiceKey.SourceOf(snapshot.SubscriptionSources ?? Array.Empty<string>());
         return snapshot.Profiles.Select(saved =>
-            Profiles.Parse(saved.Outbound.ToJsonString()) with { Name = saved.Name, Source = saved.Source ?? inferred }).ToArray();
+            Profiles.Parse(saved.Outbound.ToJsonString()) with { Name = saved.Name, Source = saved.Source ?? inferred, Group = saved.Group ?? "" }).ToArray();
     }
 
     private static void Validate(ClientSnapshot snapshot)
     {
-        if (snapshot.Version != 1 || snapshot.Profiles is null || snapshot.Profiles.Length is < 1 or > Subscriptions.MaxProfiles ||
+        if (snapshot.Version != 1 || snapshot.Profiles is null || snapshot.Profiles.Length is < 1 or > ProfileGroup.MaxTotalProfiles ||
             snapshot.SubscriptionSources is null || snapshot.SubscriptionSources.Length > 5)
             throw new UserError("Формат сохранённых подключений не поддерживается.");
         if (snapshot.Profiles.Any(p => p is null || p.Outbound is null || string.IsNullOrWhiteSpace(p.Name) || p.Name.Length > 80 || p.Name.Any(char.IsControl)))
@@ -127,6 +131,22 @@ public sealed class ClientStateStore(string path)
             throw new UserError("Сохранённые сторонние подписки повреждены.");
         if (snapshot.ExternalSources.Length > 0) SubscriptionMirrors.ParseSources(string.Join("\n", snapshot.ExternalSources));
         RestoreProfiles(snapshot);
+        if (snapshot.Groups is { } groups)
+        {
+            if (groups.Length > ProfileGroup.MaxGroups || groups.Select(g => g?.Id).Distinct().Count() != groups.Length)
+                throw new UserError("Сохранённые подписки повреждены.");
+            foreach (var group in groups)
+            {
+                if (group is null || group.Id is null || group.Name is null || group.Sources is null ||
+                    !(group.Id is ProfileGroup.ServiceId or ProfileGroup.ManualId || group.Id.Length == 16 && group.Id.StartsWith("sub-") && group.Id[4..].All(char.IsAsciiHexDigitLower)) ||
+                    group.Name.Length > 40 || group.Name.Any(char.IsControl) || group.Sources.Length > SubscriptionMirrors.MaxSources ||
+                    group.PreferredSource < 0 || group.Sources.Length > 0 && group.PreferredSource >= group.Sources.Length)
+                    throw new UserError("Сохранённые подписки повреждены.");
+                if (group.Sources.Length > 0) SubscriptionMirrors.ParseSources(string.Join("\n", group.Sources));
+            }
+            if (snapshot.Profiles.Any(p => p.Group is null || !groups.Any(g => g.Id == p.Group)))
+                throw new UserError("Сохранённые подключения не относятся ни к одной подписке.");
+        }
         if (snapshot.Favorites is null || snapshot.Favorites.Length > Subscriptions.MaxProfiles ||
             snapshot.Favorites.Any(f => f is null || f.Length != 64 || f.Any(c => !char.IsAsciiHexDigit(c))))
             throw new UserError("Сохранённое избранное повреждено.");

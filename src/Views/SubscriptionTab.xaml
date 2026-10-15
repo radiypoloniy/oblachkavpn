@@ -56,17 +56,32 @@
         </StackPanel>
       </DockPanel>
 
-      <TextBlock Text="СТОРОННИЕ ПОДПИСКИ" Style="{StaticResource Caption}" FontSize="11.5" Margin="6,10,6,2"/>
-      <DockPanel Margin="6,4,2,4">
-        <Button x:Name="RemoveExternalButton" DockPanel.Dock="Right" Style="{StaticResource SmallIconButton}" Width="30" Height="30" Foreground="{DynamicResource Fa}" AutomationProperties.Name="Убрать сторонние подписки">
-          <Path Data="{StaticResource IcoClose}" Style="{StaticResource Icon}" Width="13" Height="13" StrokeThickness="2.4"/>
-        </Button>
-        <TextBlock x:Name="ExternalSummary" Text="Сторонних подписок нет." FontSize="13.5" TextWrapping="Wrap" VerticalAlignment="Center"/>
-      </DockPanel>
-      <Button x:Name="AddExternalButton" Style="{StaticResource Row}" Height="40" Padding="6,0" Foreground="{DynamicResource Ac}" AutomationProperties.Name="Добавить стороннюю подписку">
+      <TextBlock Text="ПОДПИСКИ И ПОДКЛЮЧЕНИЯ" Style="{StaticResource Caption}" FontSize="11.5" Margin="6,10,6,4"/>
+      <!-- Группы (ProfileGroup): у подписки — «Обновить» и «Убрать», у «Вручную» — только «Убрать». -->
+      <ItemsControl x:Name="GroupList" Focusable="False">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate DataType="{x:Type o:GroupRow}">
+            <Border CornerRadius="12" Background="{DynamicResource CardBg}" Padding="12,8,6,8" Margin="0,0,0,6">
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Tag="remove" Style="{StaticResource SmallIconButton}" Width="30" Height="30" Foreground="{DynamicResource Fa}" ToolTip="Убрать" AutomationProperties.Name="{Binding RemoveName}">
+                  <Path Data="{StaticResource IcoClose}" Style="{StaticResource Icon}" Width="13" Height="13" StrokeThickness="2.4"/>
+                </Button>
+                <Button DockPanel.Dock="Right" Tag="refresh" Style="{StaticResource SmallIconButton}" Width="30" Height="30" Visibility="{Binding RefreshVisibility}" ToolTip="Обновить" AutomationProperties.Name="{Binding RefreshName}">
+                  <Path Data="{StaticResource IcoRefresh}" Style="{StaticResource Icon}" Width="15" Height="15"/>
+                </Button>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Text="{Binding Sub}" Style="{StaticResource Small}" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+              </DockPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <Button x:Name="AddExternalButton" Style="{StaticResource Row}" Height="40" Padding="6,0" Foreground="{DynamicResource Ac}" AutomationProperties.Name="Добавить подписку">
         <StackPanel Orientation="Horizontal">
           <Path Data="{StaticResource IcoPlus}" Width="16" Height="16" Stretch="Uniform" Stroke="{DynamicResource Ac}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
-          <TextBlock Text="Ссылка, vless://, JSON или файл" FontSize="13.5" Margin="10,0,0,0" VerticalAlignment="Center"/>
+          <TextBlock Text="Добавить подписку" FontSize="13.5" Margin="10,0,0,0" VerticalAlignment="Center"/>
         </StackPanel>
       </Button>
 

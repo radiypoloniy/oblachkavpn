@@ -96,7 +96,8 @@ public partial class MainWindow
             Icon = TryFindResource("IcoAuto") as Geometry, IconOnAccent = true
         } };
         var favored = importedProfiles.Where(p => favorites.Contains(FavoriteKey(p))).ToList();
-        if (favored.Count == 0) favored = importedProfiles.Where(p => p.IsService).ToList();
+        // Без избранного — первые узлы текущей подписки (сервиса или той, где выбран узел).
+        if (favored.Count == 0) favored = (CurrentGroup is { } current ? ProfilesOf(current.Id) : importedProfiles).ToList();
         foreach (var item in favored.Take(4)) rows.Add(Row(item));
         if (!autoSelect && profile is not null && !rows.Any(r => r.Profile is { } p && ProfileSelection.Identity(p) == ProfileSelection.Identity(profile)))
         {
@@ -114,7 +115,7 @@ public partial class MainWindow
         var icon = ServerRow.IconFor(item);
         return new ServerRow
         {
-            Profile = item, Name = item.DisplayName, Note = ServerRow.NoteFor(item),
+            Profile = item, Name = item.DisplayName, Note = GroupNote(item),
             Flag = icon is null ? FlagImages.Local(item.Country.Code) : null, Icon = icon, IconMuted = !item.IsService,
             Latency = latency is not null ? latency + " мс" : measured is { Success: false } ? "нет ответа" : "", LatencyDot = ServerRow.DotFor(latency),
             Selected = !autoSelect && profile is not null && ProfileSelection.Identity(item) == ProfileSelection.Identity(profile),

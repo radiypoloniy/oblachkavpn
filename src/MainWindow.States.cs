@@ -105,7 +105,7 @@ public partial class MainWindow
         var parts = new List<string>();
         if (days is < 14) parts.Add($"ещё {days} дн.");
         if (leftGb is < 5) parts.Add($"осталось {leftGb:0.#} ГБ");
-        var warn = serviceProfiles.Count > 0 && parts.Count > 0;
+        var warn = CurrentGroup is { IsSubscription: true } && parts.Count > 0;
         Home.SubWarn.Visibility = warn ? Visibility.Visible : Visibility.Collapsed;
         Home.SubWarnText.Text = warn ? "Подписка " + string.Join(" и ", parts) : "";
         Home.SubWarnRenew.Visibility = ServiceBrand.SupportUrl.Length > 0 ? Visibility.Visible : Visibility.Collapsed;

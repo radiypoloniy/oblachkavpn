@@ -35,6 +35,8 @@ public partial class MainWindow
         CloseSettings();
         if (Settings.Visibility != Visibility.Collapsed) throw new InvalidOperationException("Settings did not close");
         checks.Add("Settings open and close independently of the connection lifecycle");
+        // С чистого списка: «Вручную» накапливает добавленное прежними проверками.
+        serviceProfiles = Array.Empty<Profile>(); externalProfiles = Array.Empty<Profile>(); profile = null;
         LoadPreviewProfiles();
         var selected = profile;
         Servers.SearchBox.Text = "no-synthetic-match";

@@ -43,7 +43,7 @@ public partial class MainWindow
     }
 
     private string CreateSupportReport() => DiagnosticReport.Create(engine.State, importedProfiles.Count,
-        subscriptionSources.Count + externalSources.Count, events, routeAttempts,
+        groups.Sum(g => g.Sources.Length), events, routeAttempts,
         SystemTunnelActive ? DiagnosticMode.SystemTunnel : systemProxyPort != 0
             ? DiagnosticMode.WindowsProxy : DiagnosticMode.LocalProxy, systemTunnel?.BlocksBypass == true);
 

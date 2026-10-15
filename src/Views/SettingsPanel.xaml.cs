@@ -27,9 +27,7 @@ public partial class SettingsPanel : UserControl
     public TextBlock StorageStatus => Subscription.StorageStatus;
     public TextBlock SubscriptionDetails => Subscription.SubscriptionDetails;
     public TextBlock DeviceIdText => Subscription.DeviceIdText;
-    public TextBlock ExternalSummary => Subscription.ExternalSummary;
     public Button AddExternalButton => Subscription.AddExternalButton;
-    public Button RemoveExternalButton => Subscription.RemoveExternalButton;
     public TextBlock VersionText => Help.VersionText;
 
     // Смена вкладки: сдвиг 4 → 0 и проявление за 200 мс.

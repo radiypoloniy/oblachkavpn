@@ -51,29 +51,18 @@ public partial class MainWindow
         finally { url = null; }
     }
 
+    // Убрать все сторонние подписки и «Вручную» разом (прежняя кнопка; по одной — в списке подписок).
     private void RemoveExternalClick(object sender, RoutedEventArgs args)
     {
         if (operation is not null || externalProfiles.Count == 0) return;
         if (serviceProfiles.Count == 0)
         { DetailText.Text = "Это единственные подключения. Сначала добавьте ключ подписки на главном экране."; return; }
-        // Если сейчас выбран сторонний узел, выбор переедет на первый узел сервиса.
         var removingSelected = profile is not null && !profile.IsService;
         externalProfiles = Array.Empty<Profile>();
-        externalSources = Array.Empty<string>();
         if (removingSelected) profile = null;
         ApplyProfiles(!removingSelected);
         DetailText.Text = "Сторонние подписки убраны. Узлы вашей подписки на месте.";
         UpdateControls();
         QueueStateSave();
-    }
-
-    private void RefreshExternalSummary()
-    {
-        Settings.ExternalSummary.Text = externalProfiles.Count == 0
-            ? "Сторонних подписок нет."
-            : $"Подключений из сторонних источников: {externalProfiles.Count}" +
-              (externalSources.Count > 0 ? $"; адресов подписки: {externalSources.Count}." : " (добавлены ссылкой или файлом).");
-        Settings.RemoveExternalButton.IsEnabled = externalProfiles.Count > 0 && operation is null;
-        Settings.AddExternalButton.IsEnabled = operation is null;
     }
 }

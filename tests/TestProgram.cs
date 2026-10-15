@@ -93,6 +93,16 @@ public static class TestProgram
             File.WriteAllLines(args[3], lines);
             return 0;
         }
+        // Какие группы получатся из файла состояния (только чтение): имена и число узлов, без ключей.
+        if (args.Length == 3 && args[0] == "--groups-from-state")
+        {
+            var snapshot = new ClientStateStore(args[1]).Load()!;
+            var restored = ClientStateStore.RestoreProfiles(snapshot);
+            var groups = snapshot.Groups ?? ProfileGroups.FromLegacy(snapshot, restored).ToArray();
+            File.WriteAllLines(args[2], groups.Select(g => g.Id + " | " + g.Name + " | адресов " + g.Sources.Length + " | узлов " +
+                restored.Count(p => snapshot.Groups is null ? p.IsService == (g.Source == ProfileSource.Service) : p.Group == g.Id)));
+            return 0;
+        }
         if (args.Length == 3 && args[0] == "--qr-debug")
         {
             using var bitmap = new System.Drawing.Bitmap(args[2]);

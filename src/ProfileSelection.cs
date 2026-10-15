@@ -8,8 +8,9 @@ public static class ProfileSelection
     // случай, когда тот же узел пришёл и из подписки сервиса, и из сторонней.
     // Разделитель \u0000 в имени узла встретиться не может: управляющие символы
     // отбрасываются при разборе подписки.
+    // Группа в ключе: один и тот же узел может прийти из двух сторонних подписок.
     public static string Identity(Profile profile) =>
-        profile.Source + "\u0000" + profile.Name + "\u0000" + Profiles.Fingerprint(profile);
+        profile.Source + "\u0000" + profile.Group + "\u0000" + profile.Name + "\u0000" + Profiles.Fingerprint(profile);
 
     // Где эта запись в текущем списке. Сначала точное совпадение строки, потом только
     // конфигурация: так переименование узла в панели не теряет выбор, а одинаковые

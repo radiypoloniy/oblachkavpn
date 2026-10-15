@@ -54,7 +54,7 @@ public partial class MainWindow
 
         var tab = Settings.Subscription;
         var meta = subscriptionMetadata;
-        tab.SubscriptionTitle.Text = meta?.Title ?? (serviceProfiles.Count > 0 ? ServiceBrand.Name : "Подписка");
+        tab.SubscriptionTitle.Text = CurrentGroup?.Name ?? "Подписка";
         tab.ExpiryText.Text = meta?.Expires is { } expires ? expires.ToLocalTime().ToString("dd.MM.yyyy") : "без срока";
         tab.TrafficText.Text = meta is { Total: > 0, Upload: >= 0, Download: >= 0 }
             ? $"{Math.Max(0m, (decimal)meta.Total!.Value - meta.Upload!.Value - meta.Download!.Value) / 1073741824m:0.#} ГБ"
@@ -63,7 +63,7 @@ public partial class MainWindow
         var renew = ServiceBrand.SupportUrl.Length > 0 && serviceProfiles.Count > 0;
         tab.RenewButton.Visibility = renew ? Visibility.Visible : Visibility.Collapsed;
         tab.RenewColumn.Width = renew ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
-        tab.RefreshListButton.IsEnabled = (subscriptionSources.Count > 0 || externalSources.Count > 0) && operation is null;
+        tab.RefreshListButton.IsEnabled = groups.Any(g => g.IsSubscription) && operation is null;
         tab.Remember.IsChecked = rememberConnections;
 
         MarkCheck(Diagnostics.CoreOk, engine.ProcessId is not null);

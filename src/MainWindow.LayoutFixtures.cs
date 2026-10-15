@@ -14,6 +14,7 @@ public partial class MainWindow
         var savedProfiles = importedProfiles.ToArray();
         try
         {
+            serviceProfiles = Array.Empty<Profile>(); externalProfiles = Array.Empty<Profile>(); profile = null;
             LoadServerPreview(); Navigate("Servers");
             UpdateLayout();
             await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
@@ -33,6 +34,7 @@ public partial class MainWindow
         }
         finally
         {
+            serviceProfiles = Array.Empty<Profile>(); externalProfiles = Array.Empty<Profile>(); profile = null;
             ApplyImport(new ImportResult(savedProfiles, 0, 0)); Navigate("Connection");
         }
     }

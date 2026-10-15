@@ -29,10 +29,10 @@ public partial class MainWindow
     }
 
     private ClientSnapshot CaptureState() => new(1,
-        importedProfiles.Select(p => new SavedProfile(p.Name, (System.Text.Json.Nodes.JsonObject)p.Outbound.DeepClone()) { Source = p.Source }).ToArray(),
+        importedProfiles.Select(p => new SavedProfile(p.Name, (System.Text.Json.Nodes.JsonObject)p.Outbound.DeepClone()) { Source = p.Source, Group = p.Group }).ToArray(),
         profile is null ? null : Profiles.Fingerprint(profile), subscriptionSources.ToArray(), preferredSource,
         Settings.StayInTray.IsChecked == true, AutoRecover.IsChecked == true)
-        { SelectedName = profile?.Name, ExternalSources = externalSources.ToArray(), AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, CloseToTray = Settings.StayInTray.IsChecked == true, SystemTunnel = Settings.SystemTunnel.IsChecked == true, Theme = ThemeManager.Choice, Metadata = subscriptionMetadata, RouteRules = siteRules.ToArray(), ProgramRules = programRules.ToArray(),
+        { SelectedName = profile?.Name, ExternalSources = externalSources.ToArray(), AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, CloseToTray = Settings.StayInTray.IsChecked == true, SystemTunnel = Settings.SystemTunnel.IsChecked == true, Theme = ThemeManager.Choice, Metadata = ServiceGroup?.Metadata, Groups = groups.ToArray(), RouteRules = siteRules.ToArray(), ProgramRules = programRules.ToArray(),
             Favorites = favorites.Where(f => importedProfiles.Any(p => FavoriteKey(p) == f)).Take(Subscriptions.MaxProfiles).ToArray(),
             Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
             ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = Routes.RussiaDirect.IsChecked == true, AutoSelect = autoSelect };
@@ -70,8 +70,6 @@ public partial class MainWindow
     private void ApplySnapshot(ClientSnapshot snapshot)
     {
         var restored = ClientStateStore.RestoreProfiles(snapshot);
-        subscriptionSources = snapshot.SubscriptionSources.ToArray(); preferredSource = snapshot.PreferredSource;
-        externalSources = snapshot.ExternalSources.ToArray();
         Settings.StayInTray.IsChecked = snapshot.CloseToTray ?? true; AutoRecover.IsChecked = snapshot.AutoRecover;
         Settings.AutoRefresh.IsChecked = snapshot.AutoRefresh;
         ThemeManager.Apply(snapshot.Theme ?? ThemeChoice.System);
@@ -88,10 +86,13 @@ public partial class MainWindow
         Routes.RussiaDirect.IsChecked = snapshot.RussiaDirect;
         autoSelect = snapshot.AutoSelect;
         RefreshRouting();
-        // Снимок хранит оба набора вперемешку: раскладываем обратно по источникам.
-        serviceProfiles = restored.Where(p => p.IsService).ToArray();
-        externalProfiles = restored.Where(p => !p.IsService).ToArray();
-        subscriptionMetadata = snapshot.Metadata;
+        // Группы из снимка; у снимка до 0.11 их выводим: сервис, одна сторонняя подписка или «Вручную».
+        groups.Clear(); groupProfiles.Clear();
+        var legacy = snapshot.Groups is null;
+        var restoredGroups = snapshot.Groups ?? ProfileGroups.FromLegacy(snapshot, restored).ToArray();
+        foreach (var group in restoredGroups)
+            SetGroup(group, restored.Where(p => legacy ? p.IsService == (group.Source == ProfileSource.Service) : p.Group == group.Id).ToArray());
+        restored = groups.SelectMany(g => ProfilesOf(g.Id)).ToArray();
         ApplyProfiles(false);
         // Сначала имя вместе с отпечатком, потом только отпечаток: переименование узла в
         // панели выбор не теряет, а две строки с одинаковой конфигурацией не подменяют друг друга.

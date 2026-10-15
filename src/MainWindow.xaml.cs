@@ -18,10 +18,8 @@ public partial class MainWindow : Window
     private bool engineOperation;
     // Адреса подписки сервиса (основной и резервные) и адреса сторонней подписки.
     // Разделены, чтобы загрузка одной не стирала адрес другой.
-    private IReadOnlyList<string> subscriptionSources = Array.Empty<string>();
-    private IReadOnlyList<string> externalSources = Array.Empty<string>();
-    private int preferredSource;
-    private ImportResult? pendingImport;
+    // Загруженная подписка, отложенная до остановки подключения.
+    private (ProfileGroup Group, ImportResult Result)? pendingImport;
     private IReadOnlyList<RouteAttempt> routeAttempts = Array.Empty<RouteAttempt>();
     private readonly RecoveryPolicy recovery = new();
     private CancellationTokenSource? recoveryWait;
@@ -97,8 +95,8 @@ public partial class MainWindow : Window
     {
         if (pendingImport is not null && operation is null && engine.State == ConnectionState.Idle)
         {
-            var pending = pendingImport; pendingImport = null;
-            ApplyImport(pending, true);
+            var pending = pendingImport.Value; pendingImport = null;
+            ApplyGroupImport(pending.Group, pending.Result, true);
             return;
         }
         var active = engine.State is not ConnectionState.Idle;
@@ -108,7 +106,7 @@ public partial class MainWindow : Window
         ImportFileButton.IsEnabled = !active && operation is null;
         PasteButton.IsEnabled = !active && operation is null;
         SubscriptionButton.IsEnabled = !active && operation is null;
-        RefreshButton.IsEnabled = (subscriptionSources.Count > 0 || externalSources.Count > 0) && operation is null;
+        RefreshButton.IsEnabled = (groups.Any(g => g.IsSubscription) || pendingImport is not null) && operation is null;
         // Подбор переключает узел, поэтому доступен только внутри своего сервиса.
         FindRouteButton.IsEnabled = profile is { IsService: true } && operation is null;
         // Сервер можно сменить и при работающем подключении: выбор сразу переключает на него.
@@ -208,6 +206,6 @@ public partial class MainWindow : Window
         CloseSystemProxy();
         tray.Visible = false; tray.Dispose();
         profile = null;
-        subscriptionSources = Array.Empty<string>(); pendingImport = null;
+        groups.Clear(); groupProfiles.Clear(); pendingImport = null;
     }
 }
