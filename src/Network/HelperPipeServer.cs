@@ -74,6 +74,10 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                         if (state is not (null or NetworkSessionState.Released) &&
                             session.Recover() is { State: NetworkSessionState.RecoveryRequired })
                             throw new UserError("Сначала требуется восстановить сетевую сессию.");
+                        // winws и защита «Весь компьютер» несовместимы: WinDivert отправляет перехваченный
+                        // пакет заново уже от имени System, и запрет мимо туннеля его режет — гибнет весь
+                        // трафик 80/443 мимо туннеля, включая соединение ядра с узлом на :443.
+                        ZapretRunner.Stop();
                         var record = session.Acquire(request.Lease!, deadline.Token);
                         state = record.State;
                         blocking = SystemNetworkBackend.Blocks(record);
@@ -92,7 +96,9 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                     }
                     else if (request.Operation == HelperOperation.Zapret)
                     {
-                        zapret = await ZapretRunner.HandleAsync(request.Zapret!, deadline.Token);
+                        zapret = request.Zapret!.Action == ZapretAction.Start && state is not (null or NetworkSessionState.Released)
+                            ? ZapretRunner.Status() with { Error = ZapretRunner.TunnelConflict }
+                            : await ZapretRunner.HandleAsync(request.Zapret!, deadline.Token);
                     }
                     else if (request.Operation == HelperOperation.Recover)
                     {

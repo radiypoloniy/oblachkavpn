@@ -82,6 +82,10 @@ public static partial class SelfTests
             Assert(journal.Record?.LeaseId == replacement.LeaseId);
             // Свою живую сессию через Recover не снять: только Release.
             Assert((await third.SendAsync(HelperOperation.Recover, null, timeout.Token)).Failure == HelperFailure.InvalidRequest);
+            // Под защитой winws не запускается: его повторно отправленные пакеты режет запрет мимо
+            // туннеля, и пропадает весь интернет (0.13.1). Отказ — с причиной, без запуска.
+            var zapret = (await third.SendAsync(HelperOperation.Zapret, null, timeout.Token, zapret: new(ZapretAction.Start, "general"))).Zapret;
+            Assert(zapret is { Running: false, Error: ZapretRunner.TunnelConflict });
             var release = new NetworkLeaseRequest(1, replacement.LeaseId, NetworkLeaseAction.Release, 0, Array.Empty<string>());
             Assert((await third.SendAsync(HelperOperation.Release, release, timeout.Token)).State == NetworkSessionState.Released);
             Assert(backend.Original);
