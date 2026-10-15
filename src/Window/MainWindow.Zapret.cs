@@ -18,8 +18,9 @@ public partial class MainWindow
     private const string NoneNeeded = "-";
 
     // Сайты zapret идут напрямую, только когда обход работает или в этой сети не нужен.
-    // В режиме «Весь компьютер» — никогда: там zapret не запускается (ZapretRunner.TunnelConflict).
-    private bool ZapretRouting => zapretEnabled && !SystemTunnelWanted && zapretDomains.Length > 0 &&
+    // Под «Весь компьютер» — через вход прямого трафика ядра туннеля; пакеты winws защита
+    // пропускает по разрешениям службы (WfpReinjection).
+    private bool ZapretRouting => zapretEnabled && zapretDomains.Length > 0 &&
         (zapretStatus?.Running == true || NetworkIdentity.Current() is { } net && zapretChoices.GetValueOrDefault(net) == NoneNeeded);
 
     private RoutingProfile ZapretProfile => new("zapret", zapretDomains.Select(d => "domain:" + d).ToArray(), [], [], [], [], []) { GlobalProxy = true };
@@ -69,7 +70,6 @@ public partial class MainWindow
     private async Task PickZapretAsync(bool force)
     {
         if (zapretBusy || !zapretEnabled) return;
-        if (SystemTunnelWanted) { await ZapretCallAsync(new(ZapretAction.Stop)); Note(ZapretRunner.TunnelConflict); await ApplyZapretRoutingAsync(); return; }
         zapretBusy = true; zapretCancel = new CancellationTokenSource();
         var token = zapretCancel.Token;
         try
@@ -79,11 +79,13 @@ public partial class MainWindow
             if (status is not { Ready: true }) { Note(status?.Error ?? "Не удалось подготовить zapret."); return; }
             zapretDomains = ZapretSites.Read(status.Tag!);
             var network = NetworkIdentity.Current() ?? "unknown";
+            // Под «Весь компьютер» проверяем через ядро: сайты zapret должны уже идти у него напрямую.
+            if (SystemTunnelActive) { forceZapretRouting = true; await ApplyZapretRoutingAsync(); }
             var exclude = await VpnAddressesAsync(token);
             if (!force && zapretChoices.GetValueOrDefault(network) is { } saved && await TryStrategyAsync(saved, exclude, token)) { Done(saved, network); return; }
             Note("Проверяем сайты без обхода…");
             await ZapretCallAsync(new(ZapretAction.Stop));
-            var baseline = await ZapretProbe.RunAsync(null, token);
+            var baseline = await ZapretProbe.RunAsync(ProbePort, token);
             if (baseline.All) { Done(NoneNeeded, network); return; }
             var names = status.Strategies;
             (string Name, int Passed)? best = null;
@@ -102,14 +104,13 @@ public partial class MainWindow
             Note($"Рабочую стратегию не нашли — эти сайты идут через VPN. Без обхода открылось {baseline.Passed} из {total}" +
                 (best is { } top ? $", лучшая стратегия «{top.Name}» — {top.Passed} из {total}." : "."));
         }
-        catch (OperationCanceledException)
-        {
-            await ZapretCallAsync(new(ZapretAction.Stop));
-            Note(SystemTunnelWanted ? ZapretRunner.TunnelConflict : "Подбор остановлен — эти сайты идут через VPN.");
-        }
+        catch (OperationCanceledException) { await ZapretCallAsync(new(ZapretAction.Stop)); Note("Подбор остановлен — эти сайты идут через VPN."); }
+        // Служба не запустила winws (антивирус, драйвер, ответ службы) — дело не в стратегии,
+        // перебирать остальные бессмысленно: раньше это давало «ничего не работает» за секунду.
+        catch (UserError ex) { await ZapretCallAsync(new(ZapretAction.Stop)); Note(ex.Message + " Эти сайты идут через VPN."); }
         finally
         {
-            zapretBusy = false;
+            zapretBusy = false; forceZapretRouting = false;
             zapretCancel.Dispose(); zapretCancel = null;
             if (!closed) await ApplyZapretRoutingAsync();
         }
@@ -124,17 +125,20 @@ public partial class MainWindow
 
     private async Task<bool> TryStrategyAsync(string name, string[] exclude, CancellationToken token)
     {
-        if (name == NoneNeeded) { await ZapretCallAsync(new(ZapretAction.Stop)); return (await ZapretProbe.RunAsync(null, token)).All; }
+        if (name == NoneNeeded) { await ZapretCallAsync(new(ZapretAction.Stop)); return (await ZapretProbe.RunAsync(ProbePort, token)).All; }
         return (await StartAndProbeAsync(name, exclude, token)) is { All: true };
     }
 
     private async Task<ZapretProbeResult?> StartAndProbeAsync(string name, string[] exclude, CancellationToken token)
     {
         var started = await ZapretCallAsync(new(ZapretAction.Start, name, exclude));
-        if (started is not { Running: true }) { if (started?.Error is { } error) Note(error); return null; }
+        if (started is not { Running: true }) throw new UserError(started?.Error ?? "Служба не запустила zapret.");
         await Task.Delay(800, token);
-        return await ZapretProbe.RunAsync(null, token);
+        return await ZapretProbe.RunAsync(ProbePort, token);
     }
+
+    private bool forceZapretRouting;
+    private int? ProbePort => SystemTunnelActive && engine.Port > 0 ? engine.Port : null;
 
     private void Note(string text) { zapretNote = text; if (!closed) RefreshZapret(); }
 

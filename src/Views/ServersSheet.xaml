@@ -171,7 +171,7 @@
           <ColumnDefinition Width="8"/>
           <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
-        <Button x:Name="MeasureButton" Style="{StaticResource BtnSecondary}" Content="Проверить все"/>
+        <Button x:Name="MeasureButton" Style="{StaticResource BtnSecondary}" Content="Обновить пинг" ToolTip="Задержка через каждый сервер — работает и при подключении"/>
         <Button x:Name="BestButton" Grid.Column="2" Style="{StaticResource BtnPrimary}" Content="Подключить лучший"/>
       </Grid>
     </Border>

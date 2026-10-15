@@ -55,6 +55,7 @@ public partial class MainWindow
     {
         var combined = groups.SelectMany(g => ProfilesOf(g.Id)).ToArray();
         RefreshGroups();
+        Dispatcher.BeginInvoke(RenderAutoPool);
         if (combined.Length == 0)
         {
             // Убрали последнюю подписку: список пуст, главный экран снова предлагает ключ.

@@ -59,6 +59,12 @@
         </StackPanel>
       </DockPanel>
 
+      <!-- Пул «Автовыбора» (AutoPool): строки — серверы, переключатель — участвует ли. -->
+      <TextBlock Text="АВТОВЫБОР" Style="{StaticResource Caption}" FontSize="11.5" Margin="6,22,6,4"/>
+      <TextBlock x:Name="AutoPoolNote" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="12,2,6,6"
+                 Text="Из этих серверов «Автовыбор» берёт самый быстрый и на них переключается при обрыве. Обход белых списков по умолчанию выключен: эти серверы нужны для своей задачи."/>
+      <StackPanel x:Name="AutoPoolList" Margin="0,0,0,0"/>
+
       <TextBlock Text="ЗАПУСК" Style="{StaticResource Caption}" FontSize="11.5" Margin="6,22,6,4"/>
       <DockPanel Margin="12,9,6,9">
         <CheckBox x:Name="StartWithWindows" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Запускать вместе с Windows"/>

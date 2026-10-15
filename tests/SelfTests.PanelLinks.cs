@@ -25,7 +25,7 @@ public static partial class SelfTests
             Assert(fast.Text == "84 мс" && fast.Hint!.Contains("84 мс") && fast.Dot == ServerRow.DotFor(84));
             Assert(ServerRow.Status(new("a", now.AddMinutes(-2), false, 0), now).Text == "нет ответа");
             var old = ServerRow.Status(new("a", now.AddHours(-3), true, 84), now);
-            Assert(old.Text == "давно" && old.Hint!.StartsWith("Последний ответ — 84 мс", StringComparison.Ordinal));
+            Assert(old.Text == "давно" && old.Hint!.StartsWith("Последний замер — 84 мс", StringComparison.Ordinal));
             Assert(ServerRow.Status(new("a", now.AddHours(-3), false, 0), now).Hint!.StartsWith("В последний раз не ответил", StringComparison.Ordinal));
             Assert(ServerRow.Status(new("a", now, true, 84), now, checking: true).Text == "проверяем…");
         }));

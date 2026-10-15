@@ -28,11 +28,15 @@ public sealed record ZapretStatus(bool Ready, bool Running, string? Tag, string?
 
 public static class ZapretRunner
 {
-    public const string TunnelConflict = "В режиме «Весь компьютер» zapret не запускается: защита от утечек не пропускает его пакеты, и пропал бы весь интернет. Эти сайты идут через VPN.";
     private static readonly object Gate = new();
     private static Process? process;
     private static ProcessJob? job;
     private static string? running;
+    private static IReadOnlyList<WfpReinjection.PortRange> captured = Array.Empty<WfpReinjection.PortRange>();
+
+    // Порты, которые перехватывает работающий winws: под защитой «Весь компьютер» на них
+    // нужны разрешения для повторно отправленных пакетов (WfpReinjection).
+    public static IReadOnlyList<WfpReinjection.PortRange>? CapturedPorts { get { lock (Gate) return process is { HasExited: false } ? captured : null; } }
     private static ZapretManifest? manifest;
 
     public static async Task<ZapretStatus> HandleAsync(ZapretRequest request, CancellationToken token)
@@ -88,16 +92,17 @@ public static class ZapretRunner
         File.WriteAllLines(Path.Combine(lists, "list-general-user.txt"), request.Domains ?? Array.Empty<string>());
         var bin = Path.Combine(folder, "bin");
         var start = new ProcessStartInfo(Path.Combine(bin, "winws.exe")) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = bin };
-        // Только физическая сетевая карта: туннели других VPN winws не трогает. Под защитой
-        // «Весь компьютер» winws не работает вовсе (HelperPipeServer, TunnelConflict).
+        // Только физическая сетевая карта: ни наш туннель, ни туннели других VPN winws не трогает.
+        // Под защитой «Весь компьютер» его пакетам нужны разрешения (WfpReinjection).
         if (PhysicalInterface() is { } index) start.ArgumentList.Add("--wf-iface=" + index);
-        foreach (var arg in ZapretArgs.Resolve(strategy, bin, lists)) start.ArgumentList.Add(arg);
+        var args = ZapretArgs.Resolve(strategy, bin, lists);
+        foreach (var arg in args) start.ArgumentList.Add(arg);
         lock (Gate)
         {
             var started = Process.Start(start) ?? throw new UserError("zapret: winws не запустился.");
             var newJob = new ProcessJob();
             newJob.Attach(started);
-            process = started; job = newJob; running = strategy.Name;
+            process = started; job = newJob; running = strategy.Name; captured = WfpReinjection.Ports(args);
         }
         // Драйвер WinDivert не загрузился, неверные аргументы — winws завершается сразу.
         if (process!.WaitForExit(1500)) { var code = process.ExitCode; Stop(); throw new UserError("zapret завершился при запуске (код " + code + "). Возможно, драйвер WinDivert заблокирован антивирусом."); }

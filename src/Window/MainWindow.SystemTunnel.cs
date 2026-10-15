@@ -118,12 +118,13 @@ public partial class MainWindow
     private Profile[] SystemCandidates(Profile selected)
     {
         var profiles = importedProfiles.ToArray();
-        // «Автовыбор»: запасные — все узлы, от быстрых к медленным; в лимит адресов защиты
-        // попадают лучшие, и подбор под блокировкой сможет на них перейти.
+        // «Автовыбор»: запасные — пул автовыбора от быстрых к медленным; в лимит адресов защиты
+        // попадают лучшие, и подбор под блокировкой сможет на них перейти. Затем остальные
+        // серверы: на них переключаются вручную, и их можно замерить под защитой.
         if (autoSelect)
-            return new[] { selected }.Concat(RouteCandidates.ByLatency(RouteCandidates.For(profiles, selected, anyNode: true), profiles, LatestMeasurement)
-                .Select(i => profiles[i])).DistinctBy(ProfileSelection.Identity).ToArray();
-        var candidates = RouteCandidates.For(profiles, selected);
+            return new[] { selected }.Concat(RouteCandidates.ByLatency(RouteCandidates.For(profiles, selected, anyNode: true, InAutoPool), profiles, LatestMeasurement)
+                .Select(i => profiles[i])).Concat(profiles).DistinctBy(ProfileSelection.Identity).ToArray();
+        var candidates = RouteCandidates.For(profiles, selected, pool: InAutoPool);
         if (candidates.Length == 0) return new[] { selected };
         // Сначала порядок автоподбора (выбранный и пять запасных), затем остальные узлы сервиса:
         // на них переключаются вручную, и защита должна разрешать их с самого начала. Иначе
@@ -132,6 +133,7 @@ public partial class MainWindow
         return RouteSearch.Order(candidates.Length, RouteCandidates.StartAt(candidates, profiles, selected))
             .Select(i => profiles[candidates[i]])
             .Concat(candidates.Select(i => profiles[i]))
+            .Concat(profiles.Where(p => p.IsService))
             .DistinctBy(ProfileSelection.Identity).ToArray();
     }
 

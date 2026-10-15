@@ -141,6 +141,10 @@ public sealed class SystemTunnelSession : IAsyncDisposable
         finally { operations.Release(); }
     }
 
+    // Профиль с адресом, который защита разрешила ядрам: через него сервер можно замерить
+    // отдельным ядром, не выходя из защиты. null — сервера нет среди разрешённых.
+    public Profile? PinnedFor(Profile profile) => Find(profile)?.PinnedProfile;
+
     private TunnelEndpointPlan? Find(Profile profile)
     {
         var sources = plans.Select(p => p.Source).ToArray();

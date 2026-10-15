@@ -134,7 +134,8 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
             AddPacket("адрес туннеля только в туннель" + family, v6, new WfpCondition(WfpConditionKind.LocalAddress, host),
                 new WfpCondition(WfpConditionKind.InterfaceTypeNot, Number: TunnelInterfaceType));
         }
-        if (list.Count > MaxFilters) throw new UserError("Слишком много адресов узлов для защиты.");
+        // Последние номера отданы разрешениям для пакетов zapret (WfpReinjection).
+        if (list.Count > WfpReinjection.First) throw new UserError("Слишком много адресов узлов для защиты.");
         return list;
     }
 

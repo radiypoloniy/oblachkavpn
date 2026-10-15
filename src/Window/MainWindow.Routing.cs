@@ -67,7 +67,7 @@ public partial class MainWindow
         // «Весь компьютер»: если у сессии уже есть вход для прямого трафика (или он не нужен),
         // перезапускается только ядро — туннель и защита остаются, связь пропадает на секунду.
         // Полностью переподключаться приходится, только когда вход для прямого трафика нужен впервые.
-        if (SystemTunnelActive && systemTunnel is not null && (HasDirectEntry || CurrentRouting()?.HasDirect != true))
+        if (SystemTunnelActive && systemTunnel is not null && (HasDirectEntry || CurrentRouting()?.HasDirect != true && !zapretEnabled))
         {
             await ConnectCoreAsync();
             if (closed) return;

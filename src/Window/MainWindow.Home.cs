@@ -92,7 +92,7 @@ public partial class MainWindow
         var rows = new List<ServerRow> { new()
         {
             IsAuto = true, Name = "Автовыбор", Selected = autoSelect,
-            Note = autoSelect && profile is not null ? "сейчас: " + profile.DisplayName : "самый быстрый отклик",
+            Note = autoSelect && profile is not null ? "сейчас: " + profile.DisplayName : "самый быстрый из пула",
             Icon = TryFindResource("IcoAuto") as Geometry, IconOnAccent = true
         } };
         var favored = importedProfiles.Where(p => favorites.Contains(FavoriteKey(p))).ToList();
@@ -159,8 +159,10 @@ public partial class MainWindow
     private Profile? BestProfile()
     {
         var all = importedProfiles.ToArray();
-        return ServerMeasurements.Best(all, EffectiveMeasurements(), DateTimeOffset.UtcNow) is int best ? all[best]
-            : profile is { IsService: true } ? profile : all.FirstOrDefault(p => p.IsService) ?? profile;
+        // Только пул автовыбора: серверы обхода белых списков и исключённые вручную не берутся.
+        var pool = autoPool.Members(all);
+        return ServerMeasurements.Best(pool, EffectiveMeasurements(), DateTimeOffset.UtcNow) is int best ? pool[best]
+            : profile is { IsService: true } && autoPool.Contains(profile) ? profile : pool.FirstOrDefault(p => p.IsService) ?? pool.FirstOrDefault() ?? profile;
     }
 
     // Выбор идёт через прежний список (Servers.ProfilePicker): от его события зависят смена

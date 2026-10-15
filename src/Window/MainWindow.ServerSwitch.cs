@@ -19,7 +19,7 @@ public partial class MainWindow
     private DispatcherTimer? switchTimer;
     // Фоновая проверка связи раз в 45 с не должна гасить список серверов.
     private bool backgroundCheck;
-    // Замер серверов при подключении: «Остановить» отменяет замер, а не подключение.
+    // Идёт замер задержки через серверы (MeasureServersAsync).
     private bool measuring;
 
     private bool ConnectionActive => engine.State is not ConnectionState.Idle || SystemTunnelActive;

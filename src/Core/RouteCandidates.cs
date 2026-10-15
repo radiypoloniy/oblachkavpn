@@ -12,14 +12,17 @@ public static class RouteCandidates
 {
     // anyNode — включён «Автовыбор»: это согласие на переключение между всеми узлами
     // подписок, в том числе сторонней (а в редакции «вставьте свою подписку» других узлов и нет).
-    public static int[] For(IReadOnlyList<Profile> all, Profile current, bool anyNode = false)
+    // pool — пул автовыбора (AutoPool): переключаться можно только на его серверы. Текущий
+    // сервер остаётся кандидатом всегда — повторы на нём не запрещены.
+    public static int[] For(IReadOnlyList<Profile> all, Profile current, bool anyNode = false, Func<Profile, bool>? pool = null)
     {
         var selected = ProfileSelection.IndexOf(all, current);
         var itself = selected >= 0 ? new[] { selected } : Array.Empty<int>();
-        if (anyNode) return Enumerable.Range(0, all.Count).ToArray();
+        bool Allowed(int i) => i == selected || pool is null || pool(all[i]);
+        if (anyNode) return Enumerable.Range(0, all.Count).Where(Allowed).ToArray();
         if (!current.IsService) return itself;
         var service = new List<int>();
-        for (var i = 0; i < all.Count; i++) if (all[i].IsService) service.Add(i);
+        for (var i = 0; i < all.Count; i++) if (all[i].IsService && Allowed(i)) service.Add(i);
         return service.Count > 0 ? service.ToArray() : itself;
     }
 
@@ -31,13 +34,13 @@ public static class RouteCandidates
         return position >= 0 ? position : 0;
     }
 
-    // Порядок для «Автовыбора»: сначала с успешным откликом — от быстрого к медленному, затем
-    // без замера, в конце не ответившие. failed — узел, который только что перестал работать:
-    // он идёт последним, чтобы подбор не начинал с него.
+    // Порядок для «Автовыбора»: сначала с задержкой через сервер — от быстрого к медленному, затем
+    // без замера (в том числе только с откликом входа: его миллисекунды ничего не говорят),
+    // в конце не ответившие. failed — узел, который только что перестал работать: он последний.
     public static int[] ByLatency(int[] candidates, IReadOnlyList<Profile> all, Func<Profile, ServerMeasurement?> latest, Profile? failed = null)
     {
         int Rank(int i) => failed is not null && ProfileSelection.Identity(all[i]) == ProfileSelection.Identity(failed) ? 3
-            : latest(all[i]) switch { { Success: true } => 0, null => 1, _ => 2 };
-        return candidates.OrderBy(Rank).ThenBy(i => latest(all[i]) is { Success: true } m ? m.Milliseconds : long.MaxValue).ThenBy(i => i).ToArray();
+            : latest(all[i]) switch { { Success: true, Handshake: false } => 0, null or { Success: true } => 1, _ => 2 };
+        return candidates.OrderBy(Rank).ThenBy(i => latest(all[i]) is { Success: true, Handshake: false } m ? m.Milliseconds : long.MaxValue).ThenBy(i => i).ToArray();
     }
 }

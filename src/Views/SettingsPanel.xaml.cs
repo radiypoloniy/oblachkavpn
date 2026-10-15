@@ -23,6 +23,7 @@ public partial class SettingsPanel : UserControl
     public CheckBox AutoRecover => General.AutoRecover;
     public CheckBox StartWithWindows => General.StartWithWindows;
     public CheckBox StayInTray => General.StayInTray;
+    public StackPanel AutoPoolList => General.AutoPoolList;
     public CheckBox AutoRefresh => Subscription.AutoRefresh;
     public TextBlock StorageStatus => Subscription.StorageStatus;
     public TextBlock SubscriptionDetails => Subscription.SubscriptionDetails;

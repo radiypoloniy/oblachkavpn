@@ -50,6 +50,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     // zapret (0.13): включён ли и какая стратегия подошла в какой сети (хеш сети → имя стратегии).
     public bool ZapretEnabled { get; init; }
     public Dictionary<string, string>? ZapretChoices { get; init; }
+    // Пул «Автовыбора» (0.13.3): только отличия от умолчания, ключ — хеш источника и имени.
+    public Dictionary<string, bool>? AutoPool { get; init; }
     // Подписки и «Вручную» (0.11). Нет значения — снимок прежней версии.
     public ProfileGroup[]? Groups { get; init; }
 }

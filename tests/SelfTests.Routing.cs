@@ -170,6 +170,41 @@ public static partial class SelfTests
             Assert(RouteCandidates.ByLatency(all, nodes, Latest, failed: nodes[3]).SequenceEqual(new[] { 4, 0, 2, 1, 3 }));
             Assert(RouteCandidates.ByLatency(all, nodes, Latest).SequenceEqual(new[] { 3, 4, 0, 2, 1 }));
         }));
+        await check("Auto pool leaves whitelist-bypass cascades out by default; a handshake-only answer never wins", () => Sync(() =>
+        {
+            var names = new[] { "🇪🇺Обход Белых списков #1", "🇩🇪Германия", "🇳🇱Нидерланды", "Обход БС", "Whitelist bypass" };
+            var nodes = names.Select((n, i) => Node("203.0.113." + (60 + i), name: Uri.EscapeDataString(n))).ToArray();
+            var pool = new AutoPool();
+            Assert(!pool.Contains(nodes[0]) && pool.Contains(nodes[1]) && pool.Contains(nodes[2]) && !pool.Contains(nodes[3]) && !pool.Contains(nodes[4]));
+            // Выбор человека сильнее умолчания и переживает сохранение.
+            pool.Set(nodes[0], true); pool.Set(nodes[2], false);
+            var restored = new AutoPool(); restored.Load(pool.Snapshot(nodes));
+            Assert(restored.Contains(nodes[0]) && !restored.Contains(nodes[2]) && restored.Snapshot(nodes).Count == 2);
+            pool.Set(nodes[0], false);
+            Assert(pool.Snapshot(nodes).Count == 1);
+            // Всё исключено — выбирать всё равно есть из чего.
+            var empty = new AutoPool(); foreach (var n in nodes) empty.Set(n, false);
+            Assert(empty.Members(nodes).Length == nodes.Length);
+
+            // Каскад: вход рядом (рукопожатие 2 мс), а настоящая задержка через сервер неизвестна.
+            var now = DateTimeOffset.UtcNow;
+            var measured = new Dictionary<string, ServerMeasurement>
+            {
+                [Profiles.Fingerprint(nodes[0])] = new(Profiles.Fingerprint(nodes[0]), now, true, 2) { Handshake = true },
+                [Profiles.Fingerprint(nodes[1])] = new(Profiles.Fingerprint(nodes[1]), now, true, 180),
+                [Profiles.Fingerprint(nodes[2])] = new(Profiles.Fingerprint(nodes[2]), now, true, 90)
+            };
+            Assert(ServerMeasurements.Best(nodes, measured, now) == 2);
+            ServerMeasurement? Latest(Profile p) => measured.GetValueOrDefault(Profiles.Fingerprint(p));
+            var everyone = Enumerable.Range(0, nodes.Length).ToArray();
+            Assert(RouteCandidates.ByLatency(everyone, nodes, Latest).Take(2).SequenceEqual(new[] { 2, 1 }));
+            // Переключение при обрыве — только по пулу; текущий сервер остаётся кандидатом всегда.
+            var inPool = new AutoPool();
+            Assert(RouteCandidates.For(nodes, nodes[1], anyNode: true, inPool.Contains).SequenceEqual(new[] { 1, 2 }));
+            Assert(RouteCandidates.For(nodes, nodes[0], anyNode: true, inPool.Contains).SequenceEqual(new[] { 0, 1, 2 }));
+            // Отклик рукопожатия числом не показывается.
+            Assert(ServerRow.Status(measured[Profiles.Fingerprint(nodes[0])], now).Text == "" && ServerRow.Status(measured[Profiles.Fingerprint(nodes[2])], now).Text == "90 мс");
+        }));
     }
 
     // Минимальная запись protobuf для синтетических баз.
