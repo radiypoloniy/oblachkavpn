@@ -179,7 +179,7 @@ public static class Profiles
         };
     }
 
-    private static string SafeName(string name)
+    internal static string SafeName(string name)
     {
         var safe = new string(name.Where(c => !char.IsControl(c)).Take(80).ToArray()).Trim();
         return string.IsNullOrWhiteSpace(safe) ? "VLESS-профиль" : safe;

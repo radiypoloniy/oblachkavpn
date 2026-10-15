@@ -6,10 +6,13 @@ using System.Text.RegularExpressions;
 namespace Oblachka;
 
 // Подписка, найденная в другом VPN-клиенте на этом компьютере.
+// Отдельные подключения (не из подписки) — та же строка с пустым адресом и готовыми профилями.
 public sealed record ForeignSubscription(string Client, string Name, string Url)
 {
+    public IReadOnlyList<Profile> Profiles { get; init; } = Array.Empty<Profile>();
+    public bool IsLocal => Profiles.Count > 0;
     // «Throne · Рабочая»; если имени нет и оно равно хосту — только клиент: хост и так в подписи ниже.
-    public string Title => Name == Host ? Client : Client + " · " + Name;
+    public string Title => IsLocal ? Client + " · " + Name : Name == Host ? Client : Client + " · " + Name;
     public string Host => Uri.TryCreate(Url, UriKind.Absolute, out var uri) ? uri.Host : "";
     // Подпись под именем: хост и четыре последних знака адреса, чтобы различать две подписки
     // одного сервиса. Сам ключ на экран не выводится.
@@ -17,6 +20,7 @@ public sealed record ForeignSubscription(string Client, string Name, string Url)
     {
         get
         {
+            if (IsLocal) return "добавятся во «Вручную»";
             var tail = Uri.TryCreate(Url, UriKind.Absolute, out var uri) ? uri.PathAndQuery.TrimEnd('/') : "";
             return tail.Length > 6 ? Host + " · …" + tail[^4..] : Host;
         }
@@ -37,6 +41,8 @@ public sealed record ForeignSubscription(string Client, string Name, string Url)
 //   Clash Verge  %APPDATA%\io.github.clash-verge-rev.clash-verge-rev\profiles.yaml
 //   Happ         база зашифрована; адрес берётся из журнала обновления подписок.
 // Берутся только HTTPS-адреса: подписку по HTTP клиент не загружает.
+// Отдельные подключения — из Throne (профили групп без адреса: outbound_json, у «custom» — config)
+// и v2RayTun (flutter.config_* без subscriptionId). Показываются только те, что проходят разбор.
 public static class ForeignClients
 {
     public const int MaxResults = 12;
@@ -68,7 +74,54 @@ public static class ForeignClients
         foreach (var flavor in new[] { "clash", "clashx" })
             Scan(flavor == "clash" ? "FlClash" : "FlClashX", () => FlClash(Path.Combine(r.AppData, "com.follow", flavor, "shared_preferences.json")));
         Scan("Clash Verge", () => ClashVerge(Path.Combine(r.AppData, "io.github.clash-verge-rev.clash-verge-rev", "profiles.yaml")));
-        return found.Take(MaxResults).ToArray();
+        var subscriptions = found.Take(MaxResults).ToList();
+        void Local(string client, Func<IEnumerable<(string? Name, string? Config)>> read)
+        {
+            try { if (Standalone(client, read()) is { } item) subscriptions.Add(item); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or FormatException) { }
+        }
+        Local("Throne", () => Sqlite(Path.Combine(r.AppData, "Throne", "config", "throne.db"),
+            "select p.name, p.outbound_json from profiles p join groups g on g.id = p.gid where g.archive = 0 and ifnull(g.url, '') = '' order by p.id", MaxStandalone * 2));
+        Local("v2RayTun", () => V2RayTunConfigs(Path.Combine(r.AppData, "v2RayTun.net", "v2RayTun", "shared_preferences.json")));
+        return subscriptions;
+    }
+
+    public const int MaxStandalone = 100;
+
+    // Отдельные подключения одного клиента: неразборчивые и повторы пропускаются молча.
+    private static ForeignSubscription? Standalone(string client, IEnumerable<(string? Name, string? Config)> items)
+    {
+        var profiles = new List<Profile>();
+        foreach (var (name, config) in items)
+        {
+            if (profiles.Count >= MaxStandalone) break;
+            if (string.IsNullOrWhiteSpace(config) || config.Length > Oblachka.Profiles.MaxBytes) continue;
+            try
+            {
+                var text = config.TrimStart().StartsWith('{') && JsonNode.Parse(config) is JsonObject { } outbound && outbound["config"] is JsonValue inner
+                    ? inner.GetValue<string>() : config;
+                var parsed = Oblachka.Profiles.Parse(text);
+                if (!string.IsNullOrWhiteSpace(name)) parsed = parsed with { Name = Oblachka.Profiles.SafeName(name) };
+                if (!profiles.Any(p => Oblachka.Profiles.Fingerprint(p) == Oblachka.Profiles.Fingerprint(parsed))) profiles.Add(parsed);
+            }
+            catch (Exception ex) when (ex is UserError or JsonException or InvalidOperationException or FormatException) { }
+        }
+        return profiles.Count == 0 ? null : new(client, Count(profiles.Count), "") { Profiles = profiles };
+    }
+
+    private static string Count(int n) => n + (n % 10 == 1 && n % 100 != 11 ? " отдельное подключение"
+        : n % 10 is >= 2 and <= 4 && n % 100 is < 12 or > 14 ? " отдельных подключения" : " отдельных подключений");
+
+    // У v2RayTun в записи и Xray-, и sing-box-вид; берётся Xray, без него — sing-box.
+    private static IEnumerable<(string?, string?)> V2RayTunConfigs(string preferences)
+    {
+        if (Preferences(preferences) is not { } root) yield break;
+        foreach (var (key, value) in root)
+            if (key.StartsWith("flutter.config_", StringComparison.Ordinal) && value?.GetValueKind() == JsonValueKind.String &&
+                JsonNode.Parse(value.GetValue<string>()) is JsonObject config &&
+                string.IsNullOrEmpty(config["subscriptionId"]?.GetValue<string>()) &&
+                (config["xrayOutbound"] ?? config["singBoxOutbound"]) is JsonObject outbound)
+                yield return (config["remarks"]?.GetValue<string>(), outbound.ToJsonString());
     }
 
     private static void Add(List<ForeignSubscription> found, string client, string? name, string? url)
@@ -81,8 +134,8 @@ public static class ForeignClients
         found.Add(new(client, name.Length > 60 ? name[..60] : name, url));
     }
 
-    private static IEnumerable<(string?, string?)> Sqlite(string path, string sql) =>
-        WinSqlite.Query(path, sql)?.Where(row => row.Length >= 2).Select(row => (row[0], row[1])) ?? Enumerable.Empty<(string?, string?)>();
+    private static IEnumerable<(string?, string?)> Sqlite(string path, string sql, int maxRows = 64) =>
+        WinSqlite.Query(path, sql, maxRows)?.Where(row => row.Length >= 2).Select(row => (row[0], row[1])) ?? Enumerable.Empty<(string?, string?)>();
 
     // «Subscription #1031376548 starting update from: https://…» — последний адрес каждой подписки.
     private static readonly Regex HappLine = new(@"Subscription #(\d+) starting update from: (https://\S+)", RegexOptions.CultureInvariant);

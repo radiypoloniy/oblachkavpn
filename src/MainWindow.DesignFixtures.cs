@@ -87,6 +87,7 @@ public partial class MainWindow
                 new ForeignSubscription("Happ", "sub.example.invalid", "https://sub.example.invalid/sub/a1b2c3d4"),
                 new ForeignSubscription("Throne", "Рабочая", "https://vpn.example.invalid/s/e5f6g7h8"),
                 new ForeignSubscription("v2RayTun", "Liberty", "https://liberty.example.invalid/connection/subs/i9j0"),
+                new ForeignSubscription("Throne", "3 отдельных подключения", "") { Profiles = new[] { Profiles.Parse("vless://33333333-3333-4333-8333-333333333333@n.invalid:443?security=tls&sni=example.org#A") } },
             };
             Onboarding.ForeignPanel.Visibility = Visibility.Visible;
             return;

@@ -51,6 +51,14 @@ public partial class MainWindow
         if (groups.Count != 1 || groups[0].Id != ProfileGroup.IdFor(legacy.ExternalSources, ProfileSource.External) || importedProfiles.Count != 1)
             throw new InvalidOperationException("Legacy snapshot was not migrated into groups");
         checks.Add("Groups survive encrypted saving; removing one keeps the rest; 0.10 snapshots migrate");
+        // Отдельные подключения другого клиента — во «Вручную», рядом с оставшейся подпиской.
+        var foreign = new ForeignSubscription("Throne", "2 отдельных подключения", "") { Profiles = new[] {
+            Profiles.Parse("vless://33333333-3333-4333-8333-333333333333@203.0.113.11:443?security=tls&sni=example.org#A") with { Name = "Дом" },
+            Profiles.Parse("vless://44444444-4444-4444-8444-444444444444@203.0.113.12:443?security=tls&sni=example.org#B") with { Name = "Офис" } } };
+        ImportForeignProfiles(foreign); ImportForeignProfiles(foreign);
+        if (groups.Count != 2 || ProfilesOf(ProfileGroup.ManualId).Count != 2 || profile?.Name != "Дом" || importedProfiles.Count != 3)
+            throw new InvalidOperationException("Standalone profiles from another client were not added to the manual group");
+        checks.Add("Standalone profiles of another client land in «Вручную» once, beside subscriptions");
         serviceProfiles = Array.Empty<Profile>(); externalProfiles = Array.Empty<Profile>(); profile = null;
         LoadPreviewProfiles();
     }

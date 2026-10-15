@@ -46,8 +46,16 @@ public partial class MainWindow
 
     private async void ForeignClick(object sender, RoutedEventArgs args)
     {
-        if ((args.OriginalSource as FrameworkElement)?.DataContext is ForeignSubscription found && operation is null)
-            await ContinueWithAsync(found.Url, clearField: false);
+        if ((args.OriginalSource as FrameworkElement)?.DataContext is not ForeignSubscription found || operation is not null) return;
+        if (found.IsLocal) ImportForeignProfiles(found);
+        else await ContinueWithAsync(found.Url, clearField: false);
+    }
+
+    // Отдельные подключения другого клиента — во «Вручную», рядом с подписками.
+    private void ImportForeignProfiles(ForeignSubscription found)
+    {
+        ApplyGroupImport(ProfileGroup.Manual, new ImportResult(found.Profiles, 0, 0).WithSource(ProfileSource.External));
+        Navigate("Connection");
     }
 
     private void SettingsClick(object sender, RoutedEventArgs args) => OpenSettings(null);

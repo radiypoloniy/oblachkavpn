@@ -13,6 +13,13 @@ public static partial class SelfTests
             try
             {
                 var roots = new ForeignClients.Roots(Path.Combine(root, "Roaming"), Path.Combine(root, "Local"), Path.Combine(root, "User"), Path.Combine(root, "Programs"));
+                static string Tun(string name, string? subscription)
+                {
+                    var link = Profiles.Parse("vless://11111111-1111-4111-8111-111111111111@203.0.113.9:443?security=reality&sni=example.org&pbk=fixturekey#n");
+                    var config = new JsonObject { ["remarks"] = name, ["xrayOutbound"] = link.Outbound.DeepClone() };
+                    if (subscription is not null) config["subscriptionId"] = subscription;
+                    return config.ToJsonString();
+                }
                 void Write(string path, string text) { Directory.CreateDirectory(Path.GetDirectoryName(path)!); File.WriteAllText(path, text); }
                 Write(Path.Combine(roots.LocalAppData, "Happ", "logs", "subscription_log.txt"),
                     "[05.10.2026] Subscription #1 starting update from: https://happ.invalid/sub/old\n" +
@@ -22,7 +29,10 @@ public static partial class SelfTests
                 File.WriteAllBytes(group, new byte[] { 0, 0, 0, 7 }.Concat(Encoding.BigEndianUnicode.GetBytes("https://neko.invalid/s/abc")).Concat(new byte[] { 0, 0, 0xFF }).ToArray());
                 var sub = new JsonObject { ["remarks"] = "Liberty", ["url"] = "https://tun.invalid/subs/1" }.ToJsonString();
                 Write(Path.Combine(roots.AppData, "v2RayTun.net", "v2RayTun", "shared_preferences.json"),
-                    new JsonObject { ["flutter.sub_1"] = sub, ["flutter.sub_2"] = new JsonObject { ["url"] = "http://plain.invalid/x" }.ToJsonString(), ["flutter.other"] = 5 }.ToJsonString());
+                    new JsonObject { ["flutter.sub_1"] = sub, ["flutter.sub_2"] = new JsonObject { ["url"] = "http://plain.invalid/x" }.ToJsonString(), ["flutter.other"] = 5,
+                        // Отдельные: своё (Xray-вид), повтор, сломанное и узел подписки — в счёт идёт одно.
+                        ["flutter.config_1"] = Tun("Мой", ""), ["flutter.config_2"] = Tun("Повтор", null), ["flutter.config_3"] = new JsonObject { ["remarks"] = "x", ["xrayOutbound"] = new JsonObject { ["protocol"] = "vless" } }.ToJsonString(),
+                        ["flutter.config_4"] = Tun("Из подписки", "sub1") }.ToJsonString());
                 var config = new JsonObject { ["profiles"] = new JsonArray(new JsonObject { ["label"] = "tests", ["url"] = "https://clashx.invalid/p" }) }.ToJsonString();
                 Write(Path.Combine(roots.AppData, "com.follow", "clashx", "shared_preferences.json"), new JsonObject { ["flutter.config"] = config }.ToJsonString());
                 Write(Path.Combine(roots.AppData, "io.github.clash-verge-rev.clash-verge-rev", "profiles.yaml"),
@@ -34,11 +44,14 @@ public static partial class SelfTests
                 Write(Path.Combine(roots.AppData, "Throne", "config", "throne.db"), "not a database");
 
                 var found = ForeignClients.Find(roots);
-                string Url(string client) => found.Single(f => f.Client == client).Url;
-                Assert(found.Count == 5);
+                string Url(string client) => found.Single(f => f.Client == client && !f.IsLocal).Url;
+                Assert(found.Count(f => !f.IsLocal) == 5);
+                var local = found.Single(f => f.IsLocal);
+                Assert(local.Client == "v2RayTun" && local.Url == "" && local.Profiles.Count == 1 && local.Profiles[0].Name == "Мой");
+                Assert(local.Title == "v2RayTun · 1 отдельное подключение" && local.Hint == "добавятся во «Вручную»");
                 Assert(Url("Happ") == "https://happ.invalid/sub/new");
                 Assert(Url("NekoBox") == "https://neko.invalid/s/abc");
-                Assert(Url("v2RayTun") == "https://tun.invalid/subs/1" && found.Single(f => f.Client == "v2RayTun").Name == "Liberty");
+                Assert(Url("v2RayTun") == "https://tun.invalid/subs/1" && found.Single(f => f.Client == "v2RayTun" && !f.IsLocal).Name == "Liberty");
                 Assert(Url("FlClashX") == "https://clashx.invalid/p");
                 Assert(Url("Clash Verge") == "https://verge.invalid/c?flag=1" && found.Single(f => f.Client == "Clash Verge").Name == "Verge");
                 Assert(found.Single(f => f.Client == "Happ").Name == "happ.invalid");
