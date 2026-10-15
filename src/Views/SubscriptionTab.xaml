@@ -38,6 +38,8 @@
             <Button x:Name="RefreshListButton" Grid.Column="2" Content="Обновить список" Style="{StaticResource BtnOutline}" Height="36" o:Ui.CornerRadius="10"/>
           </Grid>
           <TextBlock x:Name="SubscriptionDetails" Style="{StaticResource Small}" Margin="0,10,0,0"/>
+          <!-- Ссылка support-url от панели; без неё кнопки нет. -->
+          <Button x:Name="SupportButton" Content="Написать в поддержку" Style="{StaticResource BtnGhost}" Foreground="{DynamicResource Ac}" HorizontalAlignment="Left" Margin="-12,4,0,-6" Visibility="Collapsed"/>
         </StackPanel>
       </Border>
 

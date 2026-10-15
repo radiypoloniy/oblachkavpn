@@ -60,7 +60,9 @@ public partial class MainWindow
     private void ShowTrayPopup()
     {
         if (closed) return;
-        trayPopup?.Close();
+        // Повторный щелчок по значку закрывает окно, а не открывает заново.
+        if (trayPopup is not null) { trayPopup.Dismiss(); return; }
+        if (DateTime.UtcNow - TrayPopup.ClosedAt < TimeSpan.FromMilliseconds(400)) return;
         var popup = new TrayPopup(
             () => { if (StopButton.IsEnabled) StopClick(this, new RoutedEventArgs()); else ConnectClick(this, new RoutedEventArgs()); },
             ShowWindow, ExitApplication, row => PickServer(row.IsAuto ? null : row.Profile));

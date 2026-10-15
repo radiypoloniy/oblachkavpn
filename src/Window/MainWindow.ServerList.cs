@@ -28,6 +28,7 @@ public partial class MainWindow
     {
         if (args.OriginalSource is not Button { DataContext: ServerRow row } button) return;
         if (Equals(button.Tag, "star")) { if (row.Profile is not null) ToggleFavorite(row.Profile); return; }
+        if (Equals(button.Tag, "check")) { if (row.Profile is not null) _ = CheckServerAsync(row.Profile); return; }
         PickServer(row.IsAuto ? null : row.Profile);
         Navigate("Connection");
     }
