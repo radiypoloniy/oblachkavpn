@@ -39,6 +39,8 @@ public partial class MainWindow
         if (Routes.RussiaDirect.IsChecked == true) yield return RoutingProfile.RussiaDirect;
     }
 
+    private bool HasDirectEntry => (engine as Engine)?.DirectEntry is not null;
+
     private CompiledRouting? CurrentRouting() => CompiledRouting.Compile(ActiveRoutingProfiles(), GeoStore.Default);
 
     // Какие базы нужны включённым наборам; для предложения — и набору сервиса до согласия.
@@ -61,7 +63,17 @@ public partial class MainWindow
         // как при смене режима. Во время запуска или замера не трогаем — применятся при следующем.
         if (closed || !ConnectionActive) return;
         if (operation is not null || systemStopping) { DetailText.Text = "Списки применятся со следующего подключения."; return; }
-        manualStop = true; recoveryWait?.Cancel();
+        recoveryWait?.Cancel();
+        // «Весь компьютер»: если у сессии уже есть вход для прямого трафика (или он не нужен),
+        // перезапускается только ядро — туннель и защита остаются, связь пропадает на секунду.
+        // Полностью переподключаться приходится, только когда вход для прямого трафика нужен впервые.
+        if (SystemTunnelActive && systemTunnel is not null && (HasDirectEntry || CurrentRouting()?.HasDirect != true && !zapretEnabled))
+        {
+            await ConnectCoreAsync();
+            if (!closed) DetailText.Text = "Списки применены; туннель и защита не снимались.";
+            return;
+        }
+        manualStop = true;
         if (systemTunnel is not null) await StopSystemTunnelAsync(); else engine.Stop();
         UpdateControls();
         if (!closed && ConnectButton.IsEnabled) { await ConnectCoreAsync(); DetailText.Text = "Списки включены, подключение перезапущено."; }

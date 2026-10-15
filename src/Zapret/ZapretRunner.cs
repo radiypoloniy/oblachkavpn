@@ -87,6 +87,9 @@ public static class ZapretRunner
         File.WriteAllLines(Path.Combine(lists, "list-general-user.txt"), request.Domains ?? Array.Empty<string>());
         var bin = Path.Combine(folder, "bin");
         var start = new ProcessStartInfo(Path.Combine(bin, "winws.exe")) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = bin };
+        // Только физическая сетевая карта: трафик внутри туннеля VPN winws не перехватывает,
+        // иначе весь VPN шёл бы через его обработку и ломался.
+        if (PhysicalInterface() is { } index) start.ArgumentList.Add("--wf-iface=" + index);
         foreach (var arg in ZapretArgs.Resolve(strategy, bin, lists)) start.ArgumentList.Add(arg);
         lock (Gate)
         {
@@ -97,6 +100,27 @@ public static class ZapretRunner
         }
         // Драйвер WinDivert не загрузился, неверные аргументы — winws завершается сразу.
         if (process!.WaitForExit(1500)) { var code = process.ExitCode; Stop(); throw new UserError("zapret завершился при запуске (код " + code + "). Возможно, драйвер WinDivert заблокирован антивирусом."); }
+    }
+
+    // Номер интерфейса для WinDivert: адаптер с основным шлюзом IPv4, не туннель (наш Obl-…,
+    // Wintun, TAP и WireGuard других VPN). null — не нашли, перехват без ограничения.
+    internal static int? PhysicalInterface()
+    {
+        try
+        {
+            foreach (var nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+                .Where(n => n.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up &&
+                    n.NetworkInterfaceType is not (System.Net.NetworkInformation.NetworkInterfaceType.Loopback or System.Net.NetworkInformation.NetworkInterfaceType.Tunnel)))
+            {
+                if (nic.Name.StartsWith("Obl-", StringComparison.OrdinalIgnoreCase) ||
+                    new[] { "wintun", "tap-", "wireguard", "sing-box", "tun" }.Any(t => nic.Description.Contains(t, StringComparison.OrdinalIgnoreCase))) continue;
+                var properties = nic.GetIPProperties();
+                if (!properties.GatewayAddresses.Any(g => g.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && !g.Address.Equals(IPAddress.Any))) continue;
+                return properties.GetIPv4Properties()?.Index;
+            }
+        }
+        catch (System.Net.NetworkInformation.NetworkInformationException) { }
+        return null;
     }
 
     public static void Stop()
