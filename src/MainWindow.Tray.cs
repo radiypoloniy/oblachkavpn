@@ -42,11 +42,18 @@ public partial class MainWindow
         ShowInTaskbar = false; WindowState = WindowState.Minimized;
         Loaded += (_, _) => { Hide(); ShowInTaskbar = true; WindowState = WindowState.Normal; trayHintShown = true; };
     }
+    // Подсказка «работаем в трее» — один раз вообще, а не на каждый крестик и не на каждый запуск.
+    // Отметка — отдельным файлом: файл состояния до первой подписки не пишется.
+    private static string TrayHintMarker => Path.Combine(ClientDataPaths.Root, "tray-hint-shown");
+
     private void HideToTray()
     {
         Hide();
-        if (trayHintShown) return;
+        if (trayHintShown || File.Exists(TrayHintMarker)) return;
         trayHintShown = true;
+        if (stateStore is not null && !isolatedPersistence)
+            try { Directory.CreateDirectory(ClientDataPaths.Root); File.WriteAllText(TrayHintMarker, DateTimeOffset.UtcNow.ToString("O")); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         tray.ShowBalloonTip(4000, ServiceBrand.Name, "Облачка продолжают работать в трее. Выйти — через меню значка: «Завершить».", System.Windows.Forms.ToolTipIcon.Info);
     }
 
