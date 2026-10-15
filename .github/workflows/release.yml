@@ -24,9 +24,11 @@ jobs:
       - name: Inno Setup
         run: choco install innosetup -y --no-progress
 
+      # Встроенные команды с кириллицей — в PowerShell 7: Windows PowerShell 5.1 читает их
+      # временный файл без BOM в кодировке ANSI, и русские строки ломают разбор.
       - name: Версия тега совпадает с версией в коде
         if: startsWith(github.ref, 'refs/tags/v')
-        shell: powershell
+        shell: pwsh
         run: |
           $version = ([xml](Get-Content src\Oblachka.csproj -Raw)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
           if ('v' + $version -ne '${{ github.ref_name }}') { throw ('Тег ${{ github.ref_name }}, а в Oblachka.csproj версия ' + $version) }
@@ -52,7 +54,7 @@ jobs:
 
       - name: Релиз
         if: startsWith(github.ref, 'refs/tags/v')
-        shell: powershell
+        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
