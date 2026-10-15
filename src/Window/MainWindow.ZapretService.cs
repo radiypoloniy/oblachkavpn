@@ -5,7 +5,15 @@ namespace Oblachka;
 // Связь окна с zapret в службе: команды, маршруты, восстановление при запуске, остановка при выходе.
 public partial class MainWindow
 {
-    private bool zapretRoutingApplied;
+    // С каким набором сайтов zapret ядро запущено на самом деле — его ставит ConnectCoreAsync,
+    // когда собирает маршруты. Раньше флаг ставился при запросе: если ядро в ту секунду было
+    // занято, перезапуск молча пропускался, и YouTube с Discord оставались «напрямую» без обхода.
+    private string coreZapretKey = "";
+    private bool zapretRoutingRetry;
+    private DateTimeOffset zapretRoutingTried = DateTimeOffset.MinValue;
+
+    // Какой набор нужен сейчас: «*» — все домены (идёт подбор), список — открывшиеся группы.
+    private string DesiredZapretKey => forceZapretRouting ? "*" : ZapretRouting ? string.Join(',', zapretDomains) : "";
 
     // Команда службе: через соединение «Весь компьютер», если оно со службой, иначе через временное.
     // Помощник с UAC zapret не запускает — только установленная служба.
@@ -30,16 +38,25 @@ public partial class MainWindow
     // только если это что-то меняет.
     private async Task ApplyZapretRoutingAsync()
     {
-        var wanted = forceZapretRouting || ZapretRouting;
-        if (wanted == zapretRoutingApplied) { RefreshZapret(); return; }
-        zapretRoutingApplied = wanted;
         RefreshZapret();
+        if (!ConnectionActive || DesiredZapretKey == coreZapretKey) return;
         await RoutingChangedAsync();
+    }
+
+    // Догоняет расхождение, если перезапуск ядра не случился (оно было занято). Не чаще раза
+    // в 10 с: если ядро не поднимается, это разбирает проверка связи, а не частые перезапуски.
+    private void PollZapretRouting()
+    {
+        if (closed || zapretRoutingRetry || operation is not null || systemStopping || !ConnectionActive || DesiredZapretKey == coreZapretKey ||
+            DateTimeOffset.UtcNow - zapretRoutingTried < TimeSpan.FromSeconds(10)) return;
+        zapretRoutingRetry = true; zapretRoutingTried = DateTimeOffset.UtcNow;
+        _ = Retry();
+        async Task Retry() { try { await RoutingChangedAsync(); } finally { zapretRoutingRetry = false; } }
     }
 
     private IEnumerable<RoutingProfile> ZapretRoutingProfiles()
     {
-        if (zapretRoutingApplied && zapretDomains.Length > 0) yield return ZapretProfile;
+        if (forceZapretRouting || ZapretRouting) yield return ZapretProfile;
     }
 
     // После запуска: включённый обход поднимается сам — запомненной для этой сети стратегией

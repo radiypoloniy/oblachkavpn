@@ -9,12 +9,13 @@ public static class ZapretSites
     private static readonly Regex Domain = new(@"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$", RegexOptions.CultureInvariant);
     private static readonly string[] Lists = { "list-general.txt", "list-google.txt" };
 
-    public static string[] Read(string tag)
+    // lists — только эти файлы набора (группы ZapretPlan); null — все.
+    public static string[] Read(string tag, IEnumerable<string>? lists = null)
     {
         if (tag.Length is 0 or > 40 || tag.Contains("..") || tag.IndexOfAny(new[] { '\\', '/' }) >= 0) return Array.Empty<string>();
         var folder = Path.Combine(ZapretInstaller.Root, tag, "lists");
         var result = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (var name in Lists)
+        foreach (var name in Lists.Where(l => lists is null || lists.Contains(l)))
         {
             try { foreach (var line in File.ReadLines(Path.Combine(folder, name)).Take(2000)) if (Clean(line) is { } domain) result.Add(domain); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }

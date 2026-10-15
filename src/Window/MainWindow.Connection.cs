@@ -26,6 +26,7 @@ public partial class MainWindow
             core.SiteRules = SystemTunnelWanted ? Array.Empty<SiteRule>() : siteRules.ToArray();
             core.Fragment = FragmentWanted;
             core.Routing = CurrentRouting();
+            coreZapretKey = DesiredZapretKey;
             // Новый вход прямого трафика — только на новую сессию «Весь компьютер»; перезапуск ядра
             // под действующей сессией сохраняет её вход.
             if (!(SystemTunnelWanted && SystemTunnelActive))
