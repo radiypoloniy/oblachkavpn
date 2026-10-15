@@ -17,6 +17,65 @@ public static class TestProgram
         if (args.Length == 5 && args[0] == "--export-core-config")
             return ExportCoreConfigCommand.Run(args[1], args[2], args[3], int.Parse(args[4]));
         if (args.Length == 4 && args[0] == "--local-rules-check") return LocalRulesCheckCommand.Run(args[1], args[2], args[3]);
+        // Конфигурация ядра для одной ссылки (или файла с ней) тем же кодом, что в приложении:
+        // для проверки протокола на локальном сервере. В файле — учётные данные из ссылки.
+        // Пятый аргумент --fragment включает «Обход DPI» (TlsFragment), как его включает подбор.
+        if (args.Length is 4 or 5 && args[0] == "--link-config")
+        {
+            var text = File.Exists(args[1]) ? File.ReadAllText(args[1]) : args[1];
+            var profile = Subscriptions.Parse(text).Profiles[0];
+            var adapter = new CoreAdapter(profile.Core, Path.Combine(AppContext.BaseDirectory, "tools", profile.Core == CoreKind.Xray ? "xray.exe" : "sing-box.exe"));
+            var config = adapter.RuntimeConfig(profile.Outbound, int.Parse(args[3]));
+            var cut = args.Length == 5 && args[4] == "--fragment" && TlsFragment.Apply(config, profile.Core);
+            File.WriteAllText(args[2], config.ToJsonString());
+            Console.WriteLine(profile.Core + " | " + profile.Transport + (cut ? " | fragment" : ""));
+            return 0;
+        }
+        // Манифест zapret из архива Flowseal (задача обновления): архив, тег, адрес, куда писать.
+        if (args.Length == 5 && args[0] == "--zapret-manifest")
+        {
+            var manifest = ZapretManifest.FromArchive(args[1], args[2], args[3]);
+            File.WriteAllText(args[4], manifest.ToJson());
+            Console.WriteLine(manifest.Tag + ": стратегий " + manifest.Strategies.Length + ", файлов " + manifest.Files.Count);
+            return 0;
+        }
+        // Команда zapret установленной службе (стенд VM): Prepare | Start <стратегия> | Status | Stop.
+        // Отчёт: состояние службы и процессы winws (путь, сессия) — без адресов и ключей.
+        if (args.Length is 3 or 4 && args[0] == "--zapret-call")
+        {
+            var action = Enum.Parse<ZapretAction>(args[2]);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+            var lifetime = ServiceHelperLifetime.ConnectAsync(NetworkServiceControl.Query().ProcessId, timeout.Token).GetAwaiter().GetResult();
+            ZapretStatus status;
+            try
+            {
+                var exclude = action == ZapretAction.Start ? new[] { "203.0.113.7" } : null;
+                status = lifetime.Client.ZapretAsync(new(action, args.Length == 4 ? args[3] : null, exclude), timeout.Token).GetAwaiter().GetResult();
+            }
+            finally { lifetime.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
+            var processes = System.Diagnostics.Process.GetProcessesByName("winws")
+                .Select(p => (HelperPipeIdentity.ImagePath(p) ?? "?") + " | сессия " + p.SessionId + " | наш " + ZapretRunner.IsOurs(p)).ToArray();
+            File.WriteAllText(args[1], System.Text.Json.JsonSerializer.Serialize(new { status.Ready, status.Running, status.Tag, status.Strategy, Strategies = status.Strategies.Length, status.Error, Winws = processes }));
+            return 0;
+        }
+        // Сохранённое состояние для стенда: одно подключение во «Вручную», режим «Браузеры»,
+        // чтобы окно открылось на главном экране и ничего не подключало само.
+        if (args.Length == 2 && args[0] == "--lab-state")
+        {
+            var lab = Profiles.Parse(args[1]);
+            var saved = new SavedProfile(lab.Name, (System.Text.Json.Nodes.JsonObject)lab.Outbound.DeepClone()) { Source = ProfileSource.External, Group = ProfileGroup.ManualId };
+            new ClientStateStore(ClientDataPaths.StateFile).Save(new ClientSnapshot(1, new[] { saved }, null, Array.Empty<string>(), 0, true, true)
+                { SystemTunnel = false, SystemProxy = false, Groups = new[] { ProfileGroup.Manual } });
+            return 0;
+        }
+        // Диагноз отказа (ConnectionDiagnosis) для ссылки: вид и пояснение.
+        if (args.Length == 3 && args[0] == "--diagnose")
+        {
+            var text = File.Exists(args[1]) ? File.ReadAllText(args[1]) : args[1];
+            var diagnosis = ConnectionDiagnosis.RunAsync(Subscriptions.Parse(text).Profiles[0], CancellationToken.None).GetAwaiter().GetResult();
+            File.WriteAllText(args[2], diagnosis.Kind + " | " + diagnosis.Explanation);
+            return 0;
+        }
         // Подписки других клиентов на этом компьютере: клиент, имя и хост, без токенов.
         // Третий аргумент — подменная папка: в ней ищутся все хранилища (AppData, LocalAppData…).
         if (args.Length is 2 or 3 && args[0] == "--foreign-clients")

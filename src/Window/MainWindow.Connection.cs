@@ -24,6 +24,7 @@ public partial class MainWindow
         if (engine is Engine core)
         {
             core.SiteRules = SystemTunnelWanted ? Array.Empty<SiteRule>() : siteRules.ToArray();
+            core.Fragment = FragmentWanted;
             core.Routing = CurrentRouting();
             // Новый вход прямого трафика — только на новую сессию «Весь компьютер»; перезапуск ядра
             // под действующей сессией сохраняет её вход.

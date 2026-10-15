@@ -41,31 +41,22 @@ public static class TunnelEndpoints
         Func<string, CancellationToken, Task<IPAddress[]>>? resolve = null)
     {
         var copy = (JsonObject)profile.Outbound.DeepClone();
-        string host;
-        if (profile.Core == CoreKind.Xray)
-        {
-            if (copy["streamSettings"]?["xhttpSettings"]?["extra"]?["downloadSettings"] is not null)
-                throw new UserError("TUN: отдельный адрес XHTTP downstream ещё не поддержан.");
-            host = Profiles.XrayEndpoint(copy)["address"]!.GetValue<string>();
-        }
-        else host = copy["server"]!.GetValue<string>();
+        if (profile.Core == CoreKind.Xray && copy["streamSettings"]?["xhttpSettings"]?["extra"]?["downloadSettings"] is not null)
+            throw new UserError("TUN: отдельный адрес XHTTP downstream ещё не поддержан.");
+        var host = ProfileServer.Of(copy, profile.Core).Host;
         var addresses = IPAddress.TryParse(host, out var ip) ? new[] { ip } :
             await (resolve ?? Dns.GetHostAddressesAsync)(host, token).ConfigureAwait(false);
         var peers = addresses.Select(a => a.IsIPv4MappedToIPv6 ? a.MapToIPv4() : a).Distinct()
             .OrderBy(a => a.AddressFamily == AddressFamily.InterNetwork ? 0 : 1).Select(a => a.ToString()).ToArray();
         NetworkHelperContracts.Validate(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, 10808, peers));
+        ProfileServer.SetHost(copy, profile.Core, peers[0]);
         if (profile.Core == CoreKind.Xray)
         {
-            Profiles.XrayEndpoint(copy)["address"] = peers[0];
             var tls = copy["streamSettings"]?["tlsSettings"] as JsonObject;
             if (tls is not null && string.IsNullOrWhiteSpace(tls["serverName"]?.GetValue<string>())) tls["serverName"] = host;
         }
-        else
-        {
-            copy["server"] = peers[0];
-            var tls = copy["tls"]!.AsObject();
-            if (string.IsNullOrWhiteSpace(tls["server_name"]?.GetValue<string>())) tls["server_name"] = host;
-        }
+        // У TLS-профиля без явного SNI имя сервера переезжает в server_name: адрес стал IP.
+        else if (copy["tls"] is JsonObject tls && string.IsNullOrWhiteSpace(tls["server_name"]?.GetValue<string>())) tls["server_name"] = host;
         return new(profile with { Outbound = copy }, peers) { Source = profile };
     }
 }

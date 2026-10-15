@@ -84,7 +84,8 @@ public static class NetworkService
         }
         finally
         {
-            // Остановка службы (в том числе при удалении) возвращает обычную сеть.
+            // Остановка службы (в том числе при удалении) возвращает обычную сеть и гасит zapret.
+            ZapretRunner.Stop();
             session.Recover();
         }
     }

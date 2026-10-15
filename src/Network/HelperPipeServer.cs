@@ -65,6 +65,7 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                     order.Enqueue(request.RequestId); if (order.Count > 64) recent.Remove(order.Dequeue());
                     NetworkSessionState? state = session.State;
                     bool? blocking = null;
+                    ZapretStatus? zapret = null;
                     if (request.Operation == HelperOperation.Acquire)
                     {
                         if (activeLease is not null) throw new UserError("Сессия уже запущена.");
@@ -89,13 +90,17 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                         // Ответ «исправлено» переносится полем Blocking: отдельного поля в ответе нет.
                         blocking = NetworkRepairBackend.Apply(request.Repair!);
                     }
+                    else if (request.Operation == HelperOperation.Zapret)
+                    {
+                        zapret = await ZapretRunner.HandleAsync(request.Zapret!, deadline.Token);
+                    }
                     else if (request.Operation == HelperOperation.Recover)
                     {
                         // Только чужая, оставленная сессия: свою владелец снимает через Release.
                         if (activeLease is not null) throw new UserError("Сессия этого владельца ещё активна.");
                         state = session.Recover()?.State ?? NetworkSessionState.Released;
                     }
-                    response = new(1, request.RequestId, state == NetworkSessionState.RecoveryRequired ? HelperFailure.RecoveryRequired : HelperFailure.None, state, blocking);
+                    response = new(1, request.RequestId, state == NetworkSessionState.RecoveryRequired ? HelperFailure.RecoveryRequired : HelperFailure.None, state, blocking, zapret);
                 }
                 catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException)
                 {

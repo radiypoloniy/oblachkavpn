@@ -7,7 +7,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>Oblachka</AssemblyName>
-    <Version>0.12.1</Version>
+    <Version>0.13.0</Version>
     <PlatformTarget>x64</PlatformTarget>
     <StartupObject>Oblachka.Program</StartupObject>
     <RestoreSources></RestoreSources>
@@ -31,6 +31,8 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets/countries-*.json"/>
     <Resource Include="Assets/Flags/*.png"/>
+    <!-- Манифест zapret из репозитория: запасной, если GitHub недоступен. -->
+    <EmbeddedResource Include="../zapret/manifest.json" LogicalName="Oblachka.zapret.manifest.json" Condition="Exists('../zapret/manifest.json')"/>
   </ItemGroup>
 </Project>
 

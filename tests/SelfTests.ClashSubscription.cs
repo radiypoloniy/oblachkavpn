@@ -78,13 +78,13 @@ public static partial class SelfTests
 
     private static async Task ClashSubscriptionChecksAsync(Func<string, Func<Task>, Task> check)
     {
-        await check("Clash/Mihomo subscriptions: proxies become VLESS/Trojan/Hysteria2 profiles with the usual checks", () => Sync(() =>
+        await check("Clash/Mihomo subscriptions: proxies become profiles of every supported protocol with the usual checks", () => Sync(() =>
         {
             var result = Subscriptions.Parse(ClashFixture);
             var names = result.Profiles.Select(p => p.Name).ToArray();
-            if (!names.SequenceEqual(new[] { "🇩🇪 Германия", "WS # не комментарий", "Trojan gRPC", "HY2", "XHTTP" }))
+            if (!names.SequenceEqual(new[] { "🇩🇪 Германия", "WS # не комментарий", "Trojan gRPC", "HY2", "XHTTP", "SS" }))
                 throw new InvalidOperationException("Clash names: " + string.Join(" | ", names));
-            Assert(result.Unsupported == 1 && result.Invalid == 1);
+            Assert(result.Unsupported == 0 && result.Invalid == 1);
             var reality = result.Profiles[0].Outbound;
             Assert(reality["streamSettings"]!["security"]!.GetValue<string>() == "reality" &&
                    reality["streamSettings"]!["realitySettings"]!["publicKey"]!.GetValue<string>() == "fixturekey" &&

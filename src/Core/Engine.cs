@@ -56,9 +56,20 @@ public sealed class Engine : ITunnelController
         var filename = profile.Core == CoreKind.Xray ? "xray.exe" : "sing-box.exe";
         adapter = new(profile.Core, Path.Combine(Path.GetDirectoryName(adapter.Executable)!, filename));
         var rules = SiteRules; var routing = Routing; var entry = DirectEntry;
-        return rules.Count == 0 && routing is null ? StartAsync(profile.Outbound, token)
-            : StartCoreAsync(port => RoutingPlan.Compile(adapter, profile, port, rules, routing, entry), token);
+        FragmentActive = Fragment && TlsFragment.Applies(profile);
+        var fragment = FragmentActive;
+        return StartCoreAsync(port =>
+        {
+            var config = rules.Count == 0 && routing is null ? adapter.RuntimeConfig(profile.Outbound, port)
+                : RoutingPlan.Compile(adapter, profile, port, rules, routing, entry);
+            if (fragment) TlsFragment.Apply(config, adapter.Kind);
+            return config;
+        }, token);
     }
+
+    // «Обход DPI» для следующего запуска (TlsFragment). FragmentActive — включён у работающего ядра.
+    public bool Fragment { get; set; }
+    public bool FragmentActive { get; private set; }
 
     internal async Task StartCoreAsync(Func<int, JsonObject> configFactory, CancellationToken token)
     {

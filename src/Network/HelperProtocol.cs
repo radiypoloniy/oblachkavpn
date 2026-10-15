@@ -6,7 +6,8 @@ namespace Oblachka;
 
 // Recover снимает сессию, оставленную прежним владельцем: у службы она переживает окно.
 // Repair — исправление сети Windows (NetworkRepairBackend): узкий список действий, вне сессии.
-public enum HelperOperation { Acquire, Release, Heartbeat, Recover, Repair }
+// Zapret — обход блокировок без VPN (ZapretRunner): подготовка набора, запуск, остановка, состояние.
+public enum HelperOperation { Acquire, Release, Heartbeat, Recover, Repair, Zapret }
 // SystemRefused — отказ самой системы, а не ошибка в запросе. Без него такой отказ
 // вылетал мимо ответа и завершал помощника: клиент видел обрыв канала вместо причины.
 public enum HelperFailure { None, InvalidRequest, Busy, RecoveryRequired, SystemRefused }
@@ -15,7 +16,8 @@ public sealed record HelperRequest(
     [property: JsonRequired] Guid RequestId,
     [property: JsonRequired] HelperOperation Operation,
     [property: JsonRequired] NetworkLeaseRequest? Lease,
-    RepairRequest? Repair = null);
+    RepairRequest? Repair = null,
+    ZapretRequest? Zapret = null);
 // Blocking говорит, встала ли блокировка трафика мимо туннеля. Поле нужно затем,
 // что помощник решает это сам: при выключенном брандмауэре блокировки не будет, и
 // окно обязано сообщить пользователю то, что есть, а не то, на что мы рассчитывали.
@@ -24,7 +26,8 @@ public sealed record HelperResponse(
     [property: JsonRequired] Guid RequestId,
     [property: JsonRequired] HelperFailure Failure,
     [property: JsonRequired] NetworkSessionState? State,
-    [property: JsonRequired] bool? Blocking = null);
+    [property: JsonRequired] bool? Blocking = null,
+    ZapretStatus? Zapret = null);
 
 public static class HelperProtocol
 {
@@ -69,6 +72,13 @@ public static class HelperProtocol
     {
         if (request.Version != 1 || request.RequestId == Guid.Empty || !Enum.IsDefined(request.Operation))
             throw new UserError("Неизвестная команда helper.");
+        if (request.Operation == HelperOperation.Zapret)
+        {
+            if (request.Lease is not null || request.Repair is not null || request.Zapret is null) throw new UserError("Неверная команда zapret.");
+            request.Zapret.Validate();
+            return;
+        }
+        if (request.Zapret is not null) throw new UserError("Команда zapret передаётся только операцией Zapret.");
         if (request.Operation == HelperOperation.Repair)
         {
             if (request.Lease is not null || request.Repair is null) throw new UserError("Неверная команда исправления сети.");

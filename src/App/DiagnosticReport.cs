@@ -23,12 +23,14 @@ public static class DiagnosticReport
 {
     public static string Create(ConnectionState state, int profileCount, int sourceCount,
         IEnumerable<ClientEvent> events, IEnumerable<RouteAttempt> attempts,
-        DiagnosticMode mode = DiagnosticMode.LocalProxy, bool blocksBypass = false) => JsonSerializer.Serialize(new
+        DiagnosticMode mode = DiagnosticMode.LocalProxy, bool blocksBypass = false, Blockage? blockage = null, string dpiBypass = "", bool fragmentActive = false) => JsonSerializer.Serialize(new
         {
             App = ServiceBrand.Label, Revision = BuildIdentity.Revision, Mode = mode.ToString(), State = state.ToString(), ImportedProfiles = profileCount,
             SubscriptionSources = sourceCount, SystemNetworkModified = mode != DiagnosticMode.LocalProxy,
             BlocksBypass = mode == DiagnosticMode.SystemTunnel && blocksBypass,
+            // Последний диагноз отказа (вид, без адресов) и «Обход DPI»: режим и включён ли сейчас.
+            LastBlockage = blockage?.ToString(), DpiBypass = dpiBypass, FragmentActive = fragmentActive,
             Events = events.TakeLast(100).Select(e => new { e.Time, Code = e.Code.ToString() }),
-            Attempts = attempts.Take(6).Select(a => new { a.ProfileIndex, Outcome = a.Outcome is "Verified" or "Reachability" or "TargetResponse" or "StartOrProbeRejected" ? a.Outcome : "Unknown", a.Milliseconds })
+            Attempts = attempts.Take(RouteLadder.MaxSteps).Select(a => new { a.ProfileIndex, Outcome = a.Outcome is "Verified" or "Reachability" or "TargetResponse" or "StartOrProbeRejected" ? a.Outcome : "Unknown", a.Milliseconds, a.Fragment })
         }, new JsonSerializerOptions { WriteIndented = true });
 }

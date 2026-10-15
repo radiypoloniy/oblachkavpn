@@ -11,7 +11,7 @@ public partial class MainWindow
     {
         if (operation is not null) return;
         var text = AppDialog.Ask(this, "Добавить подписку",
-            "Ссылка подписки любого сервиса — или отдельные подключения vless://, trojan://, hy2://, JSON.",
+            "Ссылка подписки любого сервиса — или отдельные подключения (vless://, vmess://, ss://, trojan://, hy2:// и другие), JSON.",
             "https://…", "Добавить", note: "Резервные адреса той же подписки — каждый с новой строки, до пяти. Подписка появится отдельной вкладкой в «Все серверы»; остальные не изменятся.",
             multiline: true);
         if (string.IsNullOrWhiteSpace(text)) return;

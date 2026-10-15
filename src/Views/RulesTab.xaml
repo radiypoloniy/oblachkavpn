@@ -65,6 +65,15 @@
               <TextBlock Text="Госуслуги, банки, маркетплейсы и почти весь рунет — без VPN" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap"/>
             </StackPanel>
           </DockPanel>
+          <!-- zapret в службе (MainWindow.Zapret): сайты из его списков — напрямую через обход DPI. -->
+          <DockPanel Margin="0,10,0,0">
+            <CheckBox x:Name="ZapretToggle" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="YouTube и Discord без VPN"/>
+            <StackPanel>
+              <TextBlock Text="YouTube и Discord без VPN" FontSize="13.5" FontWeight="SemiBold"/>
+              <TextBlock x:Name="ZapretText" Text="Через обход блокировок zapret: быстрее и не тратит VPN" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap"/>
+              <Button x:Name="ZapretPick" Content="Подобрать заново" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Margin="0,2,0,0" Visibility="Collapsed"/>
+            </StackPanel>
+          </DockPanel>
           <DockPanel x:Name="ProviderRoutingRow" Margin="0,10,0,0" Visibility="Collapsed">
             <CheckBox x:Name="ProviderRouting" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Маршрутизация сервиса"/>
             <StackPanel>

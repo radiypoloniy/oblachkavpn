@@ -195,6 +195,7 @@ public partial class MainWindow : Window
         if (!exitRequested && Settings.StayInTray.IsChecked == true && !Application.Current.Dispatcher.HasShutdownStarted)
         { args.Cancel = true; HideToTray(); return; }
         closed = true;
+        StopZapretOnExit();
         try { vmTestProcess?.CloseMainWindow(); } catch (InvalidOperationException) { }
         presentationTimer.Stop();
         UnsubscribeLifecycle();

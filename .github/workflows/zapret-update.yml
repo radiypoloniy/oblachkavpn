@@ -1,0 +1,95 @@
+name: Обновление zapret
+
+# Раз в день: есть ли новый релиз Flowseal. Стратегии и списки обновляются сами (коммит в main —
+# клиенты подхватят манифест без выпуска Облачки). Если сменились исполняемые файлы (winws,
+# WinDivert, cygwin) — открывается запрос на слияние: их запускает служба с правами SYSTEM.
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Пересобрать манифест, даже если версия та же'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Новый релиз Flowseal
+        id: release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $release = gh api repos/Flowseal/zapret-discord-youtube/releases/latest | ConvertFrom-Json
+          $tag = $release.tag_name
+          $current = (Get-Content zapret/manifest.json -Raw | ConvertFrom-Json).Tag
+          if ($tag -eq $current -and '${{ inputs.force }}' -ne 'true') { "new=false" >> $env:GITHUB_OUTPUT; Write-Host "Без изменений: $tag"; exit 0 }
+          $asset = $release.assets | Where-Object { $_.name -like '*.zip' } | Select-Object -First 1
+          if (-not $asset) { throw "В релизе $tag нет zip-архива." }
+          Invoke-WebRequest $asset.browser_download_url -OutFile flowseal.zip
+          $hash = (Get-FileHash flowseal.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ("sha256:$hash" -ne $asset.digest) { throw "Архив не совпал с digest GitHub." }
+          "new=true" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "url=$($asset.browser_download_url)" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/setup-dotnet@v4
+        if: steps.release.outputs.new == 'true'
+        with:
+          dotnet-version: '10.0.x'
+
+      # Манифест строит тот же код, что проверяет его в клиенте: неизвестный параметр winws
+      # или файл не из набора — и задача падает, ничего не публикуя.
+      - name: Манифест
+        if: steps.release.outputs.new == 'true'
+        shell: pwsh
+        run: |
+          git show HEAD:zapret/manifest.json > old-manifest.json
+          dotnet build tests/Oblachka.Tests.csproj -c Release -o out/ztool --configfile src/NuGet.Config -p:UseSharedCompilation=false -p:IncludeTestCode=true
+          if ($LASTEXITCODE -ne 0) { throw 'Сборка не прошла.' }
+          $p = Start-Process out/ztool/Oblachka.Tests.exe -ArgumentList @('--zapret-manifest', 'flowseal.zip', '${{ steps.release.outputs.tag }}', '${{ steps.release.outputs.url }}', 'zapret/manifest.json') -Wait -PassThru -NoNewWindow
+          if ($p.ExitCode -ne 0) { throw "Манифест не собран (код $($p.ExitCode)): набор не прошёл проверку." }
+
+      - name: Опубликовать
+        if: steps.release.outputs.new == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $old = Get-Content old-manifest.json -Raw | ConvertFrom-Json
+          $new = Get-Content zapret/manifest.json -Raw | ConvertFrom-Json
+          $executables = 'bin/winws.exe', 'bin/WinDivert.dll', 'bin/WinDivert64.sys', 'bin/cygwin1.dll'
+          $changed = $executables | Where-Object { $old.Files.$_ -ne $new.Files.$_ }
+          $tag = '${{ steps.release.outputs.tag }}'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if (-not $changed) {
+            git add zapret/manifest.json
+            git commit -m "zapret: стратегии и списки Flowseal $tag"
+            git push origin HEAD:main
+            Write-Host "Опубликовано: $tag, исполняемые файлы те же."
+            exit 0
+          }
+          $branch = "zapret/$tag"
+          git checkout -b $branch
+          git add zapret/manifest.json
+          git commit -m "zapret: Flowseal $tag с новыми исполняемыми файлами"
+          git push origin $branch --force
+          $lines = $changed | ForEach-Object { "- ``$_``: ``$($old.Files.$_)`` → ``$($new.Files.$_)`` ([VirusTotal](https://www.virustotal.com/gui/file/$($new.Files.$_)))" }
+          $body = @(
+            "В релизе Flowseal $tag сменились исполняемые файлы, которые служба запускает с правами SYSTEM:", '',
+            $lines, '',
+            "Перед слиянием стоит сверить их с релизом https://github.com/Flowseal/zapret-discord-youtube/releases/tag/$tag и проверить на VirusTotal.",
+            'После слияния клиенты получат новый набор в течение суток (манифест читается из main).'
+          ) -join "`n"
+          gh pr create --base main --head $branch --title "zapret: Flowseal $tag (новые исполняемые файлы)" --body $body

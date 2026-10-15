@@ -45,7 +45,8 @@ public partial class MainWindow
     private string CreateSupportReport() => DiagnosticReport.Create(engine.State, importedProfiles.Count,
         groups.Sum(g => g.Sources.Length), events, routeAttempts,
         SystemTunnelActive ? DiagnosticMode.SystemTunnel : systemProxyPort != 0
-            ? DiagnosticMode.WindowsProxy : DiagnosticMode.LocalProxy, systemTunnel?.BlocksBypass == true);
+            ? DiagnosticMode.WindowsProxy : DiagnosticMode.LocalProxy, systemTunnel?.BlocksBypass == true,
+        lastDiagnosis?.Kind, fragmentMode.ToString(), (engine as Engine)?.FragmentActive == true);
 
     private void CopyReportClick(object sender, RoutedEventArgs args)
     {

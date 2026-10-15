@@ -27,7 +27,9 @@ public sealed record CoreAdapter(CoreKind Kind, string Executable)
                 ["type"] = "mixed", ["tag"] = "local", ["listen"] = "127.0.0.1",
                 ["listen_port"] = port
             }),
-            ["outbounds"] = new JsonArray(copy),
+            // WireGuard в sing-box — endpoint, а не outbound; метка «tunnel» у него та же.
+            ["outbounds"] = ProfileServer.IsWireGuard(copy) ? new JsonArray() : new JsonArray(copy),
+            ["endpoints"] = ProfileServer.IsWireGuard(copy) ? new JsonArray(copy) : new JsonArray(),
             // Весь трафик уходит в единственный outbound, включая UDP: Hysteria2 переносит
             // его штатно, а запрет оставался от первой осторожной конфигурации.
             // Массив правил остаётся пустым, а не исчезает: в него дописывают планы

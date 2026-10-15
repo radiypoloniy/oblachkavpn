@@ -132,7 +132,7 @@ public partial class MainWindow
     }
     private void ImportFileClick(object sender, RoutedEventArgs args)
     {
-        var dialog = new OpenFileDialog { Filter = "Профиль (*.json;*.txt)|*.json;*.txt|Все файлы|*.*", Title = "Открыть клиентский профиль" };
+        var dialog = new OpenFileDialog { Filter = "Профиль (*.json;*.txt;*.conf)|*.json;*.txt;*.conf|Все файлы|*.*", Title = "Открыть клиентский профиль" };
         if (dialog.ShowDialog(this) != true) return;
         try
         {
@@ -143,7 +143,7 @@ public partial class MainWindow
     }
     private void PasteClick(object sender, RoutedEventArgs args)
     {
-        var text = AppDialog.Ask(this, "Добавить подключение", "Ссылка vless://, trojan://, hy2:// или клиентский JSON Xray / sing-box.", "vless://…", "Добавить",
+        var text = AppDialog.Ask(this, "Добавить подключение", "Ссылка vless://, vmess://, ss://, trojan://, hy2://, tuic://, anytls://, wireguard://, клиентский JSON Xray / sing-box или текст файла WireGuard.", "vless://…", "Добавить",
             note: "Добавится во «Вручную»; подписки не изменятся.", multiline: true, maxLength: Profiles.MaxBytes);
         if (!string.IsNullOrWhiteSpace(text)) Import(text);
     }

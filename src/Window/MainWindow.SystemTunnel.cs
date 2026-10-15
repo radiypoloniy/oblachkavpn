@@ -138,8 +138,8 @@ public partial class MainWindow
     // и блокировка остаётся на месте. Останавливать между попытками нечего — неудачная
     // попытка оставляет сессию в удержании, а не возвращает обычную сеть.
     private RouteSearch CreateRouteSearch() => SystemTunnelActive && systemTunnel is { } session
-        ? new RouteSearch(session.SwitchAsync, engine.ProbeAsync, static () => { })
-        : new RouteSearch(engine);
+        ? new RouteSearch(session.SwitchAsync, engine.ProbeAsync, static () => { }, FragmentSetter)
+        : new RouteSearch(engine, FragmentSetter);
 
     private async Task StopSystemTunnelAsync()
     {

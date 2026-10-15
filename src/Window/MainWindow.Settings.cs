@@ -28,6 +28,13 @@ public partial class MainWindow
         Routes.WhereInput.TextChanged += (_, _) => UpdateWhere();
     }
 
+    // Сегмент переключателя из нескольких кнопок (тема, обход DPI).
+    private static void MarkSegment(System.Windows.Controls.Button button, bool on)
+    {
+        if (on) button.SetResourceReference(BackgroundProperty, "Seg"); else button.Background = System.Windows.Media.Brushes.Transparent;
+        button.FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal;
+    }
+
     private void ChooseTheme(ThemeChoice choice)
     {
         ThemeManager.Apply(choice);
@@ -47,11 +54,8 @@ public partial class MainWindow
         // Прокси защитить весь компьютер не может: строка блокировки — только для «Весь компьютер».
         general.KillSwitchRow.Visibility = tunnel ? Visibility.Visible : Visibility.Collapsed;
         foreach (var (button, choice) in new[] { (general.ThemeSystem, ThemeChoice.System), (general.ThemeLight, ThemeChoice.Light), (general.ThemeDark, ThemeChoice.Dark) })
-        {
-            var on = ThemeManager.Choice == choice;
-            if (on) button.SetResourceReference(BackgroundProperty, "Seg"); else button.Background = System.Windows.Media.Brushes.Transparent;
-            button.FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal;
-        }
+            MarkSegment(button, ThemeManager.Choice == choice);
+        RefreshDpi();
 
         var tab = Settings.Subscription;
         var meta = subscriptionMetadata;

@@ -22,7 +22,7 @@
 ## Тихая установка
 
 ```
-Oblachka-setup-0.12.1-xxxxxxx.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
+Oblachka-setup-0.13.0-xxxxxxx.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
 "C:\Program Files\Oblachka\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
 ```
 

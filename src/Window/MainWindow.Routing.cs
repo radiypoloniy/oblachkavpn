@@ -33,6 +33,8 @@ public partial class MainWindow
 
     private IEnumerable<RoutingProfile> ActiveRoutingProfiles()
     {
+        // Сайты zapret — первыми: напрямую через обход, даже если набор сервиса шлёт их в VPN.
+        foreach (var zapret in ZapretRoutingProfiles()) yield return zapret;
         if (useProviderRouting == true && providerRouting is not null) yield return providerRouting;
         if (Routes.RussiaDirect.IsChecked == true) yield return RoutingProfile.RussiaDirect;
     }

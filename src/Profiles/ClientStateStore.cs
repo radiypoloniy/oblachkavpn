@@ -45,6 +45,11 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public bool AutoSelect { get; init; }
     // Проверка обновлений на GitHub раз в 12 часов (0.12). По умолчанию включена.
     public bool UpdateCheck { get; init; } = true;
+    // Обход DPI (0.13): Auto — разрезать рукопожатие, только когда обычное не проходит.
+    public FragmentMode DpiBypass { get; init; }
+    // zapret (0.13): включён ли и какая стратегия подошла в какой сети (хеш сети → имя стратегии).
+    public bool ZapretEnabled { get; init; }
+    public Dictionary<string, string>? ZapretChoices { get; init; }
     // Подписки и «Вручную» (0.11). Нет значения — снимок прежней версии.
     public ProfileGroup[]? Groups { get; init; }
 }
@@ -161,6 +166,8 @@ public sealed class ClientStateStore(string path)
             throw new UserError("Сохранённый выбор сервера повреждён.");
         // Тексты и ссылки пришли от сервера: в снимке они не должны вырасти, принести
         // управляющие символы или сменить HTTPS на что-то другое. У групп — так же.
+        if (snapshot.ZapretChoices is { } choices && (choices.Count > 64 || choices.Any(c => c.Key.Length is 0 or > 32 || c.Value.Length is 0 or > 40 ||
+            c.Key.Any(char.IsControl) || c.Value.Any(char.IsControl)))) throw new UserError("Сохранённые настройки zapret повреждены.");
         foreach (var info in (snapshot.Groups ?? Array.Empty<ProfileGroup>()).Select(g => g?.Metadata).Append(snapshot.Metadata))
             if (info is not null) SubscriptionMetadata.Validate(info);
     }

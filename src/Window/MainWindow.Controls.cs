@@ -62,6 +62,8 @@ public partial class MainWindow
         WireQr();
         WireDoctor();
         WireUpdates();
+        WireDpi();
+        WireZapret();
         Onboarding.ContinueButton.Click += ContinueSubscription;
         Onboarding.ForeignList.AddHandler(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, new System.Windows.RoutedEventHandler(ForeignClick));
         Settings.StayInTray.Click += (_, _) => QueueStateSave();
