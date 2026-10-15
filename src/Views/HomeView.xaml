@@ -145,7 +145,7 @@
       </StackPanel>
       <Border x:Name="ClosedCard" Margin="20,6,20,0" Padding="18" CornerRadius="14" Background="{DynamicResource EB}" Visibility="Collapsed">
         <StackPanel>
-          <TextBlock Text="Не удалось найти рабочий сервер. Ничего не утекло мимо туннеля, но и сайты сейчас не открываются." FontSize="13" Foreground="{DynamicResource EF}" TextWrapping="Wrap" LineHeight="19"/>
+          <TextBlock x:Name="ClosedText" Text="Не удалось найти рабочий сервер. Ничего не утекло мимо туннеля, но и сайты сейчас не открываются." FontSize="13" Foreground="{DynamicResource EF}" TextWrapping="Wrap" LineHeight="19"/>
           <Button x:Name="ClosedPick" Content="Выбрать другой сервер" Style="{StaticResource BtnPrimary}" Height="36" o:Ui.CornerRadius="10" FontSize="13" Margin="0,12,0,0"/>
           <Button x:Name="ClosedOff" Content="Выключить VPN и открыть интернет" Style="{StaticResource BtnOutline}" Height="36" o:Ui.CornerRadius="10" Margin="0,8,0,0" Background="{DynamicResource Bg}" BorderBrush="{DynamicResource EL}" Foreground="{DynamicResource RF}"/>
         </StackPanel>

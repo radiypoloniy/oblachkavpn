@@ -43,7 +43,8 @@ public partial class MainWindow
     {
         var holding = systemTunnel?.State == SystemTunnelState.Holding;
         if (!ConnectionActive) networkClosed = false;
-        if (running && !holding && !findingRoute) networkClosed = false;
+        // Сломанный путь программ (SystemPathProbe) держит карточку и при живом ядре.
+        if (running && !holding && !findingRoute && !pathBroken) networkClosed = false;
         var closedNow = networkClosed && SystemTunnelActive && !findingRoute;
         var foreign = foreignVpn is not null && !ConnectionActive;
         var recovering = !closedNow && (findingRoute || holding) && ConnectionActive;
@@ -61,7 +62,14 @@ public partial class MainWindow
             Home.ForeignTitle.Text = "Интернет уже забрал " + name;
             Home.ForeignText.Text = $"Два VPN одновременно ломают DNS — сайты перестанут открываться. Выключите {name} и нажмите «Проверить снова».";
         }
-        else if (closedNow) Status("Интернет закрыт", "Защита держит сеть, пока нет VPN", PowerState.Blocked, "EI");
+        else if (closedNow)
+        {
+            if (pathBroken && pathDirectOnly) Status("Сайты напрямую не открываются", "Остальное идёт через VPN", PowerState.Blocked, "EI");
+            else Status("Интернет закрыт", pathBroken ? "Трафик компьютера не проходит через туннель" : "Защита держит сеть, пока нет VPN", PowerState.Blocked, "EI");
+            Home.ClosedText.Text = pathBroken ? pathProblem + " Мимо туннеля ничего не утекло. Выключите VPN — обычная сеть вернётся сразу."
+                : "Не удалось найти рабочий сервер. Ничего не утекло мимо туннеля, но и сайты сейчас не открываются.";
+            Home.ClosedPick.Visibility = pathBroken ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;
+        }
         else if (recovering)
         {
             var limit = autoSelect ? 2 : 3;

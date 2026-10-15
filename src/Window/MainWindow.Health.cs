@@ -1,4 +1,4 @@
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using System.Net.NetworkInformation;
 using System.Windows;
 
@@ -47,6 +47,7 @@ public partial class MainWindow
         nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(45);
         operation = new CancellationTokenSource(); engineOperation = true; backgroundCheck = true; UpdateControls();
         var shouldRecover = false;
+        string? pathFailure = null;
         try
         {
             var round = await health.CheckAsync(engine.ProbeAsync, TunnelHealth.Targets, operation.Token);
@@ -62,6 +63,14 @@ public partial class MainWindow
                     nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(autoSelect ? 10 : 20);
                     DetailText.Text = $"Проверка связи не прошла: {health.FailedRounds} из {limit}. Проверяем два независимых сайта.";
                 }
+                // Ядро отвечает — проверяем путь, которым ходят программы (SystemPathProbe).
+                else if (await CheckSystemPathAsync(operation.Token) is { } problem && !closed && !manualStop)
+                {
+                    RecordProbe(new(false, 0, problem, ProbeFailure.Reachability));
+                    if (SystemPathShouldRepair) pathFailure = problem;
+                    else { nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(10); DetailText.Text = problem + " Проверяем ещё раз."; }
+                }
+                else if (!closed && !manualStop) SystemPathHealthy();
             }
         }
         catch (OperationCanceledException) { }
@@ -72,6 +81,8 @@ public partial class MainWindow
             if (manualStop) engine.Stop();
             if (!closed) UpdateControls();
         }
+        // Путь программ чинится и без автовосстановления: иначе интернет закрыт молча.
+        if (!closed && !vmTestActive && !manualStop && pathFailure is not null) { await RepairSystemPathAsync(pathFailure); return; }
         if (closed || vmTestActive || manualStop || !AutoSwitching) return;
         if (shouldRecover) await RecoverUnreachableAsync();
         else if (engine.State == ConnectionState.Failed) ScheduleRecovery();

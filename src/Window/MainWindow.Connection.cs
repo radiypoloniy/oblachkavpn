@@ -9,7 +9,7 @@ public partial class MainWindow
     private async void ConnectClick(object sender, RoutedEventArgs args)
     {
         manualStop = false;
-        recoveryWait?.Cancel(); recovery.Reset(); health.Reset();
+        recoveryWait?.Cancel(); recovery.Reset(); health.Reset(); ResetSystemPath();
         await PickBestBeforeConnectAsync();
         await ConnectCoreAsync();
     }
@@ -75,6 +75,7 @@ public partial class MainWindow
         if (measuring && ConnectionActive) { operation?.Cancel(); DetailText.Text = "Замер серверов остановлен. Подключение работает."; return; }
         manualStop = true;
         recoveryWait?.Cancel();
+        ResetSystemPath();
         operation?.Cancel();
         // Системный режим снимает туннель и только потом ядро: иначе маршруты остались бы
         // указывать на мёртвый локальный порт.
