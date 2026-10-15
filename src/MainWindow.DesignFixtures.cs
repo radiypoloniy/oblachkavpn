@@ -93,6 +93,13 @@ public partial class MainWindow
         CheckPreviewControls();
         if (page == "servers") { LoadServerPreview(); LoadPingPreview(); }
         if (page is "foreign" or "closed" or "recovery" or "subscription") PrepareStatePreview(page);
+        if (page == "doctor")
+        {
+            findings = NetworkDoctor.Diagnose(new PreviewProbe());
+            SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(3);
+            Doctor.Visibility = Visibility.Visible; Doctor.Summary.Text = "Нашли то, что мешает интернету:"; RefreshDoctor();
+            return;
+        }
         if (page is "routing-offer" or "rules-lists")
         {
             var header = "happ://routing/add/" + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
@@ -148,5 +155,19 @@ public partial class MainWindow
             pings[key] = new(key, now, i % 7 != 5, 40 + i * 23 % 260);
         }
         FilterProfiles(); RefreshHome();
+    }
+
+    private sealed class PreviewProbe : INetworkProbe
+    {
+        public ProxySettings Proxy() => new(1, "127.0.0.1:2080", null, null);
+        public bool Listening(int port) => false;
+        public IReadOnlyDictionary<string, string> EnvironmentProxies() => new Dictionary<string, string>();
+        public string? WinHttpProxy() => null;
+        public IReadOnlyList<AdapterInfo> Adapters() => new[] { new AdapterInfo("{1}", "Беспроводная сеть", true, new[] { System.Net.IPAddress.Parse("127.0.0.1") }) };
+        public bool AnswersDns(System.Net.IPAddress server) => false;
+        public IReadOnlyList<RouteInfo> DefaultRoutes() => Array.Empty<RouteInfo>();
+        public IReadOnlyList<BypassInfo> BypassTools() => new[] { new BypassInfo("zapret (winws)", true) };
+        public IReadOnlyList<string> HostsEntries() => new[] { "1.2.3.4 youtube.com" };
+        public string? ForeignVpn() => null;
     }
 }

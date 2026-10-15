@@ -115,7 +115,8 @@ public static class NetworkDoctor
         foreach (var tool in probe.BypassTools())
             found.Add(new("Работает " + tool.Name,
                 "Обход блокировок меняет пакеты всех программ. С неподходящими настройками он ломает сайты и VPN, а запущенным его легко забыть" +
-                (tool.IsService ? " — он установлен службой и стартует вместе с Windows." : "."), new(RepairKind.StopBypass, tool.Name)));
+                (tool.IsService ? " — он установлен службой и стартует вместе с Windows. Остановим его и выключим автозапуск; включить обратно можно в «Службах» Windows."
+                                : ". Остановим его; запустить снова можно так же, как раньше."), new(RepairKind.StopBypass, tool.Name)));
 
         var hosts = probe.HostsEntries();
         if (hosts.Count > 0)
