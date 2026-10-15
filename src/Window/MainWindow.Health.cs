@@ -102,10 +102,10 @@ public partial class MainWindow
             {
                 // Упавший узел помечается: ни автовыбор, ни следующий подбор не начнут с него.
                 MarkMeasured(profile, null);
-                candidates = RouteCandidates.ByLatency(RouteCandidates.For(profiles, profile, anyNode: true), profiles, LatestMeasurement, failed: profile);
+                candidates = RouteCandidates.ByLatency(RouteCandidates.For(profiles, profile, anyNode: true, InAutoPool), profiles, LatestMeasurement, failed: profile);
                 start = 0;
             }
-            else { candidates = RouteCandidates.For(profiles, profile); start = RouteCandidates.StartAt(candidates, profiles, profile); }
+            else { candidates = RouteCandidates.For(profiles, profile, pool: InAutoPool); start = RouteCandidates.StartAt(candidates, profiles, profile); }
             // Сначала — почему упало (адрес, рукопожатие, туннель), затем попытки в этом порядке.
             var subset = candidates.Select(i => profiles[i]).ToArray();
             var order = new[] { start }.Concat(Enumerable.Range(0, subset.Length).Where(i => i != start)).ToArray();

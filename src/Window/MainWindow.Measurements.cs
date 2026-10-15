@@ -5,24 +5,11 @@ public partial class MainWindow
     private readonly Dictionary<string, ServerMeasurement> measurements = new();
     private void WireMeasurements()
     {
+        // «Обновить пинг»: задержка через каждый сервер, в том числе при подключении.
         Servers.MeasureButton.Click += async (_, _) =>
         {
-            if (operation is not null || profile is null) return;
-            if (!importedProfiles.Any(p => p.IsService)) { DetailText.Text = "Измерения выполняются только по узлам вашей подписки."; return; }
-            operation = new CancellationTokenSource(); measuring = true; UpdateControls();
-            try
-            {
-                // Измеряем только узлы сервиса: сторонние конфигурации нам не принадлежат,
-                // и отвечать за их задержку и доступность мы не можем.
-                var measured = importedProfiles.Where(p => p.IsService).ToArray();
-                var done = 0;
-                await ServerMeasurements.MeasureAsync(measured,
-                    () => new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), ""),
-                    result => { measurements[result.Fingerprint] = result; if (!closed) { DetailText.Text = $"Проверено серверов: {++done} из {measured.Length}. Можно остановить."; RenderSheet(); RefreshHome(); } }, operation.Token);
-                QueueStateSave();
-            }
-            catch (OperationCanceledException) { if (!closed) DetailText.Text = "Измерение завершено по отмене или лимиту пяти минут. Полученные результаты сохранены."; QueueStateSave(); }
-            finally { operation.Dispose(); operation = null; measuring = false; if (!closed) UpdateControls(); }
+            if (measuring) { measureCancel?.Cancel(); return; }
+            await MeasureServersAsync(importedProfiles.ToArray(), quiet: false);
         };
         // «Подключить лучший» — то же, что «Автовыбор»: лучший по свежим замерам и сразу подключение.
         Servers.BestButton.Click += (_, _) => { if (operation is null) { PickServer(null); Navigate("Connection"); } };
@@ -33,15 +20,14 @@ public partial class MainWindow
     private async Task CheckServerAsync(Profile item)
     {
         if (checkingServer is not null || measuring) { DetailText.Text = "Дождитесь окончания текущей проверки."; return; }
-        // Под «Весь компьютер» запрос отдельного ядра ушёл бы в туннель или упёрся в защиту.
-        if (systemTunnel is not null) { DetailText.Text = "Проверка отдельного сервера недоступна в режиме «Весь компьютер». Отключитесь или проверьте в режиме «Браузеры»."; return; }
+        // Под «Весь компьютер» — через адрес, который защита разрешила ядрам.
+        if (MeasureRoute(item) is null) { DetailText.Text = item.DisplayName + ": при «Весь компьютер» его адрес закрыт защитой. Переподключитесь, чтобы проверить."; return; }
         checkingServer = item; RenderSheet();
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
             ServerMeasurement? result = null;
-            await ServerMeasurements.MeasureAsync(new[] { item }, () => new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), ""),
-                measured => result = measured, timeout.Token);
+            await ServerMeasurements.MeasureAsync(new[] { item }, MeasureEngine, measured => result = measured, timeout.Token, MeasureRoute);
             if (result is not null) { measurements[result.Fingerprint] = result; QueueStateSave(); }
             if (!closed) DetailText.Text = result is { Success: true } ? $"{item.DisplayName}: работает, {result.Milliseconds} мс." : $"{item.DisplayName}: не ответил.";
         }
@@ -90,7 +76,7 @@ public partial class MainWindow
                 // после этого, мерили бы туннель или упирались бы в защиту.
                 if (closed || token.IsCancellationRequested || !CanPing) return;
                 var key = Profiles.Fingerprint(item);
-                pings[key] = new(key, DateTimeOffset.UtcNow, milliseconds is not null, milliseconds ?? 0);
+                pings[key] = new(key, DateTimeOffset.UtcNow, milliseconds is not null, milliseconds ?? 0) { Handshake = true };
                 PingsChanged();
             }), token);
         }
@@ -112,12 +98,16 @@ public partial class MainWindow
     }
 
     // Пока окно открыто, отклики обновляются раз в 10 минут; после выключения режима
-    // «Весь компьютер» это же обновляет устаревшие.
+    // «Весь компьютер» это же обновляет устаревшие. Задержка через серверы пула автовыбора —
+    // тоже раз в 10 минут и при любом режиме: по ней работает «Автовыбор».
     private void PollPing()
     {
         var age = DateTimeOffset.UtcNow - lastPing;
         // Откликов нет совсем (замер оборвало подключение «Весь компьютер») — повтор вскоре после выключения.
         if (IsVisible && (age > TimeSpan.FromMinutes(10) || pings.Count == 0 && age > TimeSpan.FromSeconds(30))) QueuePing();
+        if (!measuring && operation is null && importedProfiles.Count > 0 && stateStore is not null && !isolatedPersistence &&
+            DateTimeOffset.UtcNow - lastMeasure > TimeSpan.FromMinutes(10))
+            _ = MeasureServersAsync(autoPool.Members(importedProfiles.ToArray()), quiet: true);
     }
 
     // Отклики приходят по одному: перестраиваем видимое не чаще раза в 150 мс.

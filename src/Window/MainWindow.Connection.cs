@@ -20,8 +20,6 @@ public partial class MainWindow
         // и тогда переключение на новый выбор выполнится следом (QueueServerSwitch).
         var target = profile;
         manualStop = false;
-        // Подбор zapret под «Весь компьютер» не продолжается: служба погасит winws, ставя защиту.
-        if (SystemTunnelWanted) zapretCancel?.Cancel();
         // Правила сайтов: в обычном режиме — у ядра подключения, в системном — у ядра туннеля.
         if (engine is Engine core)
         {
@@ -31,7 +29,8 @@ public partial class MainWindow
             // Новый вход прямого трафика — только на новую сессию «Весь компьютер»; перезапуск ядра
             // под действующей сессией сохраняет её вход.
             if (!(SystemTunnelWanted && SystemTunnelActive))
-                core.DirectEntry = SystemTunnelWanted && core.Routing?.HasDirect == true ? CoreDirectEntry.Create(Engine.FreePort()) : null;
+                // С zapret вход нужен заранее: его сайты включаются в «напрямую» без переподключения туннеля.
+                core.DirectEntry = SystemTunnelWanted && (core.Routing?.HasDirect == true || zapretEnabled) ? CoreDirectEntry.Create(Engine.FreePort()) : null;
         }
         operation = new CancellationTokenSource();
         engineOperation = true;
@@ -70,9 +69,6 @@ public partial class MainWindow
     }
     private void StopClick(object sender, RoutedEventArgs args)
     {
-        // Замер серверов при работающем подключении: «Остановить» прерывает замер, а
-        // подключение остаётся. Повторное нажатие уже остановит его.
-        if (measuring && ConnectionActive) { operation?.Cancel(); DetailText.Text = "Замер серверов остановлен. Подключение работает."; return; }
         manualStop = true;
         recoveryWait?.Cancel();
         ResetSystemPath();

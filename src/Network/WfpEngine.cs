@@ -4,8 +4,10 @@ using System.Runtime.InteropServices;
 
 namespace Oblachka;
 
-public enum WfpConditionKind { Loopback, LocalAddress, RemoteAddress, Application, Protocol, LocalPort, RemotePort, InterfaceTypeNot }
-public sealed record WfpCondition(WfpConditionKind Kind, IPAddress? Address = null, string? Program = null, int Number = 0);
+// KernelProcess — соединения от имени System (pid 4): так Windows видит пакеты, которые драйвер
+// перехвата (WinDivert у zapret) отправил заново. RemotePortRange — порты Number…High.
+public enum WfpConditionKind { Loopback, LocalAddress, RemoteAddress, Application, Protocol, LocalPort, RemotePort, InterfaceTypeNot, KernelProcess, RemotePortRange }
+public sealed record WfpCondition(WfpConditionKind Kind, IPAddress? Address = null, string? Program = null, int Number = 0, int High = 0);
 // Packet — слой исходящих IP-пакетов, а не установления соединений: там видны пакеты
 // уже разрешённых потоков, в том числе закрытие соединения после снятия туннеля.
 public sealed record WfpFilter(Guid Key, string Name, bool V6, byte Weight, bool Permit, WfpCondition[] Conditions, bool Packet = false);
@@ -53,8 +55,8 @@ public sealed class WfpEngine : IWfpEngine
     // Разрешение с очищенным правом на действие не может перебить подслой ниже по весу —
     // в том числе брандмауэр Windows, если в нём исходящее по умолчанию запрещено.
     private const uint FlagClearActionRight = 0x8;
-    private const uint MatchEqual = 0, MatchFlagsAllSet = 6, MatchNotEqual = 10;
-    private const uint TypeUint8 = 1, TypeUint16 = 2, TypeUint32 = 3, TypeArray16 = 11, TypeBlob = 12;
+    private const uint MatchEqual = 0, MatchRange = 5, MatchFlagsAllSet = 6, MatchNotEqual = 10;
+    private const uint TypeUint8 = 1, TypeUint16 = 2, TypeUint32 = 3, TypeArray16 = 11, TypeBlob = 12, TypeRange = 0x102;
     private const uint IsLoopback = 0x1;
     private const uint FilterNotFound = 0x80320003, ProviderNotFound = 0x80320005, SublayerNotFound = 0x80320007;
 
@@ -135,6 +137,8 @@ public sealed class WfpEngine : IWfpEngine
         WfpConditionKind.RemotePort => new() { Field = ConditionRemotePort, Value = new() { Type = TypeUint16, Data = (ulong)c.Number } },
         WfpConditionKind.InterfaceTypeNot => new() { Field = ConditionInterfaceType, Match = MatchNotEqual, Value = new() { Type = TypeUint32, Data = (ulong)c.Number } },
         WfpConditionKind.Application => new() { Field = ConditionAppId, Value = new() { Type = TypeBlob, Data = (ulong)memory.AppId(c.Program!) } },
+        WfpConditionKind.KernelProcess => new() { Field = ConditionAppId, Value = new() { Type = TypeBlob, Data = (ulong)memory.KernelAppId() } },
+        WfpConditionKind.RemotePortRange => new() { Field = ConditionRemotePort, Match = MatchRange, Value = new() { Type = TypeRange, Data = (ulong)memory.PortRange(c.Number, c.High) } },
         _ => throw new UserError("Неизвестное условие фильтра.")
     };
 
@@ -182,6 +186,25 @@ public sealed class WfpEngine : IWfpEngine
             if (status != 0) throw new IOException("Фильтрация Windows не опознала программу ядра: 0x" + status.ToString("X8"));
             wfp.Add(blob);
             return blob;
+        }
+        // Идентификатор ядра в событиях WFP — строка «System» в UTF-16 с завершающим нулём
+        // (netsh wfp show netevents, appId пакетов, повторно отправленных WinDivert).
+        public IntPtr KernelAppId()
+        {
+            var bytes = System.Text.Encoding.Unicode.GetBytes("System\0");
+            var data = Alloc(bytes.Length); Marshal.Copy(bytes, 0, data, bytes.Length);
+            var blob = Alloc(Marshal.SizeOf<WfpNative.Blob>());
+            Marshal.StructureToPtr(new WfpNative.Blob { Size = (uint)bytes.Length, Data = data }, blob, false);
+            return blob;
+        }
+        // FWP_RANGE0: два FWP_VALUE0 подряд.
+        public IntPtr PortRange(int low, int high)
+        {
+            var size = Marshal.SizeOf<WfpNative.Value>();
+            var range = Alloc(2 * size);
+            Marshal.StructureToPtr(new WfpNative.Value { Type = TypeUint16, Data = (ulong)low }, range, false);
+            Marshal.StructureToPtr(new WfpNative.Value { Type = TypeUint16, Data = (ulong)high }, range + size, false);
+            return range;
         }
         public void Dispose()
         {

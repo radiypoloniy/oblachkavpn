@@ -5,8 +5,8 @@ namespace Oblachka;
 
 // Строка списка серверов нового главного экрана и панели «Все серверы».
 //
-// Число справа — свежий полный замер через ядро (ServerMeasurements), а без него отклик
-// сервера (ServerPing, время TCP-рукопожатия). В интерфейсе оба показаны как «142 мс».
+// Число справа — свежий замер через сервер (ServerMeasurements). Отклик входа (ServerPing,
+// TCP-рукопожатие) числом не показывается: у каскадов он единицы мс при настоящих сотнях.
 // Цвет точки: < 160 мс зелёный, < 250 мс жёлтый, иначе оранжевый; нет ответа — красный;
 // результат старше 20 минут — «давно» с бледной точкой, подробности в подсказке.
 public sealed class ServerRow
@@ -42,8 +42,10 @@ public sealed class ServerRow
         if (measured is null) return ("", null, null);
         var at = measured.Time.ToLocalTime();
         if (!ServerMeasurements.Fresh(measured, now))
-            return ("давно", Faint, (measured.Success ? $"Последний ответ — {measured.Milliseconds} мс" : "В последний раз не ответил") +
+            return ("давно", Faint, (measured is { Success: true, Handshake: false } ? $"Последний замер — {measured.Milliseconds} мс" : measured.Success ? "Отвечал" : "В последний раз не ответил") +
                 ", " + at.ToString(at.Date == now.ToLocalTime().Date ? "HH:mm" : "dd.MM HH:mm") + ". Проверьте снова.");
+        if (measured is { Success: true, Handshake: true })
+            return ("", null, $"Сервер отвечает ({at:HH:mm}). Задержку через него покажет «Обновить пинг».");
         return measured.Success
             ? (measured.Milliseconds + " мс", DotFor(measured.Milliseconds), $"Ответил за {measured.Milliseconds} мс в {at:HH:mm}")
             : ("нет ответа", Failed, $"Не ответил при проверке в {at:HH:mm}");

@@ -37,7 +37,8 @@ public partial class MainWindow
             Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
             ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = Routes.RussiaDirect.IsChecked == true, AutoSelect = autoSelect,
             UpdateCheck = Diagnostics.UpdateAuto.IsChecked == true, DpiBypass = fragmentMode,
-            ZapretEnabled = zapretEnabled, ZapretChoices = new Dictionary<string, string>(zapretChoices) };
+            ZapretEnabled = zapretEnabled, ZapretChoices = new Dictionary<string, string>(zapretChoices),
+            AutoPool = autoPool.Snapshot(importedProfiles) };
 
     private void SaveStateClick(object sender, RoutedEventArgs args)
     {
@@ -83,6 +84,7 @@ public partial class MainWindow
         programRules.Clear(); programRules.AddRange(snapshot.ProgramRules); RefreshRules();
         measurements.Clear(); foreach (var measurement in snapshot.Measurements) measurements[measurement.Fingerprint] = measurement;
         favorites.Clear(); foreach (var favorite in snapshot.Favorites) favorites.Add(favorite);
+        autoPool.Load(snapshot.AutoPool);
         // Профиль из файла проверяется так же, как присланный сервисом.
         providerRouting = snapshot.ProviderRouting?.Normalized(); useProviderRouting = snapshot.UseProviderRouting;
         Routes.RussiaDirect.IsChecked = snapshot.RussiaDirect;

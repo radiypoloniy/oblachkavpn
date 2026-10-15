@@ -151,7 +151,7 @@ public partial class MainWindow : Window
         {
             var profiles = importedProfiles.ToArray();
             // Перебор ограничен узлами сервиса: см. RouteCandidates.
-            var candidates = RouteCandidates.For(profiles, profile);
+            var candidates = RouteCandidates.For(profiles, profile, pool: InAutoPool);
             var result = await CreateRouteSearch().FindAsync(candidates.Select(i => profiles[i]).ToArray(),
                 RouteCandidates.StartAt(candidates, profiles, profile), target, operation.Token,
                 (attempt, total) => { if (!closed) DetailText.Text = $"Проверяем подключение {attempt} из {total}. «Остановить» отменяет подбор."; });

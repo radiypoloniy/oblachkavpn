@@ -52,7 +52,7 @@ public partial class MainWindow
             items.Add(new ServerRow
             {
                 IsAuto = true, Name = "Автовыбор", Selected = autoSelect, IconOnAccent = true, Icon = TryFindResource("IcoAuto") as Geometry,
-                Note = autoSelect && profile is not null ? "сейчас: " + profile.DisplayName : "самый быстрый отклик"
+                Note = autoSelect && profile is not null ? "сейчас: " + profile.DisplayName : "самый быстрый из пула"
             });
         void Group(string title, IEnumerable<Profile> members, bool note = false)
         {

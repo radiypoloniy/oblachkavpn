@@ -74,11 +74,9 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                         if (state is not (null or NetworkSessionState.Released) &&
                             session.Recover() is { State: NetworkSessionState.RecoveryRequired })
                             throw new UserError("Сначала требуется восстановить сетевую сессию.");
-                        // winws и защита «Весь компьютер» несовместимы: WinDivert отправляет перехваченный
-                        // пакет заново уже от имени System, и запрет мимо туннеля его режет — гибнет весь
-                        // трафик 80/443 мимо туннеля, включая соединение ядра с узлом на :443.
-                        ZapretRunner.Stop();
                         var record = session.Acquire(request.Lease!, deadline.Token);
+                        // winws уже работал (режим «Браузеры»): его пакетам под защитой нужны разрешения.
+                        if (record.State == NetworkSessionState.Applied) SyncReinjection();
                         state = record.State;
                         blocking = SystemNetworkBackend.Blocks(record);
                         activeLease = request.Lease!.LeaseId;
@@ -87,6 +85,7 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                     {
                         if (request.Lease!.LeaseId != activeLease) throw new UserError("Сессия принадлежит другому владельцу.");
                         state = session.Release(activeLease.Value).State;
+                        if (state == NetworkSessionState.Released) WfpReinjection.Forget();
                         if (state == NetworkSessionState.Released) activeLease = null;
                     }
                     else if (request.Operation == HelperOperation.Repair)
@@ -96,9 +95,8 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                     }
                     else if (request.Operation == HelperOperation.Zapret)
                     {
-                        zapret = request.Zapret!.Action == ZapretAction.Start && state is not (null or NetworkSessionState.Released)
-                            ? ZapretRunner.Status() with { Error = ZapretRunner.TunnelConflict }
-                            : await ZapretRunner.HandleAsync(request.Zapret!, deadline.Token);
+                        zapret = await ZapretRunner.HandleAsync(request.Zapret!, deadline.Token);
+                        if (state == NetworkSessionState.Applied) SyncReinjection();
                     }
                     else if (request.Operation == HelperOperation.Recover)
                     {
@@ -127,6 +125,15 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
             }
         }
         finally { lifetime.Cancel(); await watcher; }
+    }
+
+    // Разрешения для пакетов zapret под защитой: есть winws — на его порты, нет — снять.
+    // Повторно отправленные WinDivert пакеты Windows иначе режет как соединения от System.
+    internal static Func<IWfpEngine> ReinjectionEngine { get; set; } = WfpEngine.Open;
+    private static void SyncReinjection()
+    {
+        if (ZapretRunner.CapturedPorts is { Count: > 0 } ports) WfpReinjection.Allow(ReinjectionEngine, ports);
+        else WfpReinjection.Revoke(ReinjectionEngine);
     }
 
     private static async Task WatchOwnerAsync(Process owner, CancellationTokenSource lifetime)
