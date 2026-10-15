@@ -31,6 +31,33 @@ public static class TestProgram
             Console.WriteLine(profile.Core + " | " + profile.Transport + (cut ? " | fragment" : ""));
             return 0;
         }
+        // Манифест zapret из архива Flowseal (задача обновления): архив, тег, адрес, куда писать.
+        if (args.Length == 5 && args[0] == "--zapret-manifest")
+        {
+            var manifest = ZapretManifest.FromArchive(args[1], args[2], args[3]);
+            File.WriteAllText(args[4], manifest.ToJson());
+            Console.WriteLine(manifest.Tag + ": стратегий " + manifest.Strategies.Length + ", файлов " + manifest.Files.Count);
+            return 0;
+        }
+        // Команда zapret установленной службе (стенд VM): Prepare | Start <стратегия> | Status | Stop.
+        // Отчёт: состояние службы и процессы winws (путь, сессия) — без адресов и ключей.
+        if (args.Length is 3 or 4 && args[0] == "--zapret-call")
+        {
+            var action = Enum.Parse<ZapretAction>(args[2]);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+            var lifetime = ServiceHelperLifetime.ConnectAsync(NetworkServiceControl.Query().ProcessId, timeout.Token).GetAwaiter().GetResult();
+            ZapretStatus status;
+            try
+            {
+                var exclude = action == ZapretAction.Start ? new[] { "203.0.113.7" } : null;
+                status = lifetime.Client.ZapretAsync(new(action, args.Length == 4 ? args[3] : null, exclude), timeout.Token).GetAwaiter().GetResult();
+            }
+            finally { lifetime.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
+            var processes = System.Diagnostics.Process.GetProcessesByName("winws")
+                .Select(p => (HelperPipeIdentity.ImagePath(p) ?? "?") + " | сессия " + p.SessionId + " | наш " + ZapretRunner.IsOurs(p)).ToArray();
+            File.WriteAllText(args[1], System.Text.Json.JsonSerializer.Serialize(new { status.Ready, status.Running, status.Tag, status.Strategy, Strategies = status.Strategies.Length, status.Error, Winws = processes }));
+            return 0;
+        }
         // Диагноз отказа (ConnectionDiagnosis) для ссылки: вид и пояснение.
         if (args.Length == 3 && args[0] == "--diagnose")
         {

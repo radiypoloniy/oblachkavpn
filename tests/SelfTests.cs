@@ -35,6 +35,7 @@ public static partial class SelfTests
         await PanelLinkChecksAsync(CheckAsync);
         await ProtocolChecksAsync(CheckAsync);
         await ResilienceChecksAsync(CheckAsync);
+        await ZapretChecksAsync(CheckAsync);
         await AutoSelectChecksAsync(CheckAsync);
         await NetworkDoctorChecksAsync(CheckAsync);
         await ClashSubscriptionChecksAsync(CheckAsync);

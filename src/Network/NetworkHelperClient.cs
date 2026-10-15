@@ -85,6 +85,19 @@ public sealed class NetworkHelperClient : INetworkHelperClient
         finally { operations.Release(); }
     }
 
+    // zapret в службе: подготовка, запуск, остановка, состояние. Отказ с причиной — в Error.
+    public async Task<ZapretStatus> ZapretAsync(ZapretRequest request, CancellationToken token)
+    {
+        await operations.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            var response = await pipe.SendAsync(HelperOperation.Zapret, null, token, zapret: request).ConfigureAwait(false);
+            if (response.Failure != HelperFailure.None || response.Zapret is null) throw new UserError("Служба не выполнила команду zapret.");
+            return response.Zapret;
+        }
+        finally { operations.Release(); }
+    }
+
     // Снять сессию, оставленную прежним владельцем (окно завершилось аварийно при службе).
     public async Task<NetworkSessionState> RecoverAsync(CancellationToken token)
     {

@@ -31,6 +31,8 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets/countries-*.json"/>
     <Resource Include="Assets/Flags/*.png"/>
+    <!-- Манифест zapret из репозитория: запасной, если GitHub недоступен. -->
+    <EmbeddedResource Include="../zapret/manifest.json" LogicalName="Oblachka.zapret.manifest.json" Condition="Exists('../zapret/manifest.json')"/>
   </ItemGroup>
 </Project>
 

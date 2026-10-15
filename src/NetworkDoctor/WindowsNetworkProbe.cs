@@ -90,10 +90,11 @@ public sealed class WindowsNetworkProbe : INetworkProbe
         var result = new List<BypassInfo>();
         foreach (var name in BypassProcesses)
         {
+            // Наш zapret (обход блокировок Облачки) — не находка, а включённая функция.
             var processes = Process.GetProcessesByName(name);
             try
             {
-                if (processes.Length == 0) continue;
+                if (processes.All(ZapretRunner.IsOurs)) continue;
                 var asService = processes.Any(p => p.SessionId == 0);
                 var label = name == "winws" ? "zapret (winws)" : "GoodbyeDPI";
                 result.Add(new(label, asService || BypassServices.Any(s => Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\" + s) is { } k && Close(k))));
