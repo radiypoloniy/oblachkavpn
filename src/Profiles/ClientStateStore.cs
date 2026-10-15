@@ -43,6 +43,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public bool RussiaDirect { get; init; }
     // «Автовыбор» на главном экране: переживает перезапуск.
     public bool AutoSelect { get; init; }
+    // Проверка обновлений на GitHub раз в 12 часов (0.12). По умолчанию включена.
+    public bool UpdateCheck { get; init; } = true;
     // Подписки и «Вручную» (0.11). Нет значения — снимок прежней версии.
     public ProfileGroup[]? Groups { get; init; }
 }

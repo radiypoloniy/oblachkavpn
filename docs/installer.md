@@ -22,9 +22,17 @@
 ## Тихая установка
 
 ```
-Oblachka-setup-0.11.0-xxxxxxx.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
+Oblachka-setup-0.12.0-xxxxxxx.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
 "C:\Program Files\Oblachka\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
 ```
+
+## Обновление из приложения
+
+«Настройки → Помощь → Обновления» сверяется с последним релизом этого репозитория на GitHub: сама раз в 12 часов или по кнопке. Установщик скачивается только по нажатию «Обновить». Его размер и SHA256 сверяются с `digest`, который GitHub вычисляет при загрузке файла в релиз. Допускаются только адреса `github.com/radiypoloniy/oblachkavpn/releases/download/…` и хранилище файлов GitHub.
+
+Затем запускается тот же установщик с ключами `/SILENT /SUPPRESSMSGBOXES /NORESTART /RELAUNCH=1`. Windows спрашивает права администратора, установщик ставит новую версию поверх и открывает окно. Сетевая служба ничего скачанного не запускает: обновление всегда проходит через запрос прав.
+
+Чтобы обновление нашлось, в релиз нужно загрузить файл `Oblachka-setup-<версия>-<ревизия>.exe` с тегом `v<версия>`.
 
 ## Подписи нет
 

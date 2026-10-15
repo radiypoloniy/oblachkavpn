@@ -61,6 +61,7 @@ public partial class MainWindow
         Onboarding.FileButton.Click += ImportFileClick;
         WireQr();
         WireDoctor();
+        WireUpdates();
         Onboarding.ContinueButton.Click += ContinueSubscription;
         Onboarding.ForeignList.AddHandler(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, new System.Windows.RoutedEventHandler(ForeignClick));
         Settings.StayInTray.Click += (_, _) => QueueStateSave();

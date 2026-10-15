@@ -57,7 +57,7 @@
 
 ## Версия
 
-Версия хранится в `src/Oblachka.csproj` (`<Version>`). Ревизия Git и признак «с изменениями» видны в настройках приложения и в `build-info.json` рядом с exe.
+Версия хранится в двух местах: `src/Oblachka.csproj` (`<Version>`) и `ServiceBrand.Version`. Ревизия Git и признак «с изменениями» видны в настройках приложения и в `build-info.json` рядом с exe.
 
 ## Обновление ядер
 

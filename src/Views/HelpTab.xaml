@@ -40,6 +40,22 @@
     </Border>
 
     <StackPanel DockPanel.Dock="Bottom">
+      <!-- Обновление без переустановки (AppUpdate): релизы GitHub, установщик по нажатию. -->
+      <Border CornerRadius="14" Background="{DynamicResource CardBg}" Padding="14,12" Margin="0,0,0,8">
+        <StackPanel>
+          <DockPanel>
+            <Button x:Name="UpdateButton" DockPanel.Dock="Right" Content="Проверить" Style="{StaticResource BtnOutline}" Height="34" Padding="14,0" o:Ui.CornerRadius="9" FontSize="12.5" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock x:Name="UpdateTitle" Text="Обновления" FontSize="14" FontWeight="SemiBold"/>
+              <TextBlock x:Name="UpdateText" Text="Проверим, нет ли новой версии" Style="{StaticResource Small}" TextWrapping="Wrap"/>
+            </StackPanel>
+          </DockPanel>
+          <DockPanel Margin="0,8,0,0">
+            <CheckBox x:Name="UpdateAuto" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Проверять обновления сами"/>
+            <TextBlock Text="Проверять сами раз в 12 часов" Style="{StaticResource Small}" VerticalAlignment="Center"/>
+          </DockPanel>
+        </StackPanel>
+      </Border>
       <!-- Поломки, которые оставляют упавшие VPN и обходы блокировок (NetworkDoctor). -->
       <Border CornerRadius="14" Background="{DynamicResource CardBg}" Padding="14,12" Margin="0,0,0,8">
         <DockPanel>
