@@ -9,7 +9,7 @@ Xray и sing-box внутри, подписки любого сервиса, м�
 [![Лицензия: GPL-3.0](https://img.shields.io/badge/лицензия-GPL--3.0-blue)](LICENSE)
 ![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)
-[![Релизы](https://img.shields.io/github/v/release/radiypolony/oblachkavpn?label=версия)](https://github.com/radiypolony/oblachkavpn/releases)
+[![Релизы](https://img.shields.io/github/v/release/radiypoloniy/oblachkavpn?label=версия)](https://github.com/radiypoloniy/oblachkavpn/releases)
 
 <img src="docs/images/power-on.png" width="300" alt="Главный экран: подключено">&nbsp;&nbsp;<img src="docs/images/servers-groups-dark.png" width="300" alt="Список серверов в тёмной теме">
 
@@ -62,7 +62,7 @@ Xray и sing-box внутри, подписки любого сервиса, м�
 
 ## Установка
 
-1. Скачайте `Oblachka-setup-….exe` со страницы [Релизы](https://github.com/radiypolony/oblachkavpn/releases).
+1. Скачайте `Oblachka-setup-….exe` со страницы [Релизы](https://github.com/radiypoloniy/oblachkavpn/releases).
 2. Запустите. Установщику нужны права администратора: он ставит сетевую службу для режима «Весь компьютер».
 3. Программа пока не подписана, поэтому Windows может показать «Windows защитила ваш компьютер». Нажмите **«Подробнее» → «Выполнить в любом случае»**. Сверить файл можно по SHA256 из описания релиза.
 
@@ -87,7 +87,7 @@ Xray и sing-box внутри, подписки любого сервиса, м�
 ## Сборка из исходников
 
 ```powershell
-git clone https://github.com/radiypolony/oblachkavpn.git
+git clone https://github.com/radiypoloniy/oblachkavpn.git
 cd oblachkavpn
 .\build.ps1              # скачает ядра (SHA256 сверяется) и соберёт out\app
 .\test.ps1               # ~240 проверок: разбор, сеть, служба, интерфейс
