@@ -28,6 +28,7 @@ public sealed record ZapretStatus(bool Ready, bool Running, string? Tag, string?
 
 public static class ZapretRunner
 {
+    public const string TunnelConflict = "В режиме «Весь компьютер» zapret не запускается: защита от утечек не пропускает его пакеты, и пропал бы весь интернет. Эти сайты идут через VPN.";
     private static readonly object Gate = new();
     private static Process? process;
     private static ProcessJob? job;
@@ -87,8 +88,8 @@ public static class ZapretRunner
         File.WriteAllLines(Path.Combine(lists, "list-general-user.txt"), request.Domains ?? Array.Empty<string>());
         var bin = Path.Combine(folder, "bin");
         var start = new ProcessStartInfo(Path.Combine(bin, "winws.exe")) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = bin };
-        // Только физическая сетевая карта: трафик внутри туннеля VPN winws не перехватывает,
-        // иначе весь VPN шёл бы через его обработку и ломался.
+        // Только физическая сетевая карта: туннели других VPN winws не трогает. Под защитой
+        // «Весь компьютер» winws не работает вовсе (HelperPipeServer, TunnelConflict).
         if (PhysicalInterface() is { } index) start.ArgumentList.Add("--wf-iface=" + index);
         foreach (var arg in ZapretArgs.Resolve(strategy, bin, lists)) start.ArgumentList.Add(arg);
         lock (Gate)

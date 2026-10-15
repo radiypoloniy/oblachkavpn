@@ -67,11 +67,15 @@ public partial class MainWindow
         // «Весь компьютер»: если у сессии уже есть вход для прямого трафика (или он не нужен),
         // перезапускается только ядро — туннель и защита остаются, связь пропадает на секунду.
         // Полностью переподключаться приходится, только когда вход для прямого трафика нужен впервые.
-        if (SystemTunnelActive && systemTunnel is not null && (HasDirectEntry || CurrentRouting()?.HasDirect != true && !zapretEnabled))
+        if (SystemTunnelActive && systemTunnel is not null && (HasDirectEntry || CurrentRouting()?.HasDirect != true))
         {
             await ConnectCoreAsync();
-            if (!closed) DetailText.Text = "Списки применены; туннель и защита не снимались.";
-            return;
+            if (closed) return;
+            if (systemTunnel?.State == SystemTunnelState.Running && engine.State is ConnectionState.Running or ConnectionState.Verified)
+            { DetailText.Text = "Списки применены; туннель и защита не снимались."; return; }
+            // Ядро под сессией не поднялось: защита осталась, а трафик нести некому — весь интернет
+            // закрыт. Не прячем это за «применено», а переподключаемся полностью.
+            if (manualStop || systemTunnel is null) return;
         }
         manualStop = true;
         if (systemTunnel is not null) await StopSystemTunnelAsync(); else engine.Stop();

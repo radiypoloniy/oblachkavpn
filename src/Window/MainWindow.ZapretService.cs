@@ -30,7 +30,7 @@ public partial class MainWindow
     // только если это что-то меняет.
     private async Task ApplyZapretRoutingAsync()
     {
-        var wanted = forceZapretRouting || ZapretRouting;
+        var wanted = ZapretRouting;
         if (wanted == zapretRoutingApplied) { RefreshZapret(); return; }
         zapretRoutingApplied = wanted;
         RefreshZapret();
@@ -48,6 +48,15 @@ public partial class MainWindow
     {
         if (!zapretEnabled || isolatedPersistence || stateStore is null) return;
         Dispatcher.BeginInvoke(async () => { if (!closed && NetworkHelperConnection.ServiceRunning) await PickZapretAsync(force: false); });
+    }
+
+    // Смена режима: в «Весь компьютер» winws гасится до подключения (его гасит и служба, ставя
+    // защиту), в «Браузеры и программы» обход поднимается снова.
+    private async Task ZapretModeChangedAsync()
+    {
+        if (!zapretEnabled) return;
+        zapretCancel?.Cancel();
+        if (!zapretBusy) await PickZapretAsync(force: false);
     }
 
     // Выход из приложения выключает обход: «работает, пока запущена Облачка».
