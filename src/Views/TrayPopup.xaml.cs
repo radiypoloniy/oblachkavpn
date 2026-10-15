@@ -18,10 +18,17 @@ public partial class TrayPopup : Window
         ExitButton.Click += (_, _) => { Dismiss(); exit(); };
         QuickList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler((_, args) =>
         { if ((args.OriginalSource as FrameworkElement)?.DataContext is ServerRow row) pick?.Invoke(row); }));
+        // Закрывается щелчком мимо (окно активируется при показе), Esc и повторным щелчком по значку.
         Deactivated += (_, _) => Dismiss();
+        KeyDown += (_, args) => { if (args.Key == System.Windows.Input.Key.Escape) Dismiss(); };
+        Loaded += (_, _) => Activate();
         Closing += (_, _) => dismissing = true;
-        Closed += (_, _) => finished = true;
+        Closed += (_, _) => { finished = true; ClosedAt = DateTime.UtcNow; };
     }
+
+    // Щелчок по значку сначала снимает фокус с окна, и оно закрывается; тот же щелчок
+    // не должен открыть его снова.
+    public static DateTime ClosedAt { get; private set; }
 
     internal void Dismiss()
     {
