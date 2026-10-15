@@ -71,6 +71,20 @@ public sealed class NetworkHelperClient : INetworkHelperClient
         return NetworkSessionState.Released;
     }
 
+    // Исправление сети Windows службой; true — исправлено, false — поломки уже нет.
+    public async Task<bool> RepairAsync(RepairRequest repair, CancellationToken token)
+    {
+        await operations.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            var response = await pipe.SendAsync(HelperOperation.Repair, null, token, repair).ConfigureAwait(false);
+            if (response.Failure == HelperFailure.InvalidRequest) throw new UserError("Служба отказалась: " + repair.Kind + ".");
+            if (response.Failure != HelperFailure.None) throw new UserError("Windows не дала выполнить исправление.");
+            return response.Blocking == true;
+        }
+        finally { operations.Release(); }
+    }
+
     // Снять сессию, оставленную прежним владельцем (окно завершилось аварийно при службе).
     public async Task<NetworkSessionState> RecoverAsync(CancellationToken token)
     {

@@ -40,6 +40,16 @@
     </Border>
 
     <StackPanel DockPanel.Dock="Bottom">
+      <!-- Поломки, которые оставляют упавшие VPN и обходы блокировок (NetworkDoctor). -->
+      <Border CornerRadius="14" Background="{DynamicResource CardBg}" Padding="14,12" Margin="0,0,0,8">
+        <DockPanel>
+          <Button x:Name="NetworkCheckButton" DockPanel.Dock="Right" Content="Проверить" Style="{StaticResource BtnOutline}" Height="34" Padding="14,0" o:Ui.CornerRadius="9" FontSize="12.5" VerticalAlignment="Center" Margin="8,0,0,0"/>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Сеть Windows" FontSize="14" FontWeight="SemiBold"/>
+            <TextBlock Text="Интернет пропал после Throne, zapret или другого VPN? Найдём, что они оставили" Style="{StaticResource Small}" TextWrapping="Wrap"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
       <Border CornerRadius="14" Background="{DynamicResource CardBg}" Padding="14,12">
         <StackPanel>
           <TextBlock Text="Не работает? Отправьте отчёт" FontSize="14" FontWeight="SemiBold"/>

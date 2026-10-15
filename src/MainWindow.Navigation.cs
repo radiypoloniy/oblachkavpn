@@ -72,6 +72,7 @@ public partial class MainWindow
     {
         Settings.Visibility = Visibility.Collapsed;
         Picker.Visibility = Visibility.Collapsed;
+        Doctor.Visibility = Visibility.Collapsed;
         if (currentPage is "Routes" or "Diagnostics") currentPage = "Connection";
         Home.SettingsButton.Focus();
     }
@@ -84,6 +85,7 @@ public partial class MainWindow
         if (args.Key != Key.Escape) return;
         if (ModeMenuLayer.Visibility == Visibility.Visible) ShowModeMenu(false);
         else if (Picker.Visibility == Visibility.Visible) CloseAppPicker();
+        else if (Doctor.Visibility == Visibility.Visible) Doctor.Visibility = Visibility.Collapsed;
         else if (Settings.Visibility == Visibility.Visible) CloseSettings();
         else if (Servers.Visibility == Visibility.Visible) Navigate("Connection");
         else return;

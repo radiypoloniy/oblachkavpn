@@ -60,6 +60,7 @@ public partial class MainWindow
         Servers.SearchBox.TextChanged += (_, _) => FilterProfiles();
         Onboarding.FileButton.Click += ImportFileClick;
         WireQr();
+        WireDoctor();
         Onboarding.ContinueButton.Click += ContinueSubscription;
         Onboarding.ForeignList.AddHandler(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, new System.Windows.RoutedEventHandler(ForeignClick));
         Settings.StayInTray.Click += (_, _) => QueueStateSave();

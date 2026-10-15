@@ -84,6 +84,11 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                         state = session.Release(activeLease.Value).State;
                         if (state == NetworkSessionState.Released) activeLease = null;
                     }
+                    else if (request.Operation == HelperOperation.Repair)
+                    {
+                        // Ответ «исправлено» переносится полем Blocking: отдельного поля в ответе нет.
+                        blocking = NetworkRepairBackend.Apply(request.Repair!);
+                    }
                     else if (request.Operation == HelperOperation.Recover)
                     {
                         // Только чужая, оставленная сессия: свою владелец снимает через Release.

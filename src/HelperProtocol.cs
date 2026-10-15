@@ -5,7 +5,8 @@ using System.Text.Json.Serialization;
 namespace Oblachka;
 
 // Recover снимает сессию, оставленную прежним владельцем: у службы она переживает окно.
-public enum HelperOperation { Acquire, Release, Heartbeat, Recover }
+// Repair — исправление сети Windows (NetworkRepairBackend): узкий список действий, вне сессии.
+public enum HelperOperation { Acquire, Release, Heartbeat, Recover, Repair }
 // SystemRefused — отказ самой системы, а не ошибка в запросе. Без него такой отказ
 // вылетал мимо ответа и завершал помощника: клиент видел обрыв канала вместо причины.
 public enum HelperFailure { None, InvalidRequest, Busy, RecoveryRequired, SystemRefused }
@@ -13,7 +14,8 @@ public sealed record HelperRequest(
     [property: JsonRequired] int Version,
     [property: JsonRequired] Guid RequestId,
     [property: JsonRequired] HelperOperation Operation,
-    [property: JsonRequired] NetworkLeaseRequest? Lease);
+    [property: JsonRequired] NetworkLeaseRequest? Lease,
+    RepairRequest? Repair = null);
 // Blocking говорит, встала ли блокировка трафика мимо туннеля. Поле нужно затем,
 // что помощник решает это сам: при выключенном брандмауэре блокировки не будет, и
 // окно обязано сообщить пользователю то, что есть, а не то, на что мы рассчитывали.
@@ -67,6 +69,13 @@ public static class HelperProtocol
     {
         if (request.Version != 1 || request.RequestId == Guid.Empty || !Enum.IsDefined(request.Operation))
             throw new UserError("Неизвестная команда helper.");
+        if (request.Operation == HelperOperation.Repair)
+        {
+            if (request.Lease is not null || request.Repair is null) throw new UserError("Неверная команда исправления сети.");
+            request.Repair.Validate();
+            return;
+        }
+        if (request.Repair is not null) throw new UserError("Исправление сети передаётся только командой Repair.");
         if (request.Operation is HelperOperation.Heartbeat or HelperOperation.Recover)
         {
             if (request.Lease is not null) throw new UserError(request.Operation + " не принимает сетевые параметры.");

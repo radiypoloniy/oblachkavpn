@@ -55,6 +55,14 @@ public static class TestProgram
             File.WriteAllText(args[1], (QrImages.ScanScreens() ?? "<не найден>") + "	" + clock.ElapsedMilliseconds + " мс");
             return 0;
         }
+        // «Проверить сеть Windows» на этом компьютере — только чтение.
+        if (args.Length == 2 && args[0] == "--network-doctor")
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            var found = NetworkDoctor.Diagnose(new WindowsNetworkProbe());
+            File.WriteAllLines(args[1], found.Select(f => f.Action.Kind + " | " + f.Title + " | " + f.Text).Append($"за {clock.ElapsedMilliseconds} мс"));
+            return 0;
+        }
         if (args.Length == 3 && args[0] == "--qr-debug")
         {
             using var bitmap = new System.Drawing.Bitmap(args[2]);
