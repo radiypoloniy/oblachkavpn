@@ -1,6 +1,6 @@
 # Сборка
-out/
-dist/
+/out/
+/dist/
 src/bin/
 src/obj/
 tests/bin/
@@ -16,10 +16,10 @@ vendor/**/*.zip
 _internal/
 _to_delete/
 release-keys/
-design/
-*.svg
-app/
-app-v*/
+/design/
+/*.svg
+/app/
+/app-v*/
 
 # IDE
 .vs/
