@@ -12,7 +12,11 @@ public partial class MainWindow
     private bool trayHintShown;
 
     // Повторный запуск с ярлыка будит этот экземпляр (AppInstance) из другого потока.
-    public void ShowFromSignal() => Dispatcher.BeginInvoke(new Action(ShowWindow));
+    public void ShowFromSignal() => Dispatcher.BeginInvoke(new Action(() =>
+    {
+        ShowWindow();
+        if (DeepLink.TakePending() is { } link) QueueDeepLink(link);
+    }));
 
     private void InitStartup(bool enabled)
     {

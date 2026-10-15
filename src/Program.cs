@@ -53,7 +53,9 @@ public static class Program
 #endif
         using var mutex = new Mutex(true, AppInstance.MutexName, out var first);
         // Уже запущена (например, свёрнута в трей): показываем её окно вместо ошибки.
-        if (!first) { AppInstance.SignalFirst(); return 0; }
+        // Ссылка oblachka:// из браузера: работающему окну — через файл и сигнал, новому — при запуске.
+        var link = args.FirstOrDefault(DeepLink.IsLink);
+        if (!first) { if (link is not null) DeepLink.Hand(link); AppInstance.SignalFirst(); return 0; }
         try
         {
             var app = new Application();
@@ -68,6 +70,7 @@ public static class Program
             if (args.Contains(AppInstance.TrayArgument)) window.StartHiddenInTray();
             app.Exit += (_, _) => window.Close();
             AppInstance.ListenForShow(window.ShowFromSignal);
+            if (link is not null) window.QueueDeepLink(link);
             return app.Run(window);
         }
         catch

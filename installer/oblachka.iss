@@ -60,6 +60,11 @@ Name: "{autodesktop}\Облачка"; Filename: "{app}\Oblachka.exe"; Tasks: des
 Filename: "{app}\Oblachka.exe"; Description: "Запустить Облачка"; Flags: postinstall nowait skipifsilent runasoriginaluser
 
 [Registry]
+; Ссылки «Добавить в Облачка» (oblachka://) с сайтов и из ботов продавцов подписки.
+Root: HKLM; Subkey: "Software\Classes\oblachka"; ValueType: string; ValueName: ""; ValueData: "URL:Oblachka"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "Software\Classes\oblachka"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKLM; Subkey: "Software\Classes\oblachka\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: """{app}\Oblachka.exe"",0"
+Root: HKLM; Subkey: "Software\Classes\oblachka\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\Oblachka.exe"" ""%1"""
 ; Автозапуск включает сам пользователь в настройках; при удалении запись убирается.
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "Oblachka"; ValueType: none; Flags: uninsdeletevalue dontcreatekey
 

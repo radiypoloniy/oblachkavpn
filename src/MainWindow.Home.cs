@@ -56,6 +56,9 @@ public partial class MainWindow
             : findingRoute || holding ? ("Восстанавливаем связь", name + " не отвечает", PowerState.Connecting, "MidI")
             : busy && !running ? ("Подключаемся…", profile?.DisplayName ?? "", PowerState.Connecting, "MidI")
             // «Защищено» — только когда через туннель идёт весь компьютер. Прокси защищает не всё.
+            // Проверка связи не прошла: не «Защищено», а честно — связь пропала, пока не вернётся
+            // или подбор не найдёт рабочий сервер.
+            : running && health.FailedRounds > 0 ? ("Связь пропала", name + " не отвечает · проверяем ещё раз", PowerState.On, "WI")
             : running ? (SystemTunnelActive ? "Защищено" : "Подключено", name + " · " + SessionDuration, PowerState.On, "Ok")
             : engine.State == ConnectionState.Failed ? ("Связь прервана", "Включите снова или выберите другой сервер", PowerState.Off, "EI")
             : ("Не подключено", "Нажмите кнопку или выберите сервер", PowerState.Off, "Fa");

@@ -123,6 +123,21 @@ public static partial class SelfTests
 
     private static async Task AutoSelectChecksAsync(Func<string, Func<Task>, Task> check)
     {
+        await check("oblachka:// links accept add/import/install-config/key forms and only HTTPS addresses", () => Sync(() =>
+        {
+            const string url = "https://sub.example.com/s/abc123?x=1";
+            var b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(url)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            Assert(DeepLink.Parse("oblachka://add/" + url) == url);
+            Assert(DeepLink.Parse("oblachka://add?url=" + Uri.EscapeDataString(url)) == url);
+            Assert(DeepLink.Parse("oblachka://install-config?url=" + Uri.EscapeDataString(url) + "&name=Test") == url);
+            Assert(DeepLink.Parse("oblachka://import/" + b64) == url);
+            Assert(DeepLink.Parse("OBLACHKA://add/" + b64) == url);
+            Assert(DeepLink.Parse("oblachka://key/hRDbej1hw9YC7rEc-QktKA5Rh") == "hRDbej1hw9YC7rEc-QktKA5Rh");
+            Assert(DeepLink.Parse("oblachka://add/http://plain.example.com/s") is null);
+            Assert(DeepLink.Parse("oblachka://add/https://user:pass@x.example.com/s") is null);
+            Assert(DeepLink.Parse("oblachka://run/calc.exe") is null && DeepLink.Parse("happ://add/" + url) is null);
+            Assert(DeepLink.Parse("oblachka://key/bad key") is null);
+        }));
         await check("Auto-select tries any subscription node from fastest to slowest, unknown next, failed and the broken one last", () => Sync(() =>
         {
             var nodes = Enumerable.Range(0, 5).Select(i => Profiles.Parse(link.Replace("#Test", "#N" + i))).ToArray();

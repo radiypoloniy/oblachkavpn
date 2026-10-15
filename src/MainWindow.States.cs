@@ -64,7 +64,8 @@ public partial class MainWindow
         else if (closedNow) Status("Интернет закрыт", "Защита держит сеть, пока нет VPN", PowerState.Blocked, "EI");
         else if (recovering)
         {
-            Home.RecoveryRounds.Text = Math.Max(health.FailedRounds, findingRoute ? 3 : 1) + " из 3";
+            var limit = autoSelect ? 2 : 3;
+            Home.RecoveryRounds.Text = Math.Min(limit, Math.Max(health.FailedRounds, findingRoute ? limit : 1)) + " из " + limit;
             Home.RecoveryStep.Text = findingRoute ? "Ищем рабочий сервер" : "Перезапускаем ядро";
             Home.RecoveryLockRow.Visibility = systemTunnel?.BlocksBypass == true ? Visibility.Visible : Visibility.Collapsed;
         }
