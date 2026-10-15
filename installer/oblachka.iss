@@ -58,6 +58,8 @@ Name: "{autodesktop}\Облачка"; Filename: "{app}\Oblachka.exe"; Tasks: des
 [Run]
 ; Окно запускается от имени пользователя, а не администратора, который ставил программу.
 Filename: "{app}\Oblachka.exe"; Description: "Запустить Облачка"; Flags: postinstall nowait skipifsilent runasoriginaluser
+; Обновление из приложения идёт тихо (/SILENT /RELAUNCH=1): после него окно открывается само.
+Filename: "{app}\Oblachka.exe"; Flags: nowait runasoriginaluser; Check: RelaunchAfterUpdate
 
 [Registry]
 ; Ссылки «Добавить в Облачка» (oblachka://) с сайтов и из ботов продавцов подписки.
@@ -81,6 +83,11 @@ Type: filesandordirs; Name: "{commonappdata}\Oblachka"
 [Code]
 const
   ServiceOk = 0;
+
+function RelaunchAfterUpdate: Boolean;
+begin
+  Result := WizardSilent and (ExpandConstant('{param:RELAUNCH|0}') = '1');
+end;
 
 function ServiceError(Code: Integer): String;
 begin
