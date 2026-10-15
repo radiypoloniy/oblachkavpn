@@ -1,32 +1,28 @@
-app/
-app-v03/
-app-v04/
-app-v051/
-vendor/**/unpacked/
-vendor/**/*.zip
+# Сборка
+out/
 dist/
 src/bin/
 src/obj/
-*.user
-*.suo
-app-v05/
-app-v0511/
-app-v052/
-app-v053/
-app-v06/
-app-v061/
-app-v062/
-app-v07/
-app-v08/
-release-keys/
-
-app-v081/
-_to_delete/
-app-v09/
-app-v09-standalone-*/
-app-v09-test/
 tests/bin/
 tests/obj/
-app-v082/
-app-v082-test/
-app-v082-standalone-*/
+
+# Ядра: скачиваются scripts/fetch-cores.ps1, в репозитории только лицензии
+vendor/downloads/
+vendor/cores/
+vendor/**/unpacked/
+vendor/**/*.zip
+
+# Локальное, не для публикации
+_internal/
+_to_delete/
+release-keys/
+design/
+*.svg
+app/
+app-v*/
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo

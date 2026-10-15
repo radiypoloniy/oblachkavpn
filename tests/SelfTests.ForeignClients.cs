@@ -27,7 +27,7 @@ public static partial class SelfTests
                 var group = Path.Combine(roots.LocalAppData, "nekobox", "settings", "groups", "1.cfg");
                 Directory.CreateDirectory(Path.GetDirectoryName(group)!);
                 File.WriteAllBytes(group, new byte[] { 0, 0, 0, 7 }.Concat(Encoding.BigEndianUnicode.GetBytes("https://neko.invalid/s/abc")).Concat(new byte[] { 0, 0, 0xFF }).ToArray());
-                var sub = new JsonObject { ["remarks"] = "Liberty", ["url"] = "https://tun.invalid/subs/1" }.ToJsonString();
+                var sub = new JsonObject { ["remarks"] = "Основная", ["url"] = "https://tun.invalid/subs/1" }.ToJsonString();
                 Write(Path.Combine(roots.AppData, "v2RayTun.net", "v2RayTun", "shared_preferences.json"),
                     new JsonObject { ["flutter.sub_1"] = sub, ["flutter.sub_2"] = new JsonObject { ["url"] = "http://plain.invalid/x" }.ToJsonString(), ["flutter.other"] = 5,
                         // Отдельные: своё (Xray-вид), повтор, сломанное и узел подписки — в счёт идёт одно.
@@ -51,7 +51,7 @@ public static partial class SelfTests
                 Assert(local.Title == "v2RayTun · 1 отдельное подключение" && local.Hint == "добавятся во «Вручную»");
                 Assert(Url("Happ") == "https://happ.invalid/sub/new");
                 Assert(Url("NekoBox") == "https://neko.invalid/s/abc");
-                Assert(Url("v2RayTun") == "https://tun.invalid/subs/1" && found.Single(f => f.Client == "v2RayTun" && !f.IsLocal).Name == "Liberty");
+                Assert(Url("v2RayTun") == "https://tun.invalid/subs/1" && found.Single(f => f.Client == "v2RayTun" && !f.IsLocal).Name == "Основная");
                 Assert(Url("FlClashX") == "https://clashx.invalid/p");
                 Assert(Url("Clash Verge") == "https://verge.invalid/c?flag=1" && found.Single(f => f.Client == "Clash Verge").Name == "Verge");
                 Assert(found.Single(f => f.Client == "Happ").Name == "happ.invalid");

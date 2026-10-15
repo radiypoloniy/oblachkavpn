@@ -1,0 +1,11 @@
+name: Идея
+description: Предложить возможность
+labels: [идея]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Чего не хватает
+      description: Какую задачу хочется решить и как это выглядит в других клиентах, если есть пример.
+    validations:
+      required: true

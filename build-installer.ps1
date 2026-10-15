@@ -1,13 +1,13 @@
 ﻿# Установщик Облачки: самодостаточная сборка (.NET внутри, ставить runtime не нужно),
-# ядра из проверенной сборки app-v09 и сценарий installer\oblachka.iss.
+# ядра из сборки out\app и сценарий installer\oblachka.iss.
 # Нужны: .\build.ps1 (ядра), .NET SDK 10, доступ к nuget.org (пакеты runtime), Inno Setup 6.
 # Установщик соответствует ревизии, поэтому незакоммиченные изменения в src запрещены.
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
-. (Join-Path $root 'build-info.ps1')
-$verified = Join-Path $root 'app-v09'
+. (Join-Path $root 'scripts\build-info.ps1')
+$verified = Join-Path $root 'out\app'
 foreach ($core in 'xray.exe', 'sing-box.exe') {
-    if (-not (Test-Path -LiteralPath (Join-Path $verified ('tools\' + $core)))) { throw 'Сначала запустите .\build.ps1: ядра берутся из проверенной сборки app-v09.' }
+    if (-not (Test-Path -LiteralPath (Join-Path $verified ('tools\' + $core)))) { throw 'Сначала запустите .\build.ps1: ядра берутся из сборки out\app.' }
 }
 if (git -C $root status --porcelain -- src installer) { throw 'Есть незакоммиченные изменения в src или installer: установщик должен соответствовать ревизии.' }
 $iscc = @("$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe", "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") |
@@ -20,7 +20,7 @@ $version = ([xml](Get-Content -LiteralPath (Join-Path $root 'src\Oblachka.csproj
 $stage = Join-Path $root ('dist\installer-stage-' + $short)
 if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
 
-& (Join-Path $root 'check-source-size.ps1')
+& (Join-Path $root 'scripts\check-source-size.ps1')
 & dotnet publish (Join-Path $root 'src\Oblachka.csproj') -c Release -r win-x64 --self-contained true `
     -p:UseSharedCompilation=false -p:DebugType=none "-p:SourceRevisionId=$revision" --source 'https://api.nuget.org/v3/index.json' -o $stage
 if ($LASTEXITCODE -ne 0) { throw 'Публикация не прошла.' }
