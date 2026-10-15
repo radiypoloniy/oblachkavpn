@@ -21,6 +21,15 @@
 
 Запись происхождения: `vendor/sing-box-1.14.3/provenance.json`.
 
+## zapret и набор Flowseal
+
+Не входят в установщик: сетевая служба скачивает их по включению «YouTube и Discord без VPN» с официальных релизов и сверяет SHA256 по манифесту `zapret/manifest.json` (см. [docs/zapret.md](docs/zapret.md)).
+
+- [zapret](https://github.com/bol-van/zapret) (`winws.exe`) — MIT, © bol-van.
+- [WinDivert](https://github.com/basil00/WinDivert) (`WinDivert.dll`, `WinDivert64.sys`) — LGPL-3.0 / GPL-2.0, © basil00.
+- `cygwin1.dll` — библиотека Cygwin, LGPL-3.0.
+- Стратегии, списки доменов и подменные пакеты — набор [zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube), © Flowseal.
+
 ## .NET
 
 Установщик содержит самодостаточную сборку .NET 10 (WPF и Windows Forms) от Microsoft, лицензия MIT: https://github.com/dotnet/runtime/blob/main/LICENSE.TXT

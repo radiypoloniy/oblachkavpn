@@ -58,6 +58,16 @@ public static class TestProgram
             File.WriteAllText(args[1], System.Text.Json.JsonSerializer.Serialize(new { status.Ready, status.Running, status.Tag, status.Strategy, Strategies = status.Strategies.Length, status.Error, Winws = processes }));
             return 0;
         }
+        // Сохранённое состояние для стенда: одно подключение во «Вручную», режим «Браузеры»,
+        // чтобы окно открылось на главном экране и ничего не подключало само.
+        if (args.Length == 2 && args[0] == "--lab-state")
+        {
+            var lab = Profiles.Parse(args[1]);
+            var saved = new SavedProfile(lab.Name, (System.Text.Json.Nodes.JsonObject)lab.Outbound.DeepClone()) { Source = ProfileSource.External, Group = ProfileGroup.ManualId };
+            new ClientStateStore(ClientDataPaths.StateFile).Save(new ClientSnapshot(1, new[] { saved }, null, Array.Empty<string>(), 0, true, true)
+                { SystemTunnel = false, SystemProxy = false, Groups = new[] { ProfileGroup.Manual } });
+            return 0;
+        }
         // Диагноз отказа (ConnectionDiagnosis) для ссылки: вид и пояснение.
         if (args.Length == 3 && args[0] == "--diagnose")
         {
