@@ -40,27 +40,6 @@ public partial class MainWindow
         catch (UserError ex) { DetailText.Text = ex.Message; }
     }
 
-    private bool ConfirmLink(string what)
-    {
-        var dialog = new Window
-        {
-            Owner = IsVisible ? this : null, Title = "Добавить в " + ServiceBrand.Name, Width = 460, Height = 230, ResizeMode = ResizeMode.NoResize,
-            WindowStartupLocation = IsVisible ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen, Background = Background, FontFamily = FontFamily
-        };
-        var panel = new StackPanel { Margin = new Thickness(24) };
-        panel.Children.Add(new TextBlock { Text = "Добавить " + what + "?", FontSize = 16, FontWeight = FontWeights.SemiBold, Foreground = Foreground, TextWrapping = TextWrapping.Wrap });
-        panel.Children.Add(new TextBlock
-        {
-            Text = "Ссылку открыл браузер или другая программа. Добавляйте, только если получили её от своего сервиса.",
-            Foreground = Foreground, Opacity = 0.75, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 18)
-        });
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-        var add = new Button { Content = "Добавить", IsDefault = true, MinWidth = 110 };
-        var cancel = new Button { Content = "Отмена", IsCancel = true, MinWidth = 90, Margin = new Thickness(8, 0, 0, 0) };
-        add.Click += (_, _) => dialog.DialogResult = true;
-        buttons.Children.Add(add); buttons.Children.Add(cancel);
-        panel.Children.Add(buttons);
-        dialog.Content = panel; StyleDialog(dialog);
-        return dialog.ShowDialog() == true;
-    }
+    private bool ConfirmLink(string what) => AppDialog.Confirm(this, "Добавить " + what + "?",
+        "Ссылку открыл браузер или другая программа. Добавляйте, только если получили её от своего сервиса.", "Добавить");
 }

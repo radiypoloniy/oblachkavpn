@@ -76,9 +76,9 @@
       <Setter.Value>
         <ControlTemplate TargetType="Button">
           <Grid>
-            <Border x:Name="Plate" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{Binding (o:Ui.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"/>
-            <Border x:Name="Hover" Background="{TemplateBinding Tag}" CornerRadius="{Binding (o:Ui.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}" Opacity="0"/>
-            <Border x:Name="Focus" BorderBrush="{DynamicResource Ac}" BorderThickness="2" CornerRadius="{Binding (o:Ui.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}" Visibility="Collapsed"/>
+            <Border x:Name="Plate" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding o:Ui.CornerRadius}"/>
+            <Border x:Name="Hover" Background="{TemplateBinding Tag}" CornerRadius="{TemplateBinding o:Ui.CornerRadius}" Opacity="0"/>
+            <Border x:Name="Focus" BorderBrush="{DynamicResource Ac}" BorderThickness="2" CornerRadius="{TemplateBinding o:Ui.CornerRadius}" Visibility="Collapsed"/>
             <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
           </Grid>
           <ControlTemplate.Triggers>

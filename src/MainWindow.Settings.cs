@@ -71,22 +71,6 @@ public partial class MainWindow
         UpdateWhere();
     }
 
-    // Диалоги, собранные кодом (адреса подписки, сторонняя подписка, профиль), в цветах темы:
-    // поля и кнопки нового дизайна вместо прежних светлых стилей.
-    private void StyleDialog(Window dialog)
-    {
-        dialog.SetResourceReference(BackgroundProperty, "Bg");
-        dialog.SetResourceReference(ForegroundProperty, "Tx");
-        dialog.FontFamily = (System.Windows.Media.FontFamily)FindResource("UiFont");
-        var field = new Style(typeof(TextBox), (Style)FindResource("FieldBox"));
-        field.Setters.Add(new Setter(Control.VerticalContentAlignmentProperty, VerticalAlignment.Top));
-        field.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(12, 10, 12, 10)));
-        dialog.Resources[typeof(TextBox)] = field;
-        var button = new Style(typeof(Button), (Style)FindResource("BtnPrimary"));
-        button.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(18, 0, 18, 0)));
-        dialog.Resources[typeof(Button)] = button;
-        foreach (var text in LogicalTreeHelper.GetChildren((DependencyObject)dialog.Content).OfType<TextBlock>()) text.SetResourceReference(TextBlock.ForegroundProperty, "Mu");
-    }
 
     private static void MarkCheck(Ellipse mark, bool ok)
     {

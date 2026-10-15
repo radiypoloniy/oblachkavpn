@@ -10,45 +10,19 @@ public partial class MainWindow
     private async void AddExternalClick(object sender, RoutedEventArgs args)
     {
         if (operation is not null) return;
-        var dialog = new Window
-        {
-            Owner = this, Title = "Сторонняя подписка", Width = 680, Height = 330,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = Background, FontFamily = FontFamily
-        };
-        var panel = new StackPanel { Margin = new Thickness(24) };
-        panel.Children.Add(new TextBlock
-        {
-            Text = "HTTPS-адрес подписки другого сервиса. Можно указать до пяти адресов одной подписки, каждый с новой строки.",
-            Foreground = Foreground, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12)
-        });
-        var input = new TextBox
-        {
-            MaxLength = 20 * 1024, AcceptsReturn = true, Height = 110,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Text = string.Join("\n", externalSources)
-        };
-        panel.Children.Add(input);
-        panel.Children.Add(new TextBlock
-        {
-            Text = "Подписка вашего сервиса останется на месте. Узлы сторонней подписки помечаются в списке; подбор, измерения и автообновление по ним не выполняются.",
-            Foreground = Foreground, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 12)
-        });
-        var button = new Button { Content = "Загрузить", HorizontalAlignment = HorizontalAlignment.Right };
-        panel.Children.Add(button);
-        string? url = null;
-        button.Click += (_, _) => { url = input.Text; input.Clear(); dialog.DialogResult = true; };
-        dialog.Closed += (_, _) => input.Clear();
-        dialog.Content = panel; StyleDialog(dialog);
-        if (dialog.ShowDialog() != true || url is null) return;
+        var text = AppDialog.Ask(this, "Добавить подписку",
+            "Ссылка подписки любого сервиса — или отдельные подключения vless://, trojan://, hy2://, JSON.",
+            "https://…", "Добавить", note: "Резервные адреса той же подписки — каждый с новой строки, до пяти. Подписка появится отдельной вкладкой в «Все серверы»; остальные не изменятся.",
+            multiline: true);
+        if (string.IsNullOrWhiteSpace(text)) return;
         try
         {
-            var sources = SubscriptionMirrors.ParseSources(url);
-            if (ServiceKey.SourceOf(sources) == ProfileSource.Service)
-            { DetailText.Text = "Это адрес вашей подписки. Он добавляется ключом на главном экране."; return; }
+            if (ServiceKey.Classify(text) == ServiceKey.InputKind.Profiles) { Import(text); CloseSettings(); return; }
+            var sources = text.Contains("://") ? SubscriptionMirrors.ParseSources(text) : new[] { ServiceKey.ToSubscriptionUrl(text) };
             CloseSettings();
             await LoadSubscriptionAsync(sources, 0);
         }
         catch (UserError ex) { DetailText.Text = ex.Message; }
-        finally { url = null; }
     }
 
     // Убрать все сторонние подписки и «Вручную» разом (прежняя кнопка; по одной — в списке подписок).

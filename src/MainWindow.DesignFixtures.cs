@@ -95,6 +95,19 @@ public partial class MainWindow
         CheckPreviewControls();
         if (page == "servers") { LoadServerPreview(); LoadPingPreview(); }
         if (page is "foreign" or "closed" or "recovery" or "subscription") PrepareStatePreview(page);
+        if (page is "groups" or "servers-groups")
+        {
+            Profile Node(string name, int n) => Profiles.Parse($"vless://{n:x8}-1111-4111-8111-111111111111@n{n}.invalid:443?security=tls&type=tcp#{Uri.EscapeDataString(name)}");
+            var now = DateTimeOffset.UtcNow;
+            SetGroup(new ProfileGroup("sub-0123456789ab", "Liberty", ProfileSource.External, new[] { "https://liberty.invalid/s" }) { Updated = now.AddMinutes(-12),
+                Metadata = new SubscriptionMetadata(0, 20_000_000_000, 100_000_000_000, now.AddDays(40)) }, new[] { Node("🇱🇹 Литва", 11), Node("🇩🇪 Германия", 12), Node("🇺🇸 США", 13) });
+            SetGroup(new ProfileGroup("sub-ba9876543210", "proxyliberty.ru", ProfileSource.External, new[] { "https://proxyliberty.invalid/t" }) { Updated = now.AddHours(-30) }, new[] { Node("🇫🇮 Финляндия", 21) });
+            SetGroup(ProfileGroup.Manual, new[] { Node("Мой сервер", 31) });
+            ApplyProfiles(true);
+            if (page == "groups") { SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(2); }
+            else { Navigate("Servers"); Servers.GroupTabs.SelectedIndex = 0; }
+            return;
+        }
         if (page == "doctor")
         {
             findings = NetworkDoctor.Diagnose(new PreviewProbe());

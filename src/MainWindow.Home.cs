@@ -107,7 +107,9 @@ public partial class MainWindow
         return rows;
     }
 
-    private ServerRow Row(Profile item)
+    // note: false — строка под заголовком своей подписки, повторять её имя незачем.
+    private ServerRow Row(Profile item) => Row(item, true);
+    private ServerRow Row(Profile item, bool note)
     {
         var measured = LatestMeasurement(item);
         long? latency = measured is { Success: true } ? measured.Milliseconds : null;
@@ -115,7 +117,7 @@ public partial class MainWindow
         var icon = ServerRow.IconFor(item);
         return new ServerRow
         {
-            Profile = item, Name = item.DisplayName, Note = GroupNote(item),
+            Profile = item, Name = item.DisplayName, Note = note ? GroupNote(item) : null,
             Flag = icon is null ? FlagImages.Local(item.Country.Code) : null, Icon = icon, IconMuted = !item.IsService,
             Latency = latency is not null ? latency + " мс" : measured is { Success: false } ? "нет ответа" : "", LatencyDot = ServerRow.DotFor(latency),
             Selected = !autoSelect && profile is not null && ProfileSelection.Identity(item) == ProfileSelection.Identity(profile),

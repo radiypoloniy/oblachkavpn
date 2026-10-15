@@ -87,22 +87,12 @@ public partial class MainWindow
     }
     private async void SubscriptionClick(object sender, RoutedEventArgs args)
     {
-        var dialog = new Window { Owner = this, Title = "Адреса подписки", Width = 680, Height = 360, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = Background, FontFamily = FontFamily };
-        var panel = new StackPanel { Margin = new Thickness(24) };
-        panel.Children.Add(new TextBlock { Text = "Основной и резервные HTTPS-адреса: каждый с новой строки, до пяти.", Foreground = Foreground, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
-        var input = new TextBox { MaxLength = 20 * 1024, AcceptsReturn = true, Height = 110, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Text = string.Join("\n", subscriptionSources) }; panel.Children.Add(input);
-        panel.Children.Add(new TextBlock { Text = "Полные ссылки для каждого адреса. При включённом запоминании они сохраняются в зашифрованном виде.", Foreground = Foreground, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 12) });
-        var button = new Button { Content = "Загрузить", HorizontalAlignment = HorizontalAlignment.Right }; panel.Children.Add(button);
-        string? url = null;
-        button.Click += (_, _) => { url = input.Text; input.Clear(); dialog.DialogResult = true; };
-        dialog.Closed += (_, _) => input.Clear();
-        dialog.Content = panel; StyleDialog(dialog);
-        if (dialog.ShowDialog() != true || url is null) return;
+        var url = AppDialog.Ask(this, "Адреса подписки", "Основной и резервные HTTPS-адреса: каждый с новой строки, до пяти.", "https://…", "Загрузить",
+            string.Join("\n", subscriptionSources), "Полные ссылки для каждого адреса. Они хранятся в зашифрованном виде.", multiline: true);
+        if (url is null) return;
         try { await LoadSubscriptionAsync(SubscriptionMirrors.ParseSources(url), 0); }
         catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }
-        finally { url = null; }
     }
-    // Обновляем подписку сервиса; если её нет, обновляем стороннюю.
     // Обновляем все подписки: сервиса и сторонние.
     private async void RefreshClick(object sender, RoutedEventArgs args)
     {
@@ -153,16 +143,8 @@ public partial class MainWindow
     }
     private void PasteClick(object sender, RoutedEventArgs args)
     {
-        var dialog = new Window { Owner = this, Title = "Добавить профиль", Width = 620, Height = 360, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = Background, FontFamily = FontFamily };
-        var panel = new DockPanel { Margin = new Thickness(24) };
-        var caption = new TextBlock { Text = "Вставьте ссылку vless://, trojan://, hy2:// или клиентский Xray / sing-box JSON.", Margin = new Thickness(0, 0, 0, 12), Foreground = Foreground };
-        DockPanel.SetDock(caption, Dock.Top); panel.Children.Add(caption);
-        var button = new Button { Content = "Добавить профиль", Margin = new Thickness(0, 14, 0, 0), HorizontalAlignment = HorizontalAlignment.Right };
-        DockPanel.SetDock(button, Dock.Bottom); panel.Children.Add(button);
-        var input = new TextBox { AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MaxLength = Profiles.MaxBytes };
-        panel.Children.Add(input); dialog.Content = panel; StyleDialog(dialog);
-        button.Click += (_, _) => { Import(input.Text); input.Clear(); dialog.Close(); };
-        dialog.Closed += (_, _) => input.Clear();
-        dialog.ShowDialog();
+        var text = AppDialog.Ask(this, "Добавить подключение", "Ссылка vless://, trojan://, hy2:// или клиентский JSON Xray / sing-box.", "vless://…", "Добавить",
+            note: "Добавится во «Вручную»; подписки не изменятся.", multiline: true, maxLength: Profiles.MaxBytes);
+        if (!string.IsNullOrWhiteSpace(text)) Import(text);
     }
 }

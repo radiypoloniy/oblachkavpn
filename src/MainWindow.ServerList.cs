@@ -53,14 +53,14 @@ public partial class MainWindow
                 IsAuto = true, Name = "Автовыбор", Selected = autoSelect, IconOnAccent = true, Icon = TryFindResource("IcoAuto") as Geometry,
                 Note = autoSelect && profile is not null ? "сейчас: " + profile.DisplayName : "самый быстрый отклик"
             });
-        void Group(string title, IEnumerable<Profile> members)
+        void Group(string title, IEnumerable<Profile> members, bool note = false)
         {
-            var rows = members.Select(Row).ToArray();
+            var rows = members.Select(p => Row(p, note)).ToArray();
             if (rows.Length == 0) return;
             items.Add(new SheetHeader(title));
             items.AddRange(rows);
         }
-        Group("ИЗБРАННОЕ", shown.Where(p => favorites.Contains(FavoriteKey(p))));
+        Group("ИЗБРАННОЕ", shown.Where(p => favorites.Contains(FavoriteKey(p))), note: true);
         foreach (var group in groups)
             Group(group.Name.ToUpperInvariant(), shown.Where(p => p.Group == group.Id && !favorites.Contains(FavoriteKey(p))));
         Servers.SheetList.ItemsSource = items;

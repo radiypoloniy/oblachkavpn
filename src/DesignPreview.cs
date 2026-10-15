@@ -20,6 +20,18 @@ public static class DesignPreview
             main.PrepareDesignPreview(page);
             Window target = main;
             if (page == "tray") { popup = main.CreateTrayPreview(); target = popup; }
+            if (page == "dialog")
+            {
+                var field = new System.Windows.Controls.TextBox { Text = "https://sub.example.com/s/abc" + Environment.NewLine + "https://mirror.example.net/s/abc", Height = 90, Margin = new Thickness(0, 14, 0, 0) };
+                field.SetResourceReference(FrameworkElement.StyleProperty, "FieldBox");
+                popup = AppDialog.Build(null, "Добавить подписку", "Ссылка подписки любого сервиса — или отдельные подключения vless://, trojan://, hy2://, JSON.", field, "Добавить", "Отмена", false);
+                popup.Height = 360; popup.Show(); target = popup;
+            }
+            if (page == "confirm")
+            {
+                popup = AppDialog.Build(null, "Убрать «Liberty»?", "Уберём и её 24 сервера. Вернуть можно, добавив подписку снова.", null, "Убрать", "Отмена", true);
+                popup.Height = 240; popup.Show(); target = popup;
+            }
             Render(target, path);
             return 0;
         }

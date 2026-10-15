@@ -99,11 +99,9 @@ public partial class MainWindow
     // перезагружает компьютер. Сами мы winsock и стек TCP/IP не сбрасываем.
     private void OpenWindowsReset()
     {
-        var answer = MessageBox.Show(this,
-            "Откроем «Сброс сети» в параметрах Windows. Он удалит и заново установит все сетевые адаптеры, включая VPN, " +
-            "сотрёт настройки Wi-Fi и вручную введённые IP и DNS и перезагрузит компьютер.\n\nСначала попробуйте «Исправить найденное». Открыть?",
-            "Полный сброс сети", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-        if (answer != MessageBoxResult.Yes) return;
+        if (!AppDialog.Confirm(this, "Полный сброс сети",
+            "Откроем «Сброс сети» в параметрах Windows. Он удалит и заново установит все сетевые адаптеры, включая VPN, сотрёт настройки Wi-Fi " +
+            "и вручную введённые IP и DNS и перезагрузит компьютер. Сначала попробуйте «Исправить найденное».", "Открыть параметры", danger: true)) return;
         var page = Environment.OSVersion.Version.Build >= 22000 ? "ms-settings:network-advancedsettings" : "ms-settings:network-status";
         try { Process.Start(new ProcessStartInfo(page) { UseShellExecute = true }); }
         catch (System.ComponentModel.Win32Exception) { DetailText.Text = "Не удалось открыть параметры Windows: Пуск → Параметры → Сеть → Сброс сети."; }
