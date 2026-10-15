@@ -1,0 +1,63 @@
+name: Сборка и релиз
+
+# Тег vX.Y.Z — сборка, проверки, установщик и релиз на GitHub с описанием из CHANGELOG.md.
+# Ручной запуск (Actions → Run workflow) — то же без релиза: установщик остаётся артефактом.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-2025
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Версия тега совпадает с версией в коде
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: powershell
+        run: |
+          $version = ([xml](Get-Content src\Oblachka.csproj -Raw)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+          if ('v' + $version -ne '${{ github.ref_name }}') { throw ('Тег ${{ github.ref_name }}, а в Oblachka.csproj версия ' + $version) }
+          if (-not (Select-String -Path src\App\ServiceBrand.cs -SimpleMatch ('Version = "' + $version + '"'))) { throw 'ServiceBrand.Version не совпадает с Oblachka.csproj' }
+
+      - name: Сборка
+        shell: powershell
+        run: .\build.ps1
+
+      - name: Проверки
+        shell: powershell
+        run: .\test.ps1
+
+      - name: Установщик
+        shell: powershell
+        run: .\build-installer.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: dist/Oblachka-setup-*.exe
+          if-no-files-found: error
+
+      - name: Релиз
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $setup = Get-ChildItem dist\Oblachka-setup-*.exe | Select-Object -First 1
+          .\scripts\release-notes.ps1 -Tag '${{ github.ref_name }}' -Installer $setup.FullName -Output notes.md
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          gh release create '${{ github.ref_name }}' $setup.FullName --title ('Облачка ' + $version) --notes-file notes.md
+          if ($LASTEXITCODE -ne 0) { throw 'Релиз не создан.' }
