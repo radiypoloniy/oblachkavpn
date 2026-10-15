@@ -78,6 +78,19 @@ public static class ZapretRunner
         catch (UserError) { return null; }
     }
 
+    // Порты перехвата стратегии до её запуска: разрешения для пакетов winws под защитой ставятся
+    // заранее. Иначе первые полторы секунды каждого запуска (проверка, что winws не упал) новые
+    // соединения на эти порты резались — и соединения ядра с сервером VPN тоже, на каждой из
+    // 22 стратегий подбора.
+    public static IReadOnlyList<WfpReinjection.PortRange>? PortsFor(string? name)
+    {
+        lock (Gate)
+        {
+            var strategy = (manifest ??= Installed())?.Strategies.FirstOrDefault(s => s.Name == name);
+            return strategy is null ? null : WfpReinjection.Ports(strategy.Args);
+        }
+    }
+
     private static void Start(ZapretRequest request)
     {
         var current = (manifest ??= Installed()) ?? throw new UserError("zapret: набор ещё не подготовлен.");

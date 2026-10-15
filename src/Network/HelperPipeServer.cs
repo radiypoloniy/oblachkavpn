@@ -95,6 +95,11 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                     }
                     else if (request.Operation == HelperOperation.Zapret)
                     {
+                        // Под защитой разрешения — до запуска: и на порты новой стратегии, и на порты
+                        // ещё работающей прежней (её winws гасится внутри запуска).
+                        if (state == NetworkSessionState.Applied && request.Zapret!.Action == ZapretAction.Start &&
+                            ZapretRunner.PortsFor(request.Zapret.Strategy) is { Count: > 0 } planned)
+                            WfpReinjection.Allow(ReinjectionEngine, WfpReinjection.Merge(planned.Concat(ZapretRunner.CapturedPorts ?? [])));
                         zapret = await ZapretRunner.HandleAsync(request.Zapret!, deadline.Token);
                         if (state == NetworkSessionState.Applied) SyncReinjection();
                     }

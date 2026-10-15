@@ -10,20 +10,23 @@ public partial class MainWindow
 {
     private bool zapretEnabled, zapretBusy;
     private ZapretStatus? zapretStatus;
-    // Сеть (NetworkIdentity) → стратегия; NoneNeeded — в этой сети сайты открываются и без обхода.
+    // Сеть (NetworkIdentity) → выбор «стратегия|группы» (ZapretPlan.Encode); стратегия «-» — без обхода.
     private readonly Dictionary<string, string> zapretChoices = new(StringComparer.Ordinal);
+    // Домены групп, которые идут напрямую (ZapretPlan); на время подбора — все домены набора.
     private string[] zapretDomains = Array.Empty<string>();
+    private string zapretTag = "";
+    // Выбранный вариант работает через winws, а не «обход не нужен».
+    private bool zapretBypassing;
     private string zapretNote = "";
     private CancellationTokenSource? zapretCancel;
-    private const string NoneNeeded = "-";
 
     // Сайты zapret идут напрямую, только когда обход работает или в этой сети не нужен.
     // Под «Весь компьютер» — через вход прямого трафика ядра туннеля; пакеты winws защита
     // пропускает по разрешениям службы (WfpReinjection).
-    private bool ZapretRouting => zapretEnabled && zapretDomains.Length > 0 &&
-        (zapretStatus?.Running == true || NetworkIdentity.Current() is { } net && zapretChoices.GetValueOrDefault(net) == NoneNeeded);
+    private bool ZapretRouting => zapretEnabled && !zapretBusy && zapretDomains.Length > 0 && (!zapretBypassing || zapretStatus?.Running == true);
 
-    private RoutingProfile ZapretProfile => new("zapret", zapretDomains.Select(d => "domain:" + d).ToArray(), [], [], [], [], []) { GlobalProxy = true };
+    private RoutingProfile ZapretProfile => new("zapret",
+        (forceZapretRouting ? ZapretSites.Read(zapretTag) : zapretDomains).Select(d => "domain:" + d).ToArray(), [], [], [], [], []) { GlobalProxy = true };
 
     private void WireZapret()
     {
@@ -65,8 +68,10 @@ public partial class MainWindow
         await ApplyZapretRoutingAsync();
     }
 
-    // Подбор: сначала без обхода (вдруг не нужен), затем стратегии по очереди до первой рабочей.
-    // force: false — сначала пробуем запомненную для этой сети.
+    // Подбор: сначала без обхода (вдруг не нужен), затем стратегии по очереди. YouTube и Discord
+    // решаются отдельно (ZapretPlan): напрямую идёт группа, все адреса которой открылись;
+    // остальные остаются в VPN. Побеждает вариант, открывший больше групп.
+    // force: false — сначала пробуем запомненный для этой сети.
     private async Task PickZapretAsync(bool force)
     {
         if (zapretBusy || !zapretEnabled) return;
@@ -77,37 +82,53 @@ public partial class MainWindow
             Note("Готовим набор zapret…");
             var status = await ZapretCallAsync(new(ZapretAction.Prepare));
             if (status is not { Ready: true }) { Note(status?.Error ?? "Не удалось подготовить zapret."); return; }
-            zapretDomains = ZapretSites.Read(status.Tag!);
+            zapretTag = status.Tag!;
             var network = NetworkIdentity.Current() ?? "unknown";
-            // Под «Весь компьютер» проверяем через ядро: сайты zapret должны уже идти у него напрямую.
-            if (SystemTunnelActive) { forceZapretRouting = true; await ApplyZapretRoutingAsync(); }
+            // Под «Весь компьютер» проверяем через ядро: все сайты zapret на время подбора идут у него напрямую.
+            if (SystemTunnelActive)
+            {
+                forceZapretRouting = true; await ApplyZapretRoutingAsync();
+                // Проверять можно, только когда ядро действительно пустило все сайты zapret напрямую.
+                for (var i = 0; i < 40 && coreZapretKey != "*"; i++) await Task.Delay(250, token);
+                if (coreZapretKey != "*") throw new UserError("Не удалось перезапустить ядро с маршрутами для проверки.");
+            }
             var exclude = await VpnAddressesAsync(token);
-            if (!force && zapretChoices.GetValueOrDefault(network) is { } saved && await TryStrategyAsync(saved, exclude, token)) { Done(saved, network); return; }
+            var all = ZapretPlan.Groups.Length;
+            if (!force && zapretChoices.GetValueOrDefault(network) is { } saved)
+            {
+                var (strategy, groups) = ZapretPlan.Decode(saved);
+                Note("Проверяем запомненный выбор…");
+                if (await ProbeVariantAsync(strategy, exclude, token) is { } again && ZapretPlan.Passing(again) is { Length: > 0 } now && now.Length >= groups.Length)
+                { Done(strategy, now, again, network); return; }
+            }
             Note("Проверяем сайты без обхода…");
-            await ZapretCallAsync(new(ZapretAction.Stop));
-            var baseline = await ZapretProbe.RunAsync(ProbePort, token);
-            if (baseline.All) { Done(NoneNeeded, network); return; }
+            var baseline = await ProbeVariantAsync(ZapretPlan.NoBypass, exclude, token);
+            (string Strategy, string[] Groups, ZapretProbeResult? Probe) best = (ZapretPlan.NoBypass, baseline is null ? [] : ZapretPlan.Passing(baseline), baseline);
             var names = status.Strategies;
-            (string Name, int Passed)? best = null;
-            for (var i = 0; i < names.Length; i++)
+            for (var i = 0; i < names.Length && best.Groups.Length < all; i++)
             {
                 Note($"Подбираем стратегию: {i + 1} из {names.Length}. Можно остановить.");
-                var probe = await StartAndProbeAsync(names[i], exclude, token);
-                if (probe is null) continue;
-                if (probe.All) { Done(names[i], network); return; }
-                if (probe.Passed > (best?.Passed ?? -1)) best = (names[i], probe.Passed);
+                if (await ProbeVariantAsync(names[i], exclude, token) is not { } probe) continue;
+                var passing = ZapretPlan.Passing(probe);
+                if (ZapretPlan.Better(passing, best.Groups) || best.Probe is null) best = (names[i], passing, probe);
             }
-            // Частичного успеха нет: открылся YouTube, но не Discord — и Discord, работавший через VPN,
-            // сломался бы напрямую. Мимо VPN — только если открываются все проверочные сайты.
-            await ZapretCallAsync(new(ZapretAction.Stop));
-            var total = ZapretProbe.Targets.Length;
-            Note($"Рабочую стратегию не нашли — эти сайты идут через VPN. Без обхода открылось {baseline.Passed} из {total}" +
-                (best is { } top ? $", лучшая стратегия «{top.Name}» — {top.Passed} из {total}." : "."));
+            if (best.Groups.Length == 0)
+            {
+                await ZapretCallAsync(new(ZapretAction.Stop));
+                zapretDomains = Array.Empty<string>();
+                Note("Рабочую стратегию не нашли — эти сайты идут через VPN. " + ZapretPlan.Describe(best.Strategy, [], best.Probe));
+                return;
+            }
+            // Подбор мог уйти дальше лучшего варианта: возвращаемся к нему.
+            if (best.Strategy == ZapretPlan.NoBypass) await ZapretCallAsync(new(ZapretAction.Stop));
+            else if (zapretStatus?.Strategy != best.Strategy && await ZapretCallAsync(new(ZapretAction.Start, best.Strategy, exclude)) is not { Running: true })
+                throw new UserError("Служба не запустила zapret.");
+            Done(best.Strategy, best.Groups, best.Probe, network);
         }
-        catch (OperationCanceledException) { await ZapretCallAsync(new(ZapretAction.Stop)); Note("Подбор остановлен — эти сайты идут через VPN."); }
+        catch (OperationCanceledException) { await ZapretCallAsync(new(ZapretAction.Stop)); zapretDomains = Array.Empty<string>(); Note("Подбор остановлен — эти сайты идут через VPN."); }
         // Служба не запустила winws (антивирус, драйвер, ответ службы) — дело не в стратегии,
         // перебирать остальные бессмысленно: раньше это давало «ничего не работает» за секунду.
-        catch (UserError ex) { await ZapretCallAsync(new(ZapretAction.Stop)); Note(ex.Message + " Эти сайты идут через VPN."); }
+        catch (UserError ex) { await ZapretCallAsync(new(ZapretAction.Stop)); zapretDomains = Array.Empty<string>(); Note(ex.Message + " Эти сайты идут через VPN."); }
         finally
         {
             zapretBusy = false; forceZapretRouting = false;
@@ -115,18 +136,20 @@ public partial class MainWindow
             if (!closed) await ApplyZapretRoutingAsync();
         }
 
-        void Done(string choice, string network)
+        void Done(string strategy, string[] groups, ZapretProbeResult? probe, string network)
         {
-            zapretChoices[network] = choice; QueueStateSave();
-            Note(choice == NoneNeeded ? "В этой сети эти сайты открываются и без обхода — идут напрямую."
-                : "Работает стратегия «" + choice + "». Сайты из списка идут напрямую.");
+            zapretChoices[network] = ZapretPlan.Encode(strategy, groups); QueueStateSave();
+            zapretBypassing = strategy != ZapretPlan.NoBypass;
+            zapretDomains = ZapretSites.Read(zapretTag, ZapretPlan.Groups.Where(g => groups.Contains(g.Key)).Select(g => g.List));
+            Note(ZapretPlan.Describe(strategy, groups, probe));
         }
     }
 
-    private async Task<bool> TryStrategyAsync(string name, string[] exclude, CancellationToken token)
+    // Один вариант: без обхода (winws остановлен) или стратегия. null — служба не ответила.
+    private async Task<ZapretProbeResult?> ProbeVariantAsync(string strategy, string[] exclude, CancellationToken token)
     {
-        if (name == NoneNeeded) { await ZapretCallAsync(new(ZapretAction.Stop)); return (await ZapretProbe.RunAsync(ProbePort, token)).All; }
-        return (await StartAndProbeAsync(name, exclude, token)) is { All: true };
+        if (strategy == ZapretPlan.NoBypass) { await ZapretCallAsync(new(ZapretAction.Stop)); return await ZapretProbe.RunAsync(ProbePort, token); }
+        return await StartAndProbeAsync(strategy, exclude, token);
     }
 
     private async Task<ZapretProbeResult?> StartAndProbeAsync(string name, string[] exclude, CancellationToken token)

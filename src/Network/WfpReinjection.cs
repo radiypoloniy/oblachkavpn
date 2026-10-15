@@ -42,6 +42,12 @@ public static class WfpReinjection
                     ranges.Add(new(protocol, low, high));
             }
         }
+        return Merge(ranges);
+    }
+
+    // Слияние диапазонов: пересекающиеся и соседние — в один, лишние — по ближайшему зазору.
+    public static IReadOnlyList<PortRange> Merge(IEnumerable<PortRange> ranges)
+    {
         var merged = ranges.OrderBy(r => r.Protocol).ThenBy(r => r.Low).Aggregate(new List<PortRange>(), (list, r) =>
         {
             if (list.Count > 0 && list[^1].Protocol == r.Protocol && r.Low <= list[^1].High + 1)

@@ -9,6 +9,8 @@ namespace Oblachka;
 // фильтры часто пропускают начало и замирают на ~16 КБ — короткий ответ этого не покажет.
 public sealed record ZapretProbeResult(int Passed, int Total, long Milliseconds)
 {
+    // Открылся ли каждый адрес из Targets — по ним решаются группы (ZapretPlan).
+    public IReadOnlyList<bool> Ok { get; init; } = Array.Empty<bool>();
     public bool All => Passed == Total;
 }
 
@@ -36,7 +38,7 @@ public static class ZapretProbe
         using var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
         client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36");
         var results = await Task.WhenAll(list.Select(t => ReachAsync(client, t, token))).ConfigureAwait(false);
-        return new(results.Count(r => r), list.Count, watch.ElapsedMilliseconds);
+        return new(results.Count(r => r), list.Count, watch.ElapsedMilliseconds) { Ok = results };
     }
 
     private static async Task<bool> ReachAsync(HttpClient client, Uri target, CancellationToken token)

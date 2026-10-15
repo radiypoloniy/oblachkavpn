@@ -80,5 +80,24 @@ public static partial class SelfTests
             ExpectUserError(() => HelperProtocol.Validate(request with { Operation = HelperOperation.Heartbeat }));
             Assert(ZapretSites.Clean(".YouTube.com # видео") == "youtube.com" && ZapretSites.Clean("1.2.3.4") is null && ZapretSites.Clean("bad domain") is null);
         }));
+        await check("zapret: YouTube and Discord are decided separately; a group goes direct only when all its addresses opened", () => Sync(() =>
+        {
+            ZapretProbeResult Probe(params bool[] ok) => new(ok.Count(x => x), ok.Length, 0) { Ok = ok };
+            // ALT4 у пользователя: «3 из 6» — YouTube открылся целиком, Discord нет.
+            var youtubeOnly = Probe(true, true, true, false, false, true);
+            Assert(ZapretPlan.Passing(youtubeOnly).SequenceEqual(new[] { "youtube" }));
+            Assert(ZapretPlan.Passing(Probe(true, false, true, true, true, true)).SequenceEqual(new[] { "discord" }));
+            Assert(ZapretPlan.Passing(Probe(false, false, false, false, false, false)).Length == 0);
+            Assert(ZapretPlan.Passing(Probe(true, true)).Length == 0);
+            // Запись до 0.13.3 — только стратегия: её засчитывали, лишь когда открывалось всё.
+            Assert(ZapretPlan.Decode("ALT4").Groups.SequenceEqual(new[] { "youtube", "discord" }));
+            var encoded = ZapretPlan.Encode("ALT4", new[] { "youtube" });
+            Assert(ZapretPlan.Decode(encoded) is ("ALT4", [ "youtube" ]) && ZapretPlan.Decode("-|").Groups.Length == 0);
+            Assert(ZapretPlan.Decode("ALT|youtube,evil").Groups.SequenceEqual(new[] { "youtube" }));
+            Assert(ZapretPlan.Better(new[] { "youtube" }, Array.Empty<string>()) && !ZapretPlan.Better(new[] { "discord" }, new[] { "youtube" }));
+            var text = ZapretPlan.Describe("ALT4", new[] { "youtube" }, youtubeOnly);
+            Assert(text.Contains("YouTube — напрямую через zapret («ALT4»)") && text.Contains("через VPN: не открылись discord.com, gateway.discord.gg"));
+            Assert(ZapretPlan.Describe("-", new[] { "youtube", "discord" }, null).Contains("обход не нужен"));
+        }));
     }
 }
