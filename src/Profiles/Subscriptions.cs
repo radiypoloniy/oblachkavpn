@@ -116,7 +116,8 @@ public static class Subscriptions
     }
     private static string CleanLabel(string name) => new(name.Where(c => !char.IsControl(c)).Take(80).ToArray());
 
-    // Заголовки панели: срок и трафик, название подписки, объявление и период обновления.
+    // Заголовки панели: срок и трафик, название подписки, объявление, период обновления,
+    // маршрутизация и ссылки на поддержку и личный кабинет.
     // Текстовые значения приходят от сервера и очищаются перед показом.
     private static SubscriptionMetadata? ReadMetadata(HttpResponseMessage response)
     {
@@ -128,9 +129,11 @@ public static class Subscriptions
         var announce = SubscriptionMetadata.DecodeText(Header("announce"));
         var interval = SubscriptionMetadata.ParseUpdateInterval(Header("profile-update-interval"));
         var routing = RoutingProfile.ParseHapp(Header("routing"));
-        if (usage is null && title is null && announce is null && interval is null && routing is null) return null;
+        var support = SubscriptionMetadata.ParseLink(Header("support-url"));
+        var page = SubscriptionMetadata.ParseLink(Header("profile-web-page-url"));
+        if (usage is null && title is null && announce is null && interval is null && routing is null && support is null && page is null) return null;
         return (usage ?? new SubscriptionMetadata(null, null, null, null))
-            with { Title = title, Announce = announce, UpdateInterval = interval, Routing = routing };
+            with { Title = title, Announce = announce, UpdateInterval = interval, Routing = routing, SupportUrl = support, WebPageUrl = page };
     }
 
     public static async Task<ImportResult> FetchAsync(string url, CancellationToken token, int? socksPort = null)

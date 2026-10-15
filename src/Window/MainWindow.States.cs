@@ -35,7 +35,7 @@ public partial class MainWindow
         Home.RecoveryStop.Click += StopClick;
         Home.ClosedPick.Click += (_, _) => Navigate("Servers");
         Home.ClosedOff.Click += (_, _) => { networkClosed = false; StopClick(this, new RoutedEventArgs()); };
-        Home.SubWarnRenew.Click += (_, _) => OpenSupport();
+        Home.SubWarnRenew.Click += (_, _) => OpenLink(RenewUrl, "страницу продления");
     }
 
     // Поверх обычного статуса: возвращает true, если показано особое состояние.
@@ -108,7 +108,7 @@ public partial class MainWindow
         var warn = CurrentGroup is { IsSubscription: true } && parts.Count > 0;
         Home.SubWarn.Visibility = warn ? Visibility.Visible : Visibility.Collapsed;
         Home.SubWarnText.Text = warn ? "Подписка " + string.Join(" и ", parts) : "";
-        Home.SubWarnRenew.Visibility = ServiceBrand.SupportUrl.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        Home.SubWarnRenew.Visibility = RenewUrl is not null ? Visibility.Visible : Visibility.Collapsed;
         Home.PlanText.SetResourceReference(TextBlock.ForegroundProperty, warn ? "FootWarn" : "Mu2");
         Home.PlanText.FontWeight = warn ? FontWeights.SemiBold : FontWeights.Normal;
     }

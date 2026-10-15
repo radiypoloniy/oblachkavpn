@@ -7,7 +7,8 @@ namespace Oblachka;
 //
 // Число справа — свежий полный замер через ядро (ServerMeasurements), а без него отклик
 // сервера (ServerPing, время TCP-рукопожатия). В интерфейсе оба показаны как «142 мс».
-// Цвет точки: < 160 мс зелёный, < 250 мс жёлтый, иначе оранжевый; нет замера — бледный.
+// Цвет точки: < 160 мс зелёный, < 250 мс жёлтый, иначе оранжевый; нет ответа — красный;
+// результат старше 20 минут — «давно» с бледной точкой, подробности в подсказке.
 public sealed class ServerRow
 {
     public Profile? Profile { get; init; }
@@ -20,6 +21,7 @@ public sealed class ServerRow
     public bool IconMuted { get; init; }
     public string Latency { get; init; } = "";
     public Brush? LatencyDot { get; init; }
+    public string? LatencyHint { get; init; }
     public bool Selected { get; init; }
     public bool Favorite { get; init; }
     public bool CanFavorite => !IsAuto;
@@ -32,6 +34,23 @@ public sealed class ServerRow
 
     private static readonly Brush Fast = Frozen(0x2F, 0xB3, 0x6A), Medium = Frozen(0xD9, 0xA0, 0x1E), Slow = Frozen(0xD9, 0x73, 0x1E);
     private static Brush Frozen(byte r, byte g, byte b) { var brush = new SolidColorBrush(Color.FromRgb(r, g, b)); brush.Freeze(); return brush; }
+
+    // Отметка справа: текст, цвет точки и подсказка. checking — идёт проверка этого сервера.
+    public static (string Text, Brush? Dot, string? Hint) Status(ServerMeasurement? measured, DateTimeOffset now, bool checking = false)
+    {
+        if (checking) return ("проверяем…", Faint, "Запрос через этот сервер отдельным ядром");
+        if (measured is null) return ("", null, null);
+        var at = measured.Time.ToLocalTime();
+        if (!ServerMeasurements.Fresh(measured, now))
+            return ("давно", Faint, (measured.Success ? $"Последний ответ — {measured.Milliseconds} мс" : "В последний раз не ответил") +
+                ", " + at.ToString(at.Date == now.ToLocalTime().Date ? "HH:mm" : "dd.MM HH:mm") + ". Проверьте снова.");
+        return measured.Success
+            ? (measured.Milliseconds + " мс", DotFor(measured.Milliseconds), $"Ответил за {measured.Milliseconds} мс в {at:HH:mm}")
+            : ("нет ответа", Failed, $"Не ответил при проверке в {at:HH:mm}");
+    }
+
+    private static Brush? Faint => Application.Current?.TryFindResource("Fa") as Brush;
+    private static readonly Brush Failed = Frozen(0xD9, 0x48, 0x3B);
 
     public static Brush? DotFor(long? milliseconds) => milliseconds switch
     {

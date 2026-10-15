@@ -11,6 +11,9 @@ public sealed record SubscriptionMetadata(long? Upload, long? Download, long? To
     public TimeSpan? UpdateInterval { get; init; }
     // Маршрутизация сервиса из заголовка routing (формат Happ). Включается только с согласия.
     public RoutingProfile? Routing { get; init; }
+    // Ссылки панели (заголовки Happ / Remnawave): поддержка и личный кабинет для продления.
+    public string? SupportUrl { get; init; }
+    public string? WebPageUrl { get; init; }
 
     public const int MaxTextLength = 300;
     public static readonly TimeSpan MinUpdateInterval = TimeSpan.FromMinutes(30);
@@ -59,6 +62,30 @@ public sealed record SubscriptionMetadata(long? Upload, long? Download, long? To
         if (value is null) return null;
         var cleaned = new string(value.Where(c => !char.IsControl(c)).Take(MaxTextLength).ToArray()).Trim();
         return cleaned.Length == 0 ? null : cleaned;
+    }
+
+    // Ссылка из заголовка: только HTTPS без логина в адресе — её откроет браузер.
+    public static string? ParseLink(string? header)
+    {
+        var value = header?.Trim();
+        if (string.IsNullOrEmpty(value) || value.Length > 512 || value.Any(char.IsControl) ||
+            !Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps || uri.UserInfo.Length > 0) return null;
+        return uri.AbsoluteUri;
+    }
+
+    // Сведения из сохранённого снимка проверяются так же строго, как пришедшие от сервера.
+    public static void Validate(SubscriptionMetadata info)
+    {
+        if (info.Upload < 0 || info.Download < 0 || info.Total < 0)
+            throw new UserError("Сведения подписки повреждены.");
+        foreach (var text in new[] { info.Title, info.Announce })
+            if (text is not null && (text.Length > MaxTextLength || text.Any(char.IsControl)))
+                throw new UserError("Сведения подписки повреждены.");
+        foreach (var link in new[] { info.SupportUrl, info.WebPageUrl })
+            if (link is not null && ParseLink(link) != link)
+                throw new UserError("Ссылки подписки повреждены.");
+        if (info.UpdateInterval is { } interval && (interval < MinUpdateInterval || interval > MaxUpdateInterval))
+            throw new UserError("Период обновления подписки повреждён.");
     }
 
     // profile-update-interval в документации панели задан в днях.

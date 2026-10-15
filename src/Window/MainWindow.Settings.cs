@@ -21,7 +21,8 @@ public partial class MainWindow
         Settings.Subscription.Remember.Unchecked += (_, _) => rememberConnections = false;
         Settings.Subscription.ChangeKeyButton.Click += SubscriptionClick;
         Settings.Subscription.RefreshListButton.Click += RefreshClick;
-        Settings.Subscription.RenewButton.Click += (_, _) => OpenSupport();
+        Settings.Subscription.RenewButton.Click += (_, _) => OpenLink(RenewUrl, "страницу продления");
+        Settings.Subscription.SupportButton.Click += (_, _) => OpenLink(subscriptionMetadata?.SupportUrl, "страницу поддержки");
         Routes.RuleList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(RuleRowClick));
         Routes.ProgramList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(RuleRowClick));
         Routes.WhereInput.TextChanged += (_, _) => UpdateWhere();
@@ -59,8 +60,9 @@ public partial class MainWindow
         tab.TrafficText.Text = meta is { Total: > 0, Upload: >= 0, Download: >= 0 }
             ? $"{Math.Max(0m, (decimal)meta.Total!.Value - meta.Upload!.Value - meta.Download!.Value) / 1073741824m:0.#} ГБ"
             : meta is { Total: 0 } ? "без лимита" : "—";
-        // «Продлить» — только если у сервиса есть адрес: без него кнопка вела бы в никуда.
-        var renew = ServiceBrand.SupportUrl.Length > 0 && serviceProfiles.Count > 0;
+        // «Продлить» и «Поддержка» — только если панель прислала ссылки: иначе кнопки вели бы в никуда.
+        var renew = RenewUrl is not null;
+        tab.SupportButton.Visibility = meta?.SupportUrl is not null ? Visibility.Visible : Visibility.Collapsed;
         tab.RenewButton.Visibility = renew ? Visibility.Visible : Visibility.Collapsed;
         tab.RenewColumn.Width = renew ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
         tab.RefreshListButton.IsEnabled = groups.Any(g => g.IsSubscription) && operation is null;
@@ -78,11 +80,15 @@ public partial class MainWindow
         else { mark.Fill = System.Windows.Media.Brushes.Transparent; mark.SetResourceReference(Shape.StrokeProperty, "Ring"); mark.StrokeThickness = 1.5; }
     }
 
-    private void OpenSupport()
+    // Личный кабинет из profile-web-page-url; для сервиса — его постоянный адрес, если он задан.
+    private string? RenewUrl => subscriptionMetadata?.WebPageUrl ??
+        (ServiceBrand.SupportUrl.Length > 0 && CurrentGroup?.Source == ProfileSource.Service ? ServiceBrand.SupportUrl : null);
+
+    private void OpenLink(string? url, string what)
     {
-        if (ServiceBrand.SupportUrl.Length == 0) return;
-        try { Process.Start(new ProcessStartInfo(ServiceBrand.SupportUrl) { UseShellExecute = true })?.Dispose(); }
-        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { DetailText.Text = "Не удалось открыть страницу продления."; }
+        if (SubscriptionMetadata.ParseLink(url) is not { } link) return;
+        try { Process.Start(new ProcessStartInfo(link) { UseShellExecute = true })?.Dispose(); }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { DetailText.Text = "Не удалось открыть " + what + "."; }
     }
 
     // Метка действия меняется по кругу: через VPN → напрямую → блок. Крестик удаляет правило.

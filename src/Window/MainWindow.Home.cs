@@ -111,15 +111,18 @@ public partial class MainWindow
     private ServerRow Row(Profile item) => Row(item, true);
     private ServerRow Row(Profile item, bool note)
     {
+        var now = DateTimeOffset.UtcNow;
         var measured = LatestMeasurement(item);
-        long? latency = measured is { Success: true } ? measured.Milliseconds : null;
-        if (latency is null && runningProfile is not null && ReferenceEquals(item, runningProfile) && lastProbe is { Success: true }) latency = lastProbe.Milliseconds;
+        // У работающего подключения свежее всего — последняя проверка связи через него.
+        if ((measured is null || !ServerMeasurements.Fresh(measured, now)) && runningProfile is not null && ReferenceEquals(item, runningProfile) && lastProbe is { Success: true })
+            measured = new(Profiles.Fingerprint(item), now, true, lastProbe.Milliseconds);
+        var (latency, dot, hint) = ServerRow.Status(measured, now, checkingServer is not null && ReferenceEquals(item, checkingServer));
         var icon = ServerRow.IconFor(item);
         return new ServerRow
         {
             Profile = item, Name = item.DisplayName, Note = note ? GroupNote(item) : null,
             Flag = icon is null ? FlagImages.Local(item.Country.Code) : null, Icon = icon, IconMuted = !item.IsService,
-            Latency = latency is not null ? latency + " мс" : measured is { Success: false } ? "нет ответа" : "", LatencyDot = ServerRow.DotFor(latency),
+            Latency = latency, LatencyDot = dot, LatencyHint = hint,
             Selected = !autoSelect && profile is not null && ProfileSelection.Identity(item) == ProfileSelection.Identity(profile),
             Favorite = favorites.Contains(FavoriteKey(item))
         };

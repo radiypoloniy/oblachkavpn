@@ -159,12 +159,13 @@ public partial class MainWindow
         Profile Node(string name, int n) => Profiles.Parse($"vless://{n:x8}-1111-4111-8111-111111111111@n{n}.invalid:443?security=tls&type=tcp#{Uri.EscapeDataString(name)}");
         var now = DateTimeOffset.UtcNow;
         SetGroup(new ProfileGroup("sub-0123456789ab", "Основная", ProfileSource.External, new[] { "https://main.invalid/s" }) { Updated = now.AddMinutes(-12),
-            Metadata = new SubscriptionMetadata(0, 20_000_000_000, 100_000_000_000, now.AddDays(40)) }, new[] { Node("🇳🇱 Нидерланды", 11), Node("🇩🇪 Германия", 12), Node("🇺🇸 США", 13) });
+            Metadata = new SubscriptionMetadata(0, 20_000_000_000, 100_000_000_000, now.AddDays(40)) { SupportUrl = "https://t.me/example_support", WebPageUrl = "https://main.invalid/cabinet" } }, new[] { Node("🇳🇱 Нидерланды", 11), Node("🇩🇪 Германия", 12), Node("🇺🇸 США", 13) });
         SetGroup(new ProfileGroup("sub-ba9876543210", "Резерв", ProfileSource.External, new[] { "https://reserve.invalid/t" }) { Updated = now.AddHours(-30) }, new[] { Node("🇫🇮 Финляндия", 21) });
         SetGroup(ProfileGroup.Manual, new[] { Node("Мой сервер", 31) });
         ApplyProfiles(true);
-        foreach (var (item, ms) in importedProfiles.Zip(new long[] { 84, 61, 142, 97, 38 }))
-            pings[Profiles.Fingerprint(item)] = new(Profiles.Fingerprint(item), now, true, ms);
+        // Последний узел проверяли давно: видно отметку «давно».
+        foreach (var (item, i) in importedProfiles.Select((p, i) => (p, i)))
+            pings[Profiles.Fingerprint(item)] = new(Profiles.Fingerprint(item), i == 4 ? now.AddHours(-3) : now, i != 2, new long[] { 84, 61, 142, 97, 38 }[i % 5]);
         FilterProfiles(); RefreshHome();
     }
 

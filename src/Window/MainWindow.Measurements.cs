@@ -27,6 +27,28 @@ public partial class MainWindow
         // «Подключить лучший» — то же, что «Автовыбор»: лучший по свежим замерам и сразу подключение.
         Servers.BestButton.Click += (_, _) => { if (operation is null) { PickServer(null); Navigate("Connection"); } };
     }
+    // «Проверить этот сервер»: настоящий HTTPS-запрос через выбранный сервер отдельным ядром,
+    // как у «Проверить все», но для одного и любого источника. Подключение не трогает.
+    private Profile? checkingServer;
+    private async Task CheckServerAsync(Profile item)
+    {
+        if (checkingServer is not null || measuring) { DetailText.Text = "Дождитесь окончания текущей проверки."; return; }
+        // Под «Весь компьютер» запрос отдельного ядра ушёл бы в туннель или упёрся в защиту.
+        if (systemTunnel is not null) { DetailText.Text = "Проверка отдельного сервера недоступна в режиме «Весь компьютер». Отключитесь или проверьте в режиме «Браузеры»."; return; }
+        checkingServer = item; RenderSheet();
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+            ServerMeasurement? result = null;
+            await ServerMeasurements.MeasureAsync(new[] { item }, () => new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), ""),
+                measured => result = measured, timeout.Token);
+            if (result is not null) { measurements[result.Fingerprint] = result; QueueStateSave(); }
+            if (!closed) DetailText.Text = result is { Success: true } ? $"{item.DisplayName}: работает, {result.Milliseconds} мс." : $"{item.DisplayName}: не ответил.";
+        }
+        catch (OperationCanceledException) { if (!closed) DetailText.Text = item.DisplayName + ": проверка не уложилась в 45 секунд."; }
+        finally { checkingServer = null; if (!closed) { RenderSheet(); RefreshHome(); } }
+    }
+
     // Отклики серверов (ServerPing) живут только в этом запуске: они дешёвые и делаются заново
     // при каждом старте, после загрузки подписки и при открытии «Всех серверов».
     private readonly Dictionary<string, ServerMeasurement> pings = new();

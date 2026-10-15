@@ -12,6 +12,7 @@
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
           <Button x:Name="RowButton" Style="{StaticResource Row}" Padding="10,0,6,0" AutomationProperties.Name="{Binding Name}">
             <Grid>
@@ -30,13 +31,18 @@
                 <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="{Binding NameWeight}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Tx}"/>
                 <TextBlock Text="{Binding Note}" FontSize="12" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Visibility="{Binding NoteVisibility}"/>
               </StackPanel>
-              <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding LatencyVisibility}">
+              <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding LatencyVisibility}" ToolTip="{Binding LatencyHint}" Background="Transparent">
                 <Ellipse Width="6" Height="6" Fill="{Binding LatencyDot}" Margin="0,0,6,0"/>
                 <TextBlock Text="{Binding Latency}" FontSize="13" Foreground="{DynamicResource Mu2}"/>
               </StackPanel>
             </Grid>
           </Button>
-          <Button x:Name="StarButton" Grid.Column="1" Tag="star" Style="{StaticResource IconButton}" Width="36" Height="36" Margin="0,0,4,0"
+          <!-- Проверка одного сервера: видна при наведении и фокусе, для экранного диктора есть всегда. -->
+          <Button x:Name="CheckButton" Grid.Column="1" Tag="check" Style="{StaticResource IconButton}" Width="36" Height="36" Opacity="0"
+                  AutomationProperties.Name="Проверить этот сервер" ToolTip="Проверить этот сервер">
+            <Path Data="{StaticResource IcoRefresh}" Width="16" Height="16" Stretch="Uniform" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Mu2}"/>
+          </Button>
+          <Button x:Name="StarButton" Grid.Column="2" Tag="star" Style="{StaticResource IconButton}" Width="36" Height="36" Margin="0,0,4,0"
                   AutomationProperties.Name="Избранное" Visibility="Visible">
             <Path x:Name="StarGlyph" Data="{StaticResource IcoStar}" Width="17" Height="17" Stretch="Uniform" StrokeThickness="1.8" StrokeLineJoin="Round" Stroke="{DynamicResource Fa}" Fill="Transparent"/>
           </Button>
@@ -54,7 +60,14 @@
         </DataTrigger>
         <DataTrigger Binding="{Binding CanFavorite}" Value="False">
           <Setter TargetName="StarButton" Property="Visibility" Value="Collapsed"/>
+          <Setter TargetName="CheckButton" Property="Visibility" Value="Collapsed"/>
         </DataTrigger>
+        <Trigger SourceName="Plate" Property="IsMouseOver" Value="True">
+          <Setter TargetName="CheckButton" Property="Opacity" Value="1"/>
+        </Trigger>
+        <Trigger SourceName="CheckButton" Property="IsKeyboardFocused" Value="True">
+          <Setter TargetName="CheckButton" Property="Opacity" Value="1"/>
+        </Trigger>
         <DataTrigger Binding="{Binding IconOnAccent}" Value="True">
           <Setter TargetName="IconPlate" Property="Background" Value="{DynamicResource Ac}"/>
           <Setter TargetName="IconGlyph" Property="Stroke" Value="White"/>
