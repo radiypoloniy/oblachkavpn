@@ -59,16 +59,23 @@ public static class ZapretRunner
     {
         lock (Gate)
         {
-            var current = manifest;
+            // После перезапуска службы набор на диске остаётся: проверяем его по встроенному манифесту.
+            var current = manifest ??= Installed();
             var alive = process is { HasExited: false };
             return new(current is not null && ZapretInstaller.Ready(current), alive, current?.Tag, alive ? running : null,
                 current?.Strategies.Select(s => s.Name).ToArray() ?? Array.Empty<string>());
         }
     }
 
+    private static ZapretManifest? Installed()
+    {
+        try { var embedded = ZapretManifest.Embedded(); return ZapretInstaller.Ready(embedded) ? embedded : null; }
+        catch (UserError) { return null; }
+    }
+
     private static void Start(ZapretRequest request)
     {
-        var current = manifest ?? throw new UserError("zapret: набор ещё не подготовлен.");
+        var current = (manifest ??= Installed()) ?? throw new UserError("zapret: набор ещё не подготовлен.");
         var strategy = current.Strategies.FirstOrDefault(s => s.Name == request.Strategy) ?? throw new UserError("zapret: такой стратегии нет в наборе.");
         if (ZapretInstaller.Damaged(current) is { Length: > 0 })
             throw new UserError("Файлы zapret повреждены или удалены — чаще всего это делает антивирус. Добавьте папку " + ZapretInstaller.Folder(current) + " в исключения и подготовьте набор заново.");
