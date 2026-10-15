@@ -63,6 +63,36 @@ public static class TestProgram
             File.WriteAllLines(args[1], found.Select(f => f.Action.Kind + " | " + f.Title + " | " + f.Text).Append($"за {clock.ElapsedMilliseconds} мс"));
             return 0;
         }
+        // Разбор сохранённого ответа подписки: только число узлов и их имена, без ключей.
+        if (args.Length == 3 && args[0] == "--parse-file")
+        {
+            string report;
+            try
+            {
+                var result = Subscriptions.Parse(File.ReadAllText(args[1]));
+                report = $"узлов {result.Profiles.Count}, неподдерживаемых {result.Unsupported}, некорректных {result.Invalid}: " +
+                    string.Join(" | ", result.Profiles.Select(p => p.DisplayName + " (" + p.Core + " " + p.Transport + ")"));
+            }
+            catch (UserError ex) { report = "ошибка: " + ex.Message; }
+            File.WriteAllText(args[2], report);
+            return 0;
+        }
+        // Совпадают ли узлы двух ответов подписки (по отпечатку конфигурации), без вывода ключей.
+        if (args.Length == 4 && args[0] == "--compare-files")
+        {
+            var a = Subscriptions.Parse(File.ReadAllText(args[1])).Profiles;
+            var b = Subscriptions.Parse(File.ReadAllText(args[2])).Profiles;
+            var lines = a.Select(p => (p.DisplayName, match: b.Any(q => Profiles.Fingerprint(q) == Profiles.Fingerprint(p)))).Select(x => x.DisplayName + ": " + (x.match ? "совпадает" : "ОТЛИЧАЕТСЯ")).ToList();
+            foreach (var p in a.Where(p => !b.Any(q => Profiles.Fingerprint(q) == Profiles.Fingerprint(p))))
+            {
+                var twin = b.FirstOrDefault(q => q.Name == p.Name && q.Transport == p.Transport);
+                if (twin is null) continue;
+                var keysA = Flatten(p.Outbound); var keysB = Flatten(twin.Outbound);
+                lines.Add("  " + p.DisplayName + " расходится в: " + string.Join(", ", keysA.Keys.Union(keysB.Keys).Where(k => keysA.GetValueOrDefault(k) != keysB.GetValueOrDefault(k)).Take(8)));
+            }
+            File.WriteAllLines(args[3], lines);
+            return 0;
+        }
         if (args.Length == 3 && args[0] == "--qr-debug")
         {
             using var bitmap = new System.Drawing.Bitmap(args[2]);
@@ -91,5 +121,18 @@ public static class TestProgram
             return SelfTests.RunAsync(args.Length > 1 ? args[1] : Path.Combine(AppContext.BaseDirectory, "self-test.json")).GetAwaiter().GetResult();
         Console.Error.WriteLine("Oblachka.Tests: нужен один из аргументов --self-test, --architecture-self-test, --lab.");
         return 1;
+    }
+
+    private static Dictionary<string, string> Flatten(System.Text.Json.Nodes.JsonNode? node, string prefix = "")
+    {
+        var result = new Dictionary<string, string>();
+        switch (node)
+        {
+            case System.Text.Json.Nodes.JsonObject o: foreach (var (k, v) in o) foreach (var x in Flatten(v, prefix + "." + k)) result[x.Key] = x.Value; break;
+            case System.Text.Json.Nodes.JsonArray a: for (var i = 0; i < a.Count; i++) foreach (var x in Flatten(a[i], prefix + "[" + i + "]")) result[x.Key] = x.Value; break;
+            case null: result[prefix] = "null"; break;
+            default: result[prefix] = node.ToJsonString().Length.ToString(); break;
+        }
+        return result;
     }
 }

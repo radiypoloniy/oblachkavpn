@@ -28,7 +28,15 @@ public static class Subscriptions
         input = input.Trim();
         if (input.StartsWith('<')) throw new UserError("Получена веб-страница. Нужна ссылка на подписку, а не личный кабинет.");
         if (input.Length == 0) throw new UserError("Подписка пуста.");
-        if (!input.Contains("://") && !input.StartsWith('{') && !input.StartsWith('['))
+        // Clash / Mihomo: раздел proxies переводится в ссылки и разбирается как обычная подписка.
+        var clashUnsupported = 0;
+        if (ClashSubscription.Looks(input))
+        {
+            var links = ClashSubscription.ToLinks(input, out clashUnsupported);
+            if (links.Count == 0) throw new UserError("В подписке Clash нет поддерживаемых подключений (VLESS, Trojan, Hysteria2).");
+            input = string.Join('\n', links);
+        }
+        else if (!input.Contains("://") && !input.StartsWith('{') && !input.StartsWith('['))
         {
             try
             {
@@ -78,7 +86,9 @@ public static class Subscriptions
                             Add(wrapper);
                             if (profiles.Count > originalCount)
                             {
-                                var name = obj["remarks"]?.GetValue<string>() ?? obj["name"]?.GetValue<string>() ?? "";
+                                // Подписка sing-box — одна конфигурация со многими выходами: имя узла — его tag.
+                                var name = obj["remarks"]?.GetValue<string>() ?? obj["name"]?.GetValue<string>()
+                                    ?? (outbound["tag"] is JsonValue tag && tag.TryGetValue<string>(out var t) ? t : "");
                                 if (!string.IsNullOrWhiteSpace(name)) profiles[^1] = profiles[^1] with { Name = CleanLabel(name) };
                             }
                         }
@@ -102,7 +112,7 @@ public static class Subscriptions
             }
         }
         if (profiles.Count == 0) throw new UserError("В подписке нет поддерживаемых профилей (VLESS, Trojan, Hysteria2 с TLS/REALITY)." + (reasons.Count > 0 ? " Причина: " + reasons[0] : " Проверьте формат подписки."));
-        return new(profiles, unsupported, invalid) { Reasons = reasons, Duplicates = duplicates };
+        return new(profiles, unsupported + clashUnsupported, invalid) { Reasons = reasons, Duplicates = duplicates };
     }
     private static string CleanLabel(string name) => new(name.Where(c => !char.IsControl(c)).Take(80).ToArray());
 
