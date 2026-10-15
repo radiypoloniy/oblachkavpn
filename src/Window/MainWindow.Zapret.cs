@@ -83,7 +83,8 @@ public partial class MainWindow
             if (!force && zapretChoices.GetValueOrDefault(network) is { } saved && await TryStrategyAsync(saved, exclude, token)) { Done(saved, network); return; }
             Note("Проверяем сайты без обхода…");
             await ZapretCallAsync(new(ZapretAction.Stop));
-            if ((await ZapretProbe.RunAsync(ProbePort, token)).All) { Done(NoneNeeded, network); return; }
+            var baseline = await ZapretProbe.RunAsync(ProbePort, token);
+            if (baseline.All) { Done(NoneNeeded, network); return; }
             var names = status.Strategies;
             (string Name, int Passed)? best = null;
             for (var i = 0; i < names.Length; i++)
@@ -92,7 +93,9 @@ public partial class MainWindow
                 var probe = await StartAndProbeAsync(names[i], exclude, token);
                 if (probe is null) continue;
                 if (probe.All) { Done(names[i], network); return; }
-                if (probe.Passed > (best?.Passed ?? 0)) best = (names[i], probe.Passed);
+                // Частичный успех засчитывается, только если стратегия открывает больше, чем без обхода:
+                // иначе сайты пошли бы мимо VPN и сломались (например, заблокированные по DNS).
+                if (probe.Passed > Math.Max(best?.Passed ?? 0, baseline.Passed)) best = (names[i], probe.Passed);
             }
             if (best is { } partial && await TryStrategyAsync(partial.Name, exclude, token, acceptPartial: true)) { Done(partial.Name, network, partial: true); return; }
             await ZapretCallAsync(new(ZapretAction.Stop));
