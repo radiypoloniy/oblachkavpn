@@ -35,6 +35,41 @@ public static class TestProgram
             File.WriteAllLines(args[1], lines);
             return 0;
         }
+        // Распознавание QR на картинках: для каждого файла — текст или «не распознан».
+        if (args.Length >= 3 && args[0] == "--qr-decode")
+        {
+            var lines = new List<string>();
+            foreach (var file in args.Skip(2))
+            {
+                var clock = System.Diagnostics.Stopwatch.StartNew();
+                using var bitmap = new System.Drawing.Bitmap(file);
+                lines.Add(Path.GetFileName(file) + "	" + (QrImages.Decode(bitmap) ?? "<не распознан>") + "	" + clock.ElapsedMilliseconds + " мс");
+            }
+            File.WriteAllLines(args[1], lines);
+            return 0;
+        }
+        // Сканирование настоящих экранов, как кнопка «Сканировать QR-код на экране».
+        if (args.Length == 2 && args[0] == "--qr-screen")
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            File.WriteAllText(args[1], (QrImages.ScanScreens() ?? "<не найден>") + "	" + clock.ElapsedMilliseconds + " мс");
+            return 0;
+        }
+        if (args.Length == 3 && args[0] == "--qr-debug")
+        {
+            using var bitmap = new System.Drawing.Bitmap(args[2]);
+            var (gray, w, h) = QrImages.Gray(bitmap);
+            var lines = new List<string>();
+            foreach (var grid in QrDetector.Grids(gray, w, h))
+            {
+                var size = grid.GetLength(0);
+                string? text = null; string error = "";
+                try { text = QrDecoder.Read(grid); } catch (Exception ex) { error = ex.GetType().Name; }
+                lines.Add($"size {size}: {(text is null ? "нет " + error : "OK")}");
+            }
+            File.WriteAllLines(args[1], lines);
+            return 0;
+        }
         if (args.Length == 3 && args[0] == "--routing-check") return RoutingCheckCommand.Run(args[1], args[2]);
         if (args.Length == 3 && args[0] == "--ping-check") return PingCheckCommand.Run(args[1], args[2]);
         if (args.Length == 3 && args[0] == "--subscription-check") return SubscriptionCheckCommand.Run(args[1], args[2]);

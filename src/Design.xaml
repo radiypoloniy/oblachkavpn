@@ -18,6 +18,7 @@
   <Geometry x:Key="IcoRefresh">M20,11 A8,8 0 0 0 5.7,6.1 L4,8 M4,4 L4,8 L8,8 M4,13 A8,8 0 0 0 18.3,17.9 L20,16 M20,20 L20,16 L16,16</Geometry>
   <Geometry x:Key="IcoSearch">M17.5,11 A6.5,6.5 0 1 1 4.5,11 A6.5,6.5 0 1 1 17.5,11 M16,16 L20,20</Geometry>
   <Geometry x:Key="IcoPlus">M12,5 L12,19 M5,12 L19,12</Geometry>
+  <Geometry x:Key="IcoQr">M4,4 L10,4 L10,10 L4,10 Z M14,4 L20,4 L20,10 L14,10 Z M4,14 L10,14 L10,20 L4,20 Z M14,14 L16,14 M20,14 L20,16 M14,18 L14,20 L16,20 M18,18 L20,20 M17,17 L17.01,17</Geometry>
   <Geometry x:Key="IcoFile">M14,3 L7,3 A2,2 0 0 0 5,5 L5,19 A2,2 0 0 0 7,21 L17,21 A2,2 0 0 0 19,19 L19,8 Z M14,3 L14,8 L19,8</Geometry>
   <Geometry x:Key="IcoArrow">M5,12 L19,12 M13,6 L19,12 L13,18</Geometry>
   <Geometry x:Key="IcoWarn">M12,4 L21,20 L3,20 Z M12,10 L12,14 M12,17 L12,17.01</Geometry>

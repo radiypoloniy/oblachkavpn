@@ -26,11 +26,18 @@
           <TextBlock Text="Открыть файл профиля (JSON, txt)" VerticalAlignment="Center"/>
         </StackPanel>
       </Button>
+      <Button x:Name="ScanButton" Style="{StaticResource BtnGhost}" HorizontalAlignment="Left" Margin="-6,0,0,0" Padding="6,0,10,0" Foreground="{DynamicResource Ac}"
+              ToolTip="Откройте QR-код в Telegram или браузере, чтобы он был виден на экране. Картинку с кодом можно и вставить в поле: Ctrl+V.">
+        <StackPanel Orientation="Horizontal">
+          <Path Data="{StaticResource IcoQr}" Width="16" Height="16" Stretch="Uniform" Stroke="{DynamicResource Ac}" StrokeThickness="2" StrokeLineJoin="Round" Margin="0,0,8,0"/>
+          <TextBlock Text="Сканировать QR-код на экране" VerticalAlignment="Center"/>
+        </StackPanel>
+      </Button>
       <!-- Подписки, найденные в других клиентах на этом компьютере (ForeignClients). Нажатие
            загружает выбранную и подключает, как «Подключиться» с этой ссылкой в поле. -->
       <StackPanel x:Name="ForeignPanel" Visibility="Collapsed" Margin="0,22,0,0">
         <TextBlock Text="Или перенесите из другого приложения" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" Margin="0,0,0,8"/>
-        <ScrollViewer MaxHeight="190" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer MaxHeight="124" VerticalScrollBarVisibility="Auto">
           <ItemsControl x:Name="ForeignList">
             <ItemsControl.ItemTemplate>
               <DataTemplate DataType="{x:Type o:ForeignSubscription}">

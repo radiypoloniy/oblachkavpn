@@ -137,6 +137,7 @@
         <StackPanel x:Name="AddPanel" Margin="50,0,0,8" Visibility="Collapsed">
           <Button x:Name="PasteButton" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Content="Вставить из буфера обмена"/>
           <Button x:Name="ImportFileButton" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Content="Открыть файл профиля (JSON, txt)"/>
+          <Button x:Name="ScanButton" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Content="QR-код на экране"/>
           <Button x:Name="SubscriptionButton" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Content="Адреса подписки…"/>
         </StackPanel>
       </StackPanel>

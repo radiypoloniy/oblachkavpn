@@ -20,4 +20,8 @@
   <ItemGroup>
     <ProjectReference Include="..\src\Oblachka.csproj"/>
   </ItemGroup>
+  <ItemGroup>
+    <!-- Картинки QR, сделанные segno 1.6.6: обычные, повёрнутая, повреждённая, версия 40, «снимок экрана». -->
+    <None Include="Fixtures\Qr\*" CopyToOutputDirectory="PreserveNewest"/>
+  </ItemGroup>
 </Project>

@@ -123,6 +123,21 @@ public static partial class SelfTests
 
     private static async Task AutoSelectChecksAsync(Func<string, Func<Task>, Task> check)
     {
+        await check("QR decoder reads segno images: versions 9–40, rotation, damage, a QR inside a screenshot; noise gives null", () => Sync(() =>
+        {
+            var folder = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Qr");
+            var expected = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(folder, "expected.json")))!;
+            Assert(expected.Count == 6);
+            foreach (var (file, text) in expected)
+            {
+                using var bitmap = new System.Drawing.Bitmap(Path.Combine(folder, file));
+                var decoded = QrImages.Decode(bitmap);
+                if (decoded != text) throw new InvalidOperationException("QR not decoded: " + file);
+            }
+            var random = new Random(3);
+            var noise = new byte[200 * 200]; random.NextBytes(noise);
+            Assert(QrDecoder.Decode(noise, 200, 200) is null && QrDecoder.Decode(new byte[400], 20, 20) is null && QrDecoder.Decode(new byte[10], 200, 200) is null);
+        }));
         await check("oblachka:// links accept add/import/install-config/key forms and only HTTPS addresses", () => Sync(() =>
         {
             const string url = "https://sub.example.com/s/abc123?x=1";
