@@ -22,6 +22,15 @@ public partial class MainWindow
         previewState = "closed"; RefreshHome();
         if (Home.ClosedCard.Visibility != Visibility.Visible || Home.Power.State != Views.PowerState.Blocked || Home.StatusTitle.Text != "Интернет закрыт")
             throw new InvalidOperationException("Closed network state is not shown");
+        if (Home.ClosedPick.Visibility != Visibility.Visible || !Home.ClosedText.Text.StartsWith("Не удалось найти"))
+            throw new InvalidOperationException("Closed card without a working server lost its server choice");
+        // Путь программ сломан (SystemPathProbe): причина на карточке, другой сервер не поможет.
+        pathBroken = true; pathProblem = "Сервер отвечает, но программы компьютера через туннель в интернет не выходят.";
+        RefreshHome();
+        if (Home.ClosedPick.Visibility != Visibility.Collapsed || !Home.ClosedText.Text.StartsWith(pathProblem) ||
+            Home.StatusSub.Text != "Трафик компьютера не проходит через туннель")
+            throw new InvalidOperationException("Broken system path is not explained: " + Home.ClosedText.Text);
+        pathBroken = false; pathProblem = "";
         previewState = null; RefreshHome();
         if (Home.ForeignCard.Visibility != Visibility.Collapsed || Home.ClosedCard.Visibility != Visibility.Collapsed || Home.ServerSection.Visibility != Visibility.Visible)
             throw new InvalidOperationException("Special state did not clear");

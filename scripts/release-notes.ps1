@@ -7,7 +7,9 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$version = $Tag.TrimStart('v')
+# Пробная версия vX.Y.Z-rc.N берёт тот же раздел X.Y.Z.
+$version = ($Tag.TrimStart('v') -split '-', 2)[0]
+$trial = $Tag -match '-rc\.\d+$'
 $lines = [IO.File]::ReadAllLines((Join-Path $root 'CHANGELOG.md'), [Text.UTF8Encoding]::new($false))
 $section = @()
 $inside = $false
@@ -24,6 +26,7 @@ if (-not ($section -join '').Trim()) { throw ('В CHANGELOG.md нет разде
 $name = Split-Path -Leaf $Installer
 $sha = (Get-FileHash -LiteralPath $Installer -Algorithm SHA256).Hash
 $notes = @(
+    $(if ($trial) { '> **Пробная версия.** Облачка не предлагает её сама: ставьте вручную. Когда проверено, этот же коммит выходит обычной версией.'; '' })
     ($section -join "`n").Trim(), '',
     '## Установка', '',
     ('Скачайте `' + $name + '` ниже и запустите. Если Облачка уже стоит, она предложит обновиться сама: «Настройки → Помощь → Обновления».'), '',

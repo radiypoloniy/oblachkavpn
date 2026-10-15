@@ -1,6 +1,8 @@
 name: Сборка и релиз
 
 # Тег vX.Y.Z — сборка, проверки, установщик и релиз на GitHub с описанием из CHANGELOG.md.
+# Тег vX.Y.Z-rc.N — то же, но пробная версия (pre-release): обновлялка её не видит
+# (AppUpdate берёт releases/latest), ставится вручную. Проверили — тот же коммит тегом vX.Y.Z.
 # Ручной запуск (Actions → Run workflow) — то же без релиза: установщик остаётся артефактом.
 on:
   push:
@@ -31,7 +33,7 @@ jobs:
         shell: pwsh
         run: |
           $version = ([xml](Get-Content src\Oblachka.csproj -Raw)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
-          if ('v' + $version -ne '${{ github.ref_name }}') { throw ('Тег ${{ github.ref_name }}, а в Oblachka.csproj версия ' + $version) }
+          if ('${{ github.ref_name }}' -notmatch ('^v' + [regex]::Escape($version) + '(-rc\.\d+)?$')) { throw ('Тег ${{ github.ref_name }}, а в Oblachka.csproj версия ' + $version) }
           if (-not (Select-String -Path src\App\ServiceBrand.cs -SimpleMatch ('Version = "' + $version + '"'))) { throw 'ServiceBrand.Version не совпадает с Oblachka.csproj' }
 
       - name: Сборка
@@ -60,6 +62,11 @@ jobs:
         run: |
           $setup = Get-ChildItem dist\Oblachka-setup-*.exe | Select-Object -First 1
           .\scripts\release-notes.ps1 -Tag '${{ github.ref_name }}' -Installer $setup.FullName -Output notes.md
-          $version = '${{ github.ref_name }}'.TrimStart('v')
-          gh release create '${{ github.ref_name }}' $setup.FullName --title ('Облачка ' + $version) --notes-file notes.md
+          $tag = '${{ github.ref_name }}'
+          $version = $tag.TrimStart('v')
+          if ($tag -match '-rc\.(\d+)$') {
+            gh release create $tag $setup.FullName --title ('Облачка ' + ($version -split '-')[0] + ' — проба ' + $Matches[1]) --notes-file notes.md --prerelease
+          } else {
+            gh release create $tag $setup.FullName --title ('Облачка ' + $version) --notes-file notes.md
+          }
           if ($LASTEXITCODE -ne 0) { throw 'Релиз не создан.' }
