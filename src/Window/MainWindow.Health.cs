@@ -95,7 +95,11 @@ public partial class MainWindow
                 start = 0;
             }
             else { candidates = RouteCandidates.For(profiles, profile); start = RouteCandidates.StartAt(candidates, profiles, profile); }
-            var result = await CreateRouteSearch().FindAsync(candidates.Select(i => profiles[i]).ToArray(), start, TunnelHealth.Targets[0], operation.Token);
+            // Сначала — почему упало (адрес, рукопожатие, туннель), затем попытки в этом порядке.
+            var subset = candidates.Select(i => profiles[i]).ToArray();
+            var order = new[] { start }.Concat(Enumerable.Range(0, subset.Length).Where(i => i != start)).ToArray();
+            var steps = await PlanRecoveryAsync(subset, order, profile, operation.Token);
+            var result = await CreateRouteSearch().FindAsync(subset, steps, TunnelHealth.Targets[0], operation.Token);
             // Итог каждой попытки — тоже замер: автовыбор учтёт его в следующий раз.
             foreach (var attempt in result.Attempts)
                 MarkMeasured(profiles[candidates[attempt.ProfileIndex]], attempt.Outcome == "Verified" ? attempt.Milliseconds : null);
@@ -108,7 +112,8 @@ public partial class MainWindow
                 Servers.SearchBox.Clear(); ProfilePicker.ItemsSource = importedProfiles;
                 ProfilePicker.SelectedIndex = index; profile = profiles[index]; runningProfile = profile; health.Reset();
                 RecordProbe(new(true, result.Attempts[^1].Milliseconds, "Соединение восстановлено"));
-                DetailText.Text = "Соединение восстановлено; выбран рабочий сервер.";
+                LearnFragment(result.Fragment);
+                DetailText.Text = result.Fragment ? "Соединение восстановлено с обходом DPI: рукопожатие разрезано." : "Соединение восстановлено; выбран рабочий сервер.";
             }
             else if (!closed)
             {

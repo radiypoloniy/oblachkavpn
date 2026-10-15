@@ -36,7 +36,7 @@ public partial class MainWindow
             Favorites = favorites.Where(f => importedProfiles.Any(p => FavoriteKey(p) == f)).Take(Subscriptions.MaxProfiles).ToArray(),
             Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
             ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = Routes.RussiaDirect.IsChecked == true, AutoSelect = autoSelect,
-            UpdateCheck = Diagnostics.UpdateAuto.IsChecked == true };
+            UpdateCheck = Diagnostics.UpdateAuto.IsChecked == true, DpiBypass = fragmentMode };
 
     private void SaveStateClick(object sender, RoutedEventArgs args)
     {
@@ -87,6 +87,7 @@ public partial class MainWindow
         Routes.RussiaDirect.IsChecked = snapshot.RussiaDirect;
         autoSelect = snapshot.AutoSelect;
         Diagnostics.UpdateAuto.IsChecked = snapshot.UpdateCheck;
+        fragmentMode = Enum.IsDefined(snapshot.DpiBypass) ? snapshot.DpiBypass : FragmentMode.Auto;
         RefreshRouting();
         // Группы из снимка; у снимка до 0.11 их выводим: сервис, одна сторонняя подписка или «Вручную».
         groups.Clear(); groupProfiles.Clear();

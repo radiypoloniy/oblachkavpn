@@ -45,6 +45,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public bool AutoSelect { get; init; }
     // Проверка обновлений на GitHub раз в 12 часов (0.12). По умолчанию включена.
     public bool UpdateCheck { get; init; } = true;
+    // Обход DPI (0.13): Auto — разрезать рукопожатие, только когда обычное не проходит.
+    public FragmentMode DpiBypass { get; init; }
     // Подписки и «Вручную» (0.11). Нет значения — снимок прежней версии.
     public ProfileGroup[]? Groups { get; init; }
 }

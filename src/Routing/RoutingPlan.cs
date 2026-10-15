@@ -62,7 +62,8 @@ public static class RoutingPlan
         var config = adapter.RuntimeConfig(profile.Outbound, port);
         var outbounds = (JsonArray)config["outbounds"]!;
         var xray = adapter.Kind == CoreKind.Xray;
-        var tunnelTag = outbounds[0]!["tag"]!.GetValue<string>();
+        // Метка туннеля одна у всех ядер (CoreAdapter); у WireGuard он в endpoints, а не первым в outbounds.
+        const string tunnelTag = "tunnel";
         if (routing is { IsEmpty: true }) routing = null;
         if (rules.Any(r => r.Action == SiteAction.Direct) || routing?.HasDirect == true)
             outbounds.Add(DirectOutbound(xray, directEntry));

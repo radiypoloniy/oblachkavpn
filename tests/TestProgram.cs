@@ -19,13 +19,24 @@ public static class TestProgram
         if (args.Length == 4 && args[0] == "--local-rules-check") return LocalRulesCheckCommand.Run(args[1], args[2], args[3]);
         // Конфигурация ядра для одной ссылки (или файла с ней) тем же кодом, что в приложении:
         // для проверки протокола на локальном сервере. В файле — учётные данные из ссылки.
-        if (args.Length == 4 && args[0] == "--link-config")
+        // Пятый аргумент --fragment включает «Обход DPI» (TlsFragment), как его включает подбор.
+        if (args.Length is 4 or 5 && args[0] == "--link-config")
         {
             var text = File.Exists(args[1]) ? File.ReadAllText(args[1]) : args[1];
             var profile = Subscriptions.Parse(text).Profiles[0];
             var adapter = new CoreAdapter(profile.Core, Path.Combine(AppContext.BaseDirectory, "tools", profile.Core == CoreKind.Xray ? "xray.exe" : "sing-box.exe"));
-            File.WriteAllText(args[2], adapter.RuntimeConfig(profile.Outbound, int.Parse(args[3])).ToJsonString());
-            Console.WriteLine(profile.Core + " | " + profile.Transport);
+            var config = adapter.RuntimeConfig(profile.Outbound, int.Parse(args[3]));
+            var cut = args.Length == 5 && args[4] == "--fragment" && TlsFragment.Apply(config, profile.Core);
+            File.WriteAllText(args[2], config.ToJsonString());
+            Console.WriteLine(profile.Core + " | " + profile.Transport + (cut ? " | fragment" : ""));
+            return 0;
+        }
+        // Диагноз отказа (ConnectionDiagnosis) для ссылки: вид и пояснение.
+        if (args.Length == 3 && args[0] == "--diagnose")
+        {
+            var text = File.Exists(args[1]) ? File.ReadAllText(args[1]) : args[1];
+            var diagnosis = ConnectionDiagnosis.RunAsync(Subscriptions.Parse(text).Profiles[0], CancellationToken.None).GetAwaiter().GetResult();
+            File.WriteAllText(args[2], diagnosis.Kind + " | " + diagnosis.Explanation);
             return 0;
         }
         // Подписки других клиентов на этом компьютере: клиент, имя и хост, без токенов.
