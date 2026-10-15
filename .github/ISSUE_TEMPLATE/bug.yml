@@ -1,0 +1,31 @@
+name: Ошибка
+description: Что-то работает не так
+labels: [ошибка]
+body:
+  - type: markdown
+    attributes:
+      value: "Пожалуйста, не публикуйте ключи и ссылки подписок: они дают доступ к вашему VPN."
+  - type: textarea
+    id: what
+    attributes:
+      label: Что произошло
+      description: Что делали, что ожидали и что получилось.
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Режим
+      options: ["Весь компьютер", "Браузеры и программы", "Не важно"]
+  - type: input
+    id: version
+    attributes:
+      label: Версия Облачки и Windows
+      description: Версия — в «Настройки → Помощь».
+      placeholder: "0.11.0 (abc1234), Windows 11 24H2"
+  - type: textarea
+    id: report
+    attributes:
+      label: Отчёт диагностики
+      description: "«Настройки → Помощь → Скопировать отчёт». Отчёт обезличен: ключей и адресов в нём нет."
+      render: text

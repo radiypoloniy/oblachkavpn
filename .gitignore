@@ -1,0 +1,28 @@
+# Сборка
+out/
+dist/
+src/bin/
+src/obj/
+tests/bin/
+tests/obj/
+
+# Ядра: скачиваются scripts/fetch-cores.ps1, в репозитории только лицензии
+vendor/downloads/
+vendor/cores/
+vendor/**/unpacked/
+vendor/**/*.zip
+
+# Локальное, не для публикации
+_internal/
+_to_delete/
+release-keys/
+design/
+*.svg
+app/
+app-v*/
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo

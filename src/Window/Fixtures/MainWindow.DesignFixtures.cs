@@ -1,0 +1,204 @@
+using System.Windows;
+using System.Windows.Input;
+
+namespace Oblachka;
+
+public partial class MainWindow
+{
+    private async Task CheckRedesignAsync(List<string> checks)
+    {
+        foreach (var page in new[] { "Connection", "Servers", "Routes", "Diagnostics" })
+        {
+            Navigate(page);
+            // «Все серверы» — поверх главного экрана; правила и помощь — вкладки настроек.
+            var home = page is "Connection" or "Servers";
+            var settings = page is "Routes" or "Diagnostics";
+            if (home != (Home.Visibility == Visibility.Visible) || (page == "Servers") != (Servers.Visibility == Visibility.Visible) ||
+                settings != (Settings.Visibility == Visibility.Visible) ||
+                settings && (Routes.Visibility == Visibility.Visible) != (page == "Routes") ||
+                settings && (Diagnostics.Visibility == Visibility.Visible) != (page == "Diagnostics") ||
+                Onboarding.Visibility == Visibility.Visible || Onboarding.ContinueButton.IsDefault)
+                throw new InvalidOperationException("Navigation displays the wrong pages: " + page);
+        }
+        Navigate("Connection");
+        checks.Add("Navigation selects one working page at a time and preserves the imported profile");
+        SettingsClick(this, new RoutedEventArgs());
+        if (Settings.Visibility != Visibility.Visible) throw new InvalidOperationException("Settings did not open");
+        // Каждая вкладка реально отрисовывается: ключ ресурса, совпавший со стилем, ронял окно
+        // только при показе вкладки, и проверки без отрисовки этого не видели.
+        for (var tab = 0; tab < 4; tab++)
+        {
+            Settings.ShowTab(tab);
+            DesignPreview.Render(this, Path.Combine(AppContext.BaseDirectory, $"preview-settings-{tab}.png"));
+        }
+        Settings.ShowTab(0);
+        CloseSettings();
+        if (Settings.Visibility != Visibility.Collapsed) throw new InvalidOperationException("Settings did not close");
+        checks.Add("Settings open and close independently of the connection lifecycle");
+        // С чистого списка: «Вручную» накапливает добавленное прежними проверками.
+        serviceProfiles = Array.Empty<Profile>(); externalProfiles = Array.Empty<Profile>(); profile = null;
+        LoadPreviewProfiles();
+        var selected = profile;
+        Servers.SearchBox.Text = "no-synthetic-match";
+        if (ProfilePicker.Items.Count != 0 || profile != selected) throw new InvalidOperationException("Search lost current profile");
+        Servers.SearchBox.Clear();
+        if (ProfilePicker.Items.Count != 2 || profile != selected) throw new InvalidOperationException("Search reset lost selection");
+        checks.Add("Server search filters and restores profiles without discarding the selected connection");
+        CheckServerList(checks);
+        await ConnectCoreAsync();
+        await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+        RefreshPresentation();
+        // Локальный прокси — «Подключено», а не «Защищено»: весь компьютер через туннель не идёт.
+        if (Home.Power.State != Views.PowerState.On || Home.StatusTitle.Text != "Подключено" ||
+            Home.CheckIcon.Visibility == Visibility.Visible || Diagnostics.TunnelState.Text != "Не проверен")
+            throw new InvalidOperationException("Running proxy falsely appears verified or power switch is wrong");
+        Navigate("Connection");
+        DesignPreview.Render(this, Path.Combine(AppContext.BaseDirectory, "preview-running.png"));
+        StopClick(this, new RoutedEventArgs());
+        await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+        if (Home.Power.State != Views.PowerState.Off || Home.StatusTitle.Text != "Не подключено")
+            throw new InvalidOperationException("Stopped connection retains running presentation");
+        checks.Add("Power switch and statistics track the real process; startup never claims a verified tunnel");
+        Settings.StayInTray.IsChecked = true;
+        var closing = new System.ComponentModel.CancelEventArgs();
+        OnClosing(this, closing);
+        if (!closing.Cancel || closed) throw new InvalidOperationException("Stay-in-tray preference terminated the controller");
+        Settings.StayInTray.IsChecked = false;
+        checks.Add("Optional close-to-tray cancels closing while explicit exit remains available");
+        var popup = CreateTrayPreview();
+        try
+        {
+            // Быстрая смена: автовыбор первым, выбранный сервер отмечен.
+            var rows = popup.QuickList.Items.OfType<ServerRow>().ToArray();
+            if (!popup.PowerButton.IsEnabled || rows.Length == 0 || !rows[0].IsAuto || !rows.Any(r => r.Selected && r.Profile == profile))
+                throw new InvalidOperationException("Compact tray window does not reflect the selected profile");
+        }
+        finally { popup.Close(); }
+        checks.Add("Compact tray window reflects the selected profile without inventing connection metrics");
+    }
+
+    internal void PrepareDesignPreview(string page)
+    {
+        if (page == "welcome") return;
+        if (page == "welcome-import")
+        {
+            Onboarding.ForeignList.ItemsSource = new[]
+            {
+                new ForeignSubscription("Happ", "sub.example.invalid", "https://sub.example.invalid/sub/a1b2c3d4"),
+                new ForeignSubscription("Throne", "Рабочая", "https://vpn.example.invalid/s/e5f6g7h8"),
+                new ForeignSubscription("v2RayTun", "Резерв", "https://reserve.example.invalid/connection/subs/i9j0"),
+                new ForeignSubscription("Throne", "3 отдельных подключения", "") { Profiles = new[] { Profiles.Parse("vless://33333333-3333-4333-8333-333333333333@n.invalid:443?security=tls&sni=example.org#A") } },
+            };
+            Onboarding.ForeignPanel.Visibility = Visibility.Visible;
+            return;
+        }
+        LoadPreviewProfiles();
+        CheckPreviewControls();
+        if (page == "servers") { LoadServerPreview(); LoadPingPreview(); }
+        if (page is "foreign" or "closed" or "recovery" or "subscription") PrepareStatePreview(page);
+        if (page is "groups" or "servers-groups")
+        {
+            LoadGroupsPreview();
+            if (page == "groups") { SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(2); }
+            else { Navigate("Servers"); Servers.GroupTabs.SelectedIndex = 0; }
+            return;
+        }
+        if (page == "doctor")
+        {
+            findings = NetworkDoctor.Diagnose(new PreviewProbe());
+            SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(3);
+            Doctor.Visibility = Visibility.Visible; Doctor.Summary.Text = "Нашли то, что мешает интернету:"; RefreshDoctor();
+            return;
+        }
+        if (page is "routing-offer" or "rules-lists")
+        {
+            var header = "happ://routing/add/" + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+                "{\"Name\":\"Облачка/рутинг\",\"DirectSites\":[\"domain:.ru\",\"geosite:category-ru\"],\"DirectIp\":[\"10.0.0.0/8\"]}"));
+            ReceiveRouting(RoutingProfile.ParseHapp(header)!);
+            if (page == "rules-lists") { useProviderRouting = true; Routes.RussiaDirect.IsChecked = true; RefreshRouting(); SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(1); }
+            else Navigate("Connection");
+            return;
+        }
+        if (page is "apps" or "apps-rules")
+        {
+            // Настоящий каталог этого компьютера, собранный сразу: снимок делается синхронно.
+            appCatalog = InstalledApps.Find().Select(a => new Views.AppRow(a, AppIcons.For(a.Path))).ToArray();
+            SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(1); Routes.ShowSites(false);
+            if (page == "apps-rules")
+            {
+                foreach (var (exe, action) in new[] { ("Telegram.exe", SiteAction.Direct), ("Steam.exe", SiteAction.Direct), ("chrome.exe", SiteAction.Tunnel), ("game.exe", SiteAction.Block) })
+                    AddProgramRule(exe, action);
+                return;
+            }
+            OpenAppPicker(); Picker.Load(appCatalog, AddedPrograms());
+            Picker.SearchBox.Text = "т";
+            foreach (var row in Picker.AppList.Items.OfType<Views.AppRow>().Take(2)) row.Checked = true;
+            Picker.AddButton.IsEnabled = true; Picker.AddButton.Content = "Добавить (2)";
+            return;
+        }
+        if (page == "power-on") { LoadGroupsPreview(); Navigate("Connection"); RefreshHome(); Home.Power.State = Views.PowerState.On;
+            // Вид подключённого «Весь компьютер»: ядро в превью не запускается.
+            Home.StatusTitle.Text = "Защищено"; Home.StatusSub.Text = profile?.DisplayName + " · 00:12:48";
+            Home.StatusDot.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "Ok");
+            Home.CheckText.Text = "Связь проверена · 84 мс"; Home.CheckIcon.Visibility = Visibility.Visible;
+            Home.CheckChip.SetResourceReference(System.Windows.Controls.Border.BackgroundProperty, "OkB");
+            Home.CheckText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "OkF");
+            // Снимок делается сразу, анимация ещё не прошла: ставим её итог.
+            var power = Home.Power;
+            foreach (var layer in new UIElement[] { power.Glow, power.OnLayer }) { layer.BeginAnimation(OpacityProperty, null); layer.Opacity = 1; }
+            power.Slide.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, null); power.Slide.X = 72;
+            return; }
+        Navigate(page switch { "servers" => "Servers", "routes" => "Routes", "diagnostics" => "Diagnostics", _ => "Connection" });
+        if (page is "settings" or "rules" or "storage" or "help") SettingsClick(this, new RoutedEventArgs());
+        if (page is "rules" or "storage" or "help") Settings.ShowTab(page switch { "rules" => 1, "storage" => 2, _ => 3 });
+    }
+
+    // Три группы: две подписки и «Вручную»; у части узлов есть отклик.
+    private void LoadGroupsPreview()
+    {
+        Profile Node(string name, int n) => Profiles.Parse($"vless://{n:x8}-1111-4111-8111-111111111111@n{n}.invalid:443?security=tls&type=tcp#{Uri.EscapeDataString(name)}");
+        var now = DateTimeOffset.UtcNow;
+        SetGroup(new ProfileGroup("sub-0123456789ab", "Основная", ProfileSource.External, new[] { "https://main.invalid/s" }) { Updated = now.AddMinutes(-12),
+            Metadata = new SubscriptionMetadata(0, 20_000_000_000, 100_000_000_000, now.AddDays(40)) }, new[] { Node("🇳🇱 Нидерланды", 11), Node("🇩🇪 Германия", 12), Node("🇺🇸 США", 13) });
+        SetGroup(new ProfileGroup("sub-ba9876543210", "Резерв", ProfileSource.External, new[] { "https://reserve.invalid/t" }) { Updated = now.AddHours(-30) }, new[] { Node("🇫🇮 Финляндия", 21) });
+        SetGroup(ProfileGroup.Manual, new[] { Node("Мой сервер", 31) });
+        ApplyProfiles(true);
+        foreach (var (item, ms) in importedProfiles.Zip(new long[] { 84, 61, 142, 97, 38 }))
+            pings[Profiles.Fingerprint(item)] = new(Profiles.Fingerprint(item), now, true, ms);
+        FilterProfiles(); RefreshHome();
+    }
+
+    private void LoadServerPreview()
+    {
+        var names = new[] { "🇪🇺Авто", "🇪🇺Обход", "🇪🇺Обход 2", "🇻🇳Рабочий сервер", "🇳🇱Нидерланды", "🇳🇱Нидерланды 2" };
+        Import(string.Join("\n", Enumerable.Range(0, 24).Select(i =>
+            $"vless://{i + 1:x8}-1111-4111-8111-111111111111@example.invalid:443?security=tls&type=xhttp#" +
+            Uri.EscapeDataString(i < names.Length ? names[i] : $"🇩🇪Резервный сервер {i - 5}"))));
+    }
+
+    // Отклики как после запуска: у части узлов ответа нет.
+    private void LoadPingPreview()
+    {
+        var now = DateTimeOffset.UtcNow;
+        foreach (var (item, i) in importedProfiles.Select((p, i) => (p, i)))
+        {
+            var key = Profiles.Fingerprint(item);
+            pings[key] = new(key, now, i % 7 != 5, 40 + i * 23 % 260);
+        }
+        FilterProfiles(); RefreshHome();
+    }
+
+    private sealed class PreviewProbe : INetworkProbe
+    {
+        public ProxySettings Proxy() => new(1, "127.0.0.1:2080", null, null);
+        public bool Listening(int port) => false;
+        public IReadOnlyDictionary<string, string> EnvironmentProxies() => new Dictionary<string, string>();
+        public string? WinHttpProxy() => null;
+        public IReadOnlyList<AdapterInfo> Adapters() => new[] { new AdapterInfo("{1}", "Беспроводная сеть", true, new[] { System.Net.IPAddress.Parse("127.0.0.1") }) };
+        public bool AnswersDns(System.Net.IPAddress server) => false;
+        public IReadOnlyList<RouteInfo> DefaultRoutes() => Array.Empty<RouteInfo>();
+        public IReadOnlyList<BypassInfo> BypassTools() => new[] { new BypassInfo("zapret (winws)", true) };
+        public IReadOnlyList<string> HostsEntries() => new[] { "1.2.3.4 youtube.com" };
+        public string? ForeignVpn() => null;
+    }
+}

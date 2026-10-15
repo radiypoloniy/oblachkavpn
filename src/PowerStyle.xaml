@@ -1,0 +1,34 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style x:Key="Power" TargetType="Button">
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Width" Value="160"/>
+    <Setter Property="Height" Value="90"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Background" Value="#E3E7ED"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Track" Background="{TemplateBinding Background}" CornerRadius="45" BorderThickness="1" BorderBrush="#DAE0E9">
+            <Border Width="72" Height="72" CornerRadius="36" Background="White" Margin="8" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}">
+              <Viewbox Width="24" Height="24">
+                <Path Data="M12,2 L12,12 M6,5 A9,9 0 1 0 18,5" Stroke="{TemplateBinding Foreground}" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+              </Viewbox>
+            </Border>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Track" Property="Opacity" Value="0.86"/>
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Track" Property="BorderBrush" Value="#2E63ED"/>
+              <Setter TargetName="Track" Property="BorderThickness" Value="2"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.5"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+</ResourceDictionary>
