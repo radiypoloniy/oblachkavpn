@@ -35,7 +35,7 @@ public partial class MainWindow
         { SelectedName = profile?.Name, ExternalSources = externalSources.ToArray(), AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, CloseToTray = Settings.StayInTray.IsChecked == true, SystemTunnel = Settings.SystemTunnel.IsChecked == true, Theme = ThemeManager.Choice, Metadata = ServiceGroup?.Metadata, Groups = groups.ToArray(), RouteRules = siteRules.ToArray(), ProgramRules = programRules.ToArray(),
             Favorites = favorites.Where(f => importedProfiles.Any(p => FavoriteKey(p) == f)).Take(Subscriptions.MaxProfiles).ToArray(),
             Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
-            ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = Routes.RussiaDirect.IsChecked == true, AutoSelect = autoSelect,
+            ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = Settings.RussiaDirect.IsChecked == true, AutoSelect = autoSelect,
             UpdateCheck = Diagnostics.UpdateAuto.IsChecked == true, DpiBypass = fragmentMode,
             ZapretEnabled = zapretEnabled, ZapretChoices = new Dictionary<string, string>(zapretChoices),
             AutoPool = autoPool.Snapshot(importedProfiles) };
@@ -87,7 +87,7 @@ public partial class MainWindow
         autoPool.Load(snapshot.AutoPool);
         // Профиль из файла проверяется так же, как присланный сервисом.
         providerRouting = snapshot.ProviderRouting?.Normalized(); useProviderRouting = snapshot.UseProviderRouting;
-        Routes.RussiaDirect.IsChecked = snapshot.RussiaDirect;
+        Settings.RussiaDirect.IsChecked = snapshot.RussiaDirect;
         autoSelect = snapshot.AutoSelect;
         Diagnostics.UpdateAuto.IsChecked = snapshot.UpdateCheck;
         fragmentMode = Enum.IsDefined(snapshot.DpiBypass) ? snapshot.DpiBypass : FragmentMode.Auto;

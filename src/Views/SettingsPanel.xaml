@@ -1,63 +1,28 @@
 <UserControl x:Class="Oblachka.Views.SettingsPanel" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:v="clr-namespace:Oblachka.Views" xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+             xmlns:v="clr-namespace:Oblachka.Views"
              FontFamily="{StaticResource UiFont}" Foreground="{DynamicResource Tx}" Background="{DynamicResource Bg}">
   <!-- Настройки (экраны 10–13): одно окно, сегментированные вкладки. -->
-  <UserControl.Resources>
-    <Style x:Key="SegItem" TargetType="ListBoxItem">
-      <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-      <Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="ListBoxItem">
-            <Grid Margin="1,0">
-              <Border x:Name="Seg" CornerRadius="{StaticResource RadiusSm}" Background="Transparent"/>
-              <TextBlock x:Name="Label" Text="{Binding}" FontSize="{StaticResource FsBody}" Foreground="{DynamicResource Mu}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </Grid>
-            <ControlTemplate.Triggers>
-              <Trigger Property="IsSelected" Value="True">
-                <Setter TargetName="Seg" Property="Background" Value="{DynamicResource Seg}"/>
-                <Setter TargetName="Seg" Property="Effect"><Setter.Value><DropShadowEffect BlurRadius="3" ShadowDepth="1" Direction="270" Opacity="0.14"/></Setter.Value></Setter>
-                <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Tx}"/>
-                <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
-              </Trigger>
-            </ControlTemplate.Triggers>
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
-    </Style>
-  </UserControl.Resources>
-
+  <!-- Настройки (редизайн 0.14): одна корневая страница и подробные страницы вместо вкладок.
+       «Назад» с подробной страницы возвращает на корневую, с корневой — на главный экран. -->
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="64"/>
-      <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
     </Grid.RowDefinitions>
     <DockPanel Margin="10,0,96,0">
       <Button x:Name="CloseButton" Style="{StaticResource IconButton}" Foreground="{DynamicResource Tx}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Назад">
         <Path Data="{StaticResource IcoBack}" Style="{StaticResource Icon}" StrokeThickness="2.2"/>
       </Button>
-      <TextBlock Text="Настройки" Style="{StaticResource Brand}" Margin="4,0,0,0"/>
+      <TextBlock x:Name="PageTitle" Text="Настройки" Style="{StaticResource Brand}" Margin="4,0,0,0"/>
     </DockPanel>
 
-    <Border Grid.Row="1" Margin="20,0,20,6" Height="40" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource Field}" Padding="3">
-      <ListBox x:Name="SettingsTabs" ItemContainerStyle="{StaticResource SegItem}" Background="Transparent" BorderThickness="0" Padding="0" SelectedIndex="0"
-               ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Разделы настроек">
-        <ListBox.Template><ControlTemplate TargetType="ListBox"><ItemsPresenter/></ControlTemplate></ListBox.Template>
-        <ListBox.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ListBox.ItemsPanel>
-        <sys:String>Основное</sys:String>
-        <sys:String>Правила</sys:String>
-        <sys:String>Подписка</sys:String>
-        <sys:String>Помощь</sys:String>
-      </ListBox>
-    </Border>
-
-    <Grid Grid.Row="2" x:Name="Pages">
+    <Grid Grid.Row="1" x:Name="Pages">
       <v:GeneralTab x:Name="General"/>
       <v:RulesTab x:Name="Rules" Visibility="Collapsed"/>
       <v:SubscriptionTab x:Name="Subscription" Visibility="Collapsed"/>
       <v:HelpTab x:Name="Help" Visibility="Collapsed"/>
+      <v:AutoPoolPage x:Name="AutoPool" Visibility="Collapsed"/>
+      <v:AdvancedPage x:Name="Advanced" Visibility="Collapsed"/>
     </Grid>
   </Grid>
 </UserControl>

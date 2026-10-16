@@ -49,12 +49,13 @@ public partial class MainWindow
 
     private bool InAutoPool(Profile item) => autoPool.Contains(item);
 
-    // «Настройки → Основное → Автовыбор»: строка на сервер с переключателем.
+    // «Настройки → Автовыбор»: строка на сервер с переключателем.
     private void RenderAutoPool()
     {
         if (!viewsReady) return;
         var list = Settings.AutoPoolList;
         list.Children.Clear();
+        RefreshSettingsSummary();
         foreach (var item in importedProfiles)
         {
             var toggle = new CheckBox { Style = (Style)FindResource("Toggle"), IsChecked = autoPool.Contains(item), VerticalAlignment = VerticalAlignment.Center };
@@ -62,7 +63,7 @@ public partial class MainWindow
             toggle.Click += (_, _) =>
             {
                 autoPool.Set(item, toggle.IsChecked == true);
-                QueueStateSave(); RenderSheet(); RefreshHome();
+                QueueStateSave(); RenderSheet(); RefreshHome(); RefreshSettingsSummary();
             };
             var text = new StackPanel();
             text.Children.Add(new TextBlock { Text = item.DisplayName, FontSize = Tokens.Size("FsRow"), TextTrimming = TextTrimming.CharacterEllipsis });

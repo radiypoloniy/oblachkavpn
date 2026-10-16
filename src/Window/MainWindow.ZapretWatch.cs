@@ -12,11 +12,14 @@ public partial class MainWindow
     private readonly Dictionary<string, int> zapretMisses = new(StringComparer.Ordinal);
     private DateTimeOffset zapretNextWatch = DateTimeOffset.MaxValue, zapretRepickAt = DateTimeOffset.MaxValue;
     private bool zapretWatching;
+    // Группы, которые присмотр вернул в VPN, пока новый подбор их не вернул: жёлтая плашка на главном.
+    private string[] zapretDemoted = [];
     private static readonly TimeSpan ZapretWatchEvery = TimeSpan.FromMinutes(5), ZapretRecheck = TimeSpan.FromSeconds(30);
 
     private void WatchZapret(string strategy, string[] groups, string network)
     {
         zapretActiveStrategy = strategy; zapretActiveGroups = groups; zapretActiveNetwork = network;
+        if (network.Length > 0) zapretDemoted = zapretDemoted.Except(groups).ToArray();
         zapretMisses.Clear();
         zapretNextWatch = groups.Length > 0 ? DateTimeOffset.UtcNow + ZapretWatchEvery : DateTimeOffset.MaxValue;
     }
@@ -59,6 +62,7 @@ public partial class MainWindow
     private async Task DemoteZapretAsync(IReadOnlyCollection<string> lost, ZapretProbeResult probe)
     {
         var groups = zapretActiveGroups.Except(lost).ToArray();
+        zapretDemoted = zapretDemoted.Union(lost).ToArray();
         foreach (var group in lost) zapretMisses.Remove(group);
         zapretChoices[zapretActiveNetwork] = ZapretPlan.Encode(zapretActiveStrategy, groups); QueueStateSave();
         zapretActiveGroups = groups;

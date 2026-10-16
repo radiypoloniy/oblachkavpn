@@ -74,7 +74,7 @@ public sealed class ServerRow
     public static string? NoteFor(Profile profile) => !profile.IsService ? "сторонняя подписка" : null;
 }
 
-// Строка «Настройки → Подписка»: подписка или «Вручную».
+// Строка «Настройки → Подписки и ключ»: подписка или «Вручную».
 public sealed class GroupRow
 {
     public required ProfileGroup Group { get; init; }

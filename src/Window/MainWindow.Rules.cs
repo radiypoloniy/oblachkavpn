@@ -12,7 +12,7 @@ public partial class MainWindow
         // Новое правило идёт «через VPN»; действие меняется нажатием на метку в списке.
         Routes.AddRuleButton.Click += (_, _) => AddSiteRule(Routes.RuleDomain.Text, SiteAction.Tunnel);
         Routes.RuleDomain.KeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Enter) AddSiteRule(Routes.RuleDomain.Text, SiteAction.Tunnel); };
-        Routes.ValidateRulesButton.Click += async (_, _) =>
+        Advanced.ValidateRulesButton.Click += async (_, _) =>
         {
             if (operation is not null || profile is null) return;
             operation = new CancellationTokenSource(); UpdateControls();
@@ -45,6 +45,6 @@ public partial class MainWindow
     {
         Routes.RuleList.ItemsSource = siteRules.Select(r => new RuleRow { Rule = r, Text = r.Domain, Action = r.Action }).ToArray();
         Routes.ProgramList.ItemsSource = programRules.Select(ProgramRow).ToArray();
-        if (viewsReady) UpdateWhere();
+        if (viewsReady) { UpdateWhere(); RefreshSettingsSummary(); }
     }
 }

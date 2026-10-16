@@ -171,6 +171,7 @@ public partial class MainWindow
     private void RefreshZapret()
     {
         Routes.ZapretToggle.IsChecked = zapretEnabled;
+        RefreshSettingsSummary(); RefreshDirectChip();
         Routes.ZapretText.Text = zapretNote.Length > 0 ? zapretNote : "Через обход блокировок zapret: быстрее и не тратит VPN";
         Routes.ZapretPick.Visibility = zapretEnabled ? Visibility.Visible : Visibility.Collapsed;
         Routes.ZapretPick.Content = zapretBusy ? "Остановить подбор" : "Подобрать заново";

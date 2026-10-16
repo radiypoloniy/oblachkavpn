@@ -25,6 +25,7 @@ public partial class MainWindow
 
     private void WireHome()
     {
+        Home.DirectChip.Click += (_, _) => OpenSettings(1);
         Home.Power.Click += (_, _) => { if (StopButton.IsEnabled) StopClick(this, new RoutedEventArgs()); else if (ConnectButton.IsEnabled) ConnectClick(this, new RoutedEventArgs()); };
         Home.SettingsButton.Click += SettingsClick;
         Home.AllServersButton.Click += (_, _) => Navigate("Servers");
@@ -44,6 +45,7 @@ public partial class MainWindow
     private void RefreshHome()
     {
         if (!viewsReady) return;
+        RefreshDirectChip();
         // В системном режиме ядро окна поднимается раньше туннеля: «Защищено» — только когда
         // служба подтвердила туннель, до этого идёт подключение.
         var tunnelStarting = systemTunnel?.State == SystemTunnelState.Starting;

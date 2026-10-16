@@ -94,6 +94,12 @@
           <TextBlock x:Name="CheckText" Text="Туннель выключен" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu2}" VerticalAlignment="Center"/>
         </StackPanel>
       </Border>
+      <!-- Что идёт мимо VPN (рунет, YouTube, Discord): видно без настроек; жёлтая — обход
+           сломался и сайт временно вернулся в VPN. Нажатие — «Настройки → Без VPN». -->
+      <Button x:Name="DirectChip" Style="{StaticResource Plain}" Height="26" Padding="12,0" Margin="0,6,0,0" HorizontalAlignment="Center"
+              o:Ui.CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource OkB}" Visibility="Collapsed" AutomationProperties.Name="Что идёт без VPN">
+        <TextBlock x:Name="DirectChipText" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource OkF}" VerticalAlignment="Center"/>
+      </Button>
     </StackPanel>
 
     <!-- Объявление сервиса: одна строка, крестик скрывает до следующего нового объявления. -->

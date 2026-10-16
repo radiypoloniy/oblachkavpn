@@ -61,7 +61,7 @@ public partial class MainWindow : Window
         menu.Items.Add("Завершить", null, (_, _) => Dispatcher.Invoke(ExitApplication));
         trayConnect.Click += (_, _) => Dispatcher.Invoke(() => ConnectClick(this, new RoutedEventArgs()));
         trayStop.Click += (_, _) => Dispatcher.Invoke(() => StopClick(this, new RoutedEventArgs()));
-        tray = new Forms.NotifyIcon { Icon = System.Drawing.SystemIcons.Application, Text = ServiceBrand.Name + " — отключено", ContextMenuStrip = menu };
+        tray = new Forms.NotifyIcon { Icon = AppIcon.Small(), Text = ServiceBrand.Name + " — отключено", ContextMenuStrip = menu };
         tray.DoubleClick += (_, _) => Dispatcher.Invoke(ShowWindow);
         tray.MouseUp += (_, args) => { if (args.Button == Forms.MouseButtons.Left && args.Clicks < 2) Dispatcher.Invoke(ShowTrayPopup); };
         Loaded += (_, _) => { tray.Visible = true; RestoreSavedState(); UpdateControls(); };
@@ -119,7 +119,7 @@ public partial class MainWindow : Window
         ReconnectButton.IsEnabled = profile is not null && operation is null;
         Servers.MeasureButton.IsEnabled = profile is not null && operation is null && importedProfiles.Any(p => p.IsService);
         Servers.BestButton.IsEnabled = Servers.MeasureButton.IsEnabled;
-        Routes.ValidateRulesButton.IsEnabled = profile is not null && operation is null;
+        Advanced.ValidateRulesButton.IsEnabled = profile is not null && operation is null;
         trayConnect.Enabled = ConnectButton.IsEnabled;
         trayStop.Enabled = StopButton.IsEnabled;
         tray.Text = ServiceBrand.Name + " — " + StatusText.Text;

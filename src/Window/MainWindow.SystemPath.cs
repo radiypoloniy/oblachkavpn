@@ -23,7 +23,7 @@ public partial class MainWindow
         pathDirectOnly = false;
         if (!tunnel.Reachable) return "Сервер отвечает, но программы компьютера через туннель в интернет не выходят.";
         // Прямой путь проверяем по сайтам, которые точно идут мимо VPN: «Российские сайты напрямую».
-        if (Routes.RussiaDirect.IsChecked == true && (engine as Engine)?.Routing?.HasDirect == true)
+        if (Settings.RussiaDirect.IsChecked == true && (engine as Engine)?.Routing?.HasDirect == true)
         {
             var direct = await directHealth.CheckAsync(SystemPathProbe.RunAsync, SystemPathProbe.DirectTargets, token);
             if (!direct.Reachable) { pathDirectOnly = true; return "Сайты через VPN открываются, а российские, которые идут напрямую, — нет."; }

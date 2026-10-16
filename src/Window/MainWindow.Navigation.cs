@@ -64,6 +64,7 @@ public partial class MainWindow
     {
         ShowModeMenu(false);
         if (tab is int index) Settings.ShowTab(index);
+        else if (Settings.Visibility != Visibility.Visible) Settings.ShowTab(0);
         if (Settings.Visibility != Visibility.Visible)
         {
             Settings.Visibility = Visibility.Visible;

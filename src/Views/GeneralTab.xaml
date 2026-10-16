@@ -1,89 +1,147 @@
 <UserControl x:Class="Oblachka.Views.GeneralTab" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:o="clr-namespace:Oblachka">
-  <!-- Настройки → Основное (экран 10): режим, надёжность, запуск, тема. -->
+  <!-- Настройки целиком (редизайн 0.14): аккаунт, «Без VPN», «Серверы», «Приложение» и двери
+       в подробные страницы. Всё, что решается само, сюда не выносится («Для продвинутых»). -->
+  <UserControl.Resources>
+    <Style x:Key="NavRow" TargetType="Button" BasedOn="{StaticResource Row}">
+      <Setter Property="Height" Value="Auto"/>
+      <Setter Property="MinHeight" Value="48"/>
+      <Setter Property="Padding" Value="12,8,10,8"/>
+    </Style>
+    <Style x:Key="Group" TargetType="Border">
+      <Setter Property="Background" Value="{DynamicResource CardBg}"/>
+      <Setter Property="CornerRadius" Value="{StaticResource RadiusXl}"/>
+      <Setter Property="Padding" Value="2"/>
+    </Style>
+    <Style x:Key="RowTitle" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource FsRow}"/>
+      <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
+    <Style x:Key="RowValue" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource FsBody}"/>
+      <Setter Property="Foreground" Value="{DynamicResource Mu}"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Margin" Value="8,0,6,0"/>
+    </Style>
+    <Style x:Key="Chevron" TargetType="Path">
+      <Setter Property="Data" Value="{StaticResource IcoChevronRight}"/>
+      <Setter Property="Width" Value="12"/>
+      <Setter Property="Height" Value="12"/>
+      <Setter Property="Stretch" Value="Uniform"/>
+      <Setter Property="Stroke" Value="{DynamicResource Fa}"/>
+      <Setter Property="StrokeThickness" Value="2.2"/>
+      <Setter Property="StrokeStartLineCap" Value="Round"/>
+      <Setter Property="StrokeEndLineCap" Value="Round"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+  </UserControl.Resources>
   <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <StackPanel Margin="20,10,20,16">
-      <TextBlock Text="ЧТО ИДЁТ ЧЕРЕЗ VPN" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" Margin="6,12,6,6"/>
-      <Button x:Name="ModeTun" Style="{StaticResource Row}" Height="Auto" Padding="12,12" AutomationProperties.Name="Весь компьютер">
+    <StackPanel Margin="20,6,20,16">
+      <!-- Аккаунт: срок и трафик подписки сервиса; «Продлить» — если сервис прислал ссылку. -->
+      <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource Acs}" Padding="14,12">
         <DockPanel>
-          <Ellipse x:Name="ModeTunRadio" Width="18" Height="18" Stroke="{DynamicResource Ring}" StrokeThickness="1.5" Margin="0,0,12,0"/>
-          <StackPanel>
-            <TextBlock Text="Весь компьютер" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
-            <TextBlock x:Name="SystemTunnelHint" Text="Игры, мессенджеры и любые программы." Style="{StaticResource Small}" Margin="0,2,0,0"/>
+          <Button x:Name="AccountRenew" DockPanel.Dock="Right" Content="Продлить" Style="{StaticResource BtnPrimary}" Height="34" Padding="14,0" o:Ui.CornerRadius="{StaticResource RadiusMd}"
+                  FontSize="{StaticResource FsBody}" VerticalAlignment="Center" Margin="10,0,0,0" Visibility="Collapsed"/>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock x:Name="AccountTitle" Text="Подписка" FontSize="{StaticResource FsRow}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+            <TextBlock x:Name="AccountSub" Style="{StaticResource Small}" Foreground="{DynamicResource Mu}" TextWrapping="Wrap" Margin="0,2,0,0"/>
           </StackPanel>
         </DockPanel>
-      </Button>
-      <Button x:Name="ModeProxy" Style="{StaticResource Row}" Height="Auto" Padding="12,12" Margin="0,2,0,0" AutomationProperties.Name="Браузеры и программы">
-        <DockPanel>
-          <Ellipse x:Name="ModeProxyRadio" Width="18" Height="18" Stroke="{DynamicResource Ring}" StrokeThickness="1.5" Margin="0,0,12,0"/>
-          <StackPanel>
-            <TextBlock Text="Браузеры и программы" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
-            <TextBlock Text="Прокси Windows. Без прав администратора, но не для всех приложений." Style="{StaticResource Small}" Margin="0,2,0,0"/>
-          </StackPanel>
-        </DockPanel>
-      </Button>
-      <!-- Выбор режима хранится в этих флажках: от них зависит вся логика подключения. -->
+      </Border>
+
+      <TextBlock Text="БЕЗ VPN" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" Margin="6,20,6,6"/>
+      <Border Style="{StaticResource Group}">
+        <StackPanel>
+          <DockPanel Margin="12,10,10,10">
+            <CheckBox x:Name="RussiaDirect" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Российские сайты напрямую"/>
+            <StackPanel>
+              <TextBlock Text="Российские сайты" Style="{StaticResource RowTitle}"/>
+              <TextBlock Text="Госуслуги, банки и почти весь рунет" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap"/>
+            </StackPanel>
+          </DockPanel>
+          <Button x:Name="OpenZapret" Style="{StaticResource NavRow}" AutomationProperties.Name="YouTube и Discord без VPN">
+            <DockPanel>
+              <Path DockPanel.Dock="Right" Style="{StaticResource Chevron}"/>
+              <StackPanel>
+                <TextBlock Text="YouTube и Discord" Style="{StaticResource RowTitle}"/>
+                <TextBlock x:Name="ZapretSummary" Text="Выключено" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap"/>
+              </StackPanel>
+            </DockPanel>
+          </Button>
+          <Button x:Name="OpenRules" Style="{StaticResource NavRow}" AutomationProperties.Name="Свои правила">
+            <DockPanel>
+              <Path DockPanel.Dock="Right" Style="{StaticResource Chevron}"/>
+              <TextBlock x:Name="RulesSummary" DockPanel.Dock="Right" Style="{StaticResource RowValue}"/>
+              <TextBlock Text="Свои правила" Style="{StaticResource RowTitle}" VerticalAlignment="Center"/>
+            </DockPanel>
+          </Button>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Text="СЕРВЕРЫ" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" Margin="6,20,6,6"/>
+      <Border Style="{StaticResource Group}">
+        <StackPanel>
+          <Button x:Name="OpenAutoPool" Style="{StaticResource NavRow}" AutomationProperties.Name="Серверы автовыбора">
+            <DockPanel>
+              <Path DockPanel.Dock="Right" Style="{StaticResource Chevron}"/>
+              <TextBlock x:Name="AutoPoolSummary" DockPanel.Dock="Right" Style="{StaticResource RowValue}"/>
+              <TextBlock Text="Автовыбор" Style="{StaticResource RowTitle}" VerticalAlignment="Center"/>
+            </DockPanel>
+          </Button>
+          <DockPanel Margin="12,10,10,10">
+            <CheckBox x:Name="AutoRecover" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Переключать сервер при обрыве"/>
+            <StackPanel>
+              <TextBlock Text="Сервер упал — переключить" Style="{StaticResource RowTitle}"/>
+              <TextBlock Text="Проверяем связь и находим рабочий сервер" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap"/>
+            </StackPanel>
+          </DockPanel>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Text="ПРИЛОЖЕНИЕ" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" Margin="6,20,6,6"/>
+      <Border Style="{StaticResource Group}">
+        <StackPanel>
+          <DockPanel Margin="12,12,10,12">
+            <CheckBox x:Name="StartWithWindows" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Запускать вместе с Windows"/>
+            <TextBlock Text="Запускать вместе с Windows" Style="{StaticResource RowTitle}" VerticalAlignment="Center"/>
+          </DockPanel>
+          <DockPanel Margin="12,8,8,8">
+            <Border DockPanel.Dock="Right" Height="32" CornerRadius="{StaticResource RadiusSeg}" Background="{DynamicResource Field}" Padding="3">
+              <StackPanel Orientation="Horizontal">
+                <Button x:Name="ThemeSystem" Content="Как в Windows" Style="{StaticResource Plain}" Padding="10,0" FontSize="{StaticResource FsNote}" o:Ui.CornerRadius="{StaticResource RadiusInner}"/>
+                <Button x:Name="ThemeLight" Content="Светлая" Style="{StaticResource Plain}" Padding="10,0" FontSize="{StaticResource FsNote}" o:Ui.CornerRadius="{StaticResource RadiusInner}" Margin="2,0"/>
+                <Button x:Name="ThemeDark" Content="Тёмная" Style="{StaticResource Plain}" Padding="10,0" FontSize="{StaticResource FsNote}" o:Ui.CornerRadius="{StaticResource RadiusInner}"/>
+              </StackPanel>
+            </Border>
+            <TextBlock Text="Тема" Style="{StaticResource RowTitle}" VerticalAlignment="Center"/>
+          </DockPanel>
+          <Button x:Name="OpenVersion" Style="{StaticResource NavRow}" AutomationProperties.Name="Версия и обновления">
+            <DockPanel>
+              <Path DockPanel.Dock="Right" Style="{StaticResource Chevron}"/>
+              <TextBlock x:Name="VersionSummary" DockPanel.Dock="Right" Style="{StaticResource RowValue}" Text="обновляется сама"/>
+              <TextBlock x:Name="VersionTitle" Text="Версия" Style="{StaticResource RowTitle}" VerticalAlignment="Center"/>
+            </DockPanel>
+          </Button>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Group}" Margin="0,16,0,0">
+        <StackPanel>
+          <Button x:Name="OpenSubscription" Style="{StaticResource NavRow}" AutomationProperties.Name="Подписки и ключ">
+            <DockPanel><Path DockPanel.Dock="Right" Style="{StaticResource Chevron}"/><TextBlock Text="Подписки и ключ" Style="{StaticResource RowTitle}" VerticalAlignment="Center"/></DockPanel>
+          </Button>
+          <Button x:Name="OpenHelp" Style="{StaticResource NavRow}" AutomationProperties.Name="Помощь">
+            <DockPanel><Path DockPanel.Dock="Right" Style="{StaticResource Chevron}"/><TextBlock Text="Помощь и проверка" Style="{StaticResource RowTitle}" VerticalAlignment="Center"/></DockPanel>
+          </Button>
+          <Button x:Name="OpenAdvanced" Style="{StaticResource NavRow}" AutomationProperties.Name="Для продвинутых">
+            <DockPanel><Path DockPanel.Dock="Right" Style="{StaticResource Chevron}"/><TextBlock Text="Для продвинутых" Style="{StaticResource RowTitle}" VerticalAlignment="Center"/></DockPanel>
+          </Button>
+        </StackPanel>
+      </Border>
+      <!-- Выбор режима хранится в этих флажках: от них зависит вся логика подключения.
+           Сам режим переключается внизу главного экрана и в «Для продвинутых». -->
       <CheckBox x:Name="SystemTunnel" Visibility="Collapsed"/>
       <CheckBox x:Name="SystemProxy" Visibility="Collapsed"/>
-      <TextBlock x:Name="SystemTunnelNote" Style="{StaticResource Small}" Margin="10,6,10,0"/>
-      <Button x:Name="RestoreNetwork" Content="Восстановить сеть" Style="{StaticResource BtnOutline}" Height="34" o:Ui.CornerRadius="{StaticResource RadiusSeg}" Padding="14,0" HorizontalAlignment="Left" Margin="10,8,0,0" Visibility="Collapsed"/>
-
-      <TextBlock Text="НАДЁЖНОСТЬ" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" Margin="6,22,6,4"/>
-      <DockPanel Margin="12,10,6,10">
-        <CheckBox x:Name="AutoRecover" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Переключать сервер при обрыве"/>
-        <StackPanel>
-          <TextBlock Text="Переключать сервер при обрыве" FontSize="{StaticResource FsRow}"/>
-          <TextBlock Text="Проверяем связь каждые 45 с и находим рабочий" Style="{StaticResource Small}"/>
-        </StackPanel>
-      </DockPanel>
-      <!-- Обход DPI (TlsFragment): «Авто» — пробуем, когда обычное подключение не проходит. -->
-      <DockPanel Margin="12,10,6,4">
-        <Border DockPanel.Dock="Right" Height="32" CornerRadius="{StaticResource RadiusSeg}" Background="{DynamicResource Field}" Padding="3" VerticalAlignment="Center">
-          <StackPanel Orientation="Horizontal">
-            <Button x:Name="DpiAuto" Content="Авто" Style="{StaticResource Plain}" Padding="10,0" FontSize="{StaticResource FsNote}" o:Ui.CornerRadius="{StaticResource RadiusInner}"/>
-            <Button x:Name="DpiAlways" Content="Всегда" Style="{StaticResource Plain}" Padding="10,0" FontSize="{StaticResource FsNote}" o:Ui.CornerRadius="{StaticResource RadiusInner}" Margin="2,0"/>
-            <Button x:Name="DpiOff" Content="Выкл." Style="{StaticResource Plain}" Padding="10,0" FontSize="{StaticResource FsNote}" o:Ui.CornerRadius="{StaticResource RadiusInner}"/>
-          </StackPanel>
-        </Border>
-        <StackPanel>
-          <TextBlock Text="Обход DPI" FontSize="{StaticResource FsRow}"/>
-          <TextBlock x:Name="DpiNote" Text="Режем рукопожатие, если фильтр его обрывает" Style="{StaticResource Small}" TextWrapping="Wrap"/>
-        </StackPanel>
-      </DockPanel>
-      <!-- В режиме «Весь компьютер» блокировка действует всегда; прокси защитить весь компьютер не может. -->
-      <DockPanel x:Name="KillSwitchRow" Margin="12,10,6,10">
-        <CheckBox DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" IsEnabled="False" AutomationProperties.Name="Без VPN — без интернета, всегда включено"/>
-        <StackPanel>
-          <TextBlock Text="Без VPN — без интернета" FontSize="{StaticResource FsRow}"/>
-          <TextBlock Text="В режиме «Весь компьютер» включено всегда" Style="{StaticResource Small}"/>
-        </StackPanel>
-      </DockPanel>
-
-      <!-- Пул «Автовыбора» (AutoPool): строки — серверы, переключатель — участвует ли. -->
-      <TextBlock Text="АВТОВЫБОР" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" Margin="6,22,6,4"/>
-      <TextBlock x:Name="AutoPoolNote" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="12,2,6,6"
-                 Text="Из этих серверов «Автовыбор» берёт самый быстрый и на них переключается при обрыве. Обход белых списков по умолчанию выключен: эти серверы нужны для своей задачи."/>
-      <StackPanel x:Name="AutoPoolList" Margin="0,0,0,0"/>
-
-      <TextBlock Text="ЗАПУСК" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" Margin="6,22,6,4"/>
-      <DockPanel Margin="12,9,6,9">
-        <CheckBox x:Name="StartWithWindows" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Запускать вместе с Windows"/>
-        <TextBlock Text="Запускать вместе с Windows" FontSize="{StaticResource FsRow}" VerticalAlignment="Center"/>
-      </DockPanel>
-      <DockPanel Margin="12,9,6,9">
-        <CheckBox x:Name="StayInTray" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Крестик сворачивает в трей"/>
-        <TextBlock Text="Крестик сворачивает в трей" FontSize="{StaticResource FsRow}" VerticalAlignment="Center"/>
-      </DockPanel>
-      <DockPanel Margin="12,14,6,9">
-        <Border DockPanel.Dock="Right" Height="32" CornerRadius="{StaticResource RadiusSeg}" Background="{DynamicResource Field}" Padding="3">
-          <StackPanel Orientation="Horizontal">
-            <Button x:Name="ThemeSystem" Content="Как в Windows" Style="{StaticResource Plain}" Padding="10,0" FontSize="{StaticResource FsNote}" o:Ui.CornerRadius="{StaticResource RadiusInner}"/>
-            <Button x:Name="ThemeLight" Content="Светлая" Style="{StaticResource Plain}" Padding="10,0" FontSize="{StaticResource FsNote}" o:Ui.CornerRadius="{StaticResource RadiusInner}" Margin="2,0"/>
-            <Button x:Name="ThemeDark" Content="Тёмная" Style="{StaticResource Plain}" Padding="10,0" FontSize="{StaticResource FsNote}" o:Ui.CornerRadius="{StaticResource RadiusInner}"/>
-          </StackPanel>
-        </Border>
-        <TextBlock Text="Тема" FontSize="{StaticResource FsRow}" VerticalAlignment="Center"/>
-      </DockPanel>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

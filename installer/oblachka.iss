@@ -35,6 +35,7 @@ WizardStyle=modern
 CloseApplications=yes
 RestartApplications=no
 UninstallDisplayIcon={app}\Oblachka.exe
+SetupIconFile=..\src\Assets\app.ico
 UninstallDisplayName=Облачка
 SetupLogging=yes
 
