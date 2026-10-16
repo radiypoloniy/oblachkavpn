@@ -27,6 +27,7 @@ public static class NetworkHelperHost
     private static string root = ClientDataPaths.Root;
     internal static void UseDataRoot(string path) => root = path;
     public static string JournalPath => Path.Combine(root, "network-session.json");
+    internal static string DataPath(string name) => Path.Combine(root, name);
     public static string FailurePath => Path.Combine(root, "helper-failure.txt");
     public static string TracePath => Path.Combine(root, "helper-trace.txt");
 

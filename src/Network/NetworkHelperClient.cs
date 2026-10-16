@@ -85,6 +85,19 @@ public sealed class NetworkHelperClient : INetworkHelperClient
         finally { operations.Release(); }
     }
 
+    // Сайты, которые идут мимо VPN: их имена разрешает DNS физической сети (DirectDns).
+    public async Task DirectDnsAsync(IReadOnlyList<string> domains, CancellationToken token)
+    {
+        await operations.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            foreach (var part in DirectDnsRequest.Split(domains))
+                if ((await pipe.SendAsync(HelperOperation.DirectDns, null, token, directDns: part).ConfigureAwait(false)).Failure != HelperFailure.None)
+                    throw new UserError("Служба не приняла список прямых сайтов.");
+        }
+        finally { operations.Release(); }
+    }
+
     // zapret в службе: подготовка, запуск, остановка, состояние. Отказ с причиной — в Error.
     public async Task<ZapretStatus> ZapretAsync(ZapretRequest request, CancellationToken token)
     {

@@ -76,6 +76,8 @@ public partial class MainWindow
     {
         if (zapretBusy || !zapretEnabled) return;
         zapretBusy = true; zapretCancel = new CancellationTokenSource();
+        // Присмотр — только за итогом этого подбора; если он ничего не найдёт, присматривать не за чем.
+        WatchZapret(ZapretPlan.NoBypass, [], "");
         var token = zapretCancel.Token;
         try
         {
@@ -140,6 +142,7 @@ public partial class MainWindow
         {
             zapretChoices[network] = ZapretPlan.Encode(strategy, groups); QueueStateSave();
             zapretBypassing = strategy != ZapretPlan.NoBypass;
+            WatchZapret(strategy, groups, network);
             zapretDomains = ZapretSites.Read(zapretTag, ZapretPlan.Groups.Where(g => groups.Contains(g.Key)).Select(g => g.List));
             Note(ZapretPlan.Describe(strategy, groups, probe));
         }

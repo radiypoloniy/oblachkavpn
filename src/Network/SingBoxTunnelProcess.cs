@@ -41,8 +41,12 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         var adapter = new CoreAdapter(CoreKind.SingBox, executable);
         // Конфигурацию проверяет само ядро до запуска: отказ виден до изменения сети.
         var ipv6 = PhysicalNetwork.HasGlobalIpv6();
-        CoreConfigurationCheck.ValidateTunAsync(request, token, ipv6).GetAwaiter().GetResult();
-        var config = SingBoxTunConfig.Create(request, ipv6).ToJsonString();
+        // DNS по пути трафика: прямые сайты — через резолвер физической сети (DirectDns).
+        DirectDns.EnsureFile();
+        var localDns = DirectDns.PhysicalResolver();
+        CoreConfigurationCheck.ValidateTunAsync(request, token, ipv6, localDns, DirectDns.RuleSetPath).GetAwaiter().GetResult();
+        var config = SingBoxTunConfig.Create(request, ipv6, localDns, DirectDns.RuleSetPath).ToJsonString();
+        NetworkHelperHost.RecordStep(DateTime.UtcNow.ToString("HH:mm:ss.fff") + " DNS прямых сайтов: " + (localDns is null ? "через туннель" : "сеть"));
 
         var start = new ProcessStartInfo(executable)
         {

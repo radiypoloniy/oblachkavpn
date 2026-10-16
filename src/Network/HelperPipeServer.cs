@@ -103,6 +103,7 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                         zapret = await ZapretRunner.HandleAsync(request.Zapret!, deadline.Token);
                         if (state == NetworkSessionState.Applied) SyncReinjection();
                     }
+                    else if (request.Operation == HelperOperation.DirectDns) DirectDns.Accept(request.DirectDns!);
                     else if (request.Operation == HelperOperation.Recover)
                     {
                         // Только чужая, оставленная сессия: свою владелец снимает через Release.
