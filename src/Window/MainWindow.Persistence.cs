@@ -36,7 +36,7 @@ public partial class MainWindow
             Favorites = favorites.Where(f => importedProfiles.Any(p => FavoriteKey(p) == f)).Take(Subscriptions.MaxProfiles).ToArray(),
             Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
             ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = Settings.RussiaDirect.IsChecked == true, AutoSelect = autoSelect,
-            UpdateCheck = Diagnostics.UpdateAuto.IsChecked == true, DpiBypass = fragmentMode,
+            UpdateCheck = Diagnostics.UpdateAuto.IsChecked == true, UpdatePrerelease = Diagnostics.UpdatePrerelease.IsChecked == true, DpiBypass = fragmentMode,
             ZapretEnabled = zapretEnabled, ZapretChoices = new Dictionary<string, string>(zapretChoices),
             AutoPool = autoPool.Snapshot(importedProfiles) };
 
@@ -90,6 +90,7 @@ public partial class MainWindow
         Settings.RussiaDirect.IsChecked = snapshot.RussiaDirect;
         autoSelect = snapshot.AutoSelect;
         Diagnostics.UpdateAuto.IsChecked = snapshot.UpdateCheck;
+        Diagnostics.UpdatePrerelease.IsChecked = snapshot.UpdatePrerelease;
         fragmentMode = Enum.IsDefined(snapshot.DpiBypass) ? snapshot.DpiBypass : FragmentMode.Auto;
         zapretEnabled = snapshot.ZapretEnabled;
         zapretChoices.Clear(); foreach (var (net, choice) in snapshot.ZapretChoices ?? new()) zapretChoices[net] = choice;
