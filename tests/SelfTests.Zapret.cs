@@ -98,6 +98,10 @@ public static partial class SelfTests
             var text = ZapretPlan.Describe("ALT4", new[] { "youtube" }, youtubeOnly);
             Assert(text.Contains("YouTube — напрямую через zapret («ALT4»)") && text.Contains("через VPN: не открылись discord.com, gateway.discord.gg"));
             Assert(ZapretPlan.Describe("-", new[] { "youtube", "discord" }, null).Contains("обход не нужен"));
+            // Видео YouTube открылось только по QUIC, как в браузере: группа проходит, и это видно в подписи.
+            Assert(ZapretProbe.QuicFallback.SequenceEqual(new[] { 2 }) && ZapretPlan.Groups[0].Targets.Contains(2));
+            var quic = Probe(true, true, true, false, false, false) with { QuicOnly = new[] { 2 } };
+            Assert(ZapretPlan.Passing(quic).SequenceEqual(new[] { "youtube" }) && ZapretPlan.Describe("ALT4", new[] { "youtube" }, quic).Contains("redirector.googlevideo.com — по QUIC"));
         }));
     }
 }

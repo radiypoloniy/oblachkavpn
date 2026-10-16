@@ -43,7 +43,11 @@ public static class ZapretPlan
         foreach (var group in Groups)
         {
             if (direct.Contains(group.Key))
-                parts.Add(group.Title + " — напрямую" + (strategy == NoBypass ? ", обход не нужен." : $" через zapret («{strategy}»)."));
+            {
+                var quic = lastProbe is null ? [] : group.Targets.Where(i => lastProbe.QuicOnly.Contains(i)).Select(i => ZapretProbe.Targets[i].Host).ToArray();
+                parts.Add(group.Title + " — напрямую" + (strategy == NoBypass ? ", обход не нужен" : $" через zapret («{strategy}»)") +
+                    (quic.Length > 0 ? " (" + string.Join(", ", quic) + " — по QUIC, как в браузере)." : "."));
+            }
             else
             {
                 var failed = lastProbe is null ? Array.Empty<string>()
