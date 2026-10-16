@@ -20,6 +20,7 @@
     <views:SettingsPanel x:Name="Settings" Visibility="Collapsed"/>
     <views:AppPicker x:Name="Picker" Visibility="Collapsed"/>
     <views:NetworkDoctorView x:Name="Doctor" Visibility="Collapsed"/>
+    <views:SiteCheckView x:Name="SiteCheck" Visibility="Collapsed"/>
 
     <views:OnboardingView x:Name="Onboarding" Visibility="Collapsed"/>
 

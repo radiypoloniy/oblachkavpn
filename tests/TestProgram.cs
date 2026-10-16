@@ -179,6 +179,7 @@ public static class TestProgram
         }
         if (args.Length == 3 && args[0] == "--routing-check") return RoutingCheckCommand.Run(args[1], args[2]);
         if (args.Length == 3 && args[0] == "--ping-check") return PingCheckCommand.Run(args[1], args[2]);
+        if (args.Length >= 3 && args[0] == "--site-check") return SiteCheckCommand.Run(args[1], args.Skip(2));
         if (args.Length == 3 && args[0] == "--subscription-check") return SubscriptionCheckCommand.Run(args[1], args[2]);
         if (args.Length is 3 or 4 && args[0] == "--import-check")
             return ImportCheckCommand.Run(args[1], args[2], args.Length > 3 && args[3] == "--validate");
