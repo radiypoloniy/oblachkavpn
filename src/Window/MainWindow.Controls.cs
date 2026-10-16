@@ -62,6 +62,7 @@ public partial class MainWindow
         Onboarding.FileButton.Click += ImportFileClick;
         WireQr();
         WireDoctor();
+        WireSiteCheck();
         WireUpdates();
         WireDpi();
         WireZapret();

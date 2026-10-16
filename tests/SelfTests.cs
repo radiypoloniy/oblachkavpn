@@ -57,6 +57,7 @@ public static partial class SelfTests
         await SingBoxChecksAsync(CheckAsync, executable, root);
         await LabChecksAsync(CheckAsync, root);
         await StorageChecksAsync(CheckAsync, root);
+        await SiteCheckChecksAsync(CheckAsync);
         await ArchitectureChecksAsync(CheckAsync);
         await NetworkSessionChecksAsync(CheckAsync, root);
         await HelperPipeChecksAsync(CheckAsync, root);

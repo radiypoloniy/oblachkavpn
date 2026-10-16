@@ -6,7 +6,8 @@ namespace Oblachka;
 // и системным. Выделено из MainWindow.xaml.cs, когда файл перерос лимит размера.
 public partial class MainWindow
 {
-    private async void ConnectClick(object sender, RoutedEventArgs args)
+    private async void ConnectClick(object sender, RoutedEventArgs args) => await ConnectFreshAsync();
+    private async Task ConnectFreshAsync()
     {
         manualStop = false;
         recoveryWait?.Cancel(); recovery.Reset(); health.Reset(); ResetSystemPath();
@@ -65,6 +66,7 @@ public partial class MainWindow
                 runningProfile = target;
                 if (!closed) DetailText.Text = "Подключение запущено. Проверьте туннель в диагностике.";
             }
+            if (!closed) Connected();
         }
         catch (OperationCanceledException) { if (!closed) DetailText.Text = "Запуск отменён или истёк срок ожидания. Можно попробовать снова."; }
         catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }
@@ -73,6 +75,7 @@ public partial class MainWindow
     private void StopClick(object sender, RoutedEventArgs args)
     {
         manualStop = true;
+        RememberConnected(false);
         recoveryWait?.Cancel();
         ResetSystemPath();
         operation?.Cancel();

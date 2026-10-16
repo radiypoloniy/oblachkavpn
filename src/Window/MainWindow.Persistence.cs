@@ -38,7 +38,8 @@ public partial class MainWindow
             ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = Settings.RussiaDirect.IsChecked == true, AutoSelect = autoSelect,
             UpdateCheck = Diagnostics.UpdateAuto.IsChecked == true, UpdatePrerelease = Diagnostics.UpdatePrerelease.IsChecked == true, DpiBypass = fragmentMode,
             ZapretEnabled = zapretEnabled, ZapretChoices = new Dictionary<string, string>(zapretChoices),
-            AutoPool = autoPool.Snapshot(importedProfiles) };
+            AutoPool = autoPool.Snapshot(importedProfiles),
+            ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected };
 
     private void SaveStateClick(object sender, RoutedEventArgs args)
     {
@@ -74,6 +75,7 @@ public partial class MainWindow
     {
         var restored = ClientStateStore.RestoreProfiles(snapshot);
         Settings.StayInTray.IsChecked = snapshot.CloseToTray ?? true; AutoRecover.IsChecked = snapshot.AutoRecover;
+        Settings.ConnectOnLaunch.IsChecked = snapshot.ConnectOnLaunch; wasConnected = snapshot.WasConnected;
         Settings.AutoRefresh.IsChecked = snapshot.AutoRefresh;
         ThemeManager.Apply(snapshot.Theme ?? ThemeChoice.System);
         Settings.SystemProxy.IsChecked = snapshot.SystemProxy;

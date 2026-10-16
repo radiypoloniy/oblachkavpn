@@ -148,6 +148,11 @@ public partial class MainWindow
             foreach (var layer in new UIElement[] { power.Glow, power.OnLayer }) { layer.BeginAnimation(OpacityProperty, null); layer.Opacity = 1; }
             power.Slide.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, null); power.Slide.X = 72;
             return; }
+        // «Не открывается сайт?» с итогом: напрямую режет DPI, через VPN открывается.
+        if (page is "site" or "site-ok") { LoadGroupsPreview(); OpenSiteCheck(); checkedHost = page == "site" ? "rutracker.org" : "www.gosuslugi.ru"; SiteCheck.SiteInput.Text = checkedHost;
+            if (page == "site") ShowSiteResult(new(SiteStage.Handshake, 230), new(SiteStage.Ok, 412, 200), SiteRoute.Direct, "напрямую · по спискам", profile);
+            else ShowSiteResult(new(SiteStage.Ok, 96, 200), new(SiteStage.Forbidden, 380, 403), SiteRoute.Tunnel, "через VPN", profile);
+            SiteCheck.BeginAnimation(OpacityProperty, null); SiteCheck.Opacity = 1; return; }
         Navigate(page switch { "servers" => "Servers", "routes" => "Routes", "diagnostics" => "Diagnostics", _ => "Connection" });
         if (page is "settings" or "rules" or "storage" or "help" or "autopool" or "advanced") SettingsClick(this, new RoutedEventArgs());
         if (page is "rules" or "storage" or "help" or "autopool" or "advanced")

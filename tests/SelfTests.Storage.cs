@@ -24,6 +24,16 @@ public static partial class SelfTests
             var restored = ClientStateStore.RestoreProfiles(loaded).Single();
             Assert(restored.Name == "🇪🇺Обход 2" && Profiles.Fingerprint(restored) == Profiles.Fingerprint(profile));
         }));
+        await check("Connect on launch defaults on, survives a roundtrip and old snapshots", () => Sync(() =>
+        {
+            Assert(snapshot.ConnectOnLaunch && !snapshot.WasConnected);
+            var legacy = System.Text.Json.JsonSerializer.Deserialize<ClientSnapshot>("{\"Version\":1,\"Profiles\":[],\"SubscriptionSources\":[],\"PreferredSource\":0,\"StayInTray\":true,\"AutoRecover\":true}")!;
+            Assert(legacy.ConnectOnLaunch && !legacy.WasConnected);
+            store.Save(snapshot with { ConnectOnLaunch = false, WasConnected = true });
+            var loaded = store.Load()!;
+            Assert(!loaded.ConnectOnLaunch && loaded.WasConnected);
+            store.Save(snapshot);
+        }));
         await check("Invalid saved-state version is rejected before replacing valid encrypted data", () => Sync(() =>
         {
             var before = SHA256.HashData(File.ReadAllBytes(path));

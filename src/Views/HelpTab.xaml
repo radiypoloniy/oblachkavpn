@@ -60,6 +60,16 @@
           </DockPanel>
         </StackPanel>
       </Border>
+      <!-- «Почему не открывается сайт?» (SiteProbe, SiteVerdict). -->
+      <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource CardBg}" Padding="14,12" Margin="0,0,0,8">
+        <DockPanel>
+          <Button x:Name="SiteCheckOpenButton" DockPanel.Dock="Right" Content="Проверить" Style="{StaticResource BtnOutline}" Height="34" Padding="14,0" o:Ui.CornerRadius="{StaticResource RadiusSeg}" FontSize="{StaticResource FsNote}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Не открывается сайт?" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
+            <TextBlock Text="Узнаем, кто мешает — провайдер, DPI или сам сайт — и починим в один клик" Style="{StaticResource Small}" TextWrapping="Wrap"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
       <!-- Поломки, которые оставляют упавшие VPN и обходы блокировок (NetworkDoctor). -->
       <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource CardBg}" Padding="14,12" Margin="0,0,0,8">
         <DockPanel>

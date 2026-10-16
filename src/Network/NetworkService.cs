@@ -28,6 +28,15 @@ public static class NetworkService
     private static readonly HandlerProc Handler = OnControl;
     private static IntPtr statusHandle;
     private static readonly CancellationTokenSource Stopping = new();
+    // Выход из сеанса Windows (SESSIONCHANGE): сеанс окна-владельца и сигнал, будящий цикл службы.
+    private static readonly object WakeGate = new();
+    private static CancellationTokenSource wake = new();
+    private static int ownerSession = -1, loggedOffSession = -1;
+    // Пробуждение (POWEREVENT): окно живо — ничего не делаем; его процесса нет — как после перезагрузки.
+    // Судим по процессу, а не по каналу: после сна канал может оборваться по сроку пульса у живого окна.
+    private static volatile bool resumed;
+    private static int ownerPid;
+    private static DateTime ownerStart;
 
     // Вызывается диспетчером служб; из обычного запуска StartServiceCtrlDispatcher откажет.
     public static int Run()
@@ -64,12 +73,18 @@ public static class NetworkService
         {
             while (!token.IsCancellationRequested)
             {
+                ReleaseLoggedOffOwner(session);
+                CancellationTokenSource cycle;
+                lock (WakeGate) { if (wake.IsCancellationRequested) { wake.Dispose(); wake = new(); } cycle = wake; }
+                using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, cycle.Token);
                 try
                 {
                     using var pipe = HelperPipeIdentity.CreateServiceServer();
-                    pipe.WaitForConnectionAsync(token).GetAwaiter().GetResult();
+                    pipe.WaitForConnectionAsync(linked.Token).GetAwaiter().GetResult();
                     using var client = HelperPipeIdentity.ServiceClient(pipe, AppContext.BaseDirectory);
-                    HelperPipeServer.ServeAsync(session, pipe, client, null, null, NetworkHelperHost.RecordFailure, token).GetAwaiter().GetResult();
+                    Volatile.Write(ref ownerSession, client.SessionId);
+                    ownerPid = client.Id; ownerStart = client.StartTime;
+                    HelperPipeServer.ServeAsync(session, pipe, client, null, null, NetworkHelperHost.RecordFailure, linked.Token).GetAwaiter().GetResult();
                 }
                 catch (OperationCanceledException) when (token.IsCancellationRequested) { break; }
                 // Разрыв канала, молчание клиента и его завершение — обычный конец обслуживания.
@@ -88,6 +103,31 @@ public static class NetworkService
             ZapretRunner.Stop();
             session.Recover();
         }
+    }
+
+    // Выход из сеанса окна — не авария, а конец работы: сеть возвращается, как при выходе через трей.
+    // Без этого «Завершение работы» с быстрым запуском (гибернация ядра, служба не перезапускается)
+    // оставляло сессию: после включения туннель без ядра окна и фильтры держали интернет закрытым,
+    // пока человек не нажмёт тумблер. Аварийное завершение окна по-прежнему сессию оставляет.
+    // Второй путь к тому же — пробуждение без окна: если уведомление о выходе не дошло, гибернация
+    // быстрого запуска всё равно кончается пробуждением, а окна того сеанса уже нет.
+    private static void ReleaseLoggedOffOwner(NetworkSession session)
+    {
+        var loggedOff = Interlocked.Exchange(ref loggedOffSession, -1);
+        var alone = resumed && !OwnerAlive(); resumed = false;
+        if (!alone && (loggedOff < 0 || loggedOff != Volatile.Read(ref ownerSession))) return;
+        ZapretRunner.Stop();
+        if (session.State is null or NetworkSessionState.Released) return;
+        NetworkHelperHost.RecordStep(DateTime.UtcNow.ToString("HH:mm:ss.fff") + (alone ? " пробуждение без окна" : " выход из сеанса Windows") + ": сеть возвращена");
+        try { session.Recover(); }
+        catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException) { NetworkHelperHost.RecordFailure(ex); }
+    }
+
+    private static bool OwnerAlive()
+    {
+        if (ownerPid == 0) return false;
+        try { using var p = Process.GetProcessById(ownerPid); return !p.HasExited && p.StartTime == ownerStart; }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception) { return false; }
     }
 
     // Папка журнала создаётся заново, если её успел создать кто-то без прав администратора:
@@ -122,6 +162,20 @@ public static class NetworkService
             Report(StateStopPending, 0);
             Stopping.Cancel();
         }
+        // SERVICE_CONTROL_SESSIONCHANGE + WTS_SESSION_LOGOFF; в WTSSESSION_NOTIFICATION номер сеанса — после cbSize.
+        else if (control == 0xE && eventType == 6 && eventData != IntPtr.Zero)
+        {
+            var id = Marshal.ReadInt32(eventData, 4);
+            if (id != Volatile.Read(ref ownerSession)) return 0;
+            Volatile.Write(ref loggedOffSession, id);
+            lock (WakeGate) wake.Cancel();
+        }
+        // SERVICE_CONTROL_POWEREVENT + PBT_APMRESUMEAUTOMATIC.
+        else if (control == 0xD && eventType == 0x12)
+        {
+            resumed = true;
+            lock (WakeGate) wake.Cancel();
+        }
         return 0;
     }
 
@@ -131,7 +185,7 @@ public static class NetworkService
         {
             Type = 0x10, // SERVICE_WIN32_OWN_PROCESS
             State = state,
-            Accepted = state == StateRunning ? 0x5 : 0, // STOP | SHUTDOWN
+            Accepted = state == StateRunning ? 0xC5 : 0, // STOP | SHUTDOWN | POWEREVENT | SESSIONCHANGE
             ExitCode = exitCode,
             // Снятие сессии ждёт исчезновения адаптера до 25 с.
             WaitHint = state is StatePending or StateStopPending ? 60000 : 0

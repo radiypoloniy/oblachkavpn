@@ -35,6 +35,7 @@ public partial class SettingsPanel : UserControl
     public Button RestoreNetwork => Advanced.RestoreNetwork;
     public CheckBox AutoRecover => General.AutoRecover;
     public CheckBox StartWithWindows => General.StartWithWindows;
+    public CheckBox ConnectOnLaunch => General.ConnectOnLaunch;
     public CheckBox StayInTray => Advanced.StayInTray;
     public StackPanel AutoPoolList => AutoPool.AutoPoolList;
     public CheckBox AutoRefresh => Subscription.AutoRefresh;

@@ -105,6 +105,13 @@
             <CheckBox x:Name="StartWithWindows" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Запускать вместе с Windows"/>
             <TextBlock Text="Запускать вместе с Windows" Style="{StaticResource RowTitle}" VerticalAlignment="Center"/>
           </DockPanel>
+          <DockPanel Margin="12,0,10,12">
+            <CheckBox x:Name="ConnectOnLaunch" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Подключаться при запуске"/>
+            <StackPanel>
+              <TextBlock Text="Подключаться при запуске" Style="{StaticResource RowTitle}"/>
+              <TextBlock Text="Если VPN был включён, когда вы выключили компьютер или закрыли Облачку" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap"/>
+            </StackPanel>
+          </DockPanel>
           <DockPanel Margin="12,8,8,8">
             <Border DockPanel.Dock="Right" Height="32" CornerRadius="{StaticResource RadiusSeg}" Background="{DynamicResource Field}" Padding="3">
               <StackPanel Orientation="Horizontal">
