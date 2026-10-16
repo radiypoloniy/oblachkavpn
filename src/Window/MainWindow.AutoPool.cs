@@ -73,7 +73,7 @@ public partial class MainWindow
             };
             var text = new StackPanel();
             text.Children.Add(new TextBlock { Text = item.DisplayName, FontSize = Tokens.Size("FsRow"), TextTrimming = TextTrimming.CharacterEllipsis });
-            var sub = AutoPool.IsWhitelistBypass(item) ? "обход белых списков" : AutoPool.IsSpecialPurpose(item) ? "для звонков и игр" : !item.IsService ? "сторонняя подписка" : null;
+            var sub = AutoPool.IsWhitelistBypass(item) ? "обход белых списков" : !item.IsService ? "сторонняя подписка" : null;
             if (sub is not null) text.Children.Add(new TextBlock { Text = sub, Style = (Style)FindResource("Small") });
             var row = new DockPanel { Margin = new Thickness(12, 7, 6, 7) };
             DockPanel.SetDock(toggle, Dock.Right);
