@@ -15,8 +15,11 @@ public partial class MainWindow
     private static string FavoriteKey(Profile item) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
         System.Text.Encoding.UTF8.GetBytes(item.Source + ":" + item.Name)));
 
-    private long MeasurementOrder(Profile item) => LatestMeasurement(item) is { Success: true } result &&
-        ServerMeasurements.Fresh(result, DateTimeOffset.UtcNow) ? result.Milliseconds : long.MaxValue;
+    // «Лучшие сверху»: по той же оценке, что у автовыбора (задержка и скорость); за ними —
+    // серверы, у которых есть только отклик входа, по нему; не ответившие и без замера — в конце.
+    private double MeasurementOrder(Profile item) => LatestMeasurement(item) is { Success: true } result && ServerMeasurements.Fresh(result, DateTimeOffset.UtcNow)
+        ? result.Handshake ? 1e9 + result.Milliseconds : ServerMeasurements.Score(result)
+        : double.MaxValue;
 
     private void WireServerList()
     {

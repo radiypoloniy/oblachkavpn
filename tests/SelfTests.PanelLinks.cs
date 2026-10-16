@@ -28,6 +28,10 @@ public static partial class SelfTests
             Assert(old.Text == "давно" && old.Hint!.StartsWith("Последний замер — 84 мс", StringComparison.Ordinal));
             Assert(ServerRow.Status(new("a", now.AddHours(-3), false, 0), now).Hint!.StartsWith("В последний раз не ответил", StringComparison.Ordinal));
             Assert(ServerRow.Status(new("a", now, true, 84), now, checking: true).Text == "проверяем…");
+            Assert(ServerRow.SpeedText(new("a", now, true, 84) { Throughput = 6_240_000 }, now) == "6,2 МБ/с");
+            Assert(ServerRow.SpeedText(new("a", now, true, 84) { Throughput = 850_000 }, now) == "850 КБ/с");
+            Assert(ServerRow.SpeedText(new("a", now, true, 84) { Throughput = 24_600_000 }, now) == "25 МБ/с");
+            Assert(ServerRow.SpeedText(new("a", now, true, 84), now) == "" && ServerRow.SpeedText(new("a", now.AddHours(-3), true, 84) { Throughput = 6_000_000 }, now) == "");
         }));
     }
 }

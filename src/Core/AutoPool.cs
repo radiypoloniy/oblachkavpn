@@ -17,13 +17,8 @@ public sealed class AutoPool
     private static readonly Regex Whitelist = new(@"бел\w*\s+спис|white\s*-?\s*list|\bбс\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     private readonly Dictionary<string, bool> overrides = new(StringComparer.Ordinal);
 
-    // Серверы для звонков и игр (обычно Hysteria2): самая низкая задержка, но не лучший канал
-    // для всего остального. Тоже по умолчанию вне пула.
-    private static readonly Regex Purpose = new(@"игр|звонк|\bgam(e|ing)\b|\bcalls?\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
     public static bool IsWhitelistBypass(Profile profile) => Whitelist.IsMatch(profile.Name);
-    public static bool IsSpecialPurpose(Profile profile) => Purpose.IsMatch(profile.Name);
-    public static bool DefaultIn(Profile profile) => !IsWhitelistBypass(profile) && !IsSpecialPurpose(profile);
+    public static bool DefaultIn(Profile profile) => !IsWhitelistBypass(profile);
 
     public static string Key(Profile profile) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(profile.Source + ":" + profile.Name)));
 

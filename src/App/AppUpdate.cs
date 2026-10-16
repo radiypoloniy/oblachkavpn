@@ -7,12 +7,15 @@ using System.Text.RegularExpressions;
 namespace Oblachka;
 
 // Новая версия на странице релизов GitHub.
+// Revision — ревизия из имени установщика; Prerelease — пробная версия (тег vX.Y.Z-rc.N).
 public sealed record AppRelease(Version Version, string Tag, Uri Installer, long Size, string Sha256, string Notes, Uri Page)
 {
     public string FileName => Installer.Segments[^1];
+    public string Revision { get; init; } = "";
+    public bool Prerelease { get; init; }
 }
 
-// Обновление без переустановки: последний релиз репозитория, установщик из него,
+// Обновление без переустановки: последний релиз репозитория (или пробный — по желанию), установщик из него,
 // проверка SHA256 по digest, который GitHub считает сам при загрузке файла в релиз.
 //
 // В сеть уходит только запрос к api.github.com и скачивание установщика по нажатию:
@@ -22,19 +25,31 @@ public static class AppUpdate
 {
     public const string Repository = "radiypoloniy/oblachkavpn";
     public static readonly Uri LatestApi = new("https://api.github.com/repos/" + Repository + "/releases/latest");
+    // Для пробных: releases/latest их не отдаёт, список релизов — новые первыми.
+    public static readonly Uri ListApi = new("https://api.github.com/repos/" + Repository + "/releases?per_page=10");
     private const string DownloadPrefix = "https://github.com/" + Repository + "/releases/download/";
     public const long MaxInstallerBytes = 300L * 1024 * 1024;
-    private static readonly Regex InstallerName = new(@"^Oblachka-setup-(\d+\.\d+\.\d+)-[0-9a-f]{7,12}\.exe$", RegexOptions.CultureInvariant);
+    private static readonly Regex InstallerName = new(@"^Oblachka-setup-(\d+\.\d+\.\d+)-([0-9a-f]{7,12})\.exe$", RegexOptions.CultureInvariant);
+    private static readonly Regex TagName = new(@"^v(\d+\.\d+\.\d+)(-rc\.\d+)?$", RegexOptions.CultureInvariant);
 
     public static Version Current { get; } = Version.Parse(ServiceBrand.Version);
 
-    // Разбор ответа releases/latest. null — релиз не подходит: черновик, без установщика,
-    // без контрольной суммы или с адресом не из этого репозитория.
-    public static AppRelease? Parse(string json)
+    // Разбор ответа releases/latest. null — релиз не подходит: черновик, пробный (если их не
+    // просили), без установщика, без контрольной суммы или с адресом не из этого репозитория.
+    public static AppRelease? Parse(string json, bool prerelease = false) => JsonNode.Parse(json) is JsonObject root ? Parse(root, prerelease) : null;
+
+    // Разбор списка релизов: первый подходящий, пробные тоже.
+    public static AppRelease? ParseList(string json) => JsonNode.Parse(json) is JsonArray list
+        ? list.OfType<JsonObject>().Select(r => Parse(r, true)).FirstOrDefault(r => r is not null)
+        : null;
+
+    private static AppRelease? Parse(JsonObject root, bool allowPrerelease)
     {
-        if (JsonNode.Parse(json) is not JsonObject root || root["draft"]?.GetValue<bool>() == true || root["prerelease"]?.GetValue<bool>() == true) return null;
         var tag = root["tag_name"]?.GetValue<string>() ?? "";
-        if (!Version.TryParse(tag.TrimStart('v', 'V'), out var version) || version.Build < 0) return null;
+        var tagMatch = TagName.Match(tag);
+        var pre = root["prerelease"]?.GetValue<bool>() == true || tagMatch.Groups[2].Success;
+        if (root["draft"]?.GetValue<bool>() == true || pre && !allowPrerelease || !tagMatch.Success) return null;
+        var version = Version.Parse(tagMatch.Groups[1].Value);
         foreach (var asset in (root["assets"] as JsonArray ?? new JsonArray()).OfType<JsonObject>())
         {
             var name = asset["name"]?.GetValue<string>() ?? "";
@@ -49,22 +64,34 @@ public static class AppUpdate
             var page = Uri.TryCreate(root["html_url"]?.GetValue<string>(), UriKind.Absolute, out var html) && html.Host == "github.com"
                 ? html : new Uri("https://github.com/" + Repository + "/releases");
             var notes = root["body"]?.GetValue<string>() ?? "";
-            return new AppRelease(version, tag, new Uri(url), size, digest[7..].ToUpperInvariant(), notes.Length > 4000 ? notes[..4000] : notes, page);
+            return new AppRelease(version, tag, new Uri(url), size, digest[7..].ToUpperInvariant(), notes.Length > 4000 ? notes[..4000] : notes, page)
+                { Revision = match.Groups[2].Value, Prerelease = pre };
         }
         return null;
     }
 
-    public static bool IsNewer(AppRelease release) => release.Version > Current;
+    public static bool IsNewer(AppRelease release) => IsNewer(release, Current, BuildIdentity.Revision);
+
+    // Новее по номеру — или тот же номер из другой ревизии: проба и выпуск одной версии
+    // носят одинаковый номер, и стоящая проба rc.1 должна видеть rc.2 и итоговый выпуск.
+    // Ревизия своей сборки неизвестна — только по номеру.
+    public static bool IsNewer(AppRelease release, Version current, string revision)
+    {
+        if (release.Version != current) return release.Version > current;
+        var mine = revision.Length >= 8 && revision.Take(8).All(char.IsAsciiHexDigit) ? revision[..8] : null;
+        return mine is not null && release.Revision.Length >= 7 &&
+            !mine.StartsWith(release.Revision[..Math.Min(8, release.Revision.Length)], StringComparison.OrdinalIgnoreCase);
+    }
 
     private static HttpClient Client(bool redirects) => new(new SocketsHttpHandler
     {
         AllowAutoRedirect = false, UseCookies = false, AutomaticDecompression = DecompressionMethods.All, ConnectTimeout = TimeSpan.FromSeconds(10)
     }) { Timeout = redirects ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(20) };
 
-    public static async Task<AppRelease?> CheckAsync(CancellationToken token)
+    public static async Task<AppRelease?> CheckAsync(bool prerelease, CancellationToken token)
     {
         using var client = Client(false);
-        using var request = new HttpRequestMessage(HttpMethod.Get, LatestApi);
+        using var request = new HttpRequestMessage(HttpMethod.Get, prerelease ? ListApi : LatestApi);
         request.Headers.UserAgent.ParseAdd(ServiceBrand.UserAgent);
         request.Headers.Accept.ParseAdd("application/vnd.github+json");
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
@@ -73,7 +100,7 @@ public static class AppUpdate
         if (!response.IsSuccessStatusCode) throw new UserError("GitHub не ответил (HTTP " + (int)response.StatusCode + "). Проверим позже.");
         if (response.Content.Headers.ContentLength > 1024 * 1024) throw new UserError("Ответ GitHub слишком большой.");
         var json = await response.Content.ReadAsStringAsync(token);
-        return json.Length > 1024 * 1024 ? throw new UserError("Ответ GitHub слишком большой.") : Parse(json);
+        return json.Length > 1024 * 1024 ? throw new UserError("Ответ GitHub слишком большой.") : prerelease ? ParseList(json) : Parse(json);
     }
 
     public static string Folder => Path.Combine(ClientDataPaths.Root, "updates");

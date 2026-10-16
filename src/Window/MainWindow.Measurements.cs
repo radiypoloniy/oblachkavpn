@@ -13,7 +13,11 @@ public partial class MainWindow
         };
         // «Подключить лучший» — то же, что «Автовыбор»: лучший по свежим замерам и сразу подключение.
         Servers.BestButton.Click += (_, _) => { if (operation is null) { PickServer(null); Navigate("Connection"); } };
+        System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged += (_, _) => addressChanged = DateTimeOffset.UtcNow.Ticks;
     }
+
+    // Когда сменились адреса (другой Wi-Fi, кабель, наш туннель): тики UTC, 0 — не было.
+    private long addressChanged;
     // «Проверить этот сервер»: настоящий HTTPS-запрос через выбранный сервер отдельным ядром,
     // как у «Проверить все», но для одного и любого источника. Подключение не трогает.
     private Profile? checkingServer;
@@ -105,6 +109,13 @@ public partial class MainWindow
         var age = DateTimeOffset.UtcNow - lastPing;
         // Откликов нет совсем (замер оборвало подключение «Весь компьютер») — повтор вскоре после выключения.
         if (IsVisible && (age > TimeSpan.FromMinutes(10) || pings.Count == 0 && age > TimeSpan.FromSeconds(30))) QueuePing();
+        // Сеть сменилась — замер через 15 секунд, когда она устоится, а не через час.
+        // Свой туннель адреса тоже меняет, но NetworkIdentity его не считает: сеть та же.
+        if (Interlocked.Read(ref addressChanged) is var changed and > 0 && DateTimeOffset.UtcNow.Ticks - changed > TimeSpan.TicksPerSecond * 15 && !measuring)
+        {
+            Interlocked.CompareExchange(ref addressChanged, 0, changed);
+            if (throughputNetwork is not null && NetworkIdentity.Current() is { } now && now != throughputNetwork) lastMeasure = DateTimeOffset.MinValue;
+        }
         if (!measuring && operation is null && importedProfiles.Count > 0 && stateStore is not null && !isolatedPersistence &&
             DateTimeOffset.UtcNow - lastMeasure > TimeSpan.FromMinutes(10))
             _ = MeasureServersAsync(autoPool.Members(importedProfiles.ToArray()), quiet: true);

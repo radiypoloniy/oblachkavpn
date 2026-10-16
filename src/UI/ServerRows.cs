@@ -22,6 +22,8 @@ public sealed class ServerRow
     public string Latency { get; init; } = "";
     public Brush? LatencyDot { get; init; }
     public string? LatencyHint { get; init; }
+    // Скорость через сервер под задержкой («6,2 МБ/с»); только в «Всех серверах».
+    public string Speed { get; init; } = "";
     public bool Selected { get; init; }
     public bool Favorite { get; init; }
     public bool CanFavorite => !IsAuto;
@@ -30,6 +32,7 @@ public sealed class ServerRow
     public Visibility IconVisibility => Flag is null ? Visibility.Visible : Visibility.Collapsed;
     public Visibility NoteVisibility => string.IsNullOrEmpty(Note) ? Visibility.Collapsed : Visibility.Visible;
     public Visibility LatencyVisibility => string.IsNullOrEmpty(Latency) ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility SpeedVisibility => string.IsNullOrEmpty(Speed) ? Visibility.Collapsed : Visibility.Visible;
     public FontWeight NameWeight => Selected ? FontWeights.SemiBold : FontWeights.Normal;
 
 
@@ -48,6 +51,16 @@ public sealed class ServerRow
             ? (measured.Milliseconds + " мс", DotFor(measured.Milliseconds), $"Ответил за {measured.Milliseconds} мс в {at:HH:mm}" +
                 (measured.Throughput > 0 ? $", скорость {measured.Throughput / 1_000_000.0:0.#} МБ/с" : ""))
             : ("нет ответа", Failed, $"Не ответил при проверке в {at:HH:mm}");
+    }
+
+    // Скорость свежего замера: «6,2 МБ/с», «850 КБ/с»; пусто — не мерили или замер старый.
+    public static string SpeedText(ServerMeasurement? measured, DateTimeOffset now)
+    {
+        if (measured is not { Success: true, Handshake: false, Throughput: > 0 } || !ServerMeasurements.Fresh(measured, now)) return "";
+        var ru = System.Globalization.CultureInfo.GetCultureInfo("ru-RU");
+        return measured.Throughput >= 1_000_000
+            ? (measured.Throughput / 1_000_000.0).ToString(measured.Throughput >= 10_000_000 ? "0" : "0.#", ru) + " МБ/с"
+            : (measured.Throughput / 1000).ToString(ru) + " КБ/с";
     }
 
     private static Brush? Faint => Application.Current?.TryFindResource("Fa") as Brush;

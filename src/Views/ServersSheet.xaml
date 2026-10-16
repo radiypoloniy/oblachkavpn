@@ -31,9 +31,12 @@
                 <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsLead}" FontWeight="{Binding NameWeight}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Tx}"/>
                 <TextBlock Text="{Binding Note}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Visibility="{Binding NoteVisibility}"/>
               </StackPanel>
-              <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding LatencyVisibility}" ToolTip="{Binding LatencyHint}" Background="Transparent">
-                <Ellipse Width="6" Height="6" Fill="{Binding LatencyDot}" Margin="0,0,6,0"/>
-                <TextBlock Text="{Binding Latency}" FontSize="{StaticResource FsBody}" Foreground="{DynamicResource Mu2}"/>
+              <StackPanel Grid.Column="2" VerticalAlignment="Center" Visibility="{Binding LatencyVisibility}" ToolTip="{Binding LatencyHint}" Background="Transparent">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                  <Ellipse Width="6" Height="6" Fill="{Binding LatencyDot}" Margin="0,0,6,0"/>
+                  <TextBlock Text="{Binding Latency}" FontSize="{StaticResource FsBody}" Foreground="{DynamicResource Mu2}"/>
+                </StackPanel>
+                <TextBlock Text="{Binding Speed}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" HorizontalAlignment="Right" Visibility="{Binding SpeedVisibility}"/>
               </StackPanel>
             </Grid>
           </Button>
@@ -137,7 +140,7 @@
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Порядок серверов" SelectedIndex="0">
           <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ListBox.ItemsPanel>
           <ListBox.Template><ControlTemplate TargetType="ListBox"><ItemsPresenter/></ControlTemplate></ListBox.Template>
-          <sys:String>По отклику</sys:String>
+          <sys:String>Лучшие сверху</sys:String>
           <sys:String>По названию</sys:String>
           <sys:String>Как в подписке</sys:String>
         </ListBox>

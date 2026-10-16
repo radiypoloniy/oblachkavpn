@@ -9,6 +9,8 @@ public partial class MainWindow
     private readonly AutoPool autoPool = new();
     private CancellationTokenSource? measureCancel;
     private DateTimeOffset lastMeasure = DateTimeOffset.MinValue, lastThroughput = DateTimeOffset.MinValue;
+    // В какой сети мерили скорость (NetworkIdentity): в новой прежние цифры не годятся.
+    private string? throughputNetwork;
 
     private static ITunnelController MeasureEngine() => new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), "");
 
@@ -22,9 +24,11 @@ public partial class MainWindow
     {
         if (measuring || closed || targets.Count == 0) return;
         measuring = true; lastMeasure = DateTimeOffset.UtcNow;
-        // Скорость — по кнопке и раз в час в фоне: 256 КБ на сервер, задержка — каждые 10 минут.
-        var throughput = !quiet || DateTimeOffset.UtcNow - lastThroughput > TimeSpan.FromHours(1);
-        if (throughput) lastThroughput = DateTimeOffset.UtcNow;
+        // Скорость — по кнопке, а в фоне раз в час и сразу в новой сети: 256 КБ на сервер.
+        // В лимитной сети (NetworkCost) фоном только задержка — она стоит единицы килобайт.
+        var network = NetworkIdentity.Current();
+        var throughput = !quiet || (network != throughputNetwork || DateTimeOffset.UtcNow - lastThroughput > TimeSpan.FromHours(1)) && !NetworkCost.Metered();
+        if (throughput) { lastThroughput = DateTimeOffset.UtcNow; throughputNetwork = network; }
         measureCancel = new CancellationTokenSource();
         Servers.MeasureButton.Content = "Остановить замер";
         var skipped = targets.Count(t => MeasureRoute(t) is null);
@@ -73,7 +77,7 @@ public partial class MainWindow
             };
             var text = new StackPanel();
             text.Children.Add(new TextBlock { Text = item.DisplayName, FontSize = Tokens.Size("FsRow"), TextTrimming = TextTrimming.CharacterEllipsis });
-            var sub = AutoPool.IsWhitelistBypass(item) ? "обход белых списков" : AutoPool.IsSpecialPurpose(item) ? "для звонков и игр" : !item.IsService ? "сторонняя подписка" : null;
+            var sub = AutoPool.IsWhitelistBypass(item) ? "обход белых списков" : !item.IsService ? "сторонняя подписка" : null;
             if (sub is not null) text.Children.Add(new TextBlock { Text = sub, Style = (Style)FindResource("Small") });
             var row = new DockPanel { Margin = new Thickness(12, 7, 6, 7) };
             DockPanel.SetDock(toggle, Dock.Right);

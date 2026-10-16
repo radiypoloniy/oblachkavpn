@@ -45,6 +45,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public bool AutoSelect { get; init; }
     // Проверка обновлений на GitHub раз в 12 часов (0.12). По умолчанию включена.
     public bool UpdateCheck { get; init; } = true;
+    // Пробные версии (0.14.2): обновлялка предлагает и выпуски vX.Y.Z-rc.N. По умолчанию нет.
+    public bool UpdatePrerelease { get; init; }
     // Обход DPI (0.13): Auto — разрезать рукопожатие, только когда обычное не проходит.
     public FragmentMode DpiBypass { get; init; }
     // zapret (0.13): включён ли и какая стратегия подошла в какой сети (хеш сети → имя стратегии).

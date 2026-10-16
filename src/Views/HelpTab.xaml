@@ -54,6 +54,10 @@
             <CheckBox x:Name="UpdateAuto" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Проверять обновления сами"/>
             <TextBlock Text="Проверять сами раз в 12 часов" Style="{StaticResource Small}" VerticalAlignment="Center"/>
           </DockPanel>
+          <DockPanel Margin="0,8,0,0">
+            <CheckBox x:Name="UpdatePrerelease" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Получать пробные версии"/>
+            <TextBlock Text="Получать пробные версии" Style="{StaticResource Small}" VerticalAlignment="Center"/>
+          </DockPanel>
         </StackPanel>
       </Border>
       <!-- Поломки, которые оставляют упавшие VPN и обходы блокировок (NetworkDoctor). -->

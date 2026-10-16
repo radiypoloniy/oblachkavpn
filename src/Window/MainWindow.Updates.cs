@@ -20,6 +20,8 @@ public partial class MainWindow
             else await InstallUpdateAsync();
         };
         Diagnostics.UpdateAuto.Click += (_, _) => QueueStateSave();
+        // Сменился канал — найденная раньше версия могла быть не из него.
+        Diagnostics.UpdatePrerelease.Click += (_, _) => { availableUpdate = null; updateChecked = false; QueueStateSave(); RefreshUpdate(); };
         // Первая проверка — через полминуты после запуска, чтобы не мешать подключению.
         updateTimer.Tick += async (_, _) =>
         {
@@ -39,12 +41,12 @@ public partial class MainWindow
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var release = await AppUpdate.CheckAsync(timeout.Token);
+            var release = await AppUpdate.CheckAsync(Diagnostics.UpdatePrerelease.IsChecked == true, timeout.Token);
             availableUpdate = release is not null && AppUpdate.IsNewer(release) ? release : null;
             if (availableUpdate is not null && !manual && !updateAnnounced)
             {
                 updateAnnounced = true;
-                DetailText.Text = $"Доступна версия {availableUpdate.Version}. Обновить: «Настройки → Помощь».";
+                DetailText.Text = $"Доступна {ReleaseName(availableUpdate)}. Обновить: «Настройки → Помощь».";
             }
             updateError = null; updateChecked = true;
         }
@@ -67,7 +69,7 @@ public partial class MainWindow
         if (updateBusy) return;
         if (availableUpdate is { } release)
         {
-            help.UpdateTitle.Text = "Доступна версия " + release.Version;
+            help.UpdateTitle.Text = "Доступна " + ReleaseName(release);
             help.UpdateText.Text = $"Сейчас {ServiceBrand.Version}. Установщик {release.Size / (1024 * 1024)} МБ, проверяется по SHA256";
             help.UpdateButton.Content = "Обновить";
         }
@@ -79,11 +81,15 @@ public partial class MainWindow
         }
     }
 
+    // «версия 0.14.2» или «пробная версия 0.14.2-rc.3».
+    private static string ReleaseName(AppRelease release) => release.Prerelease ? "пробная версия " + release.Tag.TrimStart('v') : "версия " + release.Version;
+
     private async Task InstallUpdateAsync()
     {
         if (availableUpdate is not { } release || updateBusy) return;
         var connected = engine.State is ConnectionState.Running or ConnectionState.Verified;
-        if (!AppDialog.Confirm(this, "Обновить до " + release.Version + "?",
+        if (!AppDialog.Confirm(this, "Обновить до " + (release.Prerelease ? release.Tag.TrimStart('v') : release.Version.ToString()) + "?",
+            (release.Prerelease ? "Это пробная версия: она может работать хуже обычной. " : "") +
             "Скачаем установщик с GitHub и сверим контрольную сумму. Windows попросит права администратора. " +
             (connected ? "На время установки подключение прервётся; " : "") + "после установки Облачка откроется сама. Подписки и настройки сохранятся.",
             "Обновить")) return;
