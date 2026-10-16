@@ -10,7 +10,12 @@ namespace Oblachka;
 // (наш Obl-…, Wintun, TAP других VPN) не в счёт. В файл состояния попадает только хеш.
 public static class NetworkIdentity
 {
-    public static string? Current()
+    public static string? Current() => Physical() is { } found
+        ? Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(found.Adapter.Id + "|" + found.Gateway)))[..16]
+        : null;
+
+    // Физический адаптер с основным шлюзом; null — сети нет.
+    public static (NetworkInterface Adapter, System.Net.IPAddress Gateway)? Physical()
     {
         try
         {
@@ -23,7 +28,7 @@ public static class NetworkIdentity
                 var gateway = nic.GetIPProperties().GatewayAddresses.Select(g => g.Address)
                     .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork && !a.Equals(System.Net.IPAddress.Any));
                 if (gateway is null) continue;
-                return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(nic.Id + "|" + gateway)))[..16];
+                return (nic, gateway);
             }
         }
         catch (NetworkInformationException) { }

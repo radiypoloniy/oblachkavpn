@@ -28,6 +28,12 @@ public static partial class SelfTests
             Assert(ServerMeasurements.Score(new("x", now, true, 100)) is > 100 and < 600);
             Assert(ServerMeasurements.Score(new("x", now, false, 0)) == double.MaxValue && ServerMeasurements.Score(new("x", now, true, 3) { Handshake = true }) == double.MaxValue);
         }));
+        await check("Metered networks are recognised by Windows cost flags and the lookup never throws", () => Sync(() =>
+        {
+            // 0x1 — безлимит; 0x2 фиксированный объём, 0x4 оплата за трафик, 0x40000 роуминг.
+            Assert(!NetworkCost.IsMetered(0x1) && NetworkCost.IsMetered(0x2) && NetworkCost.IsMetered(0x4) && NetworkCost.IsMetered(0x1 | 0x40000));
+            _ = NetworkCost.Metered();
+        }));
         await check("YouTube video check needs half a megabyte at 720p speed, not just the first bytes", () => Sync(() =>
         {
             Assert(ZapretProbe.FastEnough(1_000_000, TimeSpan.FromSeconds(0.5)));
