@@ -34,13 +34,13 @@ public static class RouteCandidates
         return position >= 0 ? position : 0;
     }
 
-    // Порядок для «Автовыбора»: сначала с задержкой через сервер — от быстрого к медленному, затем
+    // Порядок для «Автовыбора»: сначала замеренные — по оценке ServerMeasurements.Score (задержка и скорость), затем
     // без замера (в том числе только с откликом входа: его миллисекунды ничего не говорят),
     // в конце не ответившие. failed — узел, который только что перестал работать: он последний.
     public static int[] ByLatency(int[] candidates, IReadOnlyList<Profile> all, Func<Profile, ServerMeasurement?> latest, Profile? failed = null)
     {
         int Rank(int i) => failed is not null && ProfileSelection.Identity(all[i]) == ProfileSelection.Identity(failed) ? 3
             : latest(all[i]) switch { { Success: true, Handshake: false } => 0, null or { Success: true } => 1, _ => 2 };
-        return candidates.OrderBy(Rank).ThenBy(i => latest(all[i]) is { Success: true, Handshake: false } m ? m.Milliseconds : long.MaxValue).ThenBy(i => i).ToArray();
+        return candidates.OrderBy(Rank).ThenBy(i => latest(all[i]) is { Success: true, Handshake: false } m ? ServerMeasurements.Score(m) : double.MaxValue).ThenBy(i => i).ToArray();
     }
 }

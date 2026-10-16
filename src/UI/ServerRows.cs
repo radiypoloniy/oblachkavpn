@@ -45,7 +45,8 @@ public sealed class ServerRow
         if (measured is { Success: true, Handshake: true })
             return ("", null, $"Сервер отвечает ({at:HH:mm}). Задержку через него покажет «Обновить пинг».");
         return measured.Success
-            ? (measured.Milliseconds + " мс", DotFor(measured.Milliseconds), $"Ответил за {measured.Milliseconds} мс в {at:HH:mm}")
+            ? (measured.Milliseconds + " мс", DotFor(measured.Milliseconds), $"Ответил за {measured.Milliseconds} мс в {at:HH:mm}" +
+                (measured.Throughput > 0 ? $", скорость {measured.Throughput / 1_000_000.0:0.#} МБ/с" : ""))
             : ("нет ответа", Failed, $"Не ответил при проверке в {at:HH:mm}");
     }
 
