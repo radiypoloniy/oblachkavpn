@@ -179,6 +179,7 @@ public partial class MainWindow
             if (closed) return;
             UpdateSystemTunnelNote(state);
             UpdateControls();
+            if (state is SystemTunnelState.Failed or SystemTunnelState.RecoveryRequired) _ = HealLostTunnelAsync();
         }));
     }
 

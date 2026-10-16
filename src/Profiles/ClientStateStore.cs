@@ -54,6 +54,10 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public Dictionary<string, string>? ZapretChoices { get; init; }
     // Пул «Автовыбора» (0.13.3): только отличия от умолчания, ключ — хеш источника и имени.
     public Dictionary<string, bool>? AutoPool { get; init; }
+    // Подключаться при запуске (0.14.3): по умолчанию да, если при выходе VPN был включён (WasConnected).
+    // WasConnected снимает только выключение VPN человеком; выключение компьютера и выход его не трогают.
+    public bool ConnectOnLaunch { get; init; } = true;
+    public bool WasConnected { get; init; }
     // Подписки и «Вручную» (0.11). Нет значения — снимок прежней версии.
     public ProfileGroup[]? Groups { get; init; }
 }

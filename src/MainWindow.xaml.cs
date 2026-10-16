@@ -45,6 +45,7 @@ public partial class MainWindow : Window
         InitSystemProxy(persistenceEnabled && isolatedStore is null);
         InitSystemTunnel(persistenceEnabled && isolatedStore is null);
         InitStartup(persistenceEnabled && isolatedStore is null);
+        InitLaunch();
         Settings.VersionText.Text = BuildIdentity.Label;
         // Идентификатор установки виден пользователю: по нему сервис находит устройство
         // в списке, когда надо освободить место в лимите.
@@ -64,7 +65,7 @@ public partial class MainWindow : Window
         tray = new Forms.NotifyIcon { Icon = AppIcon.Small(), Text = ServiceBrand.Name + " — отключено", ContextMenuStrip = menu };
         tray.DoubleClick += (_, _) => Dispatcher.Invoke(ShowWindow);
         tray.MouseUp += (_, args) => { if (args.Button == Forms.MouseButtons.Left && args.Clicks < 2) Dispatcher.Invoke(ShowTrayPopup); };
-        Loaded += (_, _) => { tray.Visible = true; RestoreSavedState(); UpdateControls(); };
+        Loaded += (_, _) => { tray.Visible = true; RestoreSavedState(); UpdateControls(); _ = ConnectAtLaunchAsync(); };
         StateChanged += (_, _) => { if (WindowState != WindowState.Minimized) lastWindowState = WindowState; };
     }
     private void EngineChanged(ConnectionState state, string message)
@@ -188,12 +189,24 @@ public partial class MainWindow : Window
         engine.Stop(); await ConnectCoreAsync();
     }
     private WindowState lastWindowState = WindowState.Normal;
+    private bool exitTunnelClosing;
+    private async Task CloseAfterTunnelAsync()
+    {
+        manualStop = true; recoveryWait?.Cancel(); operation?.Cancel();
+        StatusText.Text = "Отключаемся…"; DetailText.Text = "Отключаем VPN перед выходом…";
+        await Task.WhenAny(CloseSystemTunnelAsync(), Task.Delay(TimeSpan.FromSeconds(30)));
+        Close();
+    }
     private void ShowWindow() { if (closed) return; if (WindowState == WindowState.Minimized) WindowState = lastWindowState; Show(); Activate(); }
     private void OnClosing(object? sender, CancelEventArgs args)
     {
         FlushStateSave();
         if (!exitRequested && Settings.StayInTray.IsChecked == true && !Application.Current.Dispatcher.HasShutdownStarted)
         { args.Cancel = true; HideToTray(); return; }
+        // Штатный выход возвращает обычную сеть: служба потерю окна считает аварией и держит защиту.
+        // При выходе из сеанса Windows ждать некогда — тогда сессию снимает служба (NetworkService).
+        if (!exitTunnelClosing && !Application.Current.Dispatcher.HasShutdownStarted && (systemTunnel is not null || helperLifetime is not null))
+        { args.Cancel = true; exitTunnelClosing = true; _ = CloseAfterTunnelAsync(); return; }
         closed = true;
         StopZapretOnExit();
         try { vmTestProcess?.CloseMainWindow(); } catch (InvalidOperationException) { }

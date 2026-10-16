@@ -64,6 +64,9 @@ public partial class MainWindow
     private void RestoreZapret()
     {
         if (!zapretEnabled || isolatedPersistence || stateStore is null) return;
+        // Подбор мерит прямой путь. Под сессией, оставленной прошлым запуском (сеть закрыта), и перед
+        // автоподключением он провалил бы все проверки — тогда он идёт после подключения.
+        if (ConnectAtLaunchPlanned || SessionLeft(NetworkService.JournalPath)) { zapretAfterConnect = true; return; }
         Dispatcher.BeginInvoke(async () => { if (!closed && NetworkHelperConnection.ServiceRunning) await PickZapretAsync(force: false); });
     }
 
