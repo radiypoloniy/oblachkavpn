@@ -45,6 +45,7 @@ public partial class MainWindow
             if (SystemTunnelWanted && SystemTunnelActive && systemTunnel is { } session)
             {
                 await session.SwitchAsync(profile, operation.Token);
+                _ = SyncDirectDnsAsync();
                 nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
                 runningProfile = target;
                 if (!closed) DetailText.Text = "Подключено к " + profile.DisplayName + ". Блокировка не снималась.";
@@ -52,6 +53,7 @@ public partial class MainWindow
             else if (SystemTunnelWanted)
             {
                 await StartSystemTunnelAsync(operation.Token);
+                sentDirectDns = ""; _ = SyncDirectDnsAsync();
                 nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
                 runningProfile = target;
                 if (!closed) DetailText.Text = "Системный режим запущен: весь трафик идёт через туннель.";

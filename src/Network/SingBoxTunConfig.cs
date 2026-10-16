@@ -23,7 +23,9 @@ public static class SingBoxTunConfig
     // IPv6 срывался: программа получала сброс вместо отказа и на IPv4 не переходила
     // (проверено на стенде: curl -4 проходил, curl по умолчанию — нет). IPv6 мимо туннеля
     // при этом закрыт защитой WFP: он быстро отказывает, и программы уходят на IPv4.
-    public static JsonObject Create(NetworkLeaseRequest request, bool ipv6 = true)
+    // localDns и ruleSet — DNS физической сети и файл с сайтами, которые идут мимо VPN (DirectDns):
+    // их имена разрешаются там же, куда пойдёт трафик. null — всё через DoH в туннеле.
+    public static JsonObject Create(NetworkLeaseRequest request, bool ipv6 = true, System.Net.IPAddress? localDns = null, string? ruleSet = null)
     {
         var lease = NetworkHelperContracts.Validate(request);
         if (lease.Action != NetworkLeaseAction.Acquire) throw new UserError("TUN требует новую сетевую сессию.");
@@ -68,7 +70,26 @@ public static class SingBoxTunConfig
             }
         };
         AddRules(config, lease);
+        if (lease.HasDirect && localDns is not null && ruleSet is not null) AddDirectDns(config, localDns, ruleSet);
         return config;
+    }
+
+    // Имена из файла правил — DNS физической сети; прямой выход и сам разрешает имена через
+    // него: проверка zapret и прямой трафик ядра окна приходят с доменом, а не адресом.
+    // Файл правил ядро перечитывает при изменении — список меняется без переподключения.
+    private static void AddDirectDns(JsonObject config, System.Net.IPAddress localDns, string ruleSet)
+    {
+        ((JsonArray)config["dns"]!["servers"]!).Add(new JsonObject
+        {
+            ["type"] = "udp", ["tag"] = DirectDns.ServerTag, ["server"] = localDns.ToString(), ["server_port"] = 53
+        });
+        config["dns"]!["rules"] = new JsonArray(new JsonObject { ["rule_set"] = new JsonArray(DirectDns.RuleSetTag), ["server"] = DirectDns.ServerTag });
+        config["route"]!["rule_set"] = new JsonArray(new JsonObject
+        {
+            ["type"] = "local", ["tag"] = DirectDns.RuleSetTag, ["format"] = "source", ["path"] = ruleSet
+        });
+        foreach (var outbound in ((JsonArray)config["outbounds"]!).OfType<JsonObject>())
+            if ((string?)outbound["tag"] == UserDirect) outbound["domain_resolver"] = DirectDns.ServerTag;
     }
 
     // Правила пользователя. Порядок: DNS перехвачен выше; затем распознавание домена по
