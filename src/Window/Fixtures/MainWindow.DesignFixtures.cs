@@ -187,6 +187,8 @@ public partial class MainWindow
         {
             var key = Profiles.Fingerprint(item);
             pings[key] = new(key, now, i % 7 != 5, 40 + i * 23 % 260);
+            // У части серверов уже есть замер скорости — видна строка «МБ/с».
+            if (i % 7 != 5 && i % 3 != 2) measurements[key] = new(key, now, true, 40 + i * 23 % 260) { Throughput = 400_000 + i * 1_370_000L % 9_000_000 };
         }
         FilterProfiles(); RefreshHome();
     }
