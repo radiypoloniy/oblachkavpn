@@ -8,7 +8,7 @@ public partial class MainWindow
 {
     private readonly AutoPool autoPool = new();
     private CancellationTokenSource? measureCancel;
-    private DateTimeOffset lastMeasure = DateTimeOffset.MinValue;
+    private DateTimeOffset lastMeasure = DateTimeOffset.MinValue, lastThroughput = DateTimeOffset.MinValue;
 
     private static ITunnelController MeasureEngine() => new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), "");
 
@@ -22,6 +22,9 @@ public partial class MainWindow
     {
         if (measuring || closed || targets.Count == 0) return;
         measuring = true; lastMeasure = DateTimeOffset.UtcNow;
+        // Скорость — по кнопке и раз в час в фоне: 256 КБ на сервер, задержка — каждые 10 минут.
+        var throughput = !quiet || DateTimeOffset.UtcNow - lastThroughput > TimeSpan.FromHours(1);
+        if (throughput) lastThroughput = DateTimeOffset.UtcNow;
         measureCancel = new CancellationTokenSource();
         Servers.MeasureButton.Content = "Остановить замер";
         var skipped = targets.Count(t => MeasureRoute(t) is null);
@@ -30,11 +33,14 @@ public partial class MainWindow
         {
             await ServerMeasurements.MeasureAsync(targets, MeasureEngine, result =>
             {
+                // Замер без скорости не стирает прежнюю: она меряется реже задержки.
+                if (result is { Success: true, Throughput: 0 } && measurements.TryGetValue(result.Fingerprint, out var old) && old.Throughput > 0)
+                    result = result with { Throughput = old.Throughput };
                 measurements[result.Fingerprint] = result;
                 if (closed) return;
                 if (!quiet) DetailText.Text = $"Пинг: {++done} из {targets.Count - skipped}. Можно остановить.";
                 RenderSheet(); RefreshHome();
-            }, measureCancel.Token, MeasureRoute);
+            }, measureCancel.Token, MeasureRoute, throughput);
             QueueStateSave();
             if (!quiet && !closed) DetailText.Text = "Пинг обновлён: задержка через каждый сервер." +
                 (skipped > 0 ? $" {skipped} не проверить, пока включён «Весь компьютер»: их адреса закрыты защитой." : "");
@@ -67,7 +73,7 @@ public partial class MainWindow
             };
             var text = new StackPanel();
             text.Children.Add(new TextBlock { Text = item.DisplayName, FontSize = Tokens.Size("FsRow"), TextTrimming = TextTrimming.CharacterEllipsis });
-            var sub = AutoPool.IsWhitelistBypass(item) ? "обход белых списков" : !item.IsService ? "сторонняя подписка" : null;
+            var sub = AutoPool.IsWhitelistBypass(item) ? "обход белых списков" : AutoPool.IsSpecialPurpose(item) ? "для звонков и игр" : !item.IsService ? "сторонняя подписка" : null;
             if (sub is not null) text.Children.Add(new TextBlock { Text = sub, Style = (Style)FindResource("Small") });
             var row = new DockPanel { Margin = new Thickness(12, 7, 6, 7) };
             DockPanel.SetDock(toggle, Dock.Right);

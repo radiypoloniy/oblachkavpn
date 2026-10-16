@@ -163,7 +163,7 @@ public partial class MainWindow
         var all = importedProfiles.ToArray();
         // Только пул автовыбора: серверы обхода белых списков и исключённые вручную не берутся.
         var pool = autoPool.Members(all);
-        return ServerMeasurements.Best(pool, EffectiveMeasurements(), DateTimeOffset.UtcNow) is int best ? pool[best]
+        return ServerMeasurements.Best(pool, EffectiveMeasurements(), DateTimeOffset.UtcNow, profile) is int best ? pool[best]
             : profile is { IsService: true } && autoPool.Contains(profile) ? profile : pool.FirstOrDefault(p => p.IsService) ?? pool.FirstOrDefault() ?? profile;
     }
 
