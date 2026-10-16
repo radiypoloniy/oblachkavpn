@@ -4,10 +4,10 @@
        свои узлы, сторонние. Звезда справа переключает избранное, клик по строке — подключение. -->
   <UserControl.Resources>
     <DataTemplate DataType="{x:Type o:SheetHeader}">
-      <TextBlock Text="{Binding Title}" Style="{StaticResource Caption}" FontSize="11.5" Margin="10,12,10,4"/>
+      <TextBlock Text="{Binding Title}" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" Margin="10,12,10,4"/>
     </DataTemplate>
     <DataTemplate DataType="{x:Type o:ServerRow}">
-      <Border x:Name="Plate" Height="54" CornerRadius="12" Margin="0,0,0,2" Background="Transparent">
+      <Border x:Name="Plate" Height="54" CornerRadius="{StaticResource RadiusLg}" Margin="0,0,0,2" Background="Transparent">
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
@@ -21,19 +21,19 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
               </Grid.ColumnDefinitions>
-              <Ellipse Width="28" Height="28" Visibility="{Binding FlagVisibility}" Stroke="#40808CA0" StrokeThickness="1">
+              <Ellipse Width="28" Height="28" Visibility="{Binding FlagVisibility}" Stroke="{DynamicResource FlagRing}" StrokeThickness="1">
                 <Ellipse.Fill><ImageBrush ImageSource="{Binding Flag}" Stretch="UniformToFill"/></Ellipse.Fill>
               </Ellipse>
-              <Border x:Name="IconPlate" Width="28" Height="28" CornerRadius="14" Background="{DynamicResource Aci}" Visibility="{Binding IconVisibility}">
+              <Border x:Name="IconPlate" Width="28" Height="28" CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource Aci}" Visibility="{Binding IconVisibility}">
                 <Path x:Name="IconGlyph" Data="{Binding Icon}" Width="15" Height="15" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Ac}"/>
               </Border>
               <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
-                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="{Binding NameWeight}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Tx}"/>
-                <TextBlock Text="{Binding Note}" FontSize="12" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Visibility="{Binding NoteVisibility}"/>
+                <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsLead}" FontWeight="{Binding NameWeight}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Tx}"/>
+                <TextBlock Text="{Binding Note}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Visibility="{Binding NoteVisibility}"/>
               </StackPanel>
               <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding LatencyVisibility}" ToolTip="{Binding LatencyHint}" Background="Transparent">
                 <Ellipse Width="6" Height="6" Fill="{Binding LatencyDot}" Margin="0,0,6,0"/>
-                <TextBlock Text="{Binding Latency}" FontSize="13" Foreground="{DynamicResource Mu2}"/>
+                <TextBlock Text="{Binding Latency}" FontSize="{StaticResource FsBody}" Foreground="{DynamicResource Mu2}"/>
               </StackPanel>
             </Grid>
           </Button>
@@ -54,8 +54,8 @@
           <Setter TargetName="RowButton" Property="Tag" Value="Transparent"/>
         </DataTrigger>
         <DataTrigger Binding="{Binding Favorite}" Value="True">
-          <Setter TargetName="StarGlyph" Property="Fill" Value="#F2B01E"/>
-          <Setter TargetName="StarGlyph" Property="Stroke" Value="#F2B01E"/>
+          <Setter TargetName="StarGlyph" Property="Fill" Value="{DynamicResource Star}"/>
+          <Setter TargetName="StarGlyph" Property="Stroke" Value="{DynamicResource Star}"/>
           <Setter TargetName="StarButton" Property="AutomationProperties.Name" Value="Убрать из избранного"/>
         </DataTrigger>
         <DataTrigger Binding="{Binding CanFavorite}" Value="False">
@@ -70,7 +70,7 @@
         </Trigger>
         <DataTrigger Binding="{Binding IconOnAccent}" Value="True">
           <Setter TargetName="IconPlate" Property="Background" Value="{DynamicResource Ac}"/>
-          <Setter TargetName="IconGlyph" Property="Stroke" Value="White"/>
+          <Setter TargetName="IconGlyph" Property="Stroke" Value="{DynamicResource OnAccent}"/>
         </DataTrigger>
         <DataTrigger Binding="{Binding IconMuted}" Value="True">
           <Setter TargetName="IconPlate" Property="Background" Value="{DynamicResource Field}"/>
@@ -100,11 +100,11 @@
 
     <StackPanel Grid.Row="1" Margin="20,0,20,4">
       <Grid>
-        <TextBox x:Name="SearchBox" Height="42" Padding="34,0,12,0" FontSize="14" VerticalContentAlignment="Center" BorderThickness="0"
+        <TextBox x:Name="SearchBox" Height="42" Padding="34,0,12,0" FontSize="{StaticResource FsRow}" VerticalContentAlignment="Center" BorderThickness="0"
                  Background="{DynamicResource Field}" Foreground="{DynamicResource Tx}" CaretBrush="{DynamicResource Tx}" AutomationProperties.Name="Найти сервер">
           <TextBox.Template>
             <ControlTemplate TargetType="TextBox">
-              <Border x:Name="Plate" CornerRadius="10" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Ac}" BorderThickness="0">
+              <Border x:Name="Plate" CornerRadius="{StaticResource RadiusMd}" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Ac}" BorderThickness="0">
                 <Grid>
                   <TextBlock x:Name="Hint" Text="Страна или название" Foreground="{DynamicResource Fa}" Margin="36,0,12,0" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed"/>
                   <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
@@ -132,7 +132,7 @@
         </ListBox>
       </ScrollViewer>
       <DockPanel Margin="0,10,0,0">
-        <TextBlock x:Name="MeasuredAgo" DockPanel.Dock="Right" FontSize="12" Foreground="{DynamicResource Fa}" VerticalAlignment="Center"/>
+        <TextBlock x:Name="MeasuredAgo" DockPanel.Dock="Right" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Fa}" VerticalAlignment="Center"/>
         <ListBox x:Name="SortOrder" ItemContainerStyle="{StaticResource ChipItem}" Background="Transparent" BorderThickness="0" Padding="0"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Порядок серверов" SelectedIndex="0">
           <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ListBox.ItemsPanel>
@@ -149,10 +149,10 @@
         <ItemsControl x:Name="SheetList" Focusable="False"/>
         <Button x:Name="AddButton" Style="{StaticResource Row}" Height="44" Margin="0,6,0,0" Foreground="{DynamicResource Ac}" AutomationProperties.Name="Добавить ключ, ссылку или файл">
           <StackPanel Orientation="Horizontal">
-            <Border Width="28" Height="28" CornerRadius="14" BorderBrush="{DynamicResource Ring}" BorderThickness="1.5">
+            <Border Width="28" Height="28" CornerRadius="{StaticResource RadiusXl}" BorderBrush="{DynamicResource Ring}" BorderThickness="1.5">
               <Path Data="{StaticResource IcoPlus}" Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource Ac}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
             </Border>
-            <TextBlock Text="Добавить ключ, ссылку или файл" FontSize="13.5" Margin="12,0,0,0" VerticalAlignment="Center"/>
+            <TextBlock Text="Добавить ключ, ссылку или файл" FontSize="{StaticResource FsLabel}" Margin="12,0,0,0" VerticalAlignment="Center"/>
           </StackPanel>
         </Button>
         <StackPanel x:Name="AddPanel" Margin="50,0,0,8" Visibility="Collapsed">

@@ -9,6 +9,7 @@ $testDirectory = Join-Path $projectRoot 'out\test'
 if (-not (Test-Path -LiteralPath (Join-Path $verified 'tools\xray.exe'))) { throw 'Сначала запустите .\build.ps1: ядра берутся из сборки out\app.' }
 & (Join-Path $projectRoot 'scripts\check-source-size.ps1')
 & (Join-Path $projectRoot 'scripts\check-voice.ps1')
+& (Join-Path $projectRoot 'scripts\check-tokens.ps1')
 & dotnet build (Join-Path $projectRoot 'tests\Oblachka.Tests.csproj') -c Release -o $testDirectory --configfile (Join-Path $projectRoot 'src\NuGet.Config') -p:UseSharedCompilation=false -p:IncludeTestCode=true
 if ($LASTEXITCODE -ne 0) { throw 'Сборка проверок не прошла.' }
 Copy-Item -LiteralPath (Join-Path $verified 'tools') -Destination (Join-Path $testDirectory 'tools') -Recurse -Force

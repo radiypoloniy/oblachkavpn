@@ -20,6 +20,7 @@ public partial class MainWindow
     private readonly ListBox ProfilePicker = new();
     // Правила и помощь теперь вкладки настроек; имена элементов прежние.
     private Views.RulesTab Routes => Settings.Rules;
+    private Views.AdvancedPage Advanced => Settings.Advanced;
     private Views.HelpTab Diagnostics => Settings.Help;
     private Button ImportFileButton => Servers.ImportFileButton;
     private Button PasteButton => Servers.PasteButton;
@@ -32,8 +33,8 @@ public partial class MainWindow
     private TextBlock EventText => Diagnostics.EventText;
     private TextBlock DetailText => ShellFeedback;
     private CheckBox AutoRecover => Settings.AutoRecover;
-    private Button CopyEndpointButton => Routes.CopyEndpointButton;
-    private TextBlock EndpointText => Routes.EndpointText;
+    private Button CopyEndpointButton => Advanced.CopyEndpointButton;
+    private TextBlock EndpointText => Advanced.EndpointText;
 
     private void WireViews()
     {
@@ -69,7 +70,8 @@ public partial class MainWindow
         Settings.StayInTray.Click += (_, _) => QueueStateSave();
         AutoRecover.Click += (_, _) => QueueStateSave();
         Settings.AutoRefresh.Click += (_, _) => QueueStateSave();
-        Settings.CloseButton.Click += (_, _) => CloseSettings();
+        Settings.CloseButton.Click += (_, _) => { if (!Settings.Back()) CloseSettings(); };
+        WireSettingsHome();
         Settings.AddExternalButton.Click += AddExternalClick;
         Settings.Subscription.GroupList.AddHandler(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, new System.Windows.RoutedEventHandler(GroupRowClick));
         Servers.GroupTabs.SelectionChanged += (_, _) => FilterProfiles();

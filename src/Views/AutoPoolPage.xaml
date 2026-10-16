@@ -1,0 +1,16 @@
+<UserControl x:Class="Oblachka.Views.AutoPoolPage" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="clr-namespace:Oblachka">
+  <!-- Пул «Автовыбора» (AutoPool): строки — серверы, переключатель — участвует ли. -->
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="20,6,20,16">
+      <DockPanel Margin="6,0,0,8">
+        <Button x:Name="AutoPoolMeasure" DockPanel.Dock="Right" Content="Обновить пинг" Style="{StaticResource BtnOutline}" Height="32" Padding="12,0" o:Ui.CornerRadius="{StaticResource RadiusSm}" FontSize="{StaticResource FsBody}" VerticalAlignment="Top"/>
+        <TextBlock x:Name="AutoPoolNote" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="0,0,10,0"
+                   Text="Автовыбор берёт самый быстрый из отмеченных серверов и на них переключается при обрыве. Пинг — задержка через сам сервер. Обход белых списков по умолчанию выключен: эти серверы нужны для своей задачи."/>
+      </DockPanel>
+      <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource CardBg}" Padding="2">
+        <StackPanel x:Name="AutoPoolList"/>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -1,52 +1,65 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <!-- Токены оформления (Dark). Ключи одинаковы в обеих темах: цвета берутся только через DynamicResource,
-       тема меняется заменой словаря без перезапуска (ThemeManager). Источник — design/redesign-2026-10-14. -->
-  <SolidColorBrush x:Key="Page" Color="#0A0D12"/>
-  <SolidColorBrush x:Key="Bg" Color="#11151D"/>
-  <SolidColorBrush x:Key="CardBg" Color="#1A1F29"/>
-  <SolidColorBrush x:Key="Field" Color="#1E2430"/>
-  <SolidColorBrush x:Key="Seg" Color="#2A3240"/>
-  <SolidColorBrush x:Key="Tx" Color="#E6EAF2"/>
-  <SolidColorBrush x:Key="Mu" Color="#9BA6B8"/>
-  <SolidColorBrush x:Key="Mu2" Color="#8D98AB"/>
-  <SolidColorBrush x:Key="Fa" Color="#6F7B8F"/>
-  <SolidColorBrush x:Key="Divider" Color="#232A36"/>
-  <SolidColorBrush x:Key="Ac" Color="#4F7FF2"/>
-  <SolidColorBrush x:Key="Acs" Color="#1C2840"/>
-  <SolidColorBrush x:Key="Aci" Color="#1E2A45"/>
-  <SolidColorBrush x:Key="Hov" Color="#1A202A"/>
-  <SolidColorBrush x:Key="Hovs" Color="#22304D"/>
-  <SolidColorBrush x:Key="Ring" Color="#3A4355"/>
-  <SolidColorBrush x:Key="OkB" Color="#12301F"/>
-  <SolidColorBrush x:Key="OkF" Color="#5CCB8C"/>
-  <SolidColorBrush x:Key="Ok" Color="#2FB36A"/>
-  <SolidColorBrush x:Key="NB" Color="#1A2440"/>
-  <SolidColorBrush x:Key="NF" Color="#C9D4EA"/>
-  <SolidColorBrush x:Key="WB" Color="#2E2416"/>
-  <SolidColorBrush x:Key="WF" Color="#E7D3B8"/>
-  <SolidColorBrush x:Key="WI" Color="#F0A257"/>
-  <SolidColorBrush x:Key="WL" Color="#4A3A26"/>
-  <SolidColorBrush x:Key="EB" Color="#2E1A1A"/>
-  <SolidColorBrush x:Key="EF" Color="#EFC9C7"/>
-  <SolidColorBrush x:Key="EI" Color="#F07B74"/>
-  <SolidColorBrush x:Key="EL" Color="#4A2A2A"/>
-  <SolidColorBrush x:Key="ETrack" Color="#4A2526"/>
-  <SolidColorBrush x:Key="SB" Color="#2D2612"/>
-  <SolidColorBrush x:Key="SF" Color="#EBDDB6"/>
-  <SolidColorBrush x:Key="SBtn" Color="#F2B01E"/>
-  <SolidColorBrush x:Key="RB" Color="#361B1B"/>
-  <SolidColorBrush x:Key="RF" Color="#F08A84"/>
-  <SolidColorBrush x:Key="Off" Color="#2A3140"/>
-  <SolidColorBrush x:Key="Mid" Color="#34508F"/>
-  <SolidColorBrush x:Key="MidI" Color="#6F92E8"/>
-  <SolidColorBrush x:Key="Knob" Color="#F4F6FA"/>
-  <SolidColorBrush x:Key="Pop" Color="#1C222D"/>
-  <SolidColorBrush x:Key="B2" Color="#232A36"/>
-  <SolidColorBrush x:Key="BL" Color="#333C4C"/>
-  <SolidColorBrush x:Key="Sky" Color="#161C28"/>
-  <SolidColorBrush x:Key="Cloud" Color="#26314A"/>
-  <SolidColorBrush x:Key="RingSoft" Color="#2C3547"/>
-  <SolidColorBrush x:Key="FootWarn" Color="#F2B01E"/>
-  <Color x:Key="ShadowColor">#80000000</Color>
-  <Color x:Key="GlowColor">#594F7FF2</Color>
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Сгенерировано scripts/tokens.ps1 из theme/tokens.json. Руками не править: изменения пропадут. -->
+  <SolidColorBrush x:Key="Page" Color="#0A0D12"/>  <!-- фон вокруг окна в превью -->
+  <SolidColorBrush x:Key="Bg" Color="#11151D"/>  <!-- фон окна -->
+  <SolidColorBrush x:Key="CardBg" Color="#1A1F29"/>  <!-- карточки в настройках -->
+  <SolidColorBrush x:Key="Field" Color="#1E2430"/>  <!-- поля ввода, вторичные кнопки, сегменты -->
+  <SolidColorBrush x:Key="Seg" Color="#2A3240"/>  <!-- активный сегмент -->
+  <SolidColorBrush x:Key="Tx" Color="#E6EAF2"/>  <!-- основной текст -->
+  <SolidColorBrush x:Key="Mu" Color="#9BA6B8"/>  <!-- вторичный текст -->
+  <SolidColorBrush x:Key="Mu2" Color="#8D98AB"/>  <!-- подписи, заголовки секций -->
+  <SolidColorBrush x:Key="Fa" Color="#6F7B8F"/>  <!-- самый бледный текст, плейсхолдеры -->
+  <SolidColorBrush x:Key="Divider" Color="#232A36"/>  <!-- разделители -->
+  <SolidColorBrush x:Key="Ac" Color="#4F7FF2"/>  <!-- акцент -->
+  <SolidColorBrush x:Key="Acs" Color="#1C2840"/>  <!-- фон выбранной строки -->
+  <SolidColorBrush x:Key="Aci" Color="#1E2A45"/>  <!-- фон иконок-кружков -->
+  <SolidColorBrush x:Key="Hov" Color="#1A202A"/>  <!-- наведение -->
+  <SolidColorBrush x:Key="Hovs" Color="#22304D"/>  <!-- наведение на выбранную строку -->
+  <SolidColorBrush x:Key="Ring" Color="#3A4355"/>  <!-- контуры радио и чекбоксов -->
+  <SolidColorBrush x:Key="OkB" Color="#12301F"/>  <!-- плашка «связь проверена» — фон -->
+  <SolidColorBrush x:Key="OkF" Color="#5CCB8C"/>  <!-- плашка «связь проверена» — текст -->
+  <SolidColorBrush x:Key="Ok" Color="#2FB36A"/>  <!-- зелёные точки и галочки -->
+  <SolidColorBrush x:Key="NB" Color="#1A2440"/>  <!-- объявление — фон -->
+  <SolidColorBrush x:Key="NF" Color="#C9D4EA"/>  <!-- объявление — текст -->
+  <SolidColorBrush x:Key="WB" Color="#2E2416"/>  <!-- предупреждение — фон -->
+  <SolidColorBrush x:Key="WF" Color="#E7D3B8"/>  <!-- предупреждение — текст -->
+  <SolidColorBrush x:Key="WI" Color="#F0A257"/>  <!-- предупреждение — значок -->
+  <SolidColorBrush x:Key="WL" Color="#4A3A26"/>  <!-- предупреждение — обводка -->
+  <SolidColorBrush x:Key="EB" Color="#2E1A1A"/>  <!-- ошибка — фон -->
+  <SolidColorBrush x:Key="EF" Color="#EFC9C7"/>  <!-- ошибка — текст -->
+  <SolidColorBrush x:Key="EI" Color="#F07B74"/>  <!-- ошибка — значок -->
+  <SolidColorBrush x:Key="EL" Color="#4A2A2A"/>  <!-- ошибка — обводка -->
+  <SolidColorBrush x:Key="ETrack" Color="#4A2526"/>  <!-- тумблер в состоянии ошибки -->
+  <SolidColorBrush x:Key="SB" Color="#2D2612"/>  <!-- подписка заканчивается — фон -->
+  <SolidColorBrush x:Key="SF" Color="#EBDDB6"/>  <!-- подписка заканчивается — текст -->
+  <SolidColorBrush x:Key="SBtn" Color="#F2B01E"/>  <!-- подписка заканчивается — кнопка -->
+  <SolidColorBrush x:Key="RB" Color="#361B1B"/>  <!-- правило «блок» — фон -->
+  <SolidColorBrush x:Key="RF" Color="#F08A84"/>  <!-- правило «блок» — текст -->
+  <SolidColorBrush x:Key="Off" Color="#2A3140"/>  <!-- дорожка тумблера «выкл» -->
+  <SolidColorBrush x:Key="Mid" Color="#34508F"/>  <!-- тумблер «подключаемся» -->
+  <SolidColorBrush x:Key="MidI" Color="#6F92E8"/>  <!-- значок тумблера «подключаемся» -->
+  <SolidColorBrush x:Key="Knob" Color="#F4F6FA"/>  <!-- ручка тумблера -->
+  <SolidColorBrush x:Key="Pop" Color="#1C222D"/>  <!-- всплывающие окна и меню -->
+  <SolidColorBrush x:Key="B2" Color="#232A36"/>  <!-- кнопка-обводка на карточке — фон -->
+  <SolidColorBrush x:Key="BL" Color="#333C4C"/>  <!-- кнопка-обводка на карточке — обводка -->
+  <SolidColorBrush x:Key="Sky" Color="#161C28"/>  <!-- небо в приветствии -->
+  <SolidColorBrush x:Key="Cloud" Color="#26314A"/>  <!-- облака в приветствии -->
+  <SolidColorBrush x:Key="RingSoft" Color="#2C3547"/>  <!-- мягкое кольцо вокруг тумблера -->
+  <SolidColorBrush x:Key="FootWarn" Color="#F2B01E"/>  <!-- предупреждение в подвале -->
+  <Color x:Key="ShadowColor">#80000000</Color>  <!-- тень окон -->
+  <Color x:Key="GlowColor">#594F7FF2</Color>  <!-- свечение включённого тумблера -->
+  <SolidColorBrush x:Key="LatFast" Color="#2FB36A"/>  <!-- пинг меньше 160 мс -->
+  <SolidColorBrush x:Key="LatMid" Color="#D9A01E"/>  <!-- пинг 160–250 мс -->
+  <SolidColorBrush x:Key="LatSlow" Color="#D9731E"/>  <!-- пинг больше 250 мс -->
+  <SolidColorBrush x:Key="LatFail" Color="#D9483B"/>  <!-- сервер не ответил -->
+  <SolidColorBrush x:Key="Alert" Color="#D9731E"/>  <!-- кружок «!» на карточке восстановления -->
+  <SolidColorBrush x:Key="Star" Color="#F2B01E"/>  <!-- звезда избранного -->
+  <SolidColorBrush x:Key="FlagRing" Color="#40808CA0"/>  <!-- тонкий контур вокруг флага -->
+  <SolidColorBrush x:Key="OverlayOnAccent" Color="#14FFFFFF"/>  <!-- подсветка при наведении на акцентную кнопку -->
+  <SolidColorBrush x:Key="OverlayHover" Color="#0A000000"/>  <!-- подсветка при наведении на простую кнопку -->
+  <SolidColorBrush x:Key="OverlayPress" Color="#08000000"/>  <!-- подсветка нажатия -->
+  <SolidColorBrush x:Key="OverlayTray" Color="#1A000000"/>  <!-- подсветка тумблера в трее -->
+  <SolidColorBrush x:Key="OnAccent" Color="#FFFFFF"/>  <!-- текст и значки на акцентном и цветном фоне -->
+  <SolidColorBrush x:Key="SBtnText" Color="#2E2205"/>  <!-- подписка заканчивается — текст кнопки «Продлить» -->
+  <SolidColorBrush x:Key="OverlayDanger" Color="#14000000"/>  <!-- подсветка при наведении на красную кнопку «Выйти» в трее -->
 </ResourceDictionary>

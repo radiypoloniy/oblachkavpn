@@ -2,22 +2,22 @@
              xmlns:o="clr-namespace:Oblachka">
   <!-- Настройки → Помощь (экран 13): проверка связи, подбор сервера, события сессии, отчёт. -->
   <DockPanel Margin="20,18,20,16">
-    <Border DockPanel.Dock="Top" CornerRadius="14" Background="{DynamicResource CardBg}" Padding="14,6,14,12">
+    <Border DockPanel.Dock="Top" CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource CardBg}" Padding="14,6,14,12">
       <StackPanel>
         <DockPanel Height="38">
           <Ellipse x:Name="CoreOk" Width="18" Height="18" Fill="{DynamicResource Ok}" Margin="0,0,10,0"/>
-          <TextBlock x:Name="CoreState" DockPanel.Dock="Right" Text="не запущено" Foreground="{DynamicResource Mu2}" VerticalAlignment="Center" FontSize="13.5"/>
-          <TextBlock Text="Ядро туннеля" FontSize="13.5" VerticalAlignment="Center"/>
+          <TextBlock x:Name="CoreState" DockPanel.Dock="Right" Text="не запущено" Foreground="{DynamicResource Mu2}" VerticalAlignment="Center" FontSize="{StaticResource FsLabel}"/>
+          <TextBlock Text="Ядро туннеля" FontSize="{StaticResource FsLabel}" VerticalAlignment="Center"/>
         </DockPanel>
         <DockPanel Height="38">
           <Ellipse x:Name="ProbeOk" Width="18" Height="18" Fill="{DynamicResource Ok}" Margin="0,0,10,0"/>
-          <TextBlock x:Name="TunnelState" DockPanel.Dock="Right" Text="Не проверен" Foreground="{DynamicResource Mu2}" VerticalAlignment="Center" FontSize="13.5"/>
-          <TextBlock Text="HTTPS-запрос через сервер" FontSize="13.5" VerticalAlignment="Center"/>
+          <TextBlock x:Name="TunnelState" DockPanel.Dock="Right" Text="Не проверен" Foreground="{DynamicResource Mu2}" VerticalAlignment="Center" FontSize="{StaticResource FsLabel}"/>
+          <TextBlock Text="HTTPS-запрос через сервер" FontSize="{StaticResource FsLabel}" VerticalAlignment="Center"/>
         </DockPanel>
         <DockPanel Height="38">
           <Ellipse Width="18" Height="18" Stroke="{DynamicResource Ring}" StrokeThickness="1.5" Margin="0,0,10,0"/>
-          <TextBlock DockPanel.Dock="Right" Text="не проверялись" Foreground="{DynamicResource Fa}" VerticalAlignment="Center" FontSize="13.5"/>
-          <TextBlock Text="DNS и IPv6 компьютера" FontSize="13.5" VerticalAlignment="Center"/>
+          <TextBlock DockPanel.Dock="Right" Text="не проверялись" Foreground="{DynamicResource Fa}" VerticalAlignment="Center" FontSize="{StaticResource FsLabel}"/>
+          <TextBlock Text="DNS и IPv6 компьютера" FontSize="{StaticResource FsLabel}" VerticalAlignment="Center"/>
         </DockPanel>
         <Grid Margin="0,8,0,0">
           <Grid.ColumnDefinitions>
@@ -27,9 +27,9 @@
             <ColumnDefinition Width="6"/>
             <ColumnDefinition Width="1.2*"/>
           </Grid.ColumnDefinitions>
-          <Button x:Name="ProbeButton" Content="Проверить" Style="{StaticResource BtnOutline}" Height="34" o:Ui.CornerRadius="9" FontSize="12.5"/>
-          <Button x:Name="FindRouteButton" Grid.Column="2" Content="Найти сервер" Style="{StaticResource BtnOutline}" Height="34" o:Ui.CornerRadius="9" FontSize="12.5"/>
-          <Button x:Name="ReconnectButton" Grid.Column="4" Content="Переподключить" Style="{StaticResource BtnOutline}" Height="34" o:Ui.CornerRadius="9" FontSize="12.5"/>
+          <Button x:Name="ProbeButton" Content="Проверить" Style="{StaticResource BtnOutline}" Height="34" o:Ui.CornerRadius="{StaticResource RadiusSeg}" FontSize="{StaticResource FsNote}"/>
+          <Button x:Name="FindRouteButton" Grid.Column="2" Content="Найти сервер" Style="{StaticResource BtnOutline}" Height="34" o:Ui.CornerRadius="{StaticResource RadiusSeg}" FontSize="{StaticResource FsNote}"/>
+          <Button x:Name="ReconnectButton" Grid.Column="4" Content="Переподключить" Style="{StaticResource BtnOutline}" Height="34" o:Ui.CornerRadius="{StaticResource RadiusSeg}" FontSize="{StaticResource FsNote}"/>
         </Grid>
         <!-- Сайт проверки: адрес по умолчанию, поле для опытных скрыто. -->
         <TextBox x:Name="ProbeUrl" Text="https://www.gstatic.com/generate_204" Visibility="Collapsed"/>
@@ -41,12 +41,12 @@
 
     <StackPanel DockPanel.Dock="Bottom">
       <!-- Обновление без переустановки (AppUpdate): релизы GitHub, установщик по нажатию. -->
-      <Border CornerRadius="14" Background="{DynamicResource CardBg}" Padding="14,12" Margin="0,0,0,8">
+      <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource CardBg}" Padding="14,12" Margin="0,0,0,8">
         <StackPanel>
           <DockPanel>
-            <Button x:Name="UpdateButton" DockPanel.Dock="Right" Content="Проверить" Style="{StaticResource BtnOutline}" Height="34" Padding="14,0" o:Ui.CornerRadius="9" FontSize="12.5" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            <Button x:Name="UpdateButton" DockPanel.Dock="Right" Content="Проверить" Style="{StaticResource BtnOutline}" Height="34" Padding="14,0" o:Ui.CornerRadius="{StaticResource RadiusSeg}" FontSize="{StaticResource FsNote}" VerticalAlignment="Center" Margin="8,0,0,0"/>
             <StackPanel VerticalAlignment="Center">
-              <TextBlock x:Name="UpdateTitle" Text="Обновления" FontSize="14" FontWeight="SemiBold"/>
+              <TextBlock x:Name="UpdateTitle" Text="Обновления" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
               <TextBlock x:Name="UpdateText" Text="Проверим, нет ли новой версии" Style="{StaticResource Small}" TextWrapping="Wrap"/>
             </StackPanel>
           </DockPanel>
@@ -57,18 +57,18 @@
         </StackPanel>
       </Border>
       <!-- Поломки, которые оставляют упавшие VPN и обходы блокировок (NetworkDoctor). -->
-      <Border CornerRadius="14" Background="{DynamicResource CardBg}" Padding="14,12" Margin="0,0,0,8">
+      <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource CardBg}" Padding="14,12" Margin="0,0,0,8">
         <DockPanel>
-          <Button x:Name="NetworkCheckButton" DockPanel.Dock="Right" Content="Проверить" Style="{StaticResource BtnOutline}" Height="34" Padding="14,0" o:Ui.CornerRadius="9" FontSize="12.5" VerticalAlignment="Center" Margin="8,0,0,0"/>
+          <Button x:Name="NetworkCheckButton" DockPanel.Dock="Right" Content="Проверить" Style="{StaticResource BtnOutline}" Height="34" Padding="14,0" o:Ui.CornerRadius="{StaticResource RadiusSeg}" FontSize="{StaticResource FsNote}" VerticalAlignment="Center" Margin="8,0,0,0"/>
           <StackPanel VerticalAlignment="Center">
-            <TextBlock Text="Сеть Windows" FontSize="14" FontWeight="SemiBold"/>
+            <TextBlock Text="Сеть Windows" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
             <TextBlock Text="Интернет пропал после Throne, zapret или другого VPN? Найдём, что они оставили" Style="{StaticResource Small}" TextWrapping="Wrap"/>
           </StackPanel>
         </DockPanel>
       </Border>
-      <Border CornerRadius="14" Background="{DynamicResource CardBg}" Padding="14,12">
+      <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource CardBg}" Padding="14,12">
         <StackPanel>
-          <TextBlock Text="Не работает? Отправьте отчёт" FontSize="14" FontWeight="SemiBold"/>
+          <TextBlock Text="Не работает? Отправьте отчёт" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
           <TextBlock Text="Без ключей, адресов серверов и истории сайтов" Style="{StaticResource Small}" Margin="0,2,0,8"/>
           <Grid>
             <Grid.ColumnDefinitions>
@@ -76,25 +76,25 @@
               <ColumnDefinition Width="8"/>
               <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <Button x:Name="CopyReportButton" Content="Скопировать" Style="{StaticResource BtnPrimary}" Height="36" o:Ui.CornerRadius="10" FontSize="13"/>
-            <Button x:Name="ExportButton" Grid.Column="2" Content="Сохранить файл" Style="{StaticResource BtnOutline}" Height="36" o:Ui.CornerRadius="10"/>
+            <Button x:Name="CopyReportButton" Content="Скопировать" Style="{StaticResource BtnPrimary}" Height="36" o:Ui.CornerRadius="{StaticResource RadiusMd}" FontSize="{StaticResource FsBody}"/>
+            <Button x:Name="ExportButton" Grid.Column="2" Content="Сохранить файл" Style="{StaticResource BtnOutline}" Height="36" o:Ui.CornerRadius="{StaticResource RadiusMd}"/>
           </Grid>
         </StackPanel>
       </Border>
       <Button x:Name="VmTunButton" Content="Проверить TUN в виртуалке" Style="{StaticResource BtnGhost}" HorizontalAlignment="Center" Visibility="Collapsed" Margin="0,6,0,0"/>
       <TextBlock x:Name="VmTunNote" Visibility="Collapsed"/>
-      <TextBlock x:Name="VersionText" FontSize="11.5" Foreground="{DynamicResource Fa}" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+      <TextBlock x:Name="VersionText" FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource Fa}" HorizontalAlignment="Center" Margin="0,10,0,0"/>
     </StackPanel>
 
     <StackPanel Margin="0,10,0,10">
-      <TextBlock Text="СОБЫТИЯ СЕССИИ" Style="{StaticResource Caption}" FontSize="11.5" Margin="6,4,6,6"/>
+      <TextBlock Text="СОБЫТИЯ СЕССИИ" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" Margin="6,4,6,6"/>
       <TextBlock x:Name="EventText" Visibility="Collapsed"/>
       <ItemsControl x:Name="EventList" Margin="6,0" Focusable="False">
         <ItemsControl.ItemTemplate>
           <DataTemplate>
             <DockPanel Margin="0,0,0,6">
-              <TextBlock Text="{Binding Time, StringFormat={}{0:HH:mm}}" Width="38" FontSize="12.5" Foreground="{DynamicResource Fa}"/>
-              <TextBlock Text="{Binding Message}" FontSize="12.5" Foreground="{DynamicResource Mu}" TextTrimming="CharacterEllipsis"/>
+              <TextBlock Text="{Binding Time, StringFormat={}{0:HH:mm}}" Width="38" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Fa}"/>
+              <TextBlock Text="{Binding Message}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu}" TextTrimming="CharacterEllipsis"/>
             </DockPanel>
           </DataTemplate>
         </ItemsControl.ItemTemplate>

@@ -1,6 +1,6 @@
 # zapret: YouTube и Discord без VPN
 
-«Настройки → Правила → YouTube и Discord без VPN» включает обход блокировок [zapret](https://github.com/bol-van/zapret) с набором стратегий [Flowseal](https://github.com/Flowseal/zapret-discord-youtube). Сайты из списков набора (YouTube, Discord и около 80 других) идут не через VPN, а напрямую, и фильтр провайдера обходит `winws`.
+«Настройки → Без VPN → YouTube и Discord» включает обход блокировок [zapret](https://github.com/bol-van/zapret) с набором стратегий [Flowseal](https://github.com/Flowseal/zapret-discord-youtube). Сайты из списков набора (YouTube, Discord и около 80 других) идут не через VPN, а напрямую, и фильтр провайдера обходит `winws`.
 
 ## Как это работает
 

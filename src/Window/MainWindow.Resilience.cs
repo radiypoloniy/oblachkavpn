@@ -14,14 +14,14 @@ public partial class MainWindow
     private void WireDpi()
     {
         void Choose(FragmentMode mode) { fragmentMode = mode; fragmentLearned = false; RefreshDpi(); QueueStateSave(); }
-        Settings.General.DpiAuto.Click += (_, _) => Choose(FragmentMode.Auto);
-        Settings.General.DpiAlways.Click += (_, _) => Choose(FragmentMode.Always);
-        Settings.General.DpiOff.Click += (_, _) => Choose(FragmentMode.Off);
+        Settings.Advanced.DpiAuto.Click += (_, _) => Choose(FragmentMode.Auto);
+        Settings.Advanced.DpiAlways.Click += (_, _) => Choose(FragmentMode.Always);
+        Settings.Advanced.DpiOff.Click += (_, _) => Choose(FragmentMode.Off);
     }
 
     private void RefreshDpi()
     {
-        var general = Settings.General;
+        var general = Settings.Advanced;
         MarkSegment(general.DpiAuto, fragmentMode == FragmentMode.Auto);
         MarkSegment(general.DpiAlways, fragmentMode == FragmentMode.Always);
         MarkSegment(general.DpiOff, fragmentMode == FragmentMode.Off);

@@ -115,7 +115,7 @@ public partial class MainWindow
             var header = "happ://routing/add/" + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
                 "{\"Name\":\"Облачка/рутинг\",\"DirectSites\":[\"domain:.ru\",\"geosite:category-ru\"],\"DirectIp\":[\"10.0.0.0/8\"]}"));
             ReceiveRouting(RoutingProfile.ParseHapp(header)!);
-            if (page == "rules-lists") { useProviderRouting = true; Routes.RussiaDirect.IsChecked = true; RefreshRouting(); SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(1); }
+            if (page == "rules-lists") { useProviderRouting = true; Settings.RussiaDirect.IsChecked = true; RefreshRouting(); SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(1); }
             else Navigate("Connection");
             return;
         }
@@ -149,8 +149,10 @@ public partial class MainWindow
             power.Slide.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, null); power.Slide.X = 72;
             return; }
         Navigate(page switch { "servers" => "Servers", "routes" => "Routes", "diagnostics" => "Diagnostics", _ => "Connection" });
-        if (page is "settings" or "rules" or "storage" or "help") SettingsClick(this, new RoutedEventArgs());
-        if (page is "rules" or "storage" or "help") Settings.ShowTab(page switch { "rules" => 1, "storage" => 2, _ => 3 });
+        if (page is "settings" or "rules" or "storage" or "help" or "autopool" or "advanced") SettingsClick(this, new RoutedEventArgs());
+        if (page is "rules" or "storage" or "help" or "autopool" or "advanced")
+            Settings.ShowTab(page switch { "rules" => 1, "storage" => 2, "autopool" => 4, "advanced" => 5, _ => 3 });
+        if (page == "autopool") RenderAutoPool();
     }
 
     // Три группы: две подписки и «Вручную»; у части узлов есть отклик.

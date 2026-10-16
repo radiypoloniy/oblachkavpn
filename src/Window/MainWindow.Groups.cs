@@ -74,7 +74,7 @@ public partial class MainWindow
     {
         var tagged = profiles.Select(p => p with { Source = group.Source, Group = group.Id }).ToArray();
         var exists = groups.Any(g => g.Id == group.Id);
-        if (!exists && groups.Count >= ProfileGroup.MaxGroups) throw new UserError($"Не больше {ProfileGroup.MaxGroups} подписок: уберите ненужную в «Настройки → Подписка».");
+        if (!exists && groups.Count >= ProfileGroup.MaxGroups) throw new UserError($"Не больше {ProfileGroup.MaxGroups} подписок: уберите ненужную в «Настройки → Подписки и ключ».");
         var total = groupProfiles.Where(p => p.Key != group.Id).Sum(p => p.Value.Count) + tagged.Length;
         if (total > ProfileGroup.MaxTotalProfiles) throw new UserError($"Вместе подключений больше {ProfileGroup.MaxTotalProfiles}: уберите ненужную подписку.");
         if (exists) Replace(group); else groups.Add(group);
