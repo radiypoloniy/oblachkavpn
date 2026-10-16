@@ -83,8 +83,8 @@ public partial class MainWindow : Window
                 ConnectionState.Starting => "Запуск ядра", ConnectionState.Running => SystemTunnelActive ? "VPN включён" : "Прокси запущен",
                 ConnectionState.Verified => "Туннель проверен", _ => "Подключение прервано"
             };
-            StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(state switch
-            { ConnectionState.Verified => "#276B68", ConnectionState.Failed => "#B24635", ConnectionState.Running => "#A87620", _ => "#8798A7" }));
+            StatusDot.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, state switch
+            { ConnectionState.Verified => "Ok", ConnectionState.Failed => "EI", ConnectionState.Running => "WI", _ => "Fa" });
             EventText.Text = DateTime.Now.ToString("HH:mm:ss") + "  " + message;
             SyncSystemProxy(state);
             UpdateControls();

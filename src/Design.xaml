@@ -1,8 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:o="clr-namespace:Oblachka">
   <!-- Стили нового интерфейса (design/redesign-2026-10-14). Только именованные стили: старые экраны
        живут рядом, пока их не заменят. Цвета — только DynamicResource из Themes/*.xaml. -->
-  <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI</FontFamily>
-  <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
 
   <!-- Иконки: контуры 24×24, как в прототипе. -->
   <Geometry x:Key="IcoSliders">M4,7 L14,7 M18,7 L20,7 M4,17 L8,17 M12,17 L20,17 M18,7 A2,2 0 1 1 14,7 A2,2 0 1 1 18,7 M12,17 A2,2 0 1 1 8,17 A2,2 0 1 1 12,17</Geometry>
@@ -30,20 +28,20 @@
   <Geometry x:Key="IcoCloud">M24,54 L78,54 A18,18 0 0 0 80,18.1 A24,24 0 0 0 34.5,14 A16,16 0 0 0 24,54 Z</Geometry>
 
   <Style x:Key="Brand" TargetType="TextBlock">
-    <Setter Property="FontSize" Value="17"/>
+    <Setter Property="FontSize" Value="{StaticResource FsSubtitle}"/>
     <Setter Property="FontWeight" Value="SemiBold"/>
     <Setter Property="Foreground" Value="{DynamicResource Tx}"/>
     <Setter Property="VerticalAlignment" Value="Center"/>
   </Style>
   <!-- Заголовок секции: «СЕРВЕР», «ИЗБРАННОЕ». -->
   <Style x:Key="Caption" TargetType="TextBlock">
-    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="FontSize" Value="{StaticResource FsSmall}"/>
     <Setter Property="FontWeight" Value="SemiBold"/>
     <Setter Property="Foreground" Value="{DynamicResource Mu2}"/>
     <Setter Property="VerticalAlignment" Value="Center"/>
   </Style>
   <Style x:Key="Small" TargetType="TextBlock">
-    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="FontSize" Value="{StaticResource FsSmall}"/>
     <Setter Property="Foreground" Value="{DynamicResource Mu2}"/>
     <Setter Property="TextWrapping" Value="Wrap"/>
   </Style>
@@ -66,7 +64,7 @@
     <Setter Property="BorderBrush" Value="Transparent"/>
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
-    <Setter Property="FontSize" Value="13.5"/>
+    <Setter Property="FontSize" Value="{StaticResource FsLabel}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
     <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -94,28 +92,28 @@
   <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource Plain}">
     <Setter Property="Width" Value="40"/>
     <Setter Property="Height" Value="40"/>
-    <Setter Property="o:Ui.CornerRadius" Value="10"/>
+    <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusMd}"/>
     <Setter Property="Foreground" Value="{DynamicResource Mu}"/>
   </Style>
   <Style x:Key="SmallIconButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
     <Setter Property="Width" Value="28"/>
     <Setter Property="Height" Value="28"/>
-    <Setter Property="o:Ui.CornerRadius" Value="8"/>
+    <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusSm}"/>
     <Setter Property="Foreground" Value="{DynamicResource Mu2}"/>
   </Style>
 
   <Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource Plain}">
     <Setter Property="Height" Value="42"/>
-    <Setter Property="o:Ui.CornerRadius" Value="12"/>
+    <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusLg}"/>
     <Setter Property="Background" Value="{DynamicResource Ac}"/>
-    <Setter Property="Foreground" Value="White"/>
+    <Setter Property="Foreground" Value="{DynamicResource OnAccent}"/>
     <Setter Property="FontWeight" Value="SemiBold"/>
-    <Setter Property="Tag" Value="#14FFFFFF"/>
+    <Setter Property="Tag" Value="{DynamicResource OverlayOnAccent}"/>
   </Style>
   <Style x:Key="BtnSecondary" TargetType="Button" BasedOn="{StaticResource BtnPrimary}">
     <Setter Property="Background" Value="{DynamicResource Field}"/>
     <Setter Property="Foreground" Value="{DynamicResource Tx}"/>
-    <Setter Property="Tag" Value="#0A000000"/>
+    <Setter Property="Tag" Value="{DynamicResource OverlayHover}"/>
   </Style>
   <Style x:Key="BtnOutline" TargetType="Button" BasedOn="{StaticResource BtnPrimary}">
     <Setter Property="Background" Value="{DynamicResource B2}"/>
@@ -123,28 +121,28 @@
     <Setter Property="BorderBrush" Value="{DynamicResource BL}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="FontWeight" Value="Normal"/>
-    <Setter Property="FontSize" Value="13"/>
-    <Setter Property="Tag" Value="#08000000"/>
+    <Setter Property="FontSize" Value="{StaticResource FsBody}"/>
+    <Setter Property="Tag" Value="{DynamicResource OverlayPress}"/>
   </Style>
   <Style x:Key="BtnGhost" TargetType="Button" BasedOn="{StaticResource Plain}">
     <Setter Property="Height" Value="34"/>
-    <Setter Property="o:Ui.CornerRadius" Value="10"/>
+    <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusMd}"/>
     <Setter Property="Padding" Value="12,0"/>
-    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontSize" Value="{StaticResource FsBody}"/>
     <Setter Property="Foreground" Value="{DynamicResource Mu}"/>
   </Style>
   <Style x:Key="BtnLink" TargetType="Button" BasedOn="{StaticResource Plain}">
     <Setter Property="Height" Value="28"/>
-    <Setter Property="o:Ui.CornerRadius" Value="8"/>
+    <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusSm}"/>
     <Setter Property="Padding" Value="8,0,6,0"/>
-    <Setter Property="FontSize" Value="12.5"/>
+    <Setter Property="FontSize" Value="{StaticResource FsNote}"/>
     <Setter Property="Foreground" Value="{DynamicResource Ac}"/>
   </Style>
 
   <!-- Строка списка: сервер, вариант меню. Выбранная строка подсвечена через Tag-триггер в коде строки. -->
   <Style x:Key="Row" TargetType="Button" BasedOn="{StaticResource Plain}">
     <Setter Property="Height" Value="54"/>
-    <Setter Property="o:Ui.CornerRadius" Value="12"/>
+    <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusLg}"/>
     <Setter Property="Padding" Value="10,0,12,0"/>
     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
   </Style>
@@ -158,9 +156,9 @@
       <Setter.Value>
         <ControlTemplate TargetType="CheckBox">
           <Grid Width="40" Height="24" Background="Transparent">
-            <Border x:Name="Track" CornerRadius="12" Background="{DynamicResource Ring}"/>
-            <Border x:Name="Focus" CornerRadius="12" BorderBrush="{DynamicResource Ac}" BorderThickness="2" Margin="-3" Visibility="Collapsed"/>
-            <Ellipse x:Name="Dot" Width="18" Height="18" Fill="White" HorizontalAlignment="Left" Margin="3,0,3,0">
+            <Border x:Name="Track" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource Ring}"/>
+            <Border x:Name="Focus" CornerRadius="{StaticResource RadiusLg}" BorderBrush="{DynamicResource Ac}" BorderThickness="2" Margin="-3" Visibility="Collapsed"/>
+            <Ellipse x:Name="Dot" Width="18" Height="18" Fill="{DynamicResource Knob}" HorizontalAlignment="Left" Margin="3,0,3,0">
               <Ellipse.Effect><DropShadowEffect BlurRadius="3" ShadowDepth="1" Opacity="0.25"/></Ellipse.Effect>
               <Ellipse.RenderTransform><TranslateTransform x:Name="Knob" X="0"/></Ellipse.RenderTransform>
             </Ellipse>
@@ -194,7 +192,7 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="TextBox">
-          <Border x:Name="Plate" CornerRadius="10" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Ac}" BorderThickness="0">
+          <Border x:Name="Plate" CornerRadius="{StaticResource RadiusMd}" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Ac}" BorderThickness="0">
             <Grid>
               <TextBlock x:Name="Hint" Text="{TemplateBinding Tag}" Foreground="{DynamicResource Fa}" Margin="{TemplateBinding Padding}" FontSize="{TemplateBinding FontSize}"
                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" IsHitTestVisible="False" Visibility="Collapsed" TextTrimming="CharacterEllipsis"/>
@@ -219,7 +217,7 @@
     <Setter Property="Background" Value="{DynamicResource Pop}"/>
     <Setter Property="IsHitTestVisible" Value="False"/>
     <Setter Property="Effect">
-      <Setter.Value><DropShadowEffect BlurRadius="18" ShadowDepth="4" Direction="270" Color="#0D1B30" Opacity="0.13"/></Setter.Value>
+      <Setter.Value><DropShadowEffect BlurRadius="18" ShadowDepth="4" Direction="270" Color="{StaticResource DialogShadow}" Opacity="0.13"/></Setter.Value>
     </Setter>
   </Style>
 
@@ -230,13 +228,13 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ListBoxItem">
-          <Border x:Name="Chip" Height="30" CornerRadius="15" Padding="12,0" Margin="0,0,6,0" Background="{DynamicResource Field}">
-            <TextBlock x:Name="Label" Text="{Binding}" FontSize="12.5" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
+          <Border x:Name="Chip" Height="30" CornerRadius="{StaticResource RadiusXl}" Padding="12,0" Margin="0,0,6,0" Background="{DynamicResource Field}">
+            <TextBlock x:Name="Label" Text="{Binding}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsSelected" Value="True">
               <Setter TargetName="Chip" Property="Background" Value="{DynamicResource Ac}"/>
-              <Setter TargetName="Label" Property="Foreground" Value="White"/>
+              <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource OnAccent}"/>
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>

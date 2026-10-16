@@ -4,21 +4,21 @@
        ссылка подписки любого сервиса, vless://, trojan://, hy2://, JSON. -->
   <DockPanel Margin="32,0,32,24">
     <TextBlock DockPanel.Dock="Top" Text="облачка" Style="{StaticResource Brand}" Height="64" Padding="0,21,0,0" Margin="-8,0,0,0"/>
-    <TextBlock DockPanel.Dock="Bottom" Text="Ключ хранится в зашифрованном виде только на этом компьютере" FontSize="11.5" Foreground="{DynamicResource Fa}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0"/>
+    <TextBlock DockPanel.Dock="Bottom" Text="Ключ хранится в зашифрованном виде только на этом компьютере" FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource Fa}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0"/>
     <!-- Свечение — подложкой: эффект на самой кнопке размывал её текст. -->
     <Grid DockPanel.Dock="Bottom">
-      <Border CornerRadius="14" Background="{DynamicResource Ac}" Margin="10,4,10,0" IsHitTestVisible="False">
+      <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource Ac}" Margin="10,4,10,0" IsHitTestVisible="False">
         <Border.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="5" Direction="270" Color="{DynamicResource GlowColor}" Opacity="0.7"/></Border.Effect>
       </Border>
-      <Button x:Name="ContinueButton" Content="Подключиться" Style="{StaticResource BtnPrimary}" Height="52" o:Ui.CornerRadius="14" FontSize="15"/>
+      <Button x:Name="ContinueButton" Content="Подключиться" Style="{StaticResource BtnPrimary}" Height="52" o:Ui.CornerRadius="{StaticResource RadiusXl}" FontSize="{StaticResource FsLead}"/>
     </Grid>
     <StackPanel>
-      <TextBlock Text="Вставьте ключ —&#x0a;и всё готово" FontSize="26" FontWeight="Bold" LineHeight="31" Margin="0,32,0,0"/>
+      <TextBlock Text="Вставьте ключ —&#x0a;и всё готово" FontSize="{StaticResource FsDisplay}" FontWeight="Bold" LineHeight="31" Margin="0,32,0,0"/>
       <TextBlock Text="Подойдёт ключ Облачков, ссылка подписки другого сервиса или отдельное подключение: vless://, vmess://, ss://, trojan://, hy2://, tuic://, файл WireGuard."
-                 FontSize="14" Foreground="{DynamicResource Mu}" TextWrapping="Wrap" LineHeight="21" Margin="0,8,0,0"/>
-      <TextBlock Text="Ключ или ссылка" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" Margin="0,26,0,6"/>
+                 FontSize="{StaticResource FsRow}" Foreground="{DynamicResource Mu}" TextWrapping="Wrap" LineHeight="21" Margin="0,8,0,0"/>
+      <TextBlock Text="Ключ или ссылка" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" Margin="0,26,0,6"/>
       <TextBox x:Name="KeyInput" Style="{StaticResource FieldBox}" Height="96" Tag="Ctrl+V" MaxLength="20480" AcceptsReturn="True" TextWrapping="Wrap"
-               VerticalContentAlignment="Top" Padding="14,12" FontFamily="{StaticResource MonoFont}" FontSize="13.5"
+               VerticalContentAlignment="Top" Padding="14,12" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FsLabel}"
                VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Ключ или ссылка подписки"/>
       <Button x:Name="FileButton" Style="{StaticResource BtnGhost}" HorizontalAlignment="Left" Margin="-6,8,0,0" Padding="6,0,10,0" Foreground="{DynamicResource Ac}">
         <StackPanel Orientation="Horizontal">
@@ -36,7 +36,7 @@
       <!-- Подписки, найденные в других клиентах на этом компьютере (ForeignClients). Нажатие
            загружает выбранную и подключает, как «Подключиться» с этой ссылкой в поле. -->
       <StackPanel x:Name="ForeignPanel" Visibility="Collapsed" Margin="0,22,0,0">
-        <TextBlock Text="Или перенесите из другого приложения" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" Margin="0,0,0,8"/>
+        <TextBlock Text="Или перенесите из другого приложения" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" Margin="0,0,0,8"/>
         <ScrollViewer MaxHeight="124" VerticalScrollBarVisibility="Auto">
           <ItemsControl x:Name="ForeignList">
             <ItemsControl.ItemTemplate>
@@ -49,8 +49,8 @@
                       <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center">
-                      <TextBlock Text="{Binding Title, Mode=OneWay}" FontSize="14.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                      <TextBlock Text="{Binding Hint, Mode=OneWay}" FontSize="12" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                      <TextBlock Text="{Binding Title, Mode=OneWay}" FontSize="{StaticResource FsRowLarge}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                      <TextBlock Text="{Binding Hint, Mode=OneWay}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
                     </StackPanel>
                     <Path Grid.Column="1" Data="{StaticResource IcoChevronRight}" Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource Mu2}" StrokeThickness="2" StrokeLineJoin="Round" VerticalAlignment="Center"/>
                   </Grid>

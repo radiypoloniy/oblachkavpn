@@ -30,23 +30,23 @@
         <Grid.RenderTransform>
           <TransformGroup><ScaleTransform x:Name="ModeMenuScale"/><TranslateTransform x:Name="ModeMenuShift"/></TransformGroup>
         </Grid.RenderTransform>
-        <Border Style="{StaticResource ShadowLayer}" CornerRadius="14"/>
-        <Border Padding="6" CornerRadius="14" Background="{DynamicResource Pop}" BorderBrush="{DynamicResource Divider}" BorderThickness="1">
+        <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusXl}"/>
+        <Border Padding="6" CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource Pop}" BorderBrush="{DynamicResource Divider}" BorderThickness="1">
         <StackPanel>
-          <Button x:Name="ModeTunOption" Style="{StaticResource Row}" Height="Auto" Padding="12,10" o:Ui.CornerRadius="10" AutomationProperties.Name="Весь компьютер">
+          <Button x:Name="ModeTunOption" Style="{StaticResource Row}" Height="Auto" Padding="12,10" o:Ui.CornerRadius="{StaticResource RadiusMd}" AutomationProperties.Name="Весь компьютер">
             <DockPanel>
               <Ellipse x:Name="ModeTunRadio" DockPanel.Dock="Right" Width="18" Height="18" Stroke="{DynamicResource Ring}" StrokeThickness="1.5" VerticalAlignment="Top" Margin="10,2,0,0"/>
               <StackPanel>
-                <TextBlock Text="Весь компьютер" FontSize="13.5" FontWeight="SemiBold"/>
+                <TextBlock Text="Весь компьютер" FontSize="{StaticResource FsLabel}" FontWeight="SemiBold"/>
                 <TextBlock x:Name="ModeTunNote" Text="Системный VPN: игры и любые программы." Style="{StaticResource Small}" Margin="0,2,0,0"/>
               </StackPanel>
             </DockPanel>
           </Button>
-          <Button x:Name="ModeProxyOption" Style="{StaticResource Row}" Height="Auto" Padding="12,10" o:Ui.CornerRadius="10" Margin="0,2,0,0" AutomationProperties.Name="Браузеры и программы">
+          <Button x:Name="ModeProxyOption" Style="{StaticResource Row}" Height="Auto" Padding="12,10" o:Ui.CornerRadius="{StaticResource RadiusMd}" Margin="0,2,0,0" AutomationProperties.Name="Браузеры и программы">
             <DockPanel>
               <Ellipse x:Name="ModeProxyRadio" DockPanel.Dock="Right" Width="18" Height="18" Stroke="{DynamicResource Ring}" StrokeThickness="1.5" VerticalAlignment="Top" Margin="10,2,0,0"/>
               <StackPanel>
-                <TextBlock Text="Браузеры и программы" FontSize="13.5" FontWeight="SemiBold"/>
+                <TextBlock Text="Браузеры и программы" FontSize="{StaticResource FsLabel}" FontWeight="SemiBold"/>
                 <TextBlock Text="Прокси Windows: без прав администратора, но не для всех приложений." Style="{StaticResource Small}" Margin="0,2,0,0"/>
               </StackPanel>
             </DockPanel>
@@ -58,9 +58,9 @@
 
     <!-- Короткие сообщения: только о том, чего не видно по статусу (ошибки, итоги действий). -->
     <Grid x:Name="Toast" VerticalAlignment="Bottom" Margin="24,0,24,72" Visibility="Collapsed" IsHitTestVisible="False">
-      <Border Style="{StaticResource ShadowLayer}" CornerRadius="12"/>
-      <Border Padding="16,12" CornerRadius="12" Background="{DynamicResource Pop}" BorderBrush="{DynamicResource Divider}" BorderThickness="1">
-        <TextBlock x:Name="ShellFeedback" FontSize="13" Foreground="{DynamicResource Tx}" TextWrapping="Wrap" MaxHeight="60" TextTrimming="CharacterEllipsis"/>
+      <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusLg}"/>
+      <Border Padding="16,12" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource Pop}" BorderBrush="{DynamicResource Divider}" BorderThickness="1">
+        <TextBlock x:Name="ShellFeedback" FontSize="{StaticResource FsBody}" Foreground="{DynamicResource Tx}" TextWrapping="Wrap" MaxHeight="60" TextTrimming="CharacterEllipsis"/>
       </Border>
     </Grid>
 

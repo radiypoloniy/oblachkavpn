@@ -1,0 +1,26 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+  <!-- Сгенерировано scripts/tokens.ps1 из theme/tokens.json. Руками не править: изменения пропадут. -->
+  <Color x:Key="DialogShadow">#0D1B30</Color>  <!-- тень диалогов (общая для тем: эффект в стиле не меняет цвет на лету) -->
+  <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI</FontFamily>  <!-- интерфейс -->
+  <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>  <!-- ключи, адреса, домены -->
+  <sys:Double x:Key="FsCaption">11.5</sys:Double>  <!-- заголовки секций, мелкие подписи -->
+  <sys:Double x:Key="FsSmall">12</sys:Double>  <!-- вторичные строки, подсказки -->
+  <sys:Double x:Key="FsNote">12.5</sys:Double>  <!-- пояснения под переключателями -->
+  <sys:Double x:Key="FsBody">13</sys:Double>  <!-- основной текст карточек -->
+  <sys:Double x:Key="FsLabel">13.5</sys:Double>  <!-- кнопки, строки списков -->
+  <sys:Double x:Key="FsRow">14</sys:Double>  <!-- названия настроек и серверов -->
+  <sys:Double x:Key="FsRowLarge">14.5</sys:Double>  <!-- крупные строки -->
+  <sys:Double x:Key="FsLead">15</sys:Double>  <!-- вводный текст -->
+  <sys:Double x:Key="FsSubtitle">17</sys:Double>  <!-- заголовок диалога, название в шапке -->
+  <sys:Double x:Key="FsTitle">18</sys:Double>  <!-- заголовок экрана -->
+  <sys:Double x:Key="FsHeadline">24</sys:Double>  <!-- статус на главном экране -->
+  <sys:Double x:Key="FsDisplay">26</sys:Double>  <!-- приветствие -->
+  <CornerRadius x:Key="RadiusXs">3</CornerRadius>  <!-- мелкие метки -->
+  <CornerRadius x:Key="RadiusInner">7</CornerRadius>  <!-- сегмент внутри переключателя -->
+  <CornerRadius x:Key="RadiusSm">8</CornerRadius>  <!-- маленькие кнопки -->
+  <CornerRadius x:Key="RadiusSeg">9</CornerRadius>  <!-- рамка переключателя-сегментов -->
+  <CornerRadius x:Key="RadiusMd">10</CornerRadius>  <!-- кнопки, строки -->
+  <CornerRadius x:Key="RadiusLg">12</CornerRadius>  <!-- поля, карточки -->
+  <CornerRadius x:Key="RadiusXl">14</CornerRadius>  <!-- крупные карточки, окна -->
+  <CornerRadius x:Key="RadiusSheet">16</CornerRadius>  <!-- диалоги, выезжающие панели -->
+</ResourceDictionary>

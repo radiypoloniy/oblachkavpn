@@ -7,7 +7,7 @@ namespace Oblachka;
 //
 // Число справа — свежий замер через сервер (ServerMeasurements). Отклик входа (ServerPing,
 // TCP-рукопожатие) числом не показывается: у каскадов он единицы мс при настоящих сотнях.
-// Цвет точки: < 160 мс зелёный, < 250 мс жёлтый, иначе оранжевый; нет ответа — красный;
+// Цвет точки (токены LatFast/LatMid/LatSlow/LatFail): < 160 мс, < 250 мс, дольше; нет ответа;
 // результат старше 20 минут — «давно» с бледной точкой, подробности в подсказке.
 public sealed class ServerRow
 {
@@ -32,8 +32,6 @@ public sealed class ServerRow
     public Visibility LatencyVisibility => string.IsNullOrEmpty(Latency) ? Visibility.Collapsed : Visibility.Visible;
     public FontWeight NameWeight => Selected ? FontWeights.SemiBold : FontWeights.Normal;
 
-    private static readonly Brush Fast = Frozen(0x2F, 0xB3, 0x6A), Medium = Frozen(0xD9, 0xA0, 0x1E), Slow = Frozen(0xD9, 0x73, 0x1E);
-    private static Brush Frozen(byte r, byte g, byte b) { var brush = new SolidColorBrush(Color.FromRgb(r, g, b)); brush.Freeze(); return brush; }
 
     // Отметка справа: текст, цвет точки и подсказка. checking — идёт проверка этого сервера.
     public static (string Text, Brush? Dot, string? Hint) Status(ServerMeasurement? measured, DateTimeOffset now, bool checking = false)
@@ -52,14 +50,14 @@ public sealed class ServerRow
     }
 
     private static Brush? Faint => Application.Current?.TryFindResource("Fa") as Brush;
-    private static readonly Brush Failed = Frozen(0xD9, 0x48, 0x3B);
+    private static Brush? Failed => Tokens.Brush("LatFail");
 
     public static Brush? DotFor(long? milliseconds) => milliseconds switch
     {
         null => Application.Current?.TryFindResource("Fa") as Brush,
-        < 160 => Fast,
-        < 250 => Medium,
-        _ => Slow
+        < 160 => Tokens.Brush("LatFast"),
+        < 250 => Tokens.Brush("LatMid"),
+        _ => Tokens.Brush("LatSlow")
     };
 
     // Значок вместо флага: игры и звонки, обход белых списков, сторонняя подписка.

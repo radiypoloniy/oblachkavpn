@@ -3,11 +3,11 @@
   <!-- Настройки → Подписка (экран 12): срок и трафик, обновление списка, устройство, сторонние подписки. -->
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="20,18,20,16">
-      <Border CornerRadius="14" Background="{DynamicResource CardBg}" Padding="14">
+      <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource CardBg}" Padding="14">
         <StackPanel>
           <DockPanel>
-            <TextBlock x:Name="UpdatedText" DockPanel.Dock="Right" FontSize="12" Foreground="{DynamicResource Mu2}" VerticalAlignment="Bottom"/>
-            <TextBlock x:Name="SubscriptionTitle" Text="Подписка" FontSize="15" FontWeight="SemiBold"/>
+            <TextBlock x:Name="UpdatedText" DockPanel.Dock="Right" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" VerticalAlignment="Bottom"/>
+            <TextBlock x:Name="SubscriptionTitle" Text="Подписка" FontSize="{StaticResource FsLead}" FontWeight="SemiBold"/>
           </DockPanel>
           <Grid Margin="0,10,0,0">
             <Grid.ColumnDefinitions>
@@ -15,16 +15,16 @@
               <ColumnDefinition Width="8"/>
               <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <Border CornerRadius="10" Background="{DynamicResource B2}" Padding="10,8">
+            <Border CornerRadius="{StaticResource RadiusMd}" Background="{DynamicResource B2}" Padding="10,8">
               <StackPanel>
-                <TextBlock Text="Действует до" FontSize="11.5" Foreground="{DynamicResource Mu2}"/>
-                <TextBlock x:Name="ExpiryText" Text="—" FontSize="14" FontWeight="SemiBold"/>
+                <TextBlock Text="Действует до" FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource Mu2}"/>
+                <TextBlock x:Name="ExpiryText" Text="—" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
               </StackPanel>
             </Border>
-            <Border Grid.Column="2" CornerRadius="10" Background="{DynamicResource B2}" Padding="10,8">
+            <Border Grid.Column="2" CornerRadius="{StaticResource RadiusMd}" Background="{DynamicResource B2}" Padding="10,8">
               <StackPanel>
-                <TextBlock Text="Трафик" FontSize="11.5" Foreground="{DynamicResource Mu2}"/>
-                <TextBlock x:Name="TrafficText" Text="—" FontSize="14" FontWeight="SemiBold"/>
+                <TextBlock Text="Трафик" FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource Mu2}"/>
+                <TextBlock x:Name="TrafficText" Text="—" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
               </StackPanel>
             </Border>
           </Grid>
@@ -34,8 +34,8 @@
               <ColumnDefinition Width="Auto"/>
               <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <Button x:Name="RenewButton" Content="Продлить" Style="{StaticResource BtnPrimary}" Height="36" o:Ui.CornerRadius="10" FontSize="13" Margin="0,0,8,0"/>
-            <Button x:Name="RefreshListButton" Grid.Column="2" Content="Обновить список" Style="{StaticResource BtnOutline}" Height="36" o:Ui.CornerRadius="10"/>
+            <Button x:Name="RenewButton" Content="Продлить" Style="{StaticResource BtnPrimary}" Height="36" o:Ui.CornerRadius="{StaticResource RadiusMd}" FontSize="{StaticResource FsBody}" Margin="0,0,8,0"/>
+            <Button x:Name="RefreshListButton" Grid.Column="2" Content="Обновить список" Style="{StaticResource BtnOutline}" Height="36" o:Ui.CornerRadius="{StaticResource RadiusMd}"/>
           </Grid>
           <TextBlock x:Name="SubscriptionDetails" Style="{StaticResource Small}" Margin="0,10,0,0"/>
           <!-- Ссылка support-url от панели; без неё кнопки нет. -->
@@ -46,24 +46,24 @@
       <DockPanel Margin="6,8,4,4">
         <CheckBox x:Name="AutoRefresh" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Обновлять список автоматически"/>
         <StackPanel>
-          <TextBlock Text="Обновлять список сам" FontSize="14"/>
+          <TextBlock Text="Обновлять список сам" FontSize="{StaticResource FsRow}"/>
           <TextBlock Text="Не рвёт текущее подключение" Style="{StaticResource Small}"/>
         </StackPanel>
       </DockPanel>
       <DockPanel Margin="6,4,4,4">
-        <TextBlock x:Name="DeviceIdText" DockPanel.Dock="Right" FontFamily="{StaticResource MonoFont}" FontSize="12.5" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
+        <TextBlock x:Name="DeviceIdText" DockPanel.Dock="Right" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
         <StackPanel>
-          <TextBlock Text="Это устройство" FontSize="14"/>
+          <TextBlock Text="Это устройство" FontSize="{StaticResource FsRow}"/>
           <TextBlock Text="Случайный номер для лимита устройств, не серийник" Style="{StaticResource Small}"/>
         </StackPanel>
       </DockPanel>
 
-      <TextBlock Text="ПОДПИСКИ И ПОДКЛЮЧЕНИЯ" Style="{StaticResource Caption}" FontSize="11.5" Margin="6,10,6,4"/>
+      <TextBlock Text="ПОДПИСКИ И ПОДКЛЮЧЕНИЯ" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" Margin="6,10,6,4"/>
       <!-- Группы (ProfileGroup): у подписки — «Обновить» и «Убрать», у «Вручную» — только «Убрать». -->
       <ItemsControl x:Name="GroupList" Focusable="False">
         <ItemsControl.ItemTemplate>
           <DataTemplate DataType="{x:Type o:GroupRow}">
-            <Border CornerRadius="12" Background="{DynamicResource CardBg}" Padding="12,8,6,8" Margin="0,0,0,6">
+            <Border CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource CardBg}" Padding="12,8,6,8" Margin="0,0,0,6">
               <DockPanel>
                 <Button DockPanel.Dock="Right" Tag="remove" Style="{StaticResource SmallIconButton}" Width="30" Height="30" Foreground="{DynamicResource Fa}" ToolTip="Убрать" AutomationProperties.Name="{Binding RemoveName}">
                   <Path Data="{StaticResource IcoClose}" Style="{StaticResource Icon}" Width="13" Height="13" StrokeThickness="2.4"/>
@@ -72,7 +72,7 @@
                   <Path Data="{StaticResource IcoRefresh}" Style="{StaticResource Icon}" Width="15" Height="15"/>
                 </Button>
                 <StackPanel VerticalAlignment="Center">
-                  <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Text="{Binding Title}" FontSize="{StaticResource FsRow}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                   <TextBlock Text="{Binding Sub}" Style="{StaticResource Small}" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
               </DockPanel>
@@ -83,14 +83,14 @@
       <Button x:Name="AddExternalButton" Style="{StaticResource Row}" Height="40" Padding="6,0" Foreground="{DynamicResource Ac}" AutomationProperties.Name="Добавить подписку">
         <StackPanel Orientation="Horizontal">
           <Path Data="{StaticResource IcoPlus}" Width="16" Height="16" Stretch="Uniform" Stroke="{DynamicResource Ac}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
-          <TextBlock Text="Добавить подписку" FontSize="13.5" Margin="10,0,0,0" VerticalAlignment="Center"/>
+          <TextBlock Text="Добавить подписку" FontSize="{StaticResource FsLabel}" Margin="10,0,0,0" VerticalAlignment="Center"/>
         </StackPanel>
       </Button>
 
       <DockPanel Margin="6,10,4,0">
         <CheckBox x:Name="Remember" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Запомнить на этом компьютере"/>
         <StackPanel>
-          <TextBlock Text="Запомнить на этом компьютере" FontSize="14"/>
+          <TextBlock Text="Запомнить на этом компьютере" FontSize="{StaticResource FsRow}"/>
           <TextBlock x:Name="StorageStatus" Text="Ключ шифруется Windows для вашей учётной записи" Style="{StaticResource Small}"/>
         </StackPanel>
       </DockPanel>

@@ -11,8 +11,8 @@
         <Setter.Value>
           <ControlTemplate TargetType="ListBoxItem">
             <Grid Margin="1,0">
-              <Border x:Name="Seg" CornerRadius="8" Background="Transparent"/>
-              <TextBlock x:Name="Label" Text="{Binding}" FontSize="13" Foreground="{DynamicResource Mu}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              <Border x:Name="Seg" CornerRadius="{StaticResource RadiusSm}" Background="Transparent"/>
+              <TextBlock x:Name="Label" Text="{Binding}" FontSize="{StaticResource FsBody}" Foreground="{DynamicResource Mu}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Grid>
             <ControlTemplate.Triggers>
               <Trigger Property="IsSelected" Value="True">
@@ -41,7 +41,7 @@
       <TextBlock Text="Настройки" Style="{StaticResource Brand}" Margin="4,0,0,0"/>
     </DockPanel>
 
-    <Border Grid.Row="1" Margin="20,0,20,6" Height="40" CornerRadius="12" Background="{DynamicResource Field}" Padding="3">
+    <Border Grid.Row="1" Margin="20,0,20,6" Height="40" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource Field}" Padding="3">
       <ListBox x:Name="SettingsTabs" ItemContainerStyle="{StaticResource SegItem}" Background="Transparent" BorderThickness="0" Padding="0" SelectedIndex="0"
                ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Разделы настроек">
         <ListBox.Template><ControlTemplate TargetType="ListBox"><ItemsPresenter/></ControlTemplate></ListBox.Template>

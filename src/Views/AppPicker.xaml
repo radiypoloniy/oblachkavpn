@@ -12,18 +12,18 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
-          <Border Width="32" Height="32" CornerRadius="8" Background="{DynamicResource Field}" Visibility="{Binding PlaceholderVisibility}">
-            <TextBlock Text="{Binding Initial}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Mu2}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          <Border Width="32" Height="32" CornerRadius="{StaticResource RadiusSm}" Background="{DynamicResource Field}" Visibility="{Binding PlaceholderVisibility}">
+            <TextBlock Text="{Binding Initial}" FontSize="{StaticResource FsRow}" FontWeight="SemiBold" Foreground="{DynamicResource Mu2}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
           </Border>
           <Image Source="{Binding Icon}" Width="28" Height="28" RenderOptions.BitmapScalingMode="HighQuality"/>
           <StackPanel Grid.Column="1" Margin="14,0,8,0" VerticalAlignment="Center">
-            <TextBlock Text="{Binding Name}" FontSize="14.5" TextTrimming="CharacterEllipsis"/>
-            <TextBlock Text="{Binding Note}" FontSize="12" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsRowLarge}" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Text="{Binding Note}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis"/>
           </StackPanel>
           <Grid Grid.Column="2" Width="22" Height="22" VerticalAlignment="Center">
             <Ellipse x:Name="MarkRing" Stroke="{DynamicResource Ring}" StrokeThickness="1.5"/>
             <Ellipse x:Name="MarkFill" Fill="{DynamicResource Ac}" Visibility="Collapsed"/>
-            <Path x:Name="MarkCheck" Data="{StaticResource IcoCheck}" Width="11" Height="11" Stretch="Uniform" Stroke="White" StrokeThickness="3"
+            <Path x:Name="MarkCheck" Data="{StaticResource IcoCheck}" Width="11" Height="11" Stretch="Uniform" Stroke="{DynamicResource OnAccent}" StrokeThickness="3"
                   StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="Collapsed"/>
           </Grid>
         </Grid>
@@ -59,7 +59,7 @@
     </DockPanel>
 
     <StackPanel Grid.Row="1" Margin="20,0,20,8">
-      <TextBox x:Name="SearchBox" Style="{StaticResource FieldBox}" Height="42" Tag="Название, например «тел» или «steam»" FontSize="14"
+      <TextBox x:Name="SearchBox" Style="{StaticResource FieldBox}" Height="42" Tag="Название, например «тел» или «steam»" FontSize="{StaticResource FsRow}"
                AutomationProperties.Name="Найти программу"/>
       <TextBlock x:Name="ModeNote" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" Margin="2,8,0,0"
                  Text="Правила программ действуют в режиме «Весь компьютер». В режиме «Браузеры и программы» трафик программ, которые не смотрят на системный прокси, к нам не попадает."/>
@@ -69,13 +69,13 @@
       <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10,0,10,0">
         <ItemsControl x:Name="AppList" Focusable="False"/>
       </ScrollViewer>
-      <TextBlock x:Name="StatusText" Text="Ищем программы на компьютере…" FontSize="13.5" Foreground="{DynamicResource Mu2}" HorizontalAlignment="Center" VerticalAlignment="Center"
+      <TextBlock x:Name="StatusText" Text="Ищем программы на компьютере…" FontSize="{StaticResource FsLabel}" Foreground="{DynamicResource Mu2}" HorizontalAlignment="Center" VerticalAlignment="Center"
                  TextAlignment="Center" TextWrapping="Wrap" Margin="32,0"/>
     </Grid>
 
     <Border Grid.Row="3" BorderBrush="{DynamicResource Divider}" BorderThickness="0,1,0,0" Padding="20,12,20,16">
       <StackPanel>
-        <TextBlock Text="Что делать с выбранными" FontSize="12" Foreground="{DynamicResource Mu2}" Margin="2,0,0,6"/>
+        <TextBlock Text="Что делать с выбранными" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" Margin="2,0,0,6"/>
         <ListBox x:Name="ActionChoice" ItemContainerStyle="{StaticResource ChipItem}" Background="Transparent" BorderThickness="0" Padding="0"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Действие для выбранных программ" SelectedIndex="0">
           <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ListBox.ItemsPanel>
@@ -86,7 +86,7 @@
         </ListBox>
         <DockPanel Margin="0,12,0,0">
           <Button x:Name="FileButton" Content="Выбрать файл…" Style="{StaticResource BtnLink}" VerticalAlignment="Center"/>
-          <Button x:Name="AddButton" DockPanel.Dock="Right" Content="Добавить" Style="{StaticResource BtnPrimary}" Height="44" Padding="20,0" o:Ui.CornerRadius="12"
+          <Button x:Name="AddButton" DockPanel.Dock="Right" Content="Добавить" Style="{StaticResource BtnPrimary}" Height="44" Padding="20,0" o:Ui.CornerRadius="{StaticResource RadiusLg}"
                   HorizontalAlignment="Right" IsEnabled="False"/>
         </DockPanel>
       </StackPanel>

@@ -55,6 +55,20 @@
 
 Установщик собирается только из закоммиченных `src` и `installer`: так файл всегда соответствует ревизии. Подробности — [installer.md](installer.md).
 
+## Оформление
+
+Цвета, шрифты, размеры текста и скругления живут только в `theme/tokens.json`: у каждого цвета значение для светлой и тёмной темы и подпись, где он используется. После правки:
+
+```powershell
+.\scripts	okens.ps1
+```
+
+Скрипт пересобирает `src/Themes/Light.xaml`, `Dark.xaml` (цвета тем), `Tokens.xaml` (шрифты, размеры, скругления) и `theme/tokens.css` (те же переменные для HTML-макетов). Эти файлы руками не правятся.
+
+В разметке цвет берётся как `{DynamicResource Ac}`, размер — `{StaticResource FsRow}`, скругление — `{StaticResource RadiusLg}`. В коде — `Tokens.Brush("Ac")`, `Tokens.Size("FsRow")`, `Tokens.Radius("RadiusLg")`. `scripts/check-tokens.ps1` (часть `test.ps1`) не пропустит «#RRGGBB», `White`, числа в `FontSize` и `CornerRadius`, а также темы, собранные из устаревшего `tokens.json`. Исключение — скругления «таблеток» (половина высоты элемента): это геометрия, они перечислены в скрипте явно.
+
+Нужного токена нет — добавьте его в `tokens.json` с подписью, а не пишите значение на месте.
+
 ## Версия
 
 Версия хранится в двух местах: `src/Oblachka.csproj` (`<Version>`) и `ServiceBrand.Version`. Ревизия Git и признак «с изменениями» видны в настройках приложения и в `build-info.json` рядом с exe.
