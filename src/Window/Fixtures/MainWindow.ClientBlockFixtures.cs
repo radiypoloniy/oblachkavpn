@@ -27,6 +27,11 @@ public partial class MainWindow
         RemoveRule(programRules[0]);
         if (programRules.Count != 0) throw new InvalidOperationException("Program draft removal failed");
         CheckAppPicker(checks);
+        // «Сейчас в сети»: процесс с необычным именем файла (claude.exe.old.123) не роняет окно, а
+        // показывается без кнопок правил — так упала 0.15.0-rc.3.
+        var odd = LiveRow(new LiveApp(@"C:\Apps\Claude\claude.exe.old.1792214641919", 1, 0, 0, ["203.0.113.5:443"]));
+        if (odd.Configurable || !odd.Scope.Contains("необычное имя")) throw new InvalidOperationException("Odd process name is configurable in live view");
+        checks.Add("Live view shows a process with an odd file name without rule buttons instead of crashing");
         // Доступность измерений зависит от источника узла и проверяется отдельно
         // в CheckPreviewControls и CheckServiceControls.
         if (!Advanced.ValidateRulesButton.IsEnabled || backgroundWorkEnabled)
