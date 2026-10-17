@@ -20,6 +20,14 @@ public static partial class SelfTests
             Assert(((JsonArray)config["route"]!["rules"]!).Count == 1 && ((JsonArray)config["outbounds"]!).Count == 1);
             return Task.CompletedTask;
         });
+        await check("Process lookup runs only with program rules; the tunnel stack is gvisor with MTU 9000", () =>
+        {
+            Assert(!SingBoxTunConfig.Create(Lease(sites))["route"]!["find_process"]!.GetValue<bool>());
+            Assert(SingBoxTunConfig.Create(Lease(sites, programs))["route"]!["find_process"]!.GetValue<bool>());
+            var tun = SingBoxTunConfig.Create(Lease())["inbounds"]![0]!;
+            Assert(tun["stack"]!.GetValue<string>() == "gvisor" && tun["mtu"]!.GetValue<int>() == 9000);
+            return Task.CompletedTask;
+        });
         await check("The tunnel gets IPv6 only where the physical network has global IPv6", () =>
         {
             var both = SingBoxTunConfig.Create(Lease(), ipv6: true)["inbounds"]![0]!["address"]!.AsArray();
