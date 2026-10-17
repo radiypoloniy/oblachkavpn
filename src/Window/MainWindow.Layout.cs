@@ -30,7 +30,7 @@ public partial class MainWindow
         };
         IsVisibleChanged += (_, _) => Home.Sky.Sync();
         // Любой экран острова открылся или закрылся — пересчитать раскладку и подсветку пункта.
-        foreach (var page in new UIElement[] { Live, Servers, Settings, Picker, Doctor, SiteCheck })
+        foreach (var page in new UIElement[] { Live, Servers, RulesPage, Settings, Picker, Doctor, SiteCheck })
             page.IsVisibleChanged += (_, _) => { if (IsLoaded) ApplyLayout(); };
     }
 
@@ -60,12 +60,13 @@ public partial class MainWindow
         Grid.SetColumnSpan(Island, narrow ? 2 : 1);
         Island.Margin = narrow ? new Thickness(10, 44, 10, 10) : new Thickness(0, 44, 10, 10);
         var welcome = Onboarding.Visibility == Visibility.Visible;
-        var anyOpen = Live.Visibility == Visibility.Visible || Servers.Visibility == Visibility.Visible || Settings.Visibility == Visibility.Visible ||
+        var anyOpen = Live.Visibility == Visibility.Visible || Servers.Visibility == Visibility.Visible || Settings.Visibility == Visibility.Visible || RulesPage.Visibility == Visibility.Visible ||
             Picker.Visibility == Visibility.Visible || Doctor.Visibility == Visibility.Visible || SiteCheck.Visibility == Visibility.Visible;
         Island.Visibility = welcome || narrow && !(narrowOpen && anyOpen) ? Visibility.Collapsed : Visibility.Visible;
         // «Назад» у разделов нужен только в узком окне: в широком раздел сменяют пунктом панели.
         Live.BackButton.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
         Servers.BackButton.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
+        RulesPage.BackButton.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
         // Окно расширили: пустой остров заполняется «Сейчас в сети».
         if (wasNarrow && !narrow && !anyOpen && !welcome) { OpenConnections(focus: false); return; }
         RefreshSideSelection();
@@ -79,10 +80,10 @@ public partial class MainWindow
         // тогда ни один пункт не подсвечен, кроме того, из чьих настроек их открыли.
         var page = Picker.Visibility == Visibility.Visible || Doctor.Visibility == Visibility.Visible || SiteCheck.Visibility == Visibility.Visible;
         var settings = island && Settings.Visibility == Visibility.Visible;
-        var rules = settings && Settings.CurrentPage == 1;
-        Ui.SetSelected(Home.LiveNav, island && !page && Live.Visibility == Visibility.Visible && !settings && Servers.Visibility != Visibility.Visible);
+        var rules = island && !settings && RulesPage.Visibility == Visibility.Visible;
+        Ui.SetSelected(Home.LiveNav, island && !page && Live.Visibility == Visibility.Visible && !settings && !rules && Servers.Visibility != Visibility.Visible);
         Ui.SetSelected(Home.AllServersButton, island && Servers.Visibility == Visibility.Visible && !settings);
         Ui.SetSelected(Home.RulesNav, rules);
-        Ui.SetSelected(Home.SettingsButton, settings && !rules);
+        Ui.SetSelected(Home.SettingsButton, settings);
     }
 }

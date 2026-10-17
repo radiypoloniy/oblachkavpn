@@ -1,6 +1,6 @@
 ﻿<UserControl x:Class="Oblachka.Views.RulesTab" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:o="clr-namespace:Oblachka">
-  <!-- Настройки → Без VPN: YouTube и Discord (zapret), правила сервиса и свои правила сайтов и программ. -->
+  <!-- Свои правила сайтов и программ: «через VPN», «напрямую», «блокировать». -->
   <UserControl.Resources>
     <DataTemplate DataType="{x:Type o:RuleRow}">
       <Border MinHeight="42" Padding="6,4,2,4" BorderBrush="{DynamicResource Divider}" BorderThickness="0,0,0,1">
@@ -34,46 +34,23 @@
     </DataTemplate>
   </UserControl.Resources>
 
-  <DockPanel Margin="20,6,20,16">
-    <!-- zapret в службе (MainWindow.Zapret): YouTube и Discord напрямую через обход блокировок,
-         по строке на сайт; ниже — правила сервиса и свои правила. -->
-    <Border DockPanel.Dock="Top" CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource CardBg}" Padding="14,12">
-      <StackPanel>
-        <DockPanel>
-          <CheckBox x:Name="ZapretToggle" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="YouTube и Discord без VPN"/>
-          <StackPanel>
-            <TextBlock Text="YouTube и Discord без VPN" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
-            <TextBlock x:Name="ZapretText" Text="Через обход блокировок zapret: быстрее и не тратит VPN" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" Margin="0,2,0,0"/>
-            <Button x:Name="ZapretPick" Content="Проверить заново" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Margin="0,4,0,0" Visibility="Collapsed"/>
-          </StackPanel>
-        </DockPanel>
-        <!-- Запасной путь, когда обход не справляется: VPN только для YouTube и Discord (MainWindow.Selective). -->
-        <DockPanel Margin="0,12,0,0">
-          <CheckBox x:Name="SelectiveToggle" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Через VPN только YouTube и Discord"/>
-          <StackPanel>
-            <TextBlock Text="Через VPN — только YouTube и Discord" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
-            <TextBlock Text="Остальное напрямую: загрузки и игры не тратят VPN. Ваши правила «через VPN» тоже действуют." Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" Margin="0,2,0,0"/>
-          </StackPanel>
-        </DockPanel>
-        <DockPanel x:Name="ProviderRoutingRow" Margin="0,12,0,0" Visibility="Collapsed">
-          <CheckBox x:Name="ProviderRouting" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Маршрутизация сервиса"/>
-          <StackPanel>
-            <TextBlock x:Name="ProviderRoutingTitle" Text="Правила сервиса" FontSize="{StaticResource FsRow}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-            <TextBlock x:Name="ProviderRoutingText" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap"/>
-          </StackPanel>
-        </DockPanel>
-      </StackPanel>
-    </Border>
-
-    <TextBlock DockPanel.Dock="Top" Text="СВОИ ПРАВИЛА" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" Margin="6,18,6,0"/>
-    <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Divider}" BorderThickness="0,0,0,1" Margin="0,4,0,0">
+  <!-- «Правила» — раздел острова (0.16): свои правила для сайтов и программ. Что открывается
+       без VPN целиком (YouTube и Discord, рунет) — в «Настройки → Обход блокировок». -->
+  <DockPanel Margin="10,0,20,16">
+    <DockPanel DockPanel.Dock="Top" Height="64">
+      <Button x:Name="BackButton" Style="{StaticResource IconButton}" Foreground="{DynamicResource Tx}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Назад">
+        <Path Data="{StaticResource IcoBack}" Style="{StaticResource Icon}" StrokeThickness="2.2"/>
+      </Button>
+      <TextBlock Text="Правила" Style="{StaticResource Brand}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+    </DockPanel>
+    <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Divider}" BorderThickness="0,0,0,1" Margin="10,4,0,0">
       <StackPanel Orientation="Horizontal" Margin="4,0">
         <Button x:Name="SitesTab" Content="Сайты" Style="{StaticResource Plain}" Height="34" Padding="2,0" FontSize="{StaticResource FsLabel}" Margin="0,0,16,0"/>
         <Button x:Name="AppsTab" Content="Программы" Style="{StaticResource Plain}" Height="34" Padding="2,0" FontSize="{StaticResource FsLabel}"/>
       </StackPanel>
     </Border>
 
-    <Grid DockPanel.Dock="Top" Margin="0,10,0,0">
+    <Grid DockPanel.Dock="Top" Margin="10,10,0,0">
       <StackPanel x:Name="SiteInput">
         <DockPanel>
           <Button x:Name="AddRuleButton" DockPanel.Dock="Right" Content="Добавить" Style="{StaticResource BtnPrimary}" Height="38" Padding="14,0" o:Ui.CornerRadius="{StaticResource RadiusMd}" FontSize="{StaticResource FsBody}" Margin="8,0,0,0"/>
@@ -95,9 +72,9 @@
       </StackPanel>
     </Grid>
 
-    <TextBlock DockPanel.Dock="Bottom" Text="Нажмите на метку, чтобы сменить действие. Программа сильнее сайта." Style="{StaticResource Small}" Foreground="{DynamicResource Fa}" TextWrapping="Wrap" Margin="4,8,0,0"/>
+    <TextBlock DockPanel.Dock="Bottom" Text="Нажмите на метку, чтобы сменить действие. Программа сильнее сайта." Style="{StaticResource Small}" Foreground="{DynamicResource Fa}" TextWrapping="Wrap" Margin="14,8,0,0"/>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,4,0,0">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="10,4,0,0">
       <Grid>
         <o:AccessibleItems x:Name="RuleList" Focusable="False"/>
         <o:AccessibleItems x:Name="ProgramList" Focusable="False" Visibility="Collapsed"/>

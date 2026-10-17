@@ -16,7 +16,7 @@ public partial class MainWindow
     private void WireRouting()
     {
         Settings.RussiaDirect.Click += async (_, _) => await RoutingChangedAsync();
-        Routes.ProviderRouting.Click += async (_, _) => { useProviderRouting = Routes.ProviderRouting.IsChecked == true; await RoutingChangedAsync(); };
+        Bypass.ProviderRouting.Click += async (_, _) => { useProviderRouting = Bypass.ProviderRouting.IsChecked == true; await RoutingChangedAsync(); };
         Advanced.GeoButton.Click += async (_, _) => await DownloadGeoAsync(force: true);
         Home.RoutingOfferAccept.Click += async (_, _) => { useProviderRouting = true; await RoutingChangedAsync(); };
         Home.RoutingOfferDecline.Click += (_, _) => { useProviderRouting = false; RefreshRouting(); QueueStateSave(); };
@@ -117,12 +117,12 @@ public partial class MainWindow
     {
         if (!viewsReady) return;
         var provider = providerRouting;
-        Routes.ProviderRoutingRow.Visibility = provider is null ? Visibility.Collapsed : Visibility.Visible;
+        Bypass.ProviderRoutingRow.Visibility = provider is null ? Visibility.Collapsed : Visibility.Visible;
         if (provider is not null)
         {
-            Routes.ProviderRouting.IsChecked = useProviderRouting == true;
-            Routes.ProviderRoutingTitle.Text = "Правила сервиса «" + provider.Name + "»";
-            Routes.ProviderRoutingText.Text = Describe(provider);
+            Bypass.ProviderRouting.IsChecked = useProviderRouting == true;
+            Bypass.ProviderRoutingTitle.Text = "Правила сервиса «" + provider.Name + "»";
+            Bypass.ProviderRoutingText.Text = Describe(provider);
         }
         var site = GeoStore.Default.Info(GeoStore.Kind.Geosite);
         var ip = GeoStore.Default.Info(GeoStore.Kind.Geoip);
@@ -131,7 +131,7 @@ public partial class MainWindow
             : "Базы адресов: " + string.Join(", ", new[] { site is null ? null : Line(site, "сайты"), ip is null ? null : Line(ip, "IP") }.OfType<string>()));
         Advanced.GeoButton.Content = site is null && ip is null ? "Скачать" : "Обновить";
         Advanced.GeoButton.IsEnabled = !geoDownloading;
-        Settings.RussiaDirect.IsEnabled = Routes.ProviderRouting.IsEnabled = !geoDownloading;
+        Settings.RussiaDirect.IsEnabled = Bypass.ProviderRouting.IsEnabled = !geoDownloading;
 
         var offer = provider is not null && useProviderRouting is null;
         Home.RoutingOffer.Visibility = offer ? Visibility.Visible : Visibility.Collapsed;

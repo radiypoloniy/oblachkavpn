@@ -21,9 +21,9 @@ public partial class MainWindow
 
     private void WireSelective()
     {
-        Routes.SelectiveToggle.Click += async (_, _) =>
+        Bypass.SelectiveToggle.Click += async (_, _) =>
         {
-            selectiveVpn = Routes.SelectiveToggle.IsChecked == true;
+            selectiveVpn = Bypass.SelectiveToggle.IsChecked == true;
             QueueStateSave(); RefreshDirectChip(); RefreshHome();
             await SelectiveChangedAsync();
         };

@@ -19,7 +19,9 @@ public partial class MainWindow
     // SelectionChanged ведут смену сервера и сохранение; рисуют список главный экран и панель.
     private readonly ListBox ProfilePicker = new();
     // Правила и помощь теперь вкладки настроек; имена элементов прежние.
-    private Views.RulesTab Routes => Settings.Rules;
+    private Views.RulesTab Routes => RulesPage;
+    private Views.BypassPage Bypass => Settings.Bypass;
+    private Views.GeneralTab AppTab => Settings.General;
     private Views.AdvancedPage Advanced => Settings.Advanced;
     private Views.HelpTab Diagnostics => Settings.Help;
     private Button ImportFileButton => Servers.ImportFileButton;

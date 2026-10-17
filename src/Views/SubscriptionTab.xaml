@@ -1,8 +1,8 @@
 <UserControl x:Class="Oblachka.Views.SubscriptionTab" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:o="clr-namespace:Oblachka">
-  <!-- Настройки → Подписка (экран 12): срок и трафик, обновление списка, устройство, сторонние подписки. -->
+  <!-- Настройки → Подписка (0.16): срок и трафик, обновление списка, устройство, все подписки и ключ. -->
   <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <StackPanel Margin="20,18,20,16">
+    <StackPanel Margin="20,4,20,16">
       <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource CardBg}" Padding="14">
         <StackPanel>
           <DockPanel>
@@ -43,22 +43,28 @@
         </StackPanel>
       </Border>
 
-      <DockPanel Margin="6,8,4,4">
-        <CheckBox x:Name="AutoRefresh" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Обновлять список автоматически"/>
+      <Border Style="{StaticResource SetGroup}" Margin="0,10,0,0">
         <StackPanel>
-          <TextBlock Text="Обновлять список сам" FontSize="{StaticResource FsRow}"/>
-          <TextBlock Text="Не рвёт текущее подключение" Style="{StaticResource Small}"/>
+          <DockPanel Style="{StaticResource SetLine}">
+            <CheckBox x:Name="AutoRefresh" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" VerticalAlignment="Center" AutomationProperties.Name="Обновлять список автоматически"/>
+            <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcGreen}"><Path Data="{StaticResource IcoRefresh}" Style="{StaticResource SetGlyph}"/></Border>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="Обновлять список сам" Style="{StaticResource SetTitle}"/>
+              <TextBlock Text="Не рвёт текущее подключение" Style="{StaticResource SetSub}"/>
+            </StackPanel>
+          </DockPanel>
+          <DockPanel Style="{StaticResource SetLine}">
+            <TextBlock x:Name="DeviceIdText" DockPanel.Dock="Right" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
+            <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcGray}"><Path Data="{StaticResource IcoApp}" Style="{StaticResource SetGlyph}"/></Border>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="Это устройство" Style="{StaticResource SetTitle}"/>
+              <TextBlock Text="Случайный номер для лимита устройств, не серийник" Style="{StaticResource SetSub}"/>
+            </StackPanel>
+          </DockPanel>
         </StackPanel>
-      </DockPanel>
-      <DockPanel Margin="6,4,4,4">
-        <TextBlock x:Name="DeviceIdText" DockPanel.Dock="Right" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
-        <StackPanel>
-          <TextBlock Text="Это устройство" FontSize="{StaticResource FsRow}"/>
-          <TextBlock Text="Случайный номер для лимита устройств, не серийник" Style="{StaticResource Small}"/>
-        </StackPanel>
-      </DockPanel>
+      </Border>
 
-      <TextBlock Text="ПОДПИСКИ И ПОДКЛЮЧЕНИЯ" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" Margin="6,10,6,4"/>
+      <TextBlock Text="ПОДПИСКИ И ПОДКЛЮЧЕНИЯ" Style="{StaticResource SetCaption}"/>
       <!-- Группы (ProfileGroup): у подписки — «Обновить» и «Убрать», у «Вручную» — только «Убрать». -->
       <ItemsControl x:Name="GroupList" Focusable="False">
         <ItemsControl.ItemTemplate>
@@ -87,13 +93,17 @@
         </StackPanel>
       </Button>
 
-      <DockPanel Margin="6,10,4,0">
-        <CheckBox x:Name="Remember" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Запомнить на этом компьютере"/>
-        <StackPanel>
-          <TextBlock Text="Запомнить на этом компьютере" FontSize="{StaticResource FsRow}"/>
-          <TextBlock x:Name="StorageStatus" Text="Ключ шифруется Windows для вашей учётной записи" Style="{StaticResource Small}"/>
-        </StackPanel>
-      </DockPanel>
+      <TextBlock Text="КЛЮЧ" Style="{StaticResource SetCaption}"/>
+      <Border Style="{StaticResource SetGroup}">
+        <DockPanel Style="{StaticResource SetLine}">
+          <CheckBox x:Name="Remember" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" VerticalAlignment="Center" AutomationProperties.Name="Запомнить на этом компьютере"/>
+          <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcBlue}"><Path Data="{StaticResource IcoLock}" Style="{StaticResource SetGlyph}"/></Border>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Запомнить на этом компьютере" Style="{StaticResource SetTitle}"/>
+            <TextBlock x:Name="StorageStatus" Text="Ключ шифруется Windows для вашей учётной записи" Style="{StaticResource SetSub}"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
       <Button x:Name="ChangeKeyButton" Content="Сменить ключ подписки…" Style="{StaticResource BtnGhost}" HorizontalAlignment="Left" Margin="0,6,0,0" Padding="6,0"/>
     </StackPanel>
   </ScrollViewer>

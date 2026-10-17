@@ -13,7 +13,7 @@ public partial class MainWindow
     private IReadOnlyList<Profile> importedProfiles = Array.Empty<Profile>();
 
     // Разделы окна 0.16 открываются на острове (MainWindow.Layout): «Сейчас в сети» по умолчанию,
-    // «Все серверы», настройки с вкладками («Правила» и «Помощь» — их вкладки). Боковая панель
+    // «Все серверы», «Правила», настройки с разделами («Помощь» — один из них). Боковая панель
     // видна всегда. Без подключений — экран ключа во всё окно.
     private void Navigate(string page)
     {
@@ -28,7 +28,9 @@ public partial class MainWindow
             narrowOpen = true;
         }
         else Servers.Visibility = Visibility.Collapsed;
-        if (page is "Routes" or "Diagnostics") OpenSettings(page == "Routes" ? 1 : 3);
+        if (page != "Routes") RulesPage.Visibility = Visibility.Collapsed;
+        if (page == "Routes") ShowRulesSection();
+        else if (page == "Diagnostics") OpenSettings(Views.SettingsPanel.HelpPage);
         else { Settings.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed; }
         Onboarding.Visibility = welcome ? Visibility.Visible : Visibility.Collapsed;
         Onboarding.ContinueButton.IsDefault = welcome;
@@ -69,8 +71,9 @@ public partial class MainWindow
         ShowModeMenu(false);
         CloseConnections();
         Servers.Visibility = Visibility.Collapsed;
+        RulesPage.Visibility = Visibility.Collapsed;
         if (tab is int index) Settings.ShowTab(index);
-        else if (Settings.Visibility != Visibility.Visible) Settings.ShowTab(0);
+        else if (Settings.Visibility != Visibility.Visible) Settings.ShowHome();
         if (Settings.Visibility != Visibility.Visible)
         {
             Settings.Visibility = Visibility.Visible;
@@ -85,6 +88,7 @@ public partial class MainWindow
     {
         Settings.Visibility = Visibility.Collapsed;
         Picker.Visibility = Visibility.Collapsed;
+        RulesPage.Visibility = Visibility.Collapsed;
         CloseConnections();
         Doctor.Visibility = Visibility.Collapsed;
         SiteCheck.Visibility = Visibility.Collapsed;
@@ -104,7 +108,8 @@ public partial class MainWindow
         else if (narrow && Live.Visibility == Visibility.Visible) { CloseConnections(); narrowOpen = false; ApplyLayout(); }
         else if (Doctor.Visibility == Visibility.Visible) Doctor.Visibility = Visibility.Collapsed;
         else if (SiteCheck.Visibility == Visibility.Visible) SiteCheck.Visibility = Visibility.Collapsed;
-        else if (Settings.Visibility == Visibility.Visible) CloseSettings();
+        else if (Settings.Visibility == Visibility.Visible) { if (!Settings.Back()) CloseSettings(); }
+        else if (RulesPage.Visibility == Visibility.Visible) CloseRulesSection();
         else if (Servers.Visibility == Visibility.Visible) Navigate("Connection");
         else return;
         args.Handled = true;

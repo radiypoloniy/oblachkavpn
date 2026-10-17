@@ -38,7 +38,7 @@ public partial class MainWindow
             HiddenServers = hiddenServers.Take(Subscriptions.MaxProfiles).ToArray(),
             Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
             ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = Settings.RussiaDirect.IsChecked == true, AutoSelect = autoSelect,
-            UpdateCheck = Diagnostics.UpdateAuto.IsChecked == true, UpdatePrerelease = Diagnostics.UpdatePrerelease.IsChecked == true, DpiBypass = fragmentMode,
+            UpdateCheck = AppTab.UpdateAuto.IsChecked == true, UpdatePrerelease = AppTab.UpdatePrerelease.IsChecked == true, LiveSky = AppTab.SkyToggle.IsChecked == true, DpiBypass = fragmentMode,
             ZapretEnabled = zapretEnabled, SelectiveVpn = selectiveVpn, ZapretChoices = new Dictionary<string, string>(zapretChoices),
             AutoPool = autoPool.Snapshot(importedProfiles),
             ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected };
@@ -94,11 +94,12 @@ public partial class MainWindow
         providerRouting = snapshot.ProviderRouting?.Normalized(); useProviderRouting = snapshot.UseProviderRouting;
         Settings.RussiaDirect.IsChecked = snapshot.RussiaDirect;
         autoSelect = snapshot.AutoSelect;
-        Diagnostics.UpdateAuto.IsChecked = snapshot.UpdateCheck;
-        Diagnostics.UpdatePrerelease.IsChecked = snapshot.UpdatePrerelease;
+        AppTab.UpdateAuto.IsChecked = snapshot.UpdateCheck;
+        AppTab.UpdatePrerelease.IsChecked = snapshot.UpdatePrerelease;
+        AppTab.SkyToggle.IsChecked = snapshot.LiveSky; Home.Sky.Animate = snapshot.LiveSky;
         fragmentMode = Enum.IsDefined(snapshot.DpiBypass) ? snapshot.DpiBypass : FragmentMode.Auto;
         zapretEnabled = snapshot.ZapretEnabled;
-        selectiveVpn = snapshot.SelectiveVpn; Routes.SelectiveToggle.IsChecked = selectiveVpn;
+        selectiveVpn = snapshot.SelectiveVpn; Bypass.SelectiveToggle.IsChecked = selectiveVpn;
         zapretChoices.Clear(); foreach (var (net, choice) in snapshot.ZapretChoices ?? new()) zapretChoices[net] = choice;
         RefreshZapret(); RestoreZapret();
         RefreshRouting();

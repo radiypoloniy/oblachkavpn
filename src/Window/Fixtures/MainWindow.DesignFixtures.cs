@@ -11,13 +11,13 @@ public partial class MainWindow
         {
             Navigate(page);
             // Боковая панель видна всегда; на острове — один раздел: «Сейчас в сети» по умолчанию,
-            // «Все серверы» или настройки (правила и помощь — их вкладки).
-            var settings = page is "Routes" or "Diagnostics";
+            // «Все серверы», «Правила» или настройки («Помощь» — их раздел).
+            var settings = page == "Diagnostics";
             if (Home.Visibility != Visibility.Visible || (page == "Servers") != (Servers.Visibility == Visibility.Visible) ||
                 (page == "Connection") != (Live.Visibility == Visibility.Visible) ||
                 settings != (Settings.Visibility == Visibility.Visible) ||
-                settings && (Routes.Visibility == Visibility.Visible) != (page == "Routes") ||
-                settings && (Diagnostics.Visibility == Visibility.Visible) != (page == "Diagnostics") ||
+                (page == "Routes") != (RulesPage.Visibility == Visibility.Visible) ||
+                settings && Diagnostics.Visibility != Visibility.Visible ||
                 Onboarding.Visibility == Visibility.Visible || Onboarding.ContinueButton.IsDefault)
                 throw new InvalidOperationException("Navigation displays the wrong pages: " + page);
         }
@@ -27,7 +27,7 @@ public partial class MainWindow
         if (Settings.Visibility != Visibility.Visible) throw new InvalidOperationException("Settings did not open");
         // Каждая вкладка реально отрисовывается: ключ ресурса, совпавший со стилем, ронял окно
         // только при показе вкладки, и проверки без отрисовки этого не видели.
-        for (var tab = 0; tab < 4; tab++)
+        for (var tab = 0; tab <= Views.SettingsPanel.AutoPoolPage; tab++)
         {
             Settings.ShowTab(tab);
             DesignPreview.Render(this, Path.Combine(AppContext.BaseDirectory, $"preview-settings-{tab}.png"));
@@ -107,7 +107,7 @@ public partial class MainWindow
         if (page == "doctor")
         {
             findings = NetworkDoctor.Diagnose(new PreviewProbe());
-            SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(3);
+            SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(Views.SettingsPanel.HelpPage);
             Doctor.Visibility = Visibility.Visible; Doctor.Summary.Text = "Нашли то, что мешает интернету:"; RefreshDoctor();
             return;
         }
@@ -116,7 +116,7 @@ public partial class MainWindow
             var header = "happ://routing/add/" + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
                 "{\"Name\":\"Облачка/рутинг\",\"DirectSites\":[\"domain:.ru\",\"geosite:category-ru\"],\"DirectIp\":[\"10.0.0.0/8\"]}"));
             ReceiveRouting(RoutingProfile.ParseHapp(header)!);
-            if (page == "rules-lists") { useProviderRouting = true; Settings.RussiaDirect.IsChecked = true; RefreshRouting(); SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(1); }
+            if (page == "rules-lists") { useProviderRouting = true; Settings.RussiaDirect.IsChecked = true; RefreshRouting(); SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(Views.SettingsPanel.BypassPage); }
             else Navigate("Connection");
             return;
         }
@@ -152,7 +152,7 @@ public partial class MainWindow
         {
             // Настоящий каталог этого компьютера, собранный сразу: снимок делается синхронно.
             appCatalog = InstalledApps.Find().Select(a => new Views.AppRow(a, AppIcons.For(a.Path))).ToArray();
-            SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(1); Routes.ShowSites(false);
+            ShowRulesSection(); Routes.ShowSites(false);
             if (page == "apps-rules")
             {
                 // Как после выбора в списке: папка программы целиком; чего нет на компьютере — старое правило по имени.
@@ -184,9 +184,11 @@ public partial class MainWindow
             else ShowSiteResult(new(SiteStage.Ok, 96, 200), new(SiteStage.Forbidden, 380, 403), SiteRoute.Tunnel, "через VPN", profile);
             SiteCheck.BeginAnimation(OpacityProperty, null); SiteCheck.Opacity = 1; return; }
         Navigate(page switch { "servers" => "Servers", "routes" => "Routes", "diagnostics" => "Diagnostics", _ => "Connection" });
-        if (page is "settings" or "rules" or "storage" or "help" or "autopool" or "advanced") SettingsClick(this, new RoutedEventArgs());
-        if (page is "rules" or "storage" or "help" or "autopool" or "advanced")
-            Settings.ShowTab(page switch { "rules" => 1, "storage" => 2, "autopool" => 4, "advanced" => 5, _ => 3 });
+        if (page == "rules") ShowRulesSection();
+        if (page is "settings" or "bypass" or "storage" or "app" or "help" or "autopool" or "advanced") SettingsClick(this, new RoutedEventArgs());
+        if (page is "bypass" or "storage" or "app" or "help" or "autopool")
+            Settings.ShowTab(page switch { "bypass" => Views.SettingsPanel.BypassPage, "storage" => Views.SettingsPanel.SubscriptionPage, "app" => Views.SettingsPanel.AppPage,
+                "autopool" => Views.SettingsPanel.AutoPoolPage, _ => Views.SettingsPanel.HelpPage });
         if (page == "autopool") RenderAutoPool();
     }
 

@@ -14,19 +14,19 @@ public partial class MainWindow
     private void WireUpdates()
     {
         AppUpdate.CleanUp();
-        Diagnostics.UpdateButton.Click += async (_, _) =>
+        AppTab.UpdateButton.Click += async (_, _) =>
         {
             if (availableUpdate is null) await CheckUpdateAsync(manual: true);
             else await InstallUpdateAsync();
         };
-        Diagnostics.UpdateAuto.Click += (_, _) => QueueStateSave();
+        AppTab.UpdateAuto.Click += (_, _) => QueueStateSave();
         // Сменился канал — найденная раньше версия могла быть не из него.
-        Diagnostics.UpdatePrerelease.Click += (_, _) => { availableUpdate = null; updateChecked = false; QueueStateSave(); RefreshUpdate(); };
+        AppTab.UpdatePrerelease.Click += (_, _) => { availableUpdate = null; updateChecked = false; QueueStateSave(); RefreshUpdate(); };
         // Первая проверка — через полминуты после запуска, чтобы не мешать подключению.
         updateTimer.Tick += async (_, _) =>
         {
             updateTimer.Interval = TimeSpan.FromHours(12);
-            if (Diagnostics.UpdateAuto.IsChecked == true && stateStore is not null && !isolatedPersistence) await CheckUpdateAsync(manual: false);
+            if (AppTab.UpdateAuto.IsChecked == true && stateStore is not null && !isolatedPersistence) await CheckUpdateAsync(manual: false);
         };
         updateTimer.Start();
         RefreshUpdate();
@@ -36,12 +36,12 @@ public partial class MainWindow
     {
         if (updateBusy || closed) return;
         updateBusy = true;
-        if (manual) Diagnostics.UpdateText.Text = "Проверяем…";
+        if (manual) AppTab.UpdateText.Text = "Проверяем…";
         RefreshUpdate();
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var release = await AppUpdate.CheckAsync(Diagnostics.UpdatePrerelease.IsChecked == true, timeout.Token);
+            var release = await AppUpdate.CheckAsync(AppTab.UpdatePrerelease.IsChecked == true, timeout.Token);
             availableUpdate = release is not null && AppUpdate.IsNewer(release) ? release : null;
             if (availableUpdate is not null && !manual && !updateAnnounced)
             {
@@ -64,7 +64,7 @@ public partial class MainWindow
 
     private void RefreshUpdate()
     {
-        var help = Diagnostics;
+        var help = AppTab;
         help.UpdateButton.IsEnabled = !updateBusy;
         if (updateBusy) return;
         if (availableUpdate is { } release)
@@ -97,9 +97,9 @@ public partial class MainWindow
         try
         {
             using var cancel = new CancellationTokenSource(TimeSpan.FromMinutes(15));
-            var progress = new Progress<double>(share => Diagnostics.UpdateText.Text = $"Скачиваем… {share:P0}");
+            var progress = new Progress<double>(share => AppTab.UpdateText.Text = $"Скачиваем… {share:P0}");
             var installer = await AppUpdate.DownloadAsync(release, progress, cancel.Token);
-            Diagnostics.UpdateText.Text = "Запускаем установщик…";
+            AppTab.UpdateText.Text = "Запускаем установщик…";
             AppUpdate.Launch(installer);
             // Установщик сам закроет окно; выходим раньше, чтобы штатно вернуть сеть.
             ExitApplication();
@@ -107,12 +107,12 @@ public partial class MainWindow
         catch (System.ComponentModel.Win32Exception)
         {
             updateBusy = false; RefreshUpdate();
-            Diagnostics.UpdateText.Text = "Установка отменена: Windows не получила разрешения.";
+            AppTab.UpdateText.Text = "Установка отменена: Windows не получила разрешения.";
         }
         catch (Exception ex) when (ex is UserError or HttpRequestException or OperationCanceledException or IOException or UnauthorizedAccessException)
         {
             updateBusy = false; RefreshUpdate();
-            Diagnostics.UpdateText.Text = ex is UserError ? ex.Message : "Скачать обновление не удалось. Проверьте интернет и попробуйте ещё раз.";
+            AppTab.UpdateText.Text = ex is UserError ? ex.Message : "Скачать обновление не удалось. Проверьте интернет и попробуйте ещё раз.";
         }
     }
 }

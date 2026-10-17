@@ -30,11 +30,11 @@ public partial class MainWindow
 
     private void WireZapret()
     {
-        Routes.ZapretToggle.Click += async (_, _) =>
+        Bypass.ZapretToggle.Click += async (_, _) =>
         {
-            if (Routes.ZapretToggle.IsChecked == true) await EnableZapretAsync(); else await DisableZapretAsync();
+            if (Bypass.ZapretToggle.IsChecked == true) await EnableZapretAsync(); else await DisableZapretAsync();
         };
-        Routes.ZapretPick.Click += async (_, _) =>
+        Bypass.ZapretPick.Click += async (_, _) =>
         {
             if (zapretBusy) { zapretCancel?.Cancel(); return; }
             await PickZapretAsync(force: true);
@@ -46,7 +46,7 @@ public partial class MainWindow
     {
         if (!NetworkHelperConnection.ServiceRunning)
         {
-            Routes.ZapretToggle.IsChecked = false; Home.BypassToggle.IsChecked = false;
+            Bypass.ZapretToggle.IsChecked = false; Home.BypassToggle.IsChecked = false;
             zapretNote = "Нужна установленная Облачка: обход запускает её сетевая служба.";
             RefreshZapret(); return;
         }
@@ -54,7 +54,7 @@ public partial class MainWindow
             "Облачка скачает zapret (набор стратегий Flowseal с GitHub), проверит файлы и подберёт стратегию для вашей сети — это до двух минут. " +
             "YouTube, Discord и другие сайты из его списков пойдут напрямую, не тратя VPN. Антивирус может ругаться на драйвер WinDivert: это известное ложное срабатывание. " +
             "Обход работает, пока запущена Облачка.", "Включить"))
-        { Routes.ZapretToggle.IsChecked = false; Home.BypassToggle.IsChecked = false; return; }
+        { Bypass.ZapretToggle.IsChecked = false; Home.BypassToggle.IsChecked = false; return; }
         zapretEnabled = true; QueueStateSave();
         await PickZapretAsync(force: false);
     }
@@ -170,11 +170,11 @@ public partial class MainWindow
 
     private void RefreshZapret()
     {
-        Routes.ZapretToggle.IsChecked = zapretEnabled;
+        Bypass.ZapretToggle.IsChecked = zapretEnabled;
         RefreshSettingsSummary(); RefreshDirectChip();
-        Routes.ZapretText.Text = zapretNote.Length > 0 ? zapretNote : "Через обход блокировок zapret: быстрее и не тратит VPN";
-        Routes.ZapretPick.Visibility = zapretEnabled ? Visibility.Visible : Visibility.Collapsed;
-        Routes.ZapretPick.Content = zapretBusy ? "Остановить подбор" : "Подобрать заново";
+        Bypass.ZapretText.Text = zapretNote.Length > 0 ? zapretNote : "Через обход блокировок zapret: быстрее и не тратит VPN";
+        Bypass.ZapretPick.Visibility = zapretEnabled ? Visibility.Visible : Visibility.Collapsed;
+        Bypass.ZapretPick.Content = zapretBusy ? "Остановить подбор" : "Подобрать заново";
     }
 
     // Адреса узлов VPN: zapret их не трогает, даже если они попадут в его списки адресов.
