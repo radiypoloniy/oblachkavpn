@@ -47,6 +47,10 @@ public static class DesignPreview
         surface.Arrange(new Rect(0, 0, target.Width, target.Height));
         surface.UpdateLayout();
         var bitmap = new RenderTargetBitmap((int)target.Width, (int)target.Height, 96, 96, PixelFormats.Pbgra32);
+        // Фон окна рисует его шаблон, а снимается только содержимое — подкладываем фон сами.
+        var back = new DrawingVisual();
+        using (var context = back.RenderOpen()) context.DrawRectangle(target.Background, null, new Rect(0, 0, target.Width, target.Height));
+        bitmap.Render(back);
         bitmap.Render(surface);
         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var output = File.Create(path); encoder.Save(output);
