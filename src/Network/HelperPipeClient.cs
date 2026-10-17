@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO.Pipes;
 
 namespace Oblachka;
@@ -52,9 +52,10 @@ public sealed class HelperPipeClient : IAsyncDisposable
     public static TimeSpan TimeoutFor(HelperOperation operation) =>
         operation == HelperOperation.Heartbeat ? QuickTimeout : SessionTimeout;
 
-    public async Task<HelperResponse> SendAsync(HelperOperation operation, NetworkLeaseRequest? lease, CancellationToken token, RepairRequest? repair = null, ZapretRequest? zapret = null, DirectDnsRequest? directDns = null)
+    public async Task<HelperResponse> SendAsync(HelperOperation operation, NetworkLeaseRequest? lease, CancellationToken token, RepairRequest? repair = null, ZapretRequest? zapret = null, DirectDnsRequest? directDns = null,
+        ProgramRulesRequest? programs = null)
     {
-        var request = new HelperRequest(1, Guid.NewGuid(), operation, lease, repair, zapret, directDns); HelperProtocol.Validate(request);
+        var request = new HelperRequest(1, Guid.NewGuid(), operation, lease, repair, zapret, directDns, programs); HelperProtocol.Validate(request);
         await gate.WaitAsync(token);
         try
         {

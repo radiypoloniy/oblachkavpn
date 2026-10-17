@@ -1,4 +1,4 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -7,7 +7,8 @@ namespace Oblachka;
 // Recover снимает сессию, оставленную прежним владельцем: у службы она переживает окно.
 // Repair — исправление сети Windows (NetworkRepairBackend): узкий список действий, вне сессии.
 // Zapret — обход блокировок без VPN (ZapretRunner): подготовка набора, запуск, остановка, состояние.
-public enum HelperOperation { Acquire, Release, Heartbeat, Recover, Repair, Zapret, DirectDns }
+// ProgramRules — новые правила программ для работающего туннеля (ProgramRuleSets), без переподключения.
+public enum HelperOperation { Acquire, Release, Heartbeat, Recover, Repair, Zapret, DirectDns, ProgramRules }
 // SystemRefused — отказ самой системы, а не ошибка в запросе. Без него такой отказ
 // вылетал мимо ответа и завершал помощника: клиент видел обрыв канала вместо причины.
 public enum HelperFailure { None, InvalidRequest, Busy, RecoveryRequired, SystemRefused }
@@ -18,7 +19,8 @@ public sealed record HelperRequest(
     [property: JsonRequired] NetworkLeaseRequest? Lease,
     RepairRequest? Repair = null,
     ZapretRequest? Zapret = null,
-    DirectDnsRequest? DirectDns = null);
+    DirectDnsRequest? DirectDns = null,
+    ProgramRulesRequest? Programs = null);
 // Blocking говорит, встала ли блокировка трафика мимо туннеля. Поле нужно затем,
 // что помощник решает это сам: при выключенном брандмауэре блокировки не будет, и
 // окно обязано сообщить пользователю то, что есть, а не то, на что мы рассчитывали.
@@ -73,6 +75,14 @@ public static class HelperProtocol
     {
         if (request.Version != 1 || request.RequestId == Guid.Empty || !Enum.IsDefined(request.Operation))
             throw new UserError("Неизвестная команда helper.");
+        if (request.Operation == HelperOperation.ProgramRules)
+        {
+            if (request.Lease is not null || request.Repair is not null || request.Zapret is not null || request.DirectDns is not null || request.Programs is null)
+                throw new UserError("Неверные правила программ.");
+            request.Programs.Validate();
+            return;
+        }
+        if (request.Programs is not null) throw new UserError("Правила программ передаются только командой ProgramRules.");
         if (request.Operation == HelperOperation.DirectDns)
         {
             if (request.Lease is not null || request.Repair is not null || request.Zapret is not null || request.DirectDns is null) throw new UserError("Неверный список прямых сайтов.");

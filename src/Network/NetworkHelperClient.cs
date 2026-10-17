@@ -1,4 +1,4 @@
-namespace Oblachka;
+﻿namespace Oblachka;
 
 public interface INetworkHelperClient : IAsyncDisposable
 {
@@ -94,6 +94,18 @@ public sealed class NetworkHelperClient : INetworkHelperClient
             foreach (var part in DirectDnsRequest.Split(domains))
                 if ((await pipe.SendAsync(HelperOperation.DirectDns, null, token, directDns: part).ConfigureAwait(false)).Failure != HelperFailure.None)
                     throw new UserError("Служба не приняла список прямых сайтов.");
+        }
+        finally { operations.Release(); }
+    }
+
+    // Правила программ для работающего туннеля: ядро перечитывает их без переподключения.
+    public async Task ProgramRulesAsync(IReadOnlyList<ProgramRule> rules, CancellationToken token)
+    {
+        await operations.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            if ((await pipe.SendAsync(HelperOperation.ProgramRules, null, token, programs: new([.. rules])).ConfigureAwait(false)).Failure != HelperFailure.None)
+                throw new UserError("Служба не приняла правила программ.");
         }
         finally { operations.Release(); }
     }

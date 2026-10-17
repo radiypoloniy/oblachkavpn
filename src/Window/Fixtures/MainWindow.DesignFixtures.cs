@@ -119,6 +119,19 @@ public partial class MainWindow
             else Navigate("Connection");
             return;
         }
+        if (page == "live")
+        {
+            // «Сейчас в сети» с подложными программами: таблицы соединений компьютера не читаются.
+            SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(1); Routes.ShowSites(false);
+            Live.Show("Правило действует сразу — для новых соединений программы.");
+            var steam = new Views.ConnectionRow(@"C:\Program Files (x86)\Steam\steam.exe") { Name = "Steam", Summary = "через VPN 14", Remotes = "→ 23.62.99.12:443, 155.133.252.38:27019",
+                Scope = "Правило возьмёт папки: C:\\Program Files (x86)\\Steam, D:\\…\\steamapps\\common", Expanded = true };
+            Live.Load([new Views.ConnectionRow(@"C:\Apps\Telegram\Telegram.exe") { Name = "Telegram Desktop", Summary = "напрямую 8", Rule = SiteAction.Direct, RuleText = "напрямую" },
+                steam, new Views.ConnectionRow(@"C:\Apps\Chrome\chrome.exe") { Name = "Google Chrome", Summary = "через VPN 31 · напрямую 2" },
+                new Views.ConnectionRow(@"D:\Games\Aion2\Aion2.exe") { Name = "AION 2", Summary = "через VPN 3", Rule = SiteAction.Tunnel, RuleText = "через VPN" },
+                new Views.ConnectionRow(@"C:\Windows\System32\svchost.exe") { Name = "Хост-процесс для служб Windows", Summary = "напрямую 2", Configurable = false }]);
+            return;
+        }
         if (page is "apps" or "apps-rules")
         {
             // Настоящий каталог этого компьютера, собранный сразу: снимок делается синхронно.
