@@ -37,7 +37,7 @@ public partial class MainWindow
         if (args.OriginalSource is not Button { DataContext: GroupRow row } button || operation is not null) return;
         if (Equals(button.Tag, "refresh")) { await LoadSubscriptionAsync(row.Group.Sources, row.Group.PreferredSource); return; }
         if (!Equals(button.Tag, "remove")) return;
-        if (!AppDialog.Confirm(this, "Убрать «" + row.Title + "»?", "Уберём и её " + ServerCount(ProfilesOf(row.Group.Id).Count) + ". Вернуть можно, добавив подписку снова.", "Убрать", danger: true)) return;
+        if (!ConfirmRemoveGroup(row.Group)) return;
         RemoveGroup(row.Group.Id);
         DetailText.Text = "«" + row.Title + "» убрана.";
     }

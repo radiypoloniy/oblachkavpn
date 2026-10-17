@@ -100,7 +100,14 @@ public sealed class GroupRow
 }
 
 // Заголовок группы в панели «Все серверы»: «Избранное», затем подписки по именам.
-public sealed record SheetHeader(string Title);
+public sealed record SheetHeader(string Title, string? GroupId = null, bool CanRefresh = false, int Hidden = 0)
+{
+    public Visibility ActionsVisibility => GroupId is null ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility RefreshVisibility => CanRefresh ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility UnhideVisibility => Hidden > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public string UnhideText => $"Вернуть скрытые ({Hidden})";
+    public string RemoveName => "Убрать «" + Title + "»";
+}
 
 // Строка правила во вкладке «Правила»: адрес или программа и метка действия.
 public sealed class RuleRow

@@ -59,6 +59,23 @@ public partial class MainWindow
         if (groups.Count != 2 || ProfilesOf(ProfileGroup.ManualId).Count != 2 || profile?.Name != "Дом" || importedProfiles.Count != 3)
             throw new InvalidOperationException("Standalone profiles from another client were not added to the manual group");
         checks.Add("Standalone profiles of another client land in «Вручную» once, beside subscriptions");
+
+        // Сервер подписки скрывается (подписка прислала бы его снова), свой — удаляется.
+        RemoveServer(importedProfiles.First(p => p.Name == "Швеция"), confirm: false);
+        RenderSheet();
+        if (importedProfiles.Count != 2 || HiddenIn(groups[0].Id) != 1 ||
+            Servers.SheetList.Items.OfType<SheetHeader>().FirstOrDefault(h => h.GroupId == groups[0].Id)?.Hidden != 1)
+            throw new InvalidOperationException("Hiding a subscription server failed or its header lost «Вернуть скрытые»");
+        store.Save(CaptureState()); hiddenServers.Clear(); ApplySnapshot(store.Load()!);
+        if (importedProfiles.Any(p => p.Name == "Швеция") || HiddenIn(groups[0].Id) != 1)
+            throw new InvalidOperationException("Hidden server came back after saving");
+        UnhideServers(groups[0].Id);
+        if (!importedProfiles.Any(p => p.Name == "Швеция")) throw new InvalidOperationException("«Вернуть скрытые» did not return the server");
+        RemoveServer(importedProfiles.First(p => p.Name == "Офис"), confirm: false);
+        if (ProfilesOf(ProfileGroup.ManualId).Count != 1 || importedProfiles.Count != 2)
+            throw new InvalidOperationException("Deleting a manual server failed");
+        checks.Add("A subscription server hides (and survives saving hidden, returns on demand); a manual server deletes");
+        hiddenServers.Clear();
         serviceProfiles = Array.Empty<Profile>(); externalProfiles = Array.Empty<Profile>(); profile = null;
         LoadPreviewProfiles();
     }

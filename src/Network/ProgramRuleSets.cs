@@ -25,10 +25,23 @@ public static class ProgramRuleSets
     public static string Folder => NetworkHelperHost.DataPath("programs");
     public static string Tag(int level, SiteAction action) => "programs-" + level + "-" + action.ToString().ToLowerInvariant();
 
+    // Правила, которые сейчас в файлах: с ними сравнивается новый набор (ConnectionReset).
+    private static ProgramRule[] current = [];
+
     public static void Accept(ProgramRulesRequest request)
     {
         request.Validate();
+        var before = current;
         Write(Folder, request.Rules);
+        // Ядро перечитывает файлы не мгновенно: обрываем соединения, когда новые правила уже
+        // действуют, иначе программа переподключилась бы прежним путём.
+        var after = request.Rules;
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(1500).ConfigureAwait(false);
+            try { ConnectionReset.Apply(before, after); }
+            catch (Exception ex) when (ex is not OutOfMemoryException) { }
+        });
     }
 
     // Все файлы есть всегда, пустые — с заглушкой: ядро не запускается со ссылкой на отсутствующий файл.
@@ -38,6 +51,7 @@ public static class ProgramRuleSets
         var placed = Place(rules);
         lock (Gate)
         {
+            current = rules.ToArray();
             Directory.CreateDirectory(folder);
             for (var level = 0; level < Levels; level++)
                 foreach (var action in Actions)
