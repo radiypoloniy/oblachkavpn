@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 
 namespace Oblachka;
 
@@ -21,7 +21,7 @@ public partial class MainWindow
         Advanced.WhereInput.Clear();
         RemoveRule(siteRules[0]);
         if (siteRules.Count != 0) throw new InvalidOperationException("Draft removal failed");
-        AddProgramRule("steam.exe", SiteAction.Tunnel);
+        AddProgramRules([ProgramRoutingPlan.Create("steam.exe", SiteAction.Tunnel)]);
         CycleRule(programRules[0]);
         if (programRules.Count != 1 || programRules[0].Action != SiteAction.Direct) throw new InvalidOperationException("Program draft editor failed");
         RemoveRule(programRules[0]);
@@ -35,12 +35,12 @@ public partial class MainWindow
     }
 
     // Выбор программ: поиск по первым буквам имени, отметка, действие, «Добавить» — в правиле
-    // имя файла, в списке правил — имя программы. Каталог подложный: файлы компьютера не читаются.
+    // папка программы, в списке правил — имя программы и папка. Каталог подложный: файлы компьютера не читаются.
     private void CheckAppPicker(ICollection<string> checks)
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "Oblachka.exe");
-        appCatalog = new[] { new InstalledApp("Telegram Desktop", "Telegram.exe", path, true), new InstalledApp("Steam", "steam.exe", path, false),
-            new InstalledApp("Яндекс Музыка", "Яндекс Музыка.exe", path, false) }.Select(a => new Views.AppRow(a, null)).ToArray();
+        appCatalog = new[] { new InstalledApp("Telegram Desktop", "Telegram.exe", @"C:\Apps\Telegram Desktop\Telegram.exe", true),
+            new InstalledApp("Steam", "steam.exe", @"C:\Program Files (x86)\Steam\steam.exe", false) { Folders = [@"C:\Program Files (x86)\Steam", @"D:\SteamLibrary\steamapps\common"] },
+            new InstalledApp("Яндекс Музыка", "Яндекс Музыка.exe", @"C:\Apps\Yandex Music\Яндекс Музыка.exe", false) }.Select(a => new Views.AppRow(a, null)).ToArray();
         OpenAppPicker();
         Picker.Load(appCatalog, AddedPrograms());
         Picker.SearchBox.Text = "тел";
@@ -63,7 +63,7 @@ public partial class MainWindow
         if (programRules.Count != 2 || programRules.Any(r => r.Action != SiteAction.Direct) || Picker.Visibility == Visibility.Visible)
             throw new InvalidOperationException("Picked programs were not added as direct rules");
         var listed = Routes.ProgramList.Items.OfType<RuleRow>().Select(r => r.Text + "|" + r.Sub).ToArray();
-        if (!listed.Contains("Telegram Desktop|Telegram.exe")) throw new InvalidOperationException("Rule list does not show program names: " + string.Join(", ", listed));
+        if (!listed.Contains(@"Telegram Desktop|вся папка · C:\Apps\Telegram Desktop")) throw new InvalidOperationException("Rule list does not show program names: " + string.Join(", ", listed));
         OpenAppPicker();
         if (!appCatalog.Single(r => r.App.Executable == "Telegram.exe").Added) throw new InvalidOperationException("Added program is selectable again");
         CloseAppPicker();

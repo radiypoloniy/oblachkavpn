@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.AccessControl;
@@ -49,6 +49,7 @@ public static partial class SelfTests
         await WfpChecksAsync(CheckAsync);
         await ReinjectionChecksAsync(CheckAsync);
         await RuleChecksAsync(CheckAsync);
+        await ProgramScopeChecksAsync(CheckAsync);
         await HelperHostChecksAsync(CheckAsync);
         await ImportChecksAsync(CheckAsync, executable, root);
         await ShareLinkChecksAsync(CheckAsync, root);

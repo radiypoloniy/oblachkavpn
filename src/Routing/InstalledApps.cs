@@ -1,12 +1,16 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 
 namespace Oblachka;
 
 // Программа на этом компьютере для выбора в правилах: человеческое имя, имя файла и путь (для значка).
-// Правило ядра всё равно работает по имени файла (process_name), поэтому повторы по нему сливаются.
-public sealed record InstalledApp(string Name, string Executable, string Path, bool Running);
+// Folders — папки, которые правило берёт целиком (игра лаунчера, Steam со всеми библиотеками);
+// без них — папка самой программы (ProgramRules).
+public sealed record InstalledApp(string Name, string Executable, string Path, bool Running)
+{
+    public string[]? Folders { get; init; }
+}
 
 // Каталог программ для «Правила → Программы». Источники, от лучшего имени к худшему:
 //   1. ярлыки меню «Пуск» (общие и пользователя) — имя ярлыка и есть то, что человек знает;
@@ -19,19 +23,22 @@ public static class InstalledApps
 
     public static IReadOnlyList<InstalledApp> Find()
     {
+        // По полному пути: у разных игр бывает один и тот же Game.exe.
         var found = new Dictionary<string, InstalledApp>(StringComparer.OrdinalIgnoreCase);
-        void Add(string? name, string? path, bool running = false, bool addNew = true)
+        void Add(string? name, string? path, bool running = false, bool addNew = true, string[]? folders = null)
         {
             if (string.IsNullOrWhiteSpace(name) || Clean(path) is not { } exe) return;
             var file = System.IO.Path.GetFileName(exe);
             if (!Acceptable(file, exe)) return;
-            if (found.TryGetValue(file, out var known))
+            if (found.TryGetValue(exe, out var known))
             {
-                if (running && !known.Running) found[file] = known with { Running = true };
+                if (running && !known.Running) found[exe] = known with { Running = true };
                 return;
             }
-            if (addNew && found.Count < MaxApps) found[file] = new(CleanName(name), file, exe, running);
+            if (addNew && found.Count < MaxApps) found[exe] = new(CleanName(name), file, exe, running) { Folders = folders };
         }
+        // Лаунчеры первыми: у игры из библиотеки имя и папка точнее, чем у ярлыка.
+        foreach (var game in GameLibraries.Steam().Concat(GameLibraries.Epic())) Add(game.Name, game.Exe, folders: game.Folders);
         foreach (var (name, target) in StartMenu()) Add(name, target);
         foreach (var (name, target) in Registry()) Add(name, target);
         // Запущенное без окна (службы, фоновые помощники) только отмечается, в список не добавляется.
@@ -128,16 +135,19 @@ public static class InstalledApps
     }
 
     private static readonly EnumerationOptions Recursive = new() { RecurseSubdirectories = true, IgnoreInaccessible = true };
+    private static readonly EnumerationOptions TopLevel = new() { IgnoreInaccessible = true };
 
     private static IEnumerable<(string, string?)> StartMenu()
     {
-        var roots = new[] { Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu), Environment.GetFolderPath(Environment.SpecialFolder.StartMenu) };
+        // Меню «Пуск» — со всеми подпапками; рабочий стол — только верхний уровень: там бывают огромные папки.
+        var roots = new[] { (Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu), Recursive), (Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), Recursive),
+            (Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), TopLevel), (Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory), TopLevel) };
         var result = new List<(string, string?)>();
-        foreach (var root in roots.Where(Directory.Exists))
+        foreach (var (root, depth) in roots.Where(r => Directory.Exists(r.Item1)))
         {
             IEnumerable<string> links;
             // Недоступная подпапка не должна обрывать перебор всего меню.
-            try { links = Directory.EnumerateFiles(root, "*.lnk", Recursive).Take(1500).ToArray(); }
+            try { links = Directory.EnumerateFiles(root, "*.lnk", depth).Take(1500).ToArray(); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { continue; }
             foreach (var link in links)
             {
