@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -61,8 +61,11 @@ public partial class MainWindow
             // Проверка связи не прошла: не «Защищено», а честно — связь пропала, пока не вернётся
             // или подбор не найдёт рабочий сервер.
             : running && health.FailedRounds > 0 ? ("Связь пропала", name + " не отвечает · проверяем ещё раз", PowerState.On, "WI")
-            : running ? (SystemTunnelActive ? "Защищено" : "Подключено", name + " · " + SessionDuration, PowerState.On, "Ok")
+            // Выборочный режим не защищает весь компьютер: большая часть трафика идёт напрямую.
+            : running ? (SystemTunnelActive && !selectiveVpn ? "Защищено" : "Подключено", name + " · " + SessionDuration, PowerState.On, "Ok")
             : engine.State == ConnectionState.Failed ? ("Связь прервана", "Включите снова или выберите другой сервер", PowerState.Off, "EI")
+            // VPN выключен, но обход работает: YouTube и Discord открываются и так — это стоит сказать.
+            : ZapretWorksWithoutVpn ? ("VPN выключен", string.Join(" и ", zapretActiveGroups.Select(ZapretTitle)) + (zapretActiveGroups.Length > 1 ? " работают" : " работает") + " и без него", PowerState.Off, "Ok")
             : ("Не подключено", "Нажмите кнопку или выберите сервер", PowerState.Off, "Fa");
         Home.StatusTitle.Text = title;
         Home.StatusSub.Text = sub;

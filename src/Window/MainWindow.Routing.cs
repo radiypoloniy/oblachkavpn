@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 
 namespace Oblachka;
 
@@ -35,6 +35,7 @@ public partial class MainWindow
     {
         // Сайты zapret — первыми: напрямую через обход, даже если набор сервиса шлёт их в VPN.
         foreach (var zapret in ZapretRoutingProfiles()) yield return zapret;
+        if (SelectiveProfile() is { } selective) yield return selective;
         if (useProviderRouting == true && providerRouting is not null) yield return providerRouting;
         if (Settings.RussiaDirect.IsChecked == true) yield return RoutingProfile.RussiaDirect;
     }

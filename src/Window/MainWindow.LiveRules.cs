@@ -1,4 +1,4 @@
-namespace Oblachka;
+﻿namespace Oblachka;
 
 // Правила программ на ходу: при «Весь компьютер» любое изменение сразу уходит в службу
 // (ProgramRuleSets), ядро туннеля перечитывает файлы правил — без переподключения и без снятия
@@ -11,7 +11,7 @@ public partial class MainWindow
 
     // Вызывается при запуске сессии: то же условие, что у ValidatedNetworkLease.HasDirect.
     private void RememberTunnelDirect() =>
-        tunnelDirectAllowed = (engine as Engine)?.DirectEntry is not null || siteRules.Any(r => r.Action == SiteAction.Direct) || programRules.Any(r => r.Action == SiteAction.Direct);
+        tunnelDirectAllowed = selectiveVpn || (engine as Engine)?.DirectEntry is not null || siteRules.Any(r => r.Action == SiteAction.Direct) || programRules.Any(r => r.Action == SiteAction.Direct);
 
     private void ProgramRulesChanged()
     {
@@ -24,7 +24,7 @@ public partial class MainWindow
     private async Task SyncProgramRulesAsync()
     {
         if (helperLifetime is not { } lifetime || !SystemTunnelActive) return;
-        var rules = programRules.ToArray();
+        var rules = LeasePrograms();
         var key = string.Join('|', rules.Select(r => r.Key + ">" + r.Action));
         if (key == sentProgramRules) return;
         try

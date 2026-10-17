@@ -64,7 +64,8 @@ public static class SingBoxTunConfig
             }),
             ["route"] = new JsonObject
             {
-                ["auto_detect_interface"] = true, ["final"] = "local-core",
+                // «Через VPN только выбранное»: в туннель — только правила «через VPN», остальное мимо.
+                ["auto_detect_interface"] = true, ["final"] = lease.DirectByDefault ? UserDirect : "local-core",
                 // Поиск процесса — системный вызов на каждое соединение; без него правила программ
                 // молча не срабатывают. С файлами правил он нужен всегда: правило может появиться
                 // на ходу, а включается поиск только при запуске ядра. На стенде скорости его
@@ -78,6 +79,7 @@ public static class SingBoxTunConfig
         };
         AddRules(config, lease, programSets);
         if (lease.HasDirect && localDns is not null && ruleSet is not null) AddDirectDns(config, localDns, ruleSet);
+        if (lease.DirectByDefault && localDns is not null && ruleSet is not null) DnsByDefaultDirect(config, lease);
         return config;
     }
 
@@ -96,6 +98,16 @@ public static class SingBoxTunConfig
         sets.Add(new JsonObject { ["type"] = "local", ["tag"] = DirectDns.RuleSetTag, ["format"] = "source", ["path"] = ruleSet });
         foreach (var outbound in ((JsonArray)config["outbounds"]!).OfType<JsonObject>())
             if ((string?)outbound["tag"] == UserDirect) outbound["domain_resolver"] = DirectDns.ServerTag;
+    }
+
+    // По умолчанию напрямую — и имена по умолчанию через DNS физической сети: загрузки получают
+    // ближние узлы. Сайты «через VPN» разрешаются DoH в туннеле, как и раньше.
+    private static void DnsByDefaultDirect(JsonObject config, ValidatedNetworkLease lease)
+    {
+        config["dns"]!["final"] = DirectDns.ServerTag;
+        var tunnel = lease.SiteRules.Where(r => r.Action == SiteAction.Tunnel).Select(r => (JsonNode?)JsonValue.Create(r.Domain)).ToArray();
+        if (tunnel.Length > 0)
+            ((JsonArray)config["dns"]!["rules"]!).Insert(0, new JsonObject { ["domain_suffix"] = new JsonArray(tunnel), ["server"] = "remote-dns" });
     }
 
     // Правила пользователя. Порядок: DNS перехвачен выше; затем распознавание домена по

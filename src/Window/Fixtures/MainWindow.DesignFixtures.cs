@@ -119,6 +119,14 @@ public partial class MainWindow
             else Navigate("Connection");
             return;
         }
+        if (page is "home-zapret" or "home-invite")
+        {
+            // VPN выключен: обход работает (YouTube и Discord открываются) или ещё не включён.
+            LoadGroupsPreview(); zapretEnabled = page == "home-zapret";
+            zapretActiveGroups = zapretEnabled ? ["youtube", "discord"] : [];
+            Navigate("Connection"); RefreshHome();
+            return;
+        }
         if (page == "live")
         {
             // «Сейчас в сети» с подложными программами: таблицы соединений компьютера не читаются.

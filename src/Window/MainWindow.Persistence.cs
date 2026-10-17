@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 
 namespace Oblachka;
 
@@ -37,7 +37,7 @@ public partial class MainWindow
             Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
             ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = Settings.RussiaDirect.IsChecked == true, AutoSelect = autoSelect,
             UpdateCheck = Diagnostics.UpdateAuto.IsChecked == true, UpdatePrerelease = Diagnostics.UpdatePrerelease.IsChecked == true, DpiBypass = fragmentMode,
-            ZapretEnabled = zapretEnabled, ZapretChoices = new Dictionary<string, string>(zapretChoices),
+            ZapretEnabled = zapretEnabled, SelectiveVpn = selectiveVpn, ZapretChoices = new Dictionary<string, string>(zapretChoices),
             AutoPool = autoPool.Snapshot(importedProfiles),
             ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected };
 
@@ -95,6 +95,7 @@ public partial class MainWindow
         Diagnostics.UpdatePrerelease.IsChecked = snapshot.UpdatePrerelease;
         fragmentMode = Enum.IsDefined(snapshot.DpiBypass) ? snapshot.DpiBypass : FragmentMode.Auto;
         zapretEnabled = snapshot.ZapretEnabled;
+        selectiveVpn = snapshot.SelectiveVpn; Routes.SelectiveToggle.IsChecked = selectiveVpn;
         zapretChoices.Clear(); foreach (var (net, choice) in snapshot.ZapretChoices ?? new()) zapretChoices[net] = choice;
         RefreshZapret(); RestoreZapret();
         RefreshRouting();

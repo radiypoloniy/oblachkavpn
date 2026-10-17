@@ -1,4 +1,4 @@
-namespace Oblachka;
+﻿namespace Oblachka;
 
 // Процесс ядра, который держит системный туннель. Остановка — через Dispose.
 public interface ITunnelProcess : IDisposable
@@ -81,7 +81,7 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
         // пишутся (в описании входа — пароль). Потерянный здесь вход (0.10) оставлял «Российские
         // сайты напрямую» без выхода: ядро слало их на порт, где никого не было.
         if (prepared is { } rules && rules.LeaseId == leaseId)
-            lease = lease with { Sites = rules.SiteRules, Programs = rules.ProgramRules, CoreDirect = rules.CoreDirect };
+            lease = lease with { Sites = rules.SiteRules, Programs = rules.ProgramRules, CoreDirect = rules.CoreDirect, DirectByDefault = rules.DirectByDefault };
         var started = startCore(lease, CancellationToken.None);
         try
         {

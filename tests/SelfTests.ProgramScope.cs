@@ -113,6 +113,32 @@ public static partial class SelfTests
             Assert(ProgramRoutingPlan.Find(rules, @"D:\Lib\Other\other.exe")!.Action == SiteAction.Block);
             Assert(ProgramRoutingPlan.Find(rules, @"C:\Apps\Chrome\chrome.exe")!.Action == SiteAction.Direct && ProgramRoutingPlan.Find(rules, @"C:\x\y.exe") is null);
         }));
+        await check("Selective VPN: only chosen sites and programs enter the tunnel, the rest goes direct with local DNS", async () =>
+        {
+            var folder = Path.Combine(Path.GetTempPath(), "oblachka-selective-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                var ruleSet = Path.Combine(folder, "direct-dns.json");
+                File.WriteAllText(ruleSet, "{\"version\":2,\"rules\":[{\"domain_suffix\":[\"oblachka.invalid\"]}]}");
+                var dns = System.Net.IPAddress.Parse("192.168.1.1");
+                var lease = new NetworkLeaseRequest(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, 10808, ["192.0.2.1"],
+                    [RoutingPlan.Create("youtube.com", SiteAction.Tunnel), RoutingPlan.Create("discord.com", SiteAction.Tunnel)], [ProgramRoutingPlan.Create("Discord.exe", SiteAction.Tunnel)], DirectByDefault: true);
+                Assert(NetworkHelperContracts.Validate(lease).HasDirect);
+                await CoreConfigurationCheck.ValidateTunAsync(lease, CancellationToken.None, true, dns, ruleSet);
+                var config = SingBoxTunConfig.Create(lease, true, dns, ruleSet);
+                Assert(config["route"]!["final"]!.GetValue<string>() == SingBoxTunConfig.UserDirect && config["dns"]!["final"]!.GetValue<string>() == DirectDns.ServerTag);
+                var first = config["dns"]!["rules"]![0]!;
+                Assert(first["server"]!.GetValue<string>() == "remote-dns" && first["domain_suffix"]!.AsArray().Select(d => d!.GetValue<string>()).SequenceEqual(["youtube.com", "discord.com"]));
+                var rules = ((JsonArray)config["route"]!["rules"]!).Select(r => r!.AsObject()).ToArray();
+                Assert(rules.Any(r => r["process_name"]?[0]?.GetValue<string>() == "Discord.exe" && r["outbound"]!.GetValue<string>() == "local-core"));
+                Assert(rules.Any(r => r["domain_suffix"]?[0]?.GetValue<string>() == "youtube.com" && r["outbound"]!.GetValue<string>() == "local-core"));
+                // Обычный режим не меняется: остальное — в туннель.
+                Assert(SingBoxTunConfig.Create(lease with { DirectByDefault = false }, true, dns, ruleSet)["route"]!["final"]!.GetValue<string>() == "local-core");
+                ExpectUserError(() => NetworkHelperContracts.Validate(new(1, Guid.NewGuid(), NetworkLeaseAction.Release, 0, [], DirectByDefault: true)));
+            }
+            finally { Directory.Delete(folder, true); }
+        });
         await check("Steam libraries, Squirrel apps and the app scope pick whole program folders", () => Sync(() =>
         {
             var vdf = "\"libraryfolders\"\n{\n\t\"0\"\n\t{\n\t\t\"path\"\t\t\"C:\\\\Program Files (x86)\\\\Steam\"\n\t}\n\t\"1\"\n\t{\n\t\t\"path\"\t\t\"D:\\\\SteamLibrary\"\n\t}\n}";
