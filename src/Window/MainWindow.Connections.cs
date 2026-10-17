@@ -103,15 +103,19 @@ public partial class MainWindow
             row = new ConnectionRow(app.Path) { Name = LiveName(app.Path), Icon = AppIcons.For(app.Path), Configurable = !SystemFile(app.Path) && TryScope(app.Path) is not null };
             liveRows[app.Path] = row;
         }
-        row.Summary = (app.Vpn > 0 ? "через VPN " + app.Vpn : "") + (app.Vpn > 0 && app.Direct > 0 ? " · " : "") + (app.Direct > 0 ? "напрямую " + app.Direct : "");
-        row.Remotes = "→ " + string.Join(", ", app.Remotes);
+        row.Vpn = app.Vpn; row.Direct = app.Direct;
+        row.Summary = ConnectionCount(app.Total);
+        (row.Route, row.RouteKind) = app.Direct == 0 ? ("через VPN", "vpn") : app.Vpn == 0 ? ("напрямую", "direct") : ($"VPN {app.Vpn} · напрямую {app.Direct}", "mix");
+        row.Remotes = string.Join(" · ", app.Remotes);
         ShowLiveRule(row);
         // Правило меняет только новые соединения: уже открытые идут прежним путём, пока не закроются.
-        if (SystemTunnelActive && row.Rule is { } action && (action == SiteAction.Direct ? app.Vpn : action == SiteAction.Tunnel ? app.Direct : app.Total) > 0)
-            row.Summary += " · открыты до правила";
+        row.Pending = SystemTunnelActive && row.Rule is { } action && (action == SiteAction.Direct ? app.Vpn : action == SiteAction.Tunnel ? app.Direct : app.Total) > 0
+            ? "Часть соединений открыта до правила — они доживут прежним путём, новые пойдут по правилу." : "";
+        var scope = SystemFile(app.Path) ? null : TryScope(app.Path);
         row.Scope = SystemFile(app.Path) ? "Системные программы Windows правилами не настраиваются: правило задело бы службы самой системы."
-            : TryScope(app.Path) is { } scope ? ScopeText(scope)
+            : scope is not null ? ScopeText(scope.Value.Rules, scope.Value.Owner)
             : "Для этой программы правило не поставить: у её файла необычное имя.";
+        row.Folders = scope?.Rules is { } rules && rules.All(r => r.AllInFolder) ? rules.Select(r => r.Folder!).ToArray() : [];
         return row;
     }
 
@@ -135,30 +139,37 @@ public partial class MainWindow
 
     // Программа из каталога, в чью папку входит этот файл (игра Steam, сам Steam со всеми библиотеками),
     // иначе — папка самого файла.
-    private ProgramRule[] LiveScope(string path, SiteAction action)
-    {
-        var owner = appCatalog?.Select(a => a.App).Where(a => string.Equals(a.Path, path, StringComparison.OrdinalIgnoreCase) ||
+    private ProgramRule[] LiveScope(string path, SiteAction action) => AppRuleScope.For(LiveOwner(path), action);
+
+    private InstalledApp LiveOwner(string path) =>
+        appCatalog?.Select(a => a.App).Where(a => string.Equals(a.Path, path, StringComparison.OrdinalIgnoreCase) ||
                 a.Folders?.Any(f => path.StartsWith(f + "\\", StringComparison.OrdinalIgnoreCase)) == true)
-            .OrderByDescending(a => a.Folders?.Where(f => path.StartsWith(f + "\\", StringComparison.OrdinalIgnoreCase)).Max(f => f.Length) ?? 0).FirstOrDefault();
-        return AppRuleScope.For(owner ?? new InstalledApp(LiveName(path), Path.GetFileName(path), path, true), action);
-    }
+            .OrderByDescending(a => a.Folders?.Where(f => path.StartsWith(f + "\\", StringComparison.OrdinalIgnoreCase)).Max(f => f.Length) ?? 0).FirstOrDefault()
+        ?? new InstalledApp(LiveName(path), Path.GetFileName(path), path, true);
 
     // Охват правила для строки списка — раз на программу и каталог: разбор пути с проверкой
     // папок на диске для каждой строки раз в 2 секунды заметно грузил процессор.
-    private readonly Dictionary<string, (object? Catalog, ProgramRule[]? Scope)> liveScopes = new(StringComparer.OrdinalIgnoreCase);
-    private ProgramRule[]? TryScope(string path)
+    private readonly Dictionary<string, (object? Catalog, (ProgramRule[] Rules, string Owner)? Scope)> liveScopes = new(StringComparer.OrdinalIgnoreCase);
+    private (ProgramRule[] Rules, string Owner)? TryScope(string path)
     {
         if (liveScopes.TryGetValue(path, out var known) && ReferenceEquals(known.Catalog, appCatalog)) return known.Scope;
-        ProgramRule[]? scope;
-        try { scope = LiveScope(path, SiteAction.Tunnel); }
+        (ProgramRule[], string)? scope;
+        try { var owner = LiveOwner(path); scope = (AppRuleScope.For(owner, SiteAction.Tunnel), owner.Name); }
         catch (UserError) { scope = null; }
         liveScopes[path] = (appCatalog, scope);
         return scope;
     }
 
-    private static string ScopeText(ProgramRule[] rules) => rules.Length > 1 ? "Правило возьмёт папки: " + string.Join(", ", rules.Select(r => ShortPath(r.Folder!)))
-        : rules[0].AllInFolder ? "Правило возьмёт всю папку " + ShortPath(rules[0].Folder!) + " — вместе со службами и помощниками программы."
+    // Одной строкой, без списка путей: папки — по ссылке «Показать папки» под ней.
+    private static string ScopeText(ProgramRule[] rules, string owner) =>
+        rules.Length > 1 ? $"Правило возьмёт {owner} целиком · {Folders(rules.Length)} — со всеми службами и помощниками."
+        : rules[0].AllInFolder ? "Правило возьмёт папку программы целиком — вместе со службами и помощниками."
         : "Правило возьмёт только этот файл: его папка слишком общая.";
+
+    private static string Folders(int n) => n + (n % 10 == 1 && n % 100 != 11 ? " папка" : n % 10 is >= 2 and <= 4 && n % 100 is < 12 or > 14 ? " папки" : " папок");
+
+    private static string ConnectionCount(int n) =>
+        n + (n % 10 == 1 && n % 100 != 11 ? " соединение" : n % 10 is >= 2 and <= 4 && n % 100 is < 12 or > 14 ? " соединения" : " соединений");
 
     private void ApplyLiveRule(ConnectionRow row, SiteAction? action)
     {

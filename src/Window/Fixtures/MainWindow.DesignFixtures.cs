@@ -139,12 +139,13 @@ public partial class MainWindow
             // «Сейчас в сети» с подложными программами: таблицы соединений компьютера не читаются.
             LoadGroupsPreview(); Navigate("Connection");
             Live.Show(false, "Правило действует сразу — для новых соединений программы.");
-            var steam = new Views.ConnectionRow(@"C:\Program Files (x86)\Steam\steam.exe") { Name = "Steam", Summary = "через VPN 14", Remotes = "→ 23.62.99.12:443, 155.133.252.38:27019",
-                Scope = "Правило возьмёт папки: C:\\Program Files (x86)\\Steam, D:\\…\\steamapps\\common", Expanded = true };
-            Live.Load([new Views.ConnectionRow(@"C:\Apps\Telegram\Telegram.exe") { Name = "Telegram Desktop", Summary = "напрямую 8", Rule = SiteAction.Direct, RuleText = "напрямую" },
-                steam, new Views.ConnectionRow(@"C:\Apps\Chrome\chrome.exe") { Name = "Google Chrome", Summary = "через VPN 31 · напрямую 2" },
-                new Views.ConnectionRow(@"D:\Games\Aion2\Aion2.exe") { Name = "AION 2", Summary = "через VPN 3", Rule = SiteAction.Tunnel, RuleText = "через VPN" },
-                new Views.ConnectionRow(@"C:\Windows\System32\svchost.exe") { Name = "Хост-процесс для служб Windows", Summary = "напрямую 2", Configurable = false }]);
+            var steam = new Views.ConnectionRow(@"C:\Program Files (x86)\Steam\steam.exe") { Name = "Steam", Summary = "23 соединения", Route = "через VPN", RouteKind = "vpn", Vpn = 23,
+                Remotes = "23.62.99.12:443 · 155.133.252.38:27019", Scope = "Правило возьмёт Steam целиком · 3 папки — со всеми службами и помощниками.",
+                Folders = [@"C:\Program Files (x86)\Steam", @"D:\SteamLibrary", @"E:\Games\Steam"], Expanded = true, FoldersShown = true };
+            Live.Load([new Views.ConnectionRow(@"C:\Apps\Telegram\Telegram.exe") { Name = "Telegram Desktop", Summary = "8 соединений", Route = "напрямую", RouteKind = "direct", Direct = 8, Rule = SiteAction.Direct, RuleText = "напрямую" },
+                steam, new Views.ConnectionRow(@"C:\Apps\Chrome\chrome.exe") { Name = "Google Chrome", Summary = "33 соединения", Route = "VPN 31 · напрямую 2", RouteKind = "mix", Vpn = 31, Direct = 2 },
+                new Views.ConnectionRow(@"D:\Games\Aion2\Aion2.exe") { Name = "AION 2", Summary = "3 соединения", Route = "через VPN", RouteKind = "vpn", Vpn = 3, Rule = SiteAction.Tunnel, RuleText = "через VPN" },
+                new Views.ConnectionRow(@"C:\Windows\System32\svchost.exe") { Name = "Хост-процесс для служб Windows", Summary = "2 соединения", Route = "напрямую", RouteKind = "direct", Direct = 2, Configurable = false }]);
             return;
         }
         if (page is "apps" or "apps-rules")
