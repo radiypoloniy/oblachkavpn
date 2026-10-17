@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:o="clr-namespace:Oblachka">
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:o="clr-namespace:Oblachka">
   <!-- Стили нового интерфейса (design/redesign-2026-10-14). Только именованные стили: старые экраны
        живут рядом, пока их не заменят. Цвета — только DynamicResource из Themes/*.xaml. -->
 
@@ -193,10 +193,16 @@
       <Setter.Value>
         <ControlTemplate TargetType="TextBox">
           <Border x:Name="Plate" CornerRadius="{StaticResource RadiusMd}" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Ac}" BorderThickness="0">
+            <!-- Отступ поля применяется один раз — здесь. Область ввода сама добавляет к нему
+                 Padding (так устроен TextBox), поэтому своего отступа у неё нет: иначе набранный
+                 текст уезжал вправо от подсказки. Подсказка сдвинута на 2 пикселя — это
+                 внутренний отступ текста в области ввода. -->
             <Grid>
-              <TextBlock x:Name="Hint" Text="{TemplateBinding Tag}" Foreground="{DynamicResource Fa}" Margin="{TemplateBinding Padding}" FontSize="{TemplateBinding FontSize}"
-                         VerticalAlignment="{TemplateBinding VerticalContentAlignment}" IsHitTestVisible="False" Visibility="Collapsed" TextTrimming="CharacterEllipsis"/>
-              <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+              <Border Padding="{TemplateBinding Padding}" IsHitTestVisible="False">
+                <TextBlock x:Name="Hint" Text="{TemplateBinding Tag}" Foreground="{DynamicResource Fa}" Margin="2,0,0,0" FontSize="{TemplateBinding FontSize}"
+                           VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Visibility="Collapsed" TextTrimming="CharacterEllipsis"/>
+              </Border>
+              <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
             </Grid>
           </Border>
           <ControlTemplate.Triggers>
@@ -219,8 +225,8 @@
     <Setter Property="Effect">
       <Setter.Value><DropShadowEffect BlurRadius="18" ShadowDepth="4" Direction="270" Color="{StaticResource DialogShadow}" Opacity="0.13"/></Setter.Value>
     </Setter>
+    <!-- Тень — картинкой: иначе её пересчитывают перерисовки соседнего содержимого. --><Setter Property="CacheMode"><Setter.Value><BitmapCache/></Setter.Value></Setter>
   </Style>
-
   <!-- Чипы-переключатели — это ListBox: выбранный чип и есть значение (порядок серверов, действие правила). -->
   <Style x:Key="ChipItem" TargetType="ListBoxItem">
     <Setter Property="FocusVisualStyle" Value="{x:Null}"/>

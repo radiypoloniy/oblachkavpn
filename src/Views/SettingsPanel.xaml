@@ -9,7 +9,7 @@
       <RowDefinition Height="64"/>
       <RowDefinition Height="*"/>
     </Grid.RowDefinitions>
-    <DockPanel Margin="10,0,96,0">
+    <DockPanel Margin="10,0,20,0">
       <Button x:Name="CloseButton" Style="{StaticResource IconButton}" Foreground="{DynamicResource Tx}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Назад">
         <Path Data="{StaticResource IcoBack}" Style="{StaticResource Icon}" StrokeThickness="2.2"/>
       </Button>

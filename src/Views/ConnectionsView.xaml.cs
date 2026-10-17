@@ -28,19 +28,25 @@ public partial class ConnectionsView : UserControl
         }), true);
     }
 
-    public void Show(string note)
+    // focus — человек открыл раздел сам; при открытии по умолчанию фокус поиск не отбирает.
+    public void Show(bool focus, string note)
     {
-        Note.Text = note;
+        SetNote(note);
         Visibility = Visibility.Visible;
-        SearchBox.Focus();
+        if (focus) SearchBox.Focus();
     }
 
     // Строки переиспользуются: раскрытая строка остаётся раскрытой между обновлениями.
+    // Список пересобирается, только если изменился состав или порядок программ: строки сами
+    // обновляют свои подписи, а пересборка дерева раз в 2 секунды стоила заметного процессора.
     public void Load(IReadOnlyList<ConnectionRow> next)
     {
+        if (next.Count == rows.Count && next.Select(r => r.Path).SequenceEqual(rows.Select(r => r.Path), StringComparer.OrdinalIgnoreCase)) return;
         rows = next;
         Filter();
     }
+
+    public void SetNote(string note) { if (Note.Text != note) Note.Text = note; }
 
     private void Filter()
     {
@@ -85,7 +91,7 @@ public sealed class ConnectionRow(string path) : INotifyPropertyChanged
     public string Remotes { get => remotes; set => Set(ref remotes, value, nameof(Remotes)); }
     // Что возьмёт правило: «вся папка …» или «только этот файл».
     public string Scope { get => scope; set => Set(ref scope, value, nameof(Scope)); }
-    public SiteAction? Rule { get => rule; set { rule = value; Changed(nameof(Rule)); Changed(nameof(RuleVisibility)); Changed(nameof(RemoveVisibility)); } }
+    public SiteAction? Rule { get => rule; set { if (rule == value) return; rule = value; Changed(nameof(Rule)); Changed(nameof(RuleVisibility)); Changed(nameof(RemoveVisibility)); } }
     public string RuleText { get => ruleText; set => Set(ref ruleText, value, nameof(RuleText)); }
     public bool Configurable { get; set; } = true;
     public ImageSource? Icon { get => icon; set { icon = value; Changed(nameof(Icon)); Changed(nameof(PlaceholderVisibility)); } }

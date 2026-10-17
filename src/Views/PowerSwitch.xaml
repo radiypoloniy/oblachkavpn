@@ -1,32 +1,31 @@
-<UserControl x:Class="Oblachka.Views.PowerSwitch" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:o="clr-namespace:Oblachka"
-             Width="160" Height="88">
-  <!-- Тумблер главного экрана: ручка слева (выкл), по центру (подключаемся), справа (вкл или сеть закрыта).
-       Цвет дорожки меняется наплывом слоёв: так переход плавный и при смене темы. -->
-  <!-- Свечение лежит вне кнопки, а у кнопки нет отступа. Раньше содержимое с отступом кнопки
-       не помещалось в 160×88, WPF обрезал контрол по границам, и тень свечения превращалась
-       в прямоугольник, а правый край дорожки срезался. -->
-  <Grid Width="160" Height="88">
-    <Border x:Name="Glow" CornerRadius="44" Background="{DynamicResource Ac}" Opacity="0" IsHitTestVisible="False">
-      <Border.Effect><DropShadowEffect x:Name="GlowShadow" BlurRadius="22" ShadowDepth="6" Direction="270" Color="{DynamicResource GlowColor}" Opacity="0.75"/></Border.Effect>
-    </Border>
-  <Button x:Name="Surface" Style="{StaticResource Plain}" o:Ui.CornerRadius="44" Tag="Transparent" Padding="0" Click="SurfaceClick">
-    <Grid Width="160" Height="88">
-      <Border CornerRadius="44" Background="{DynamicResource Off}"/>
-      <Border x:Name="MidLayer" CornerRadius="44" Background="{DynamicResource Mid}" Opacity="0"/>
-      <Border x:Name="OnLayer" CornerRadius="44" Background="{DynamicResource Ac}" Opacity="0"/>
-      <Border x:Name="BlockedLayer" CornerRadius="44" Background="{DynamicResource ETrack}" Opacity="0"/>
-      <Border x:Name="Knob" Width="72" Height="72" CornerRadius="36" Background="{DynamicResource Knob}" HorizontalAlignment="Left" Margin="8,0,0,0" RenderTransformOrigin="0.5,0.5">
-        <Border.Effect><DropShadowEffect BlurRadius="8" ShadowDepth="2" Direction="270" Opacity="0.2"/></Border.Effect>
-        <Border.RenderTransform>
-          <TransformGroup>
-            <ScaleTransform x:Name="Pulse" ScaleX="1" ScaleY="1"/>
-            <TranslateTransform x:Name="Slide" X="0"/>
-          </TransformGroup>
-        </Border.RenderTransform>
-        <Path x:Name="Glyph" Data="{StaticResource IcoPower}" Width="28" Height="28" Stretch="Uniform" StrokeThickness="2.2"
-              StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stroke="{DynamicResource Fa}"/>
-      </Border>
-    </Grid>
-  </Button>
+﻿<UserControl x:Class="Oblachka.Views.PowerSwitch" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:o="clr-namespace:Oblachka"
+             Width="68" Height="68">
+  <!-- Круглая кнопка подключения в углу неба (боковая панель): цвет и есть состояние.
+       Белая — выключено, синяя с бегущим кольцом — подключаемся, зелёная — подключено,
+       красная с замком — сеть закрыта. Слои меняются наплывом: переход плавный и при смене темы.
+       Кольцо и свечение — вне круга, у контрола запас 7 px с каждой стороны, чтобы не обрезались. -->
+  <Grid>
+    <Ellipse x:Name="Glow" Width="54" Height="54" Fill="{DynamicResource Ok}" Opacity="0" IsHitTestVisible="False">
+      <Ellipse.CacheMode><BitmapCache/></Ellipse.CacheMode>
+      <Ellipse.Effect><DropShadowEffect BlurRadius="18" ShadowDepth="3" Direction="270" Color="{DynamicResource OkGlowColor}" Opacity="0.7"/></Ellipse.Effect>
+    </Ellipse>
+    <Ellipse x:Name="Ring" Width="66" Height="66" StrokeThickness="2.5" Stroke="{DynamicResource OnAccent}" StrokeDashArray="9 30" StrokeDashCap="Round" Opacity="0" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
+      <Ellipse.RenderTransform><RotateTransform x:Name="Spin"/></Ellipse.RenderTransform>
+    </Ellipse>
+    <Button x:Name="Surface" Width="54" Height="54" Style="{StaticResource Plain}" o:Ui.CornerRadius="{StaticResource RadiusOrb}" Tag="Transparent" Padding="0" Click="SurfaceClick">
+      <Grid Width="54" Height="54">
+        <Ellipse Fill="{DynamicResource Knob}">
+          <Ellipse.CacheMode><BitmapCache/></Ellipse.CacheMode>
+          <Ellipse.Effect><DropShadowEffect BlurRadius="12" ShadowDepth="3" Direction="270" Opacity="0.25"/></Ellipse.Effect>
+        </Ellipse>
+        <Ellipse x:Name="MidLayer" Fill="{DynamicResource Ac}" Opacity="0"/>
+        <Ellipse x:Name="OnLayer" Fill="{DynamicResource Ok}" Opacity="0"/>
+        <Ellipse x:Name="BlockedLayer" Fill="{DynamicResource EI}" Opacity="0"/>
+        <Path x:Name="Glyph" Data="{StaticResource IcoPower}" Width="21" Height="21" Stretch="Uniform" StrokeThickness="2.6"
+              StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stroke="{DynamicResource Mu}" RenderTransformOrigin="0.5,0.5">
+          <Path.RenderTransform><ScaleTransform x:Name="Pulse" ScaleX="1" ScaleY="1"/></Path.RenderTransform>
+        </Path>
+      </Grid>
+    </Button>
   </Grid>
 </UserControl>

@@ -1,6 +1,7 @@
 ﻿/* Сгенерировано scripts/tokens.ps1 из theme/tokens.json. Руками не править. */
 :root {
   --page: #E4E8EE;
+  --side: #EEF1F5;
   --bg: #FFFFFF;
   --card-bg: #F4F6F9;
   --field: #F2F4F7;
@@ -48,6 +49,7 @@
   --foot-warn: #B26B00;
   --shadow-color: rgba(13, 27, 48, 0.18);
   --glow-color: rgba(47, 100, 233, 0.322);
+  --ok-glow-color: rgba(47, 179, 106, 0.4);
   --lat-fast: #2FB36A;
   --lat-mid: #D9A01E;
   --lat-slow: #D9731E;
@@ -63,6 +65,10 @@
   --on-accent: #FFFFFF;
   --sbtn-text: #2E2205;
   --overlay-danger: rgba(0, 0, 0, 0.078);
+  --on-sky: rgba(255, 255, 255, 0.902);
+  --brand-you-tube: #FF0033;
+  --brand-discord: #5865F2;
+  --close-hover: #E81123;
   --ui-font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --mono-font: "Cascadia Mono", "Consolas", system-ui, sans-serif;
   --fs-caption: 11.5px;
@@ -85,9 +91,14 @@
   --radius-lg: 12px;
   --radius-xl: 14px;
   --radius-sheet: 16px;
+  --radius-badge: 5px;
+  --radius-avatar: 15px;
+  --radius-sky: 18px;
+  --radius-orb: 27px;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --page: #0A0D12;
+  --side: #0C1016;
   --bg: #11151D;
   --card-bg: #1A1F29;
   --field: #1E2430;
@@ -135,6 +146,7 @@
   --foot-warn: #F2B01E;
   --shadow-color: rgba(0, 0, 0, 0.502);
   --glow-color: rgba(79, 127, 242, 0.349);
+  --ok-glow-color: rgba(47, 179, 106, 0.439);
   --lat-fast: #2FB36A;
   --lat-mid: #D9A01E;
   --lat-slow: #D9731E;
@@ -150,9 +162,14 @@
   --on-accent: #FFFFFF;
   --sbtn-text: #2E2205;
   --overlay-danger: rgba(0, 0, 0, 0.078);
+  --on-sky: rgba(255, 255, 255, 0.902);
+  --brand-you-tube: #FF0033;
+  --brand-discord: #5865F2;
+  --close-hover: #C42B1C;
   color-scheme: dark; } }
 :root[data-theme="dark"] {
   --page: #0A0D12;
+  --side: #0C1016;
   --bg: #11151D;
   --card-bg: #1A1F29;
   --field: #1E2430;
@@ -200,6 +217,7 @@
   --foot-warn: #F2B01E;
   --shadow-color: rgba(0, 0, 0, 0.502);
   --glow-color: rgba(79, 127, 242, 0.349);
+  --ok-glow-color: rgba(47, 179, 106, 0.439);
   --lat-fast: #2FB36A;
   --lat-mid: #D9A01E;
   --lat-slow: #D9731E;
@@ -215,4 +233,8 @@
   --on-accent: #FFFFFF;
   --sbtn-text: #2E2205;
   --overlay-danger: rgba(0, 0, 0, 0.078);
+  --on-sky: rgba(255, 255, 255, 0.902);
+  --brand-you-tube: #FF0033;
+  --brand-discord: #5865F2;
+  --close-hover: #C42B1C;
   color-scheme: dark; }

@@ -23,4 +23,8 @@
   <CornerRadius x:Key="RadiusLg">12</CornerRadius>  <!-- поля, карточки -->
   <CornerRadius x:Key="RadiusXl">14</CornerRadius>  <!-- крупные карточки, окна -->
   <CornerRadius x:Key="RadiusSheet">16</CornerRadius>  <!-- диалоги, выезжающие панели -->
+  <CornerRadius x:Key="RadiusBadge">5</CornerRadius>  <!-- мелкие значки (YouTube и Discord в карточке обхода) -->
+  <CornerRadius x:Key="RadiusAvatar">15</CornerRadius>  <!-- кружок аккаунта 30 px -->
+  <CornerRadius x:Key="RadiusSky">18</CornerRadius>  <!-- карточка неба в боковой панели -->
+  <CornerRadius x:Key="RadiusOrb">27</CornerRadius>  <!-- кнопка подключения 54 px -->
 </ResourceDictionary>

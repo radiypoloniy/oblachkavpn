@@ -10,10 +10,11 @@ public partial class MainWindow
         foreach (var page in new[] { "Connection", "Servers", "Routes", "Diagnostics" })
         {
             Navigate(page);
-            // «Все серверы» — поверх главного экрана; правила и помощь — вкладки настроек.
-            var home = page is "Connection" or "Servers";
+            // Боковая панель видна всегда; на острове — один раздел: «Сейчас в сети» по умолчанию,
+            // «Все серверы» или настройки (правила и помощь — их вкладки).
             var settings = page is "Routes" or "Diagnostics";
-            if (home != (Home.Visibility == Visibility.Visible) || (page == "Servers") != (Servers.Visibility == Visibility.Visible) ||
+            if (Home.Visibility != Visibility.Visible || (page == "Servers") != (Servers.Visibility == Visibility.Visible) ||
+                (page == "Connection") != (Live.Visibility == Visibility.Visible) ||
                 settings != (Settings.Visibility == Visibility.Visible) ||
                 settings && (Routes.Visibility == Visibility.Visible) != (page == "Routes") ||
                 settings && (Diagnostics.Visibility == Visibility.Visible) != (page == "Diagnostics") ||
@@ -119,6 +120,12 @@ public partial class MainWindow
             else Navigate("Connection");
             return;
         }
+        if (page == "narrow")
+        {
+            // Узкое окно: только боковая панель, разделы — островом поверх неё.
+            LoadGroupsPreview(); Width = 400; Navigate("Connection"); UpdateLayout(); ApplyLayout();
+            return;
+        }
         if (page is "home-zapret" or "home-invite")
         {
             // VPN выключен: обход работает (YouTube и Discord открываются) или ещё не включён.
@@ -130,8 +137,8 @@ public partial class MainWindow
         if (page == "live")
         {
             // «Сейчас в сети» с подложными программами: таблицы соединений компьютера не читаются.
-            SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(1); Routes.ShowSites(false);
-            Live.Show("Правило действует сразу — для новых соединений программы.");
+            LoadGroupsPreview(); Navigate("Connection");
+            Live.Show(false, "Правило действует сразу — для новых соединений программы.");
             var steam = new Views.ConnectionRow(@"C:\Program Files (x86)\Steam\steam.exe") { Name = "Steam", Summary = "через VPN 14", Remotes = "→ 23.62.99.12:443, 155.133.252.38:27019",
                 Scope = "Правило возьмёт папки: C:\\Program Files (x86)\\Steam, D:\\…\\steamapps\\common", Expanded = true };
             Live.Load([new Views.ConnectionRow(@"C:\Apps\Telegram\Telegram.exe") { Name = "Telegram Desktop", Summary = "напрямую 8", Rule = SiteAction.Direct, RuleText = "напрямую" },
@@ -169,7 +176,6 @@ public partial class MainWindow
             // Снимок делается сразу, анимация ещё не прошла: ставим её итог.
             var power = Home.Power;
             foreach (var layer in new UIElement[] { power.Glow, power.OnLayer }) { layer.BeginAnimation(OpacityProperty, null); layer.Opacity = 1; }
-            power.Slide.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, null); power.Slide.X = 72;
             return; }
         // «Не открывается сайт?» с итогом: напрямую режет DPI, через VPN открывается.
         if (page is "site" or "site-ok") { LoadGroupsPreview(); OpenSiteCheck(); checkedHost = page == "site" ? "rutracker.org" : "www.gosuslugi.ru"; SiteCheck.SiteInput.Text = checkedHost;
