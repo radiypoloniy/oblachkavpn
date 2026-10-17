@@ -68,4 +68,11 @@
   <SolidColorBrush x:Key="BrandYouTube" Color="#FF0033"/>  <!-- значок YouTube в карточке обхода -->
   <SolidColorBrush x:Key="BrandDiscord" Color="#5865F2"/>  <!-- значок Discord в карточке обхода -->
   <SolidColorBrush x:Key="CloseHover" Color="#E81123"/>  <!-- наведение на кнопку «закрыть окно» -->
+  <SolidColorBrush x:Key="IcBlue" Color="#2F7BEA"/>  <!-- Цветной значок настроек: синий -->
+  <SolidColorBrush x:Key="IcGreen" Color="#2FB36A"/>  <!-- Цветной значок настроек: зелёный -->
+  <SolidColorBrush x:Key="IcOrange" Color="#F29A1E"/>  <!-- Цветной значок настроек: оранжевый -->
+  <SolidColorBrush x:Key="IcPurple" Color="#8B5CF6"/>  <!-- Цветной значок настроек: фиолетовый -->
+  <SolidColorBrush x:Key="IcTeal" Color="#14A89A"/>  <!-- Цветной значок настроек: бирюзовый -->
+  <SolidColorBrush x:Key="IcRed" Color="#EF4B4B"/>  <!-- Цветной значок настроек: красный -->
+  <SolidColorBrush x:Key="IcGray" Color="#8E95A3"/>  <!-- Цветной значок настроек: серый -->
 </ResourceDictionary>

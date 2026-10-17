@@ -27,4 +27,5 @@
   <CornerRadius x:Key="RadiusAvatar">15</CornerRadius>  <!-- кружок аккаунта 30 px -->
   <CornerRadius x:Key="RadiusSky">18</CornerRadius>  <!-- карточка неба в боковой панели -->
   <CornerRadius x:Key="RadiusOrb">27</CornerRadius>  <!-- кнопка подключения 54 px -->
+  <CornerRadius x:Key="RadiusIcon">7</CornerRadius>  <!-- Цветной значок в настройках (как в iOS) -->
 </ResourceDictionary>
