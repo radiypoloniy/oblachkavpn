@@ -9,6 +9,7 @@ public partial class MainWindow
     {
         WireProgramRules();
         WireConnections();
+        WireSelective();
         WireRouting();
         // Новое правило идёт «через VPN»; действие меняется нажатием на метку в списке.
         Routes.AddRuleButton.Click += (_, _) => AddSiteRule(Routes.RuleDomain.Text, SiteAction.Tunnel);

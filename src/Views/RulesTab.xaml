@@ -47,6 +47,14 @@
             <Button x:Name="ZapretPick" Content="Проверить заново" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Margin="0,4,0,0" Visibility="Collapsed"/>
           </StackPanel>
         </DockPanel>
+        <!-- Запасной путь, когда обход не справляется: VPN только для YouTube и Discord (MainWindow.Selective). -->
+        <DockPanel Margin="0,12,0,0">
+          <CheckBox x:Name="SelectiveToggle" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Через VPN только YouTube и Discord"/>
+          <StackPanel>
+            <TextBlock Text="Через VPN — только YouTube и Discord" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
+            <TextBlock Text="Остальное напрямую: загрузки и игры не тратят VPN. Ваши правила «через VPN» тоже действуют." Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+          </StackPanel>
+        </DockPanel>
         <DockPanel x:Name="ProviderRoutingRow" Margin="0,12,0,0" Visibility="Collapsed">
           <CheckBox x:Name="ProviderRouting" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Маршрутизация сервиса"/>
           <StackPanel>

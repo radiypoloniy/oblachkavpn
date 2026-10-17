@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +18,9 @@ public sealed record NetworkLeaseRequest(
     // ядру туннеля через отдельный локальный вход SOCKS с паролем этой сессии, а ядро туннеля
     // выпускает всё, что пришло туда, мимо туннеля. Распознавание процесса для этого не годится:
     // на стенде правило по пути ядра не срабатывало, и трафик шёл по кругу.
-    CoreDirectEntry? CoreDirect = null);
+    CoreDirectEntry? CoreDirect = null,
+    // «Через VPN только выбранное»: всё, что не попало в правила «через VPN», идёт напрямую.
+    bool DirectByDefault = false);
 
 public sealed record CoreDirectEntry(
     [property: JsonRequired] int Port,
@@ -37,12 +39,12 @@ public sealed record CoreDirectEntry(
 // Правила сайтов и программ — ограниченные данные: домены и имена .exe без путей,
 // проверенные теми же правилами, что и в окне. Конфигурацию ядра помощник строит сам.
 public sealed record ValidatedNetworkLease(Guid LeaseId, NetworkLeaseAction Action, int LoopbackPort, IReadOnlyList<IPAddress> Peers,
-    IReadOnlyList<SiteRule>? Sites = null, IReadOnlyList<ProgramRule>? Programs = null, CoreDirectEntry? CoreDirect = null)
+    IReadOnlyList<SiteRule>? Sites = null, IReadOnlyList<ProgramRule>? Programs = null, CoreDirectEntry? CoreDirect = null, bool DirectByDefault = false)
 {
     public IReadOnlyList<SiteRule> SiteRules => Sites ?? Array.Empty<SiteRule>();
     public IReadOnlyList<ProgramRule> ProgramRules => Programs ?? Array.Empty<ProgramRule>();
     // Есть ли трафик, который пользователь сам отправил мимо туннеля.
-    public bool HasDirect => CoreDirect is not null || SiteRules.Any(r => r.Action == SiteAction.Direct) || ProgramRules.Any(r => r.Action == SiteAction.Direct);
+    public bool HasDirect => DirectByDefault || CoreDirect is not null || SiteRules.Any(r => r.Action == SiteAction.Direct) || ProgramRules.Any(r => r.Action == SiteAction.Direct);
 }
 
 // A future privileged helper accepts bounded network intent, never profiles, tokens or shell commands.
@@ -78,7 +80,7 @@ public static class NetworkHelperContracts
             throw new UserError("Неверная версия или идентификатор сетевой сессии.");
         if (request.Action == NetworkLeaseAction.Release)
         {
-            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 } || request.CoreDirect is not null)
+            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 } || request.CoreDirect is not null || request.DirectByDefault)
                 throw new UserError("Завершение сессии не принимает сетевые параметры.");
             return new(request.LeaseId, request.Action, 0, Array.Empty<IPAddress>());
         }
@@ -106,6 +108,6 @@ public static class NetworkHelperContracts
         ProgramRoutingPlan.Validate(programs);
         request.CoreDirect?.Validate();
         if (request.CoreDirect?.Port == request.LoopbackPort) throw new UserError("Прямой выход ядра совпадает с портом ядра.");
-        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs, request.CoreDirect);
+        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs, request.CoreDirect, request.DirectByDefault);
     }
 }

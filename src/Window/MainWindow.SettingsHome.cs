@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 
 namespace Oblachka;
 
@@ -52,26 +52,38 @@ public partial class MainWindow
     private static string Count(int n, string one, string few, string many) =>
         n + " " + (n % 10 == 1 && n % 100 != 11 ? one : n % 10 is >= 2 and <= 4 && n % 100 is < 12 or > 14 ? few : many);
 
-    // «Напрямую: рунет, YouTube» под статусом. Жёлтая — обход сломался и сайт временно в VPN.
+    private bool ZapretWorksWithoutVpn => zapretEnabled && !zapretBusy && zapretActiveGroups.Length > 0;
+    private static string ZapretTitle(string key) => key == "youtube" ? "YouTube" : "Discord";
+
+    // Строка под статусом. При подключении — что идёт мимо VPN («Напрямую: рунет, YouTube»), в
+    // выборочном режиме — что идёт через VPN. Без подключения — работает ли обход без VPN, а если
+    // он выключен — приглашение его включить: многим нужны только YouTube и Discord.
+    // Жёлтая — обход сломался и сайт временно в VPN. Нажатие открывает «Без VPN».
     private void RefreshDirectChip()
     {
         if (!viewsReady) return;
-        static string Title(string key) => key == "youtube" ? "YouTube" : "Discord";
         var chip = Home.DirectChip;
-        if (zapretEnabled && zapretDemoted.Length > 0)
+        void Show(string text, string background, string foreground)
         {
-            Home.DirectChipText.Text = string.Join(" и ", zapretDemoted.Select(Title)) + " временно через VPN";
-            chip.SetResourceReference(BackgroundProperty, "WB");
-            Home.DirectChipText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "WI");
+            Home.DirectChipText.Text = text;
+            chip.SetResourceReference(BackgroundProperty, background);
+            Home.DirectChipText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, foreground);
             chip.Visibility = Visibility.Visible;
+        }
+        if (zapretEnabled && zapretDemoted.Length > 0) { Show(string.Join(" и ", zapretDemoted.Select(ZapretTitle)) + " временно через VPN", "WB", "WI"); return; }
+        if (!ConnectionActive)
+        {
+            if (ZapretWorksWithoutVpn) Show("Обход блокировок включён", "OkB", "OkF");
+            else if (zapretEnabled && zapretBusy) Show("Подбираем обход для YouTube и Discord…", "Field", "Mu2");
+            else if (!zapretEnabled) Show("YouTube и Discord без VPN — включить", "Field", "Mu2");
+            else chip.Visibility = Visibility.Collapsed;
             return;
         }
+        if (selectiveVpn) { Show("Через VPN только: YouTube, Discord" + (programRules.Concat<object>(siteRules).Any() ? " и ваши правила" : ""), "Aci", "Ac"); return; }
         var parts = new List<string>();
         if (Settings.RussiaDirect.IsChecked == true) parts.Add("рунет");
-        if (zapretEnabled && !zapretBusy) parts.AddRange(zapretActiveGroups.Select(Title));
-        Home.DirectChipText.Text = "Напрямую: " + string.Join(", ", parts);
-        chip.SetResourceReference(BackgroundProperty, "OkB");
-        Home.DirectChipText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "OkF");
-        chip.Visibility = parts.Count > 0 && ConnectionActive ? Visibility.Visible : Visibility.Collapsed;
+        if (zapretEnabled && !zapretBusy) parts.AddRange(zapretActiveGroups.Select(ZapretTitle));
+        if (parts.Count == 0) { chip.Visibility = Visibility.Collapsed; return; }
+        Show("Напрямую: " + string.Join(", ", parts), "OkB", "OkF");
     }
 }

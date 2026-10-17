@@ -33,7 +33,7 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
     // и сайты из списков «напрямую» не открывались.
     internal static NetworkLeaseRequest RequestFor(ValidatedNetworkLease lease) =>
         new(1, lease.LeaseId, NetworkLeaseAction.Acquire, lease.LoopbackPort, lease.Peers.Select(p => p.ToString()).ToArray(),
-            lease.SiteRules.ToArray(), lease.ProgramRules.ToArray(), lease.CoreDirect);
+            lease.SiteRules.ToArray(), lease.ProgramRules.ToArray(), lease.CoreDirect, lease.DirectByDefault);
 
     internal static ITunnelProcess Start(ValidatedNetworkLease lease, string executable, CancellationToken token)
     {

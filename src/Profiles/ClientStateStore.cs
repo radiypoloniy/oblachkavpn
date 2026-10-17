@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -51,6 +51,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public FragmentMode DpiBypass { get; init; }
     // zapret (0.13): включён ли и какая стратегия подошла в какой сети (хеш сети → имя стратегии).
     public bool ZapretEnabled { get; init; }
+    // «Через VPN только YouTube и Discord» (MainWindow.Selective).
+    public bool SelectiveVpn { get; init; }
     public Dictionary<string, string>? ZapretChoices { get; init; }
     // Пул «Автовыбора» (0.13.3): только отличия от умолчания, ключ — хеш источника и имени.
     public Dictionary<string, bool>? AutoPool { get; init; }
