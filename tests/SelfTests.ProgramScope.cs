@@ -152,5 +152,14 @@ public static partial class SelfTests
             var loose = AppRuleScope.For(new InstalledApp("Tool", "tool.exe", @"C:\Users\Bob\Downloads\tool.exe", false), SiteAction.Direct);
             Assert(loose.Single() is { AllInFolder: false, FilePath: @"C:\Users\Bob\Downloads\tool.exe" });
         }));
+        await check("Changing a program rule resets only that program's open connections", () => Task.Run(() =>
+        {
+            var tg = ProgramRoutingPlan.Create(@"C:\Apps\Telegram\Telegram.exe", SiteAction.Tunnel, allInFolder: true);
+            var tgDirect = tg with { Action = SiteAction.Direct };
+            Assert(ConnectionReset.Changed([tg], [tgDirect], @"C:\Apps\Telegram\Updater.exe"));
+            Assert(ConnectionReset.Changed([tg], [], @"C:\Apps\Telegram\Telegram.exe"));
+            Assert(!ConnectionReset.Changed([tg], [tg], @"C:\Apps\Telegram\Telegram.exe"));
+            Assert(!ConnectionReset.Changed([tg], [tgDirect], @"C:\Apps\Chrome\chrome.exe"));
+        }));
     }
 }

@@ -53,7 +53,8 @@ public partial class MainWindow
 
     private void ApplyProfiles(bool preserveSelection)
     {
-        var combined = groups.SelectMany(g => ProfilesOf(g.Id)).ToArray();
+        // Скрытые серверы подписок в список не попадают (MainWindow.ServerRemoval).
+        var combined = groups.SelectMany(g => ProfilesOf(g.Id)).Where(p => !HiddenServer(p)).ToArray();
         RefreshGroups();
         Dispatcher.BeginInvoke(RenderAutoPool);
         if (combined.Length == 0)

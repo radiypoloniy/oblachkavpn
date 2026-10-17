@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Windows.Media;
 using System.Windows.Controls;
 
 namespace Oblachka;
@@ -17,6 +18,9 @@ public partial class MainWindow
     {
         // Ширина — от корневой сетки: она разложена под настоящий размер и в снимке окна без показа.
         Shell.SizeChanged += (_, _) => ApplyLayout();
+        // Скругление острова — как у неба. Border не обрезает содержимое, а у разделов свой
+        // квадратный фон: без обрезки он закрывал углы.
+        IslandHost.SizeChanged += (_, e) => IslandHost.Clip = new RectangleGeometry(new Rect(e.NewSize), 17, 17);
         StateChanged += (_, _) =>
         {
             // Развёрнутое окно без системной рамки уходит краями за экран на толщину рамки.

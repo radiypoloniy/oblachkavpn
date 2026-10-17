@@ -29,11 +29,13 @@ public partial class MainWindow
     }
 
     private ClientSnapshot CaptureState() => new(1,
-        importedProfiles.Select(p => new SavedProfile(p.Name, (System.Text.Json.Nodes.JsonObject)p.Outbound.DeepClone()) { Source = p.Source, Group = p.Group }).ToArray(),
+        // Все серверы групп, со скрытыми: иначе после перезапуска их нечем было бы вернуть.
+        groups.SelectMany(g => ProfilesOf(g.Id)).Select(p => new SavedProfile(p.Name, (System.Text.Json.Nodes.JsonObject)p.Outbound.DeepClone()) { Source = p.Source, Group = p.Group }).ToArray(),
         profile is null ? null : Profiles.Fingerprint(profile), subscriptionSources.ToArray(), preferredSource,
         Settings.StayInTray.IsChecked == true, AutoRecover.IsChecked == true)
         { SelectedName = profile?.Name, ExternalSources = externalSources.ToArray(), AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, CloseToTray = Settings.StayInTray.IsChecked == true, SystemTunnel = Settings.SystemTunnel.IsChecked == true, Theme = ThemeManager.Choice, Metadata = ServiceGroup?.Metadata, Groups = groups.ToArray(), RouteRules = siteRules.ToArray(), ProgramRules = programRules.ToArray(),
             Favorites = favorites.Where(f => importedProfiles.Any(p => FavoriteKey(p) == f)).Take(Subscriptions.MaxProfiles).ToArray(),
+            HiddenServers = hiddenServers.Take(Subscriptions.MaxProfiles).ToArray(),
             Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
             ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = Settings.RussiaDirect.IsChecked == true, AutoSelect = autoSelect,
             UpdateCheck = Diagnostics.UpdateAuto.IsChecked == true, UpdatePrerelease = Diagnostics.UpdatePrerelease.IsChecked == true, DpiBypass = fragmentMode,
@@ -86,6 +88,7 @@ public partial class MainWindow
         programRules.Clear(); programRules.AddRange(snapshot.ProgramRules); RefreshRules();
         measurements.Clear(); foreach (var measurement in snapshot.Measurements) measurements[measurement.Fingerprint] = measurement;
         favorites.Clear(); foreach (var favorite in snapshot.Favorites) favorites.Add(favorite);
+        hiddenServers.Clear(); foreach (var hidden in snapshot.HiddenServers) hiddenServers.Add(hidden);
         autoPool.Load(snapshot.AutoPool);
         // Профиль из файла проверяется так же, как присланный сервисом.
         providerRouting = snapshot.ProviderRouting?.Normalized(); useProviderRouting = snapshot.UseProviderRouting;

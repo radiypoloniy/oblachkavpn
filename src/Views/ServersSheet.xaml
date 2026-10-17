@@ -3,14 +3,23 @@
   <!-- Панель «Все серверы» (экран 09): выезжает поверх главного окна. Группы: автовыбор, избранное,
        свои узлы, сторонние. Звезда справа переключает избранное, клик по строке — подключение. -->
   <UserControl.Resources>
+    <!-- Заголовок подписки: справа «Вернуть скрытые», «Обновить», «Убрать». -->
     <DataTemplate DataType="{x:Type o:SheetHeader}">
-      <TextBlock Text="{Binding Title}" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" Margin="10,12,10,4"/>
+      <DockPanel Margin="10,10,4,2">
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Visibility="{Binding ActionsVisibility}">
+          <Button Tag="group-unhide" Content="{Binding UnhideText}" Style="{StaticResource BtnLink}" Height="26" FontSize="{StaticResource FsSmall}" Visibility="{Binding UnhideVisibility}"/>
+          <Button Tag="group-refresh" Content="Обновить" Style="{StaticResource BtnLink}" Height="26" FontSize="{StaticResource FsSmall}" Visibility="{Binding RefreshVisibility}"/>
+          <Button Tag="group-remove" Content="Убрать" Style="{StaticResource BtnLink}" Height="26" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" AutomationProperties.Name="{Binding RemoveName}"/>
+        </StackPanel>
+        <TextBlock Text="{Binding Title}" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" VerticalAlignment="Center"/>
+      </DockPanel>
     </DataTemplate>
     <DataTemplate DataType="{x:Type o:ServerRow}">
       <Border x:Name="Plate" Height="54" CornerRadius="{StaticResource RadiusLg}" Margin="0,0,0,2" Background="Transparent">
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
@@ -45,7 +54,12 @@
                   AutomationProperties.Name="Проверить этот сервер" ToolTip="Проверить этот сервер">
             <Path Data="{StaticResource IcoRefresh}" Width="16" Height="16" Stretch="Uniform" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Mu2}"/>
           </Button>
-          <Button x:Name="StarButton" Grid.Column="2" Tag="star" Style="{StaticResource IconButton}" Width="36" Height="36" Margin="0,0,4,0"
+          <!-- Убрать сервер: свой удаляется, сервер подписки скрывается. Виден при наведении. -->
+          <Button x:Name="RemoveButton" Grid.Column="2" Tag="remove" Style="{StaticResource IconButton}" Width="36" Height="36" Opacity="0"
+                  AutomationProperties.Name="Убрать сервер" ToolTip="Убрать сервер">
+            <Path Data="{StaticResource IcoClose}" Width="12" Height="12" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stroke="{DynamicResource Mu2}"/>
+          </Button>
+          <Button x:Name="StarButton" Grid.Column="3" Tag="star" Style="{StaticResource IconButton}" Width="36" Height="36" Margin="0,0,4,0"
                   AutomationProperties.Name="Избранное" Visibility="Visible">
             <Path x:Name="StarGlyph" Data="{StaticResource IcoStar}" Width="17" Height="17" Stretch="Uniform" StrokeThickness="1.8" StrokeLineJoin="Round" Stroke="{DynamicResource Fa}" Fill="Transparent"/>
           </Button>
@@ -64,9 +78,14 @@
         <DataTrigger Binding="{Binding CanFavorite}" Value="False">
           <Setter TargetName="StarButton" Property="Visibility" Value="Collapsed"/>
           <Setter TargetName="CheckButton" Property="Visibility" Value="Collapsed"/>
+          <Setter TargetName="RemoveButton" Property="Visibility" Value="Collapsed"/>
         </DataTrigger>
         <Trigger SourceName="Plate" Property="IsMouseOver" Value="True">
           <Setter TargetName="CheckButton" Property="Opacity" Value="1"/>
+          <Setter TargetName="RemoveButton" Property="Opacity" Value="1"/>
+        </Trigger>
+        <Trigger SourceName="RemoveButton" Property="IsKeyboardFocused" Value="True">
+          <Setter TargetName="RemoveButton" Property="Opacity" Value="1"/>
         </Trigger>
         <Trigger SourceName="CheckButton" Property="IsKeyboardFocused" Value="True">
           <Setter TargetName="CheckButton" Property="Opacity" Value="1"/>

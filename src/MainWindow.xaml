@@ -26,8 +26,8 @@
 
     <!-- Остров: тень — отдельным слоем (эффект на контейнере с текстом размывает текст). -->
     <Grid x:Name="Island" Grid.Column="1" Margin="0,44,10,10">
-      <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource Bg}"/>
-      <Border x:Name="IslandPlate" CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource Bg}" BorderBrush="{DynamicResource Divider}" BorderThickness="1">
+      <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusSky}" Background="{DynamicResource Bg}"/>
+      <Border x:Name="IslandPlate" CornerRadius="{StaticResource RadiusSky}" Background="{DynamicResource Bg}" BorderBrush="{DynamicResource Divider}" BorderThickness="1">
         <Grid x:Name="IslandHost">
           <views:ConnectionsView x:Name="Live" Visibility="Collapsed"/>
           <views:ServersSheet x:Name="Servers" Visibility="Collapsed"/>

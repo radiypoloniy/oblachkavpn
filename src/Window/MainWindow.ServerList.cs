@@ -29,7 +29,9 @@ public partial class MainWindow
 
     private void SheetRowClick(object sender, RoutedEventArgs args)
     {
+        if (args.OriginalSource is Button { DataContext: SheetHeader header } headerButton) { SheetHeaderClick(headerButton, header); return; }
         if (args.OriginalSource is not Button { DataContext: ServerRow row } button) return;
+        if (Equals(button.Tag, "remove")) { if (row.Profile is not null) RemoveServer(row.Profile); return; }
         if (Equals(button.Tag, "star")) { if (row.Profile is not null) ToggleFavorite(row.Profile); return; }
         if (Equals(button.Tag, "check")) { if (row.Profile is not null) _ = CheckServerAsync(row.Profile); return; }
         PickServer(row.IsAuto ? null : row.Profile);
@@ -57,16 +59,20 @@ public partial class MainWindow
                 IsAuto = true, Name = "Автовыбор", Selected = autoSelect, IconOnAccent = true, Icon = TryFindResource("IcoAuto") as Geometry,
                 Note = autoSelect && profile is not null ? "сейчас: " + profile.DisplayName : "самый быстрый из пула"
             });
-        void Group(string title, IEnumerable<Profile> members, bool note = false)
+        // Заголовок подписки виден и без строк (всё скрыто, подписка пустая): с него её убирают
+        // и возвращают скрытые. Но не при поиске и не на вкладке другой подписки.
+        var tab = Servers.GroupTabs.SelectedIndex > 0 && Servers.GroupTabs.Tag is string[] ids && Servers.GroupTabs.SelectedIndex - 1 < ids.Length ? ids[Servers.GroupTabs.SelectedIndex - 1] : null;
+        void Group(SheetHeader header, IEnumerable<Profile> members, bool note = false)
         {
             var rows = members.Select(p => Row(p, note)).ToArray();
-            if (rows.Length == 0) return;
-            items.Add(new SheetHeader(title));
+            if (rows.Length == 0 && (header.GroupId is null || Servers.SearchBox.Text.Trim().Length > 0 || tab is not null && tab != header.GroupId)) return;
+            items.Add(header);
             items.AddRange(rows);
         }
-        Group("ИЗБРАННОЕ", shown.Where(p => favorites.Contains(FavoriteKey(p))), note: true);
+        Group(new SheetHeader("ИЗБРАННОЕ"), shown.Where(p => favorites.Contains(FavoriteKey(p))), note: true);
         foreach (var group in groups)
-            Group(group.Name.ToUpperInvariant(), shown.Where(p => p.Group == group.Id && !favorites.Contains(FavoriteKey(p))));
+            Group(new SheetHeader(group.Name.ToUpperInvariant(), group.Id, group.IsSubscription, HiddenIn(group.Id)),
+                shown.Where(p => p.Group == group.Id && !favorites.Contains(FavoriteKey(p))));
         Servers.SheetList.ItemsSource = items;
         RefreshMeasurement();
     }

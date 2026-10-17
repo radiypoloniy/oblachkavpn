@@ -86,7 +86,13 @@ public partial class MainWindow
                 path => path.StartsWith(own, StringComparison.OrdinalIgnoreCase)));
             if (closed) return;
             Live.SetNote(LiveNote);
-            Live.Load(apps.Select(LiveRow).ToArray());
+            // Заблокированная программа соединений не открывает и пропала бы из списка — а снять
+            // блок удобнее всего там же, где его поставили. Такие остаются, пока окно открыто.
+            var shown = apps.ToList();
+            foreach (var row in liveRows.Values)
+                if (row.Rule == SiteAction.Block && !shown.Any(a => string.Equals(a.Path, row.Path, StringComparison.OrdinalIgnoreCase)))
+                    shown.Add(new LiveApp(row.Path, 0, 0, 0, []));
+            Live.Load(shown.Select(LiveRow).ToArray());
             Home.LiveCount.Text = apps.Count > 0 ? apps.Count.ToString() : "";
         }
         // Список — справочный: сбой чтения таблиц или одной строки не должен ронять окно.
@@ -104,13 +110,13 @@ public partial class MainWindow
             liveRows[app.Path] = row;
         }
         row.Vpn = app.Vpn; row.Direct = app.Direct;
-        row.Summary = ConnectionCount(app.Total);
-        (row.Route, row.RouteKind) = app.Direct == 0 ? ("через VPN", "vpn") : app.Vpn == 0 ? ("напрямую", "direct") : ($"VPN {app.Vpn} · напрямую {app.Direct}", "mix");
+        row.Summary = app.Total == 0 ? "в сеть не выходит" : ConnectionCount(app.Total);
+        (row.Route, row.RouteKind) = app.Total == 0 ? ("заблокирована", "block") : app.Direct == 0 ? ("через VPN", "vpn") : app.Vpn == 0 ? ("напрямую", "direct") : ($"VPN {app.Vpn} · напрямую {app.Direct}", "mix");
         row.Remotes = string.Join(" · ", app.Remotes);
         ShowLiveRule(row);
         // Правило меняет только новые соединения: уже открытые идут прежним путём, пока не закроются.
         row.Pending = SystemTunnelActive && row.Rule is { } action && (action == SiteAction.Direct ? app.Vpn : action == SiteAction.Tunnel ? app.Direct : app.Total) > 0
-            ? "Часть соединений открыта до правила — они доживут прежним путём, новые пойдут по правилу." : "";
+            ? "Соединения, открытые до правила, Облачка обрывает — программа переподключится уже по правилу. Голос и видео (UDP) переходят, когда звонок закончится." : "";
         var scope = SystemFile(app.Path) ? null : TryScope(app.Path);
         row.Scope = SystemFile(app.Path) ? "Системные программы Windows правилами не настраиваются: правило задело бы службы самой системы."
             : scope is not null ? ScopeText(scope.Value.Rules, scope.Value.Owner)
