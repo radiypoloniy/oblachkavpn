@@ -1,0 +1,83 @@
+﻿<UserControl x:Class="Oblachka.Views.ConnectionsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="clr-namespace:Oblachka" xmlns:v="clr-namespace:Oblachka.Views"
+             FontFamily="{StaticResource UiFont}" Foreground="{DynamicResource Tx}" Background="{DynamicResource Bg}">
+  <!-- «Правила → Программы → Сейчас в сети»: программы с соединениями прямо сейчас, через VPN
+       или напрямую, и правило для каждой в один клик. Поверх настроек, как выбор программ. -->
+  <UserControl.Resources>
+    <DataTemplate DataType="{x:Type v:ConnectionRow}">
+      <Border BorderBrush="{DynamicResource Divider}" BorderThickness="0,0,0,1" Margin="0,0,0,2">
+        <StackPanel>
+          <Button Tag="row" Style="{StaticResource Row}" MinHeight="58" Padding="10,6,12,6" AutomationProperties.Name="{Binding Name}">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="32"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <Border Width="32" Height="32" CornerRadius="{StaticResource RadiusSm}" Background="{DynamicResource Field}" Visibility="{Binding PlaceholderVisibility}">
+                <TextBlock Text="{Binding Initial}" FontSize="{StaticResource FsRow}" FontWeight="SemiBold" Foreground="{DynamicResource Mu2}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <Image Source="{Binding Icon}" Width="28" Height="28" RenderOptions.BitmapScalingMode="HighQuality"/>
+              <StackPanel Grid.Column="1" Margin="14,0,8,0" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsRowLarge}" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding Summary}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis"/>
+              </StackPanel>
+              <Border x:Name="Badge" Grid.Column="2" Height="24" Padding="10,0" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource Aci}" VerticalAlignment="Center"
+                      Visibility="{Binding RuleVisibility}">
+                <TextBlock x:Name="BadgeText" Text="{Binding RuleText}" FontSize="{StaticResource FsSmall}" FontWeight="SemiBold" Foreground="{DynamicResource Ac}" VerticalAlignment="Center"/>
+              </Border>
+            </Grid>
+          </Button>
+          <StackPanel Margin="56,0,12,12" Visibility="{Binding ActionsVisibility}">
+            <TextBlock Text="{Binding Remotes}" FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Text="{Binding Scope}" FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+            <WrapPanel Visibility="{Binding ButtonsVisibility}">
+              <Button Tag="vpn" Content="Через VPN" Style="{StaticResource BtnSecondary}" Height="32" Padding="12,0" Margin="0,0,6,6" FontSize="{StaticResource FsSmall}" o:Ui.CornerRadius="{StaticResource RadiusLg}"/>
+              <Button Tag="direct" Content="Напрямую" Style="{StaticResource BtnSecondary}" Height="32" Padding="12,0" Margin="0,0,6,6" FontSize="{StaticResource FsSmall}" o:Ui.CornerRadius="{StaticResource RadiusLg}"/>
+              <Button Tag="block" Content="Блокировать" Style="{StaticResource BtnSecondary}" Height="32" Padding="12,0" Margin="0,0,6,6" FontSize="{StaticResource FsSmall}" o:Ui.CornerRadius="{StaticResource RadiusLg}"/>
+              <Button Tag="remove" Content="Убрать правило" Style="{StaticResource BtnLink}" Height="32" Margin="4,0,0,6" FontSize="{StaticResource FsSmall}" Visibility="{Binding RemoveVisibility}"/>
+            </WrapPanel>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding Rule}" Value="Direct">
+          <Setter TargetName="Badge" Property="Background" Value="{DynamicResource OkB}"/>
+          <Setter TargetName="BadgeText" Property="Foreground" Value="{DynamicResource OkF}"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Rule}" Value="Block">
+          <Setter TargetName="Badge" Property="Background" Value="{DynamicResource RB}"/>
+          <Setter TargetName="BadgeText" Property="Foreground" Value="{DynamicResource RF}"/>
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="64"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+    </Grid.RowDefinitions>
+
+    <DockPanel Margin="10,0,96,0">
+      <Button x:Name="BackButton" Style="{StaticResource IconButton}" Foreground="{DynamicResource Tx}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Назад">
+        <Path Data="{StaticResource IcoBack}" Style="{StaticResource Icon}" StrokeThickness="2.2"/>
+      </Button>
+      <TextBlock Text="Сейчас в сети" Style="{StaticResource Brand}" Margin="4,0,0,0"/>
+    </DockPanel>
+
+    <StackPanel Grid.Row="1" Margin="20,0,20,8">
+      <TextBox x:Name="SearchBox" Style="{StaticResource FieldBox}" Height="42" Tag="Найти программу" FontSize="{StaticResource FsRow}" AutomationProperties.Name="Найти программу"/>
+      <TextBlock x:Name="Note" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" Margin="2,8,0,0"/>
+    </StackPanel>
+
+    <Grid Grid.Row="2">
+      <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10,0,10,0">
+        <o:AccessibleItems x:Name="AppList" Focusable="False"/>
+      </ScrollViewer>
+      <TextBlock x:Name="Empty" FontSize="{StaticResource FsLabel}" Foreground="{DynamicResource Mu2}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                 TextAlignment="Center" TextWrapping="Wrap" Margin="32,0"/>
+    </Grid>
+  </Grid>
+</UserControl>

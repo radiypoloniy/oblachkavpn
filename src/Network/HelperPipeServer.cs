@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO.Pipes;
 
 namespace Oblachka;
@@ -104,6 +104,7 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                         if (state == NetworkSessionState.Applied) SyncReinjection();
                     }
                     else if (request.Operation == HelperOperation.DirectDns) DirectDns.Accept(request.DirectDns!);
+                    else if (request.Operation == HelperOperation.ProgramRules) ProgramRuleSets.Accept(request.Programs!);
                     else if (request.Operation == HelperOperation.Recover)
                     {
                         // Только чужая, оставленная сессия: свою владелец снимает через Release.

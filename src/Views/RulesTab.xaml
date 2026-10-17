@@ -1,4 +1,4 @@
-<UserControl x:Class="Oblachka.Views.RulesTab" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+﻿<UserControl x:Class="Oblachka.Views.RulesTab" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:o="clr-namespace:Oblachka">
   <!-- Настройки → Без VPN: YouTube и Discord (zapret), правила сервиса и свои правила сайтов и программ. -->
   <UserControl.Resources>
@@ -80,6 +80,8 @@
             <TextBlock Text="Выбрать программы" VerticalAlignment="Center"/>
           </StackPanel>
         </Button>
+        <Button x:Name="LiveButton" Content="Сейчас в сети" Style="{StaticResource BtnSecondary}" Height="36" Margin="0,8,0,0" o:Ui.CornerRadius="{StaticResource RadiusMd}" FontSize="{StaticResource FsLabel}"
+                AutomationProperties.Name="Программы, которые сейчас в сети"/>
         <TextBlock x:Name="ProgramModeNote" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" Margin="2,8,0,0"
                    Text="Действуют в режиме «Весь компьютер»."/>
       </StackPanel>
@@ -89,8 +91,8 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,4,0,0">
       <Grid>
-        <ItemsControl x:Name="RuleList" Focusable="False"/>
-        <ItemsControl x:Name="ProgramList" Focusable="False" Visibility="Collapsed"/>
+        <o:AccessibleItems x:Name="RuleList" Focusable="False"/>
+        <o:AccessibleItems x:Name="ProgramList" Focusable="False" Visibility="Collapsed"/>
       </Grid>
     </ScrollViewer>
   </DockPanel>

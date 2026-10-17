@@ -1,4 +1,4 @@
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 using System.Text.Json.Nodes;
 
 namespace Oblachka;
@@ -25,7 +25,9 @@ public static class SingBoxTunConfig
     // при этом закрыт защитой WFP: он быстро отказывает, и программы уходят на IPv4.
     // localDns и ruleSet — DNS физической сети и файл с сайтами, которые идут мимо VPN (DirectDns):
     // их имена разрешаются там же, куда пойдёт трафик. null — всё через DoH в туннеле.
-    public static JsonObject Create(NetworkLeaseRequest request, bool ipv6 = true, System.Net.IPAddress? localDns = null, string? ruleSet = null)
+    // programSets — папка файлов правил программ (ProgramRuleSets): правила меняются без
+    // переподключения. null — правила программ прямо в конфигурации (проверка черновика).
+    public static JsonObject Create(NetworkLeaseRequest request, bool ipv6 = true, System.Net.IPAddress? localDns = null, string? ruleSet = null, string? programSets = null)
     {
         var lease = NetworkHelperContracts.Validate(request);
         if (lease.Action != NetworkLeaseAction.Acquire) throw new UserError("TUN требует новую сетевую сессию.");
@@ -63,17 +65,18 @@ public static class SingBoxTunConfig
             ["route"] = new JsonObject
             {
                 ["auto_detect_interface"] = true, ["final"] = "local-core",
-                // Поиск процесса — системный вызов на каждое соединение. Нужен только правилам программ:
-                // без него они молча не срабатывают. Прямой трафик ядра окна узнаётся по своему входу
-                // core-direct, адреса узлов исключены из туннеля — процесс для них не нужен.
-                ["find_process"] = lease.ProgramRules.Count > 0,
+                // Поиск процесса — системный вызов на каждое соединение; без него правила программ
+                // молча не срабатывают. С файлами правил он нужен всегда: правило может появиться
+                // на ходу, а включается поиск только при запуске ядра. На стенде скорости его
+                // цена в пределах шума. Прямой трафик ядра окна узнаётся по своему входу core-direct.
+                ["find_process"] = programSets is not null || lease.ProgramRules.Count > 0,
                 // Порядок важен: DNS перехватывается первым правилом и уходит на DoH внутри
                 // туннеля. Остальной UDP идёт в туннель наравне с TCP.
                 ["rules"] = new JsonArray(
                     new JsonObject { ["port"] = 53, ["action"] = "hijack-dns" })
             }
         };
-        AddRules(config, lease);
+        AddRules(config, lease, programSets);
         if (lease.HasDirect && localDns is not null && ruleSet is not null) AddDirectDns(config, localDns, ruleSet);
         return config;
     }
@@ -88,10 +91,9 @@ public static class SingBoxTunConfig
             ["type"] = "udp", ["tag"] = DirectDns.ServerTag, ["server"] = localDns.ToString(), ["server_port"] = 53
         });
         config["dns"]!["rules"] = new JsonArray(new JsonObject { ["rule_set"] = new JsonArray(DirectDns.RuleSetTag), ["server"] = DirectDns.ServerTag });
-        config["route"]!["rule_set"] = new JsonArray(new JsonObject
-        {
-            ["type"] = "local", ["tag"] = DirectDns.RuleSetTag, ["format"] = "source", ["path"] = ruleSet
-        });
+        var sets = config["route"]!["rule_set"] as JsonArray ?? new JsonArray();
+        config["route"]!["rule_set"] = sets;
+        sets.Add(new JsonObject { ["type"] = "local", ["tag"] = DirectDns.RuleSetTag, ["format"] = "source", ["path"] = ruleSet });
         foreach (var outbound in ((JsonArray)config["outbounds"]!).OfType<JsonObject>())
             if ((string?)outbound["tag"] == UserDirect) outbound["domain_resolver"] = DirectDns.ServerTag;
     }
@@ -101,7 +103,7 @@ public static class SingBoxTunConfig
     // они относятся ко всей программе; затем правила сайтов, длинные домены раньше.
     // «Напрямую» — отдельный выход direct из этого ядра; защита WFP разрешает его только
     // при наличии таких правил (WfpProtectionBackend).
-    private static void AddRules(JsonObject config, ValidatedNetworkLease lease)
+    private static void AddRules(JsonObject config, ValidatedNetworkLease lease, string? programSets)
     {
         var rules = (JsonArray)config["route"]!["rules"]!;
         if (lease.HasDirect) ((JsonArray)config["outbounds"]!).Add(new JsonObject { ["type"] = "direct", ["tag"] = UserDirect });
@@ -118,8 +120,14 @@ public static class SingBoxTunConfig
             rules.Insert(0, new JsonObject { ["inbound"] = new JsonArray(CoreDirectInbound), ["outbound"] = UserDirect });
         }
         if (lease.SiteRules.Count > 0) rules.Add(new JsonObject { ["action"] = "sniff" });
-        foreach (var rule in ProgramRoutingPlan.Ordered(lease.ProgramRules))
-            rules.Add(Route(ProgramRoutingPlan.Match(rule), rule.Action));
+        // Прямой выход разрешён защитой, только если «напрямую» было при подключении. Правило
+        // «напрямую», добавленное на ходу без него, блокирует программу: мимо VPN без разрешения
+        // она не уйдёт, а окно попросит переподключиться.
+        if (programSets is not null)
+            ProgramRuleSets.AddTo(config, programSets, (match, action) => Route(match, action == SiteAction.Direct && !lease.HasDirect ? SiteAction.Block : action));
+        else
+            foreach (var rule in ProgramRoutingPlan.Ordered(lease.ProgramRules))
+                rules.Add(Route(ProgramRoutingPlan.Match(rule), rule.Action));
         foreach (var rule in lease.SiteRules.OrderByDescending(r => r.Domain.Count(c => c == '.')))
             rules.Add(Route(new JsonObject { ["domain_suffix"] = new JsonArray(rule.Domain) }, rule.Action));
     }

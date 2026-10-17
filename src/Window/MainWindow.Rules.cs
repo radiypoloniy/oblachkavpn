@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 
 namespace Oblachka;
 
@@ -8,6 +8,7 @@ public partial class MainWindow
     private void WireRules()
     {
         WireProgramRules();
+        WireConnections();
         WireRouting();
         // Новое правило идёт «через VPN»; действие меняется нажатием на метку в списке.
         Routes.AddRuleButton.Click += (_, _) => AddSiteRule(Routes.RuleDomain.Text, SiteAction.Tunnel);

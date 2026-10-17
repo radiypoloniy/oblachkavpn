@@ -83,6 +83,7 @@ public partial class MainWindow
             var next = programRules.Where(r => !rules.Any(n => string.Equals(n.Key, r.Key, StringComparison.OrdinalIgnoreCase))).Concat(rules).ToArray();
             ProgramRoutingPlan.Validate(next);
             programRules.Clear(); programRules.AddRange(next); RefreshRules(); QueueStateSave();
+            ProgramRulesChanged();
             return true;
         }
         catch (UserError ex) { DetailText.Text = ex.Message; return false; }

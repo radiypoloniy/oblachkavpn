@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
@@ -26,7 +26,7 @@ public partial class MainWindow
         }
         else Servers.Visibility = Visibility.Collapsed;
         if (page is "Routes" or "Diagnostics") OpenSettings(page == "Routes" ? 1 : 3);
-        else { Settings.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed; }
+        else { Settings.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed; CloseConnections(); }
         Onboarding.Visibility = welcome ? Visibility.Visible : Visibility.Collapsed;
         Onboarding.ContinueButton.IsDefault = welcome;
     }
@@ -78,6 +78,7 @@ public partial class MainWindow
     {
         Settings.Visibility = Visibility.Collapsed;
         Picker.Visibility = Visibility.Collapsed;
+        CloseConnections();
         Doctor.Visibility = Visibility.Collapsed;
         SiteCheck.Visibility = Visibility.Collapsed;
         if (currentPage is "Routes" or "Diagnostics") currentPage = "Connection";
@@ -92,6 +93,7 @@ public partial class MainWindow
         if (args.Key != Key.Escape) return;
         if (ModeMenuLayer.Visibility == Visibility.Visible) ShowModeMenu(false);
         else if (Picker.Visibility == Visibility.Visible) CloseAppPicker();
+        else if (Live.Visibility == Visibility.Visible) CloseConnections();
         else if (Doctor.Visibility == Visibility.Visible) Doctor.Visibility = Visibility.Collapsed;
         else if (SiteCheck.Visibility == Visibility.Visible) SiteCheck.Visibility = Visibility.Collapsed;
         else if (Settings.Visibility == Visibility.Visible) CloseSettings();

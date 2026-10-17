@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net.NetworkInformation;
 
 namespace Oblachka;
@@ -44,8 +44,10 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         // DNS по пути трафика: прямые сайты — через резолвер физической сети (DirectDns).
         DirectDns.EnsureFile();
         var localDns = DirectDns.PhysicalResolver();
-        CoreConfigurationCheck.ValidateTunAsync(request, token, ipv6, localDns, DirectDns.RuleSetPath).GetAwaiter().GetResult();
-        var config = SingBoxTunConfig.Create(request, ipv6, localDns, DirectDns.RuleSetPath).ToJsonString();
+        // Правила программ — в файлах, которые окно меняет на ходу (ProgramRuleSets); при запуске — из аренды.
+        ProgramRuleSets.Write(ProgramRuleSets.Folder, lease.ProgramRules);
+        CoreConfigurationCheck.ValidateTunAsync(request, token, ipv6, localDns, DirectDns.RuleSetPath, ProgramRuleSets.Folder).GetAwaiter().GetResult();
+        var config = SingBoxTunConfig.Create(request, ipv6, localDns, DirectDns.RuleSetPath, ProgramRuleSets.Folder).ToJsonString();
         NetworkHelperHost.RecordStep(DateTime.UtcNow.ToString("HH:mm:ss.fff") + " DNS прямых сайтов: " + (localDns is null ? "через туннель" : "сеть"));
 
         var start = new ProcessStartInfo(executable)

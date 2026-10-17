@@ -93,6 +93,12 @@ public static class ProgramRoutingPlan
         .ThenByDescending(r => r.Folder?.Count(c => c == '\\') ?? 0)
         .ThenByDescending(r => r.Folder?.Length ?? 0);
 
+    // Какое правило ядро применит к программе по этому пути: первое совпадение в том же порядке.
+    public static ProgramRule? Find(IEnumerable<ProgramRule> rules, string path) => Ordered(rules).FirstOrDefault(r =>
+        r.Folder is null ? string.Equals(Path.GetFileName(path), r.Executable, StringComparison.OrdinalIgnoreCase)
+        : r.AllInFolder ? path.StartsWith(r.Folder + "\\", StringComparison.OrdinalIgnoreCase)
+        : string.Equals(path, r.FilePath, StringComparison.OrdinalIgnoreCase));
+
     // Условие правила ядра sing-box. Путь процесса Windows сравнивается без учёта регистра.
     public static JsonObject Match(ProgramRule rule) => rule.Folder is null
         ? new JsonObject { ["process_name"] = new JsonArray(rule.Executable) }

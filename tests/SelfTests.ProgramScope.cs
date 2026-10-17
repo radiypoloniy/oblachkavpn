@@ -54,6 +54,65 @@ public static partial class SelfTests
             var forged = lease with { Programs = [rule with { Folder = @"C:\Windows" }] };
             ExpectUserError(() => NetworkHelperContracts.Validate(forged));
         }));
+        await check("Live program rule files keep precedence by levels and reach sing-box without a reconnect", async () =>
+        {
+            var steam = ProgramRoutingPlan.Create(@"C:\Steam\steam.exe", SiteAction.Direct, true);
+            var game = ProgramRoutingPlan.Create(@"C:\Steam\steamapps\common\Game\game.exe", SiteAction.Tunnel, true);
+            var name = ProgramRoutingPlan.Create("game.exe", SiteAction.Block);
+            var exact = ProgramRoutingPlan.Create(@"C:\Steam\steamapps\common\Game\game.exe", SiteAction.Direct, false);
+            var other = ProgramRoutingPlan.Create(@"D:\Apps\Tool\tool.exe", SiteAction.Block, true);
+            var levels = ProgramRuleSets.Place([steam, game, name, exact, other]).ToDictionary(p => p.Rule.Key, p => p.Level);
+            Assert(levels[exact.Key] == 0 && levels[name.Key] == 1 && levels[game.Key] == 2 && levels[steam.Key] == 3 && levels[other.Key] == 2);
+            var folder = Path.Combine(Path.GetTempPath(), "oblachka-programs-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                ProgramRuleSets.Write(folder, [steam, game]);
+                Assert(Directory.GetFiles(folder, "*.json").Length == ProgramRuleSets.Levels * 3);
+                var gameSet = JsonNode.Parse(File.ReadAllText(Path.Combine(folder, ProgramRuleSets.Tag(0, SiteAction.Tunnel) + ".json")))!;
+                Assert(gameSet["rules"]![0]!["process_path_regex"]![0]!.GetValue<string>().Contains(@"common\\Game\\"));
+                // Без «напрямую» при подключении: уровни «напрямую» блокируют, а не выпускают мимо туннеля.
+                var strict = new NetworkLeaseRequest(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, 10808, ["192.0.2.1"]);
+                await CoreConfigurationCheck.ValidateTunAsync(strict, CancellationToken.None, programSets: folder);
+                var config = SingBoxTunConfig.Create(strict, programSets: folder);
+                var direct = ((JsonArray)config["route"]!["rules"]!).Single(r => r!["rule_set"]?[0]?.GetValue<string>() == ProgramRuleSets.Tag(1, SiteAction.Direct))!;
+                Assert(direct["action"]!.GetValue<string>() == "reject" && config["route"]!["find_process"]!.GetValue<bool>());
+                var open = SingBoxTunConfig.Create(strict with { Programs = [steam] }, programSets: folder);
+                Assert(((JsonArray)open["route"]!["rules"]!).Single(r => r!["rule_set"]?[0]?.GetValue<string>() == ProgramRuleSets.Tag(1, SiteAction.Direct))!["outbound"]!.GetValue<string>() == SingBoxTunConfig.UserDirect);
+            }
+            finally { Directory.Delete(folder, true); }
+            var request = new HelperRequest(1, Guid.NewGuid(), HelperOperation.ProgramRules, null, Programs: new([steam]));
+            HelperProtocol.Validate(request);
+            ExpectUserError(() => HelperProtocol.Validate(request with { Operation = HelperOperation.Heartbeat }));
+            ExpectUserError(() => HelperProtocol.Validate(request with { Programs = new([steam with { Folder = @"C:\" }]) }));
+        });
+        await check("Live connections group by program, tell tunnel from direct and find the rule the core applies", () => Sync(() =>
+        {
+            var tun = System.Net.IPAddress.Parse(SingBoxTunConfig.TunHost4);
+            var lan = System.Net.IPAddress.Parse("192.168.1.10");
+            var web = System.Net.IPAddress.Parse("203.0.113.5");
+            var loop = System.Net.IPAddress.Loopback;
+            LiveSocket[] sockets =
+            [
+                new(10, false, tun, 50001, web, 443, ConnectionTable.Established),
+                new(11, false, tun, 50002, web, 443, ConnectionTable.Established),
+                new(10, false, lan, 50003, web, 80, ConnectionTable.Established),
+                new(20, false, lan, 50004, web, 443, ConnectionTable.Established),
+                new(20, false, System.Net.IPAddress.Any, 8080, System.Net.IPAddress.Any, 0, ConnectionTable.Listening),
+                new(30, false, loop, 50005, loop, 10808, ConnectionTable.Established),
+                new(20, true, lan, 5353, null, 0, 0),
+                new(40, false, tun, 50006, web, 443, ConnectionTable.Established),
+            ];
+            var paths = new Dictionary<int, string?> { [10] = @"C:\Apps\Chrome\chrome.exe", [11] = @"C:\Apps\Chrome\chrome.exe", [20] = @"D:\Games\Game\game.exe", [30] = @"C:\Apps\Tool\tool.exe", [40] = @"C:\Program Files\Oblachka\tools\sing-box.exe" };
+            var apps = LiveApps.Group(sockets, true, 0, pid => paths.GetValueOrDefault(pid), p => p.StartsWith(@"C:\Program Files\Oblachka\", StringComparison.OrdinalIgnoreCase));
+            Assert(apps.Count == 2 && apps[0] is { Vpn: 2, Direct: 1 } && apps[0].Path.EndsWith("chrome.exe") && apps[1] is { Vpn: 0, Direct: 1, Udp: 1 });
+            // Без туннеля через VPN только то, что идёт в прокси Облачки.
+            var proxy = LiveApps.Group(sockets, false, 10808, pid => paths.GetValueOrDefault(pid), _ => false);
+            Assert(proxy.Single(a => a.Path.EndsWith("tool.exe")).Vpn == 1 && proxy.Single(a => a.Path.EndsWith("chrome.exe")).Direct == 3);
+            ProgramRule[] rules = [ProgramRoutingPlan.Create(@"D:\Lib\game.exe", SiteAction.Block, true), ProgramRoutingPlan.Create(@"D:\Lib\Game\game.exe", SiteAction.Tunnel, true), ProgramRoutingPlan.Create("chrome.exe", SiteAction.Direct)];
+            Assert(ProgramRoutingPlan.Find(rules, @"D:\Lib\Game\bin\game.exe")!.Action == SiteAction.Tunnel);
+            Assert(ProgramRoutingPlan.Find(rules, @"D:\Lib\Other\other.exe")!.Action == SiteAction.Block);
+            Assert(ProgramRoutingPlan.Find(rules, @"C:\Apps\Chrome\chrome.exe")!.Action == SiteAction.Direct && ProgramRoutingPlan.Find(rules, @"C:\x\y.exe") is null);
+        }));
         await check("Steam libraries, Squirrel apps and the app scope pick whole program folders", () => Sync(() =>
         {
             var vdf = "\"libraryfolders\"\n{\n\t\"0\"\n\t{\n\t\t\"path\"\t\t\"C:\\\\Program Files (x86)\\\\Steam\"\n\t}\n\t\"1\"\n\t{\n\t\t\"path\"\t\t\"D:\\\\SteamLibrary\"\n\t}\n}";
