@@ -17,18 +17,52 @@ public partial class MainWindow
 
     private void WireConnections()
     {
-        Routes.LiveButton.Click += (_, _) => OpenConnections();
-        Live.Closed += CloseConnections;
+        Routes.LiveButton.Click += (_, _) => ShowLiveSection();
+        Home.LiveNav.Click += (_, _) => ShowLiveSection();
+        // «Назад» есть только в узком окне: там раздел закрывается, и видна боковая панель.
+        Live.Closed += () => { CloseConnections(); narrowOpen = false; ApplyLayout(); Home.LiveNav.Focus(); };
         Live.ActionChosen += ApplyLiveRule;
+        // Окно в фоне — список реже: каждое обновление перерисовывает строки, а смотрят на него редко.
+        Activated += (_, _) => LivePace();
+        Deactivated += (_, _) => LivePace();
     }
 
-    private void OpenConnections()
+    private void LivePace() { if (liveTimer is not null) liveTimer.Interval = TimeSpan.FromSeconds(IsActive ? 2 : 6); }
+
+    // «Сейчас в сети» — раздел острова: настройки и «Все серверы» уступают ему место.
+    private void ShowLiveSection()
     {
-        Live.Show(SystemTunnelActive ? "Правило действует сразу — для новых соединений программы."
-            : engine.State is not ConnectionState.Idle ? "Сейчас режим «Браузеры и программы»: через VPN идут только программы, которые слушают системный прокси. Правила программ работают в режиме «Весь компьютер»."
-            : "VPN выключен — всё идёт напрямую. Правила программ заработают при подключении в режиме «Весь компьютер».");
+        Settings.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed; Servers.Visibility = Visibility.Collapsed;
+        Doctor.Visibility = Visibility.Collapsed; SiteCheck.Visibility = Visibility.Collapsed;
+        if (currentPage is "Routes" or "Diagnostics" or "Servers") currentPage = "Connection";
+        OpenConnections(focus: true);
+        OpenSection();
+    }
+
+    private string LiveNote => SystemTunnelActive ? "Правило действует сразу — для новых соединений программы."
+        : engine.State is not ConnectionState.Idle ? "Сейчас режим «Браузеры и программы»: через VPN идут только программы, которые слушают системный прокси. Правила программ работают в режиме «Весь компьютер»."
+        : "VPN выключен — всё идёт напрямую. Правила программ заработают при подключении в режиме «Весь компьютер».";
+
+    // Путь процесса по PID — один раз: OpenProcess на каждый PID раз в 2 секунды заметен.
+    // Кэш сбрасывается раз в минуту, чтобы номер, доставшийся новой программе, не врал долго.
+    private readonly Dictionary<int, string?> livePaths = new();
+    private DateTime livePathsReset = DateTime.UtcNow;
+    private string? LivePath(int pid)
+    {
+        lock (livePaths)
+        {
+            if (DateTime.UtcNow - livePathsReset > TimeSpan.FromMinutes(1)) { livePaths.Clear(); livePathsReset = DateTime.UtcNow; }
+            if (!livePaths.TryGetValue(pid, out var path)) livePaths[pid] = path = ConnectionTable.ProcessPath(pid);
+            return path;
+        }
+    }
+
+    private void OpenConnections(bool focus)
+    {
+        Live.Show(focus, LiveNote);
         LoadAppCatalog();
         liveTimer ??= new DispatcherTimer(TimeSpan.FromSeconds(2), DispatcherPriority.Background, async (_, _) => await RefreshConnectionsAsync(), Dispatcher);
+        LivePace();
         liveTimer.Start();
         _ = RefreshConnectionsAsync();
     }
@@ -37,21 +71,23 @@ public partial class MainWindow
     {
         liveTimer?.Stop();
         Live.Visibility = Visibility.Collapsed;
-        Routes.LiveButton.Focus();
     }
 
     private async Task RefreshConnectionsAsync()
     {
-        if (liveBusy || Live.Visibility != Visibility.Visible || closed) return;
+        // Окно свёрнуто или спрятано в трей — таблицы соединений никто не видит, читать их незачем.
+        if (liveBusy || Live.Visibility != Visibility.Visible || closed || !IsVisible || WindowState == WindowState.Minimized) return;
         liveBusy = true;
         try
         {
             var own = Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory) + "\\";
             var tunnel = SystemTunnelActive; var proxy = engine.Port;
-            var apps = await Task.Run(() => LiveApps.Group(ConnectionTable.Read(), tunnel, proxy, ConnectionTable.ProcessPath,
+            var apps = await Task.Run(() => LiveApps.Group(ConnectionTable.Read(), tunnel, proxy, LivePath,
                 path => path.StartsWith(own, StringComparison.OrdinalIgnoreCase)));
             if (closed) return;
+            Live.SetNote(LiveNote);
             Live.Load(apps.Select(LiveRow).ToArray());
+            Home.LiveCount.Text = apps.Count > 0 ? apps.Count.ToString() : "";
         }
         // Список — справочный: сбой чтения таблиц или одной строки не должен ронять окно.
         catch (Exception ex) when (ex is not OutOfMemoryException) { Live.Load([]); }
@@ -107,10 +143,17 @@ public partial class MainWindow
         return AppRuleScope.For(owner ?? new InstalledApp(LiveName(path), Path.GetFileName(path), path, true), action);
     }
 
+    // Охват правила для строки списка — раз на программу и каталог: разбор пути с проверкой
+    // папок на диске для каждой строки раз в 2 секунды заметно грузил процессор.
+    private readonly Dictionary<string, (object? Catalog, ProgramRule[]? Scope)> liveScopes = new(StringComparer.OrdinalIgnoreCase);
     private ProgramRule[]? TryScope(string path)
     {
-        try { return LiveScope(path, SiteAction.Tunnel); }
-        catch (UserError) { return null; }
+        if (liveScopes.TryGetValue(path, out var known) && ReferenceEquals(known.Catalog, appCatalog)) return known.Scope;
+        ProgramRule[]? scope;
+        try { scope = LiveScope(path, SiteAction.Tunnel); }
+        catch (UserError) { scope = null; }
+        liveScopes[path] = (appCatalog, scope);
+        return scope;
     }
 
     private static string ScopeText(ProgramRule[] rules) => rules.Length > 1 ? "Правило возьмёт папки: " + string.Join(", ", rules.Select(r => ShortPath(r.Folder!)))

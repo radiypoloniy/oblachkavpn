@@ -62,6 +62,7 @@ public partial class MainWindow
     private void RefreshDirectChip()
     {
         if (!viewsReady) return;
+        RefreshBypassCard();
         var chip = Home.DirectChip;
         void Show(string text, string background, string foreground)
         {

@@ -12,23 +12,27 @@ public partial class MainWindow
     // Общий список для интерфейса: сначала узлы сервиса, затем сторонние.
     private IReadOnlyList<Profile> importedProfiles = Array.Empty<Profile>();
 
-    // Экраны нового дизайна: главный; «Все серверы» поверх него; настройки с вкладками
-    // («Правила» и «Помощь» — их вкладки). Без подключений — экран ключа.
+    // Разделы окна 0.16 открываются на острове (MainWindow.Layout): «Сейчас в сети» по умолчанию,
+    // «Все серверы», настройки с вкладками («Правила» и «Помощь» — их вкладки). Боковая панель
+    // видна всегда. Без подключений — экран ключа во всё окно.
     private void Navigate(string page)
     {
         currentPage = page;
         var welcome = profile is null && page == "Connection";
-        Home.Visibility = !welcome && page is "Connection" or "Servers" ? Visibility.Visible : Visibility.Collapsed;
+        Home.Visibility = welcome ? Visibility.Collapsed : Visibility.Visible;
         if (page == "Servers")
         {
+            CloseConnections();
             if (Servers.Visibility != Visibility.Visible) { FilterProfiles(); Servers.Open(); }
             if (DateTimeOffset.UtcNow - lastPing > TimeSpan.FromMinutes(5)) QueuePing();
+            narrowOpen = true;
         }
         else Servers.Visibility = Visibility.Collapsed;
         if (page is "Routes" or "Diagnostics") OpenSettings(page == "Routes" ? 1 : 3);
-        else { Settings.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed; CloseConnections(); }
+        else { Settings.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed; }
         Onboarding.Visibility = welcome ? Visibility.Visible : Visibility.Collapsed;
         Onboarding.ContinueButton.IsDefault = welcome;
+        if (page == "Connection") ShowDefaultSection(); else ApplyLayout();
     }
 
     // Подписки других клиентов ищутся один раз за запуск и только в настоящем окружении:
@@ -63,6 +67,8 @@ public partial class MainWindow
     private void OpenSettings(int? tab)
     {
         ShowModeMenu(false);
+        CloseConnections();
+        Servers.Visibility = Visibility.Collapsed;
         if (tab is int index) Settings.ShowTab(index);
         else if (Settings.Visibility != Visibility.Visible) Settings.ShowTab(0);
         if (Settings.Visibility != Visibility.Visible)
@@ -72,6 +78,7 @@ public partial class MainWindow
         }
         RefreshSettings();
         Settings.CloseButton.Focus();
+        OpenSection();
     }
 
     private void CloseSettings()
@@ -82,6 +89,7 @@ public partial class MainWindow
         Doctor.Visibility = Visibility.Collapsed;
         SiteCheck.Visibility = Visibility.Collapsed;
         if (currentPage is "Routes" or "Diagnostics") currentPage = "Connection";
+        ShowDefaultSection();
         Home.SettingsButton.Focus();
     }
 
@@ -93,7 +101,7 @@ public partial class MainWindow
         if (args.Key != Key.Escape) return;
         if (ModeMenuLayer.Visibility == Visibility.Visible) ShowModeMenu(false);
         else if (Picker.Visibility == Visibility.Visible) CloseAppPicker();
-        else if (Live.Visibility == Visibility.Visible) CloseConnections();
+        else if (narrow && Live.Visibility == Visibility.Visible) { CloseConnections(); narrowOpen = false; ApplyLayout(); }
         else if (Doctor.Visibility == Visibility.Visible) Doctor.Visibility = Visibility.Collapsed;
         else if (SiteCheck.Visibility == Visibility.Visible) SiteCheck.Visibility = Visibility.Collapsed;
         else if (Settings.Visibility == Visibility.Visible) CloseSettings();

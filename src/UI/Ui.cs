@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 
 namespace Oblachka;
 
@@ -10,4 +10,10 @@ public static class Ui
         "CornerRadius", typeof(CornerRadius), typeof(Ui), new FrameworkPropertyMetadata(new CornerRadius(0)));
     public static CornerRadius GetCornerRadius(DependencyObject target) => (CornerRadius)target.GetValue(CornerRadiusProperty);
     public static void SetCornerRadius(DependencyObject target, CornerRadius value) => target.SetValue(CornerRadiusProperty, value);
+
+    // Выбранный пункт боковой панели (раздел, шестерёнка): стиль подсвечивает его, не меняя размер.
+    public static readonly DependencyProperty SelectedProperty = DependencyProperty.RegisterAttached(
+        "Selected", typeof(bool), typeof(Ui), new FrameworkPropertyMetadata(false));
+    public static bool GetSelected(DependencyObject target) => (bool)target.GetValue(SelectedProperty);
+    public static void SetSelected(DependencyObject target, bool value) => target.SetValue(SelectedProperty, value);
 }

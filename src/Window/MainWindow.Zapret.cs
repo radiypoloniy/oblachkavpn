@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Windows;
 
 namespace Oblachka;
@@ -46,7 +46,7 @@ public partial class MainWindow
     {
         if (!NetworkHelperConnection.ServiceRunning)
         {
-            Routes.ZapretToggle.IsChecked = false;
+            Routes.ZapretToggle.IsChecked = false; Home.BypassToggle.IsChecked = false;
             zapretNote = "Нужна установленная Облачка: обход запускает её сетевая служба.";
             RefreshZapret(); return;
         }
@@ -54,7 +54,7 @@ public partial class MainWindow
             "Облачка скачает zapret (набор стратегий Flowseal с GitHub), проверит файлы и подберёт стратегию для вашей сети — это до двух минут. " +
             "YouTube, Discord и другие сайты из его списков пойдут напрямую, не тратя VPN. Антивирус может ругаться на драйвер WinDivert: это известное ложное срабатывание. " +
             "Обход работает, пока запущена Облачка.", "Включить"))
-        { Routes.ZapretToggle.IsChecked = false; return; }
+        { Routes.ZapretToggle.IsChecked = false; Home.BypassToggle.IsChecked = false; return; }
         zapretEnabled = true; QueueStateSave();
         await PickZapretAsync(force: false);
     }

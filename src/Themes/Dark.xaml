@@ -1,6 +1,7 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <!-- Сгенерировано scripts/tokens.ps1 из theme/tokens.json. Руками не править: изменения пропадут. -->
   <SolidColorBrush x:Key="Page" Color="#0A0D12"/>  <!-- фон вокруг окна в превью -->
+  <SolidColorBrush x:Key="Side" Color="#0C1016"/>  <!-- фон окна и боковой панели, под островом содержимого -->
   <SolidColorBrush x:Key="Bg" Color="#11151D"/>  <!-- фон окна -->
   <SolidColorBrush x:Key="CardBg" Color="#1A1F29"/>  <!-- карточки в настройках -->
   <SolidColorBrush x:Key="Field" Color="#1E2430"/>  <!-- поля ввода, вторичные кнопки, сегменты -->
@@ -47,7 +48,8 @@
   <SolidColorBrush x:Key="RingSoft" Color="#2C3547"/>  <!-- мягкое кольцо вокруг тумблера -->
   <SolidColorBrush x:Key="FootWarn" Color="#F2B01E"/>  <!-- предупреждение в подвале -->
   <Color x:Key="ShadowColor">#80000000</Color>  <!-- тень окон -->
-  <Color x:Key="GlowColor">#594F7FF2</Color>  <!-- свечение включённого тумблера -->
+  <Color x:Key="GlowColor">#594F7FF2</Color>  <!-- свечение главной кнопки (синее) -->
+  <Color x:Key="OkGlowColor">#702FB36A</Color>  <!-- свечение кнопки подключения, когда VPN включён -->
   <SolidColorBrush x:Key="LatFast" Color="#2FB36A"/>  <!-- пинг меньше 160 мс -->
   <SolidColorBrush x:Key="LatMid" Color="#D9A01E"/>  <!-- пинг 160–250 мс -->
   <SolidColorBrush x:Key="LatSlow" Color="#D9731E"/>  <!-- пинг больше 250 мс -->
@@ -62,4 +64,8 @@
   <SolidColorBrush x:Key="OnAccent" Color="#FFFFFF"/>  <!-- текст и значки на акцентном и цветном фоне -->
   <SolidColorBrush x:Key="SBtnText" Color="#2E2205"/>  <!-- подписка заканчивается — текст кнопки «Продлить» -->
   <SolidColorBrush x:Key="OverlayDanger" Color="#14000000"/>  <!-- подсветка при наведении на красную кнопку «Выйти» в трее -->
+  <SolidColorBrush x:Key="OnSky" Color="#E6FFFFFF"/>  <!-- подпись статуса на небе -->
+  <SolidColorBrush x:Key="BrandYouTube" Color="#FF0033"/>  <!-- значок YouTube в карточке обхода -->
+  <SolidColorBrush x:Key="BrandDiscord" Color="#5865F2"/>  <!-- значок Discord в карточке обхода -->
+  <SolidColorBrush x:Key="CloseHover" Color="#C42B1C"/>  <!-- наведение на кнопку «закрыть окно» -->
 </ResourceDictionary>

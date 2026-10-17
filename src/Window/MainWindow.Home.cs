@@ -38,6 +38,7 @@ public partial class MainWindow
         DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock)).AddValueChanged(ShellFeedback, (_, _) => ShowToast());
         ThemeManager.Changed += RefreshHome;
         WireStates();
+        WireSidebar();
     }
 
     private string SessionDuration => sessionStarted is null ? "0:00:00" : (DateTimeOffset.UtcNow - sessionStarted.Value).ToString(@"h\:mm\:ss");
@@ -82,7 +83,7 @@ public partial class MainWindow
         Home.CheckIcon.Visibility = checkedOk ? Visibility.Visible : Visibility.Collapsed;
         ApplySpecialState(running);
 
-        Home.AllServersText.Text = "Все " + importedProfiles.Count;
+        RefreshSidebar();
         // Список меняется, только если изменилось видимое: иначе ежесекундное обновление
         // перезапускало бы анимацию отметки и сбрасывало наведение.
         var rows = QuickRows();
