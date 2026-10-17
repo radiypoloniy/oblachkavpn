@@ -1,11 +1,11 @@
-using System.Windows;
+﻿using System.Windows;
 using Microsoft.Win32;
 using Oblachka.Views;
 
 namespace Oblachka;
 
-// Правила программ: выбор из списка программ компьютера (AppPicker) или файлом. Правило хранит
-// только имя файла — так его исполняет ядро туннеля; имя и значок берутся из каталога для показа.
+// Правила программ: выбор из списка программ компьютера (AppPicker), файлом или папкой. Правило
+// берёт папку программы целиком (AppRuleScope); имя и значок берутся из каталога для показа.
 public partial class MainWindow
 {
     private readonly List<ProgramRule> programRules = new();
@@ -17,16 +17,17 @@ public partial class MainWindow
         Routes.ChooseProgramsButton.Click += (_, _) => OpenAppPicker();
         Picker.Closed += CloseAppPicker;
         Picker.FileRequested += ChooseProgramFile;
+        Picker.FolderRequested += ChooseProgramFolder;
         Picker.Chosen += (apps, action) =>
         {
-            foreach (var app in apps) AddProgramRule(app.Executable, action);
+            try { AddProgramRules(apps.SelectMany(a => AppRuleScope.For(a, action)).ToArray()); }
+            catch (UserError ex) { DetailText.Text = ex.Message; return; }
             CloseAppPicker();
             DetailText.Text = apps.Count == 1 ? "Программа добавлена в правила." : "Программ добавлено в правила: " + apps.Count + ".";
         };
     }
 
-    private Dictionary<string, SiteAction> AddedPrograms() =>
-        programRules.ToDictionary(r => r.Executable, r => r.Action, StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<ProgramRule> AddedPrograms() => programRules.ToArray();
 
     private void OpenAppPicker()
     {
@@ -60,28 +61,49 @@ public partial class MainWindow
     {
         var dialog = new OpenFileDialog { Filter = "Программа (*.exe)|*.exe", Title = "Выберите программу" };
         if (dialog.ShowDialog(this) != true) return;
-        if (AddProgramRule(Path.GetFileName(dialog.FileName), Picker.Action)) { CloseAppPicker(); DetailText.Text = "Программа добавлена в правила."; }
+        var app = new InstalledApp(Path.GetFileNameWithoutExtension(dialog.FileName), Path.GetFileName(dialog.FileName), dialog.FileName, false);
+        try { if (AddProgramRules(AppRuleScope.For(app, Picker.Action))) { CloseAppPicker(); DetailText.Text = "Программа добавлена в правила."; } }
+        catch (UserError ex) { DetailText.Text = ex.Message; }
     }
 
-    private bool AddProgramRule(string executable, SiteAction action)
+    // Игра, которой нет в списке (лаунчер ставит её в свою папку): правило на всю выбранную папку.
+    private void ChooseProgramFolder()
+    {
+        var dialog = new OpenFolderDialog { Title = "Выберите папку программы или игры" };
+        if (dialog.ShowDialog(this) != true) return;
+        try { if (AddProgramRules([AppRuleScope.ForFolder(dialog.FolderName, Picker.Action)])) { CloseAppPicker(); DetailText.Text = "Папка добавлена в правила."; } }
+        catch (UserError ex) { DetailText.Text = ex.Message; }
+    }
+
+    // Уже существующее правило на тот же файл или папку заменяется: человек поменял решение.
+    private bool AddProgramRules(IReadOnlyList<ProgramRule> rules)
     {
         try
         {
-            var rule = ProgramRoutingPlan.Create(executable, action);
-            if (programRules.Any(r => string.Equals(r.Executable, rule.Executable, StringComparison.OrdinalIgnoreCase))) return false;
-            ProgramRoutingPlan.Validate(programRules.Append(rule).ToArray());
-            programRules.Add(rule); RefreshRules(); QueueStateSave();
+            var next = programRules.Where(r => !rules.Any(n => string.Equals(n.Key, r.Key, StringComparison.OrdinalIgnoreCase))).Concat(rules).ToArray();
+            ProgramRoutingPlan.Validate(next);
+            programRules.Clear(); programRules.AddRange(next); RefreshRules(); QueueStateSave();
             return true;
         }
         catch (UserError ex) { DetailText.Text = ex.Message; return false; }
     }
 
+    // Подпись говорит, что именно берёт правило: всю папку, один файл или любую копию по имени.
     private RuleRow ProgramRow(ProgramRule rule)
     {
-        var app = appCatalog?.FirstOrDefault(a => string.Equals(a.App.Executable, rule.Executable, StringComparison.OrdinalIgnoreCase));
-        return app is null
-            ? new RuleRow { Rule = rule, Text = rule.Executable, Action = rule.Action }
-            : new RuleRow { Rule = rule, Text = app.Name, Sub = rule.Executable, Icon = app.Icon, Action = rule.Action };
+        var app = appCatalog?.FirstOrDefault(a => a.Covers(rule)) ??
+            appCatalog?.FirstOrDefault(a => string.Equals(a.App.Executable, rule.Executable, StringComparison.OrdinalIgnoreCase));
+        var sub = rule.Folder is null ? rule.Executable + " · в любой папке" : rule.AllInFolder ? "вся папка · " + ShortPath(rule.Folder) : ShortPath(rule.FilePath!);
+        var text = app?.Name ?? (rule.AllInFolder ? Path.GetFileName(rule.Folder!) : rule.Executable);
+        return new RuleRow { Rule = rule, Text = text, Sub = sub, Icon = app?.Icon, Action = rule.Action };
+    }
+
+    // C:\Users\me\AppData\Roaming\Telegram Desktop → C:\…\Roaming\Telegram Desktop: в узкой строке
+    // важен конец пути, а не начало.
+    internal static string ShortPath(string path)
+    {
+        var parts = path.Split(Path.DirectorySeparatorChar);
+        return parts.Length <= 4 ? path : parts[0] + Path.DirectorySeparatorChar + "…" + Path.DirectorySeparatorChar + string.Join(Path.DirectorySeparatorChar, parts[^2..]);
     }
 
     private async Task ValidateProgramDraftAsync(CancellationToken token)

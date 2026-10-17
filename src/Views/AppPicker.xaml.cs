@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -14,6 +14,7 @@ public partial class AppPicker : UserControl
     private IReadOnlyList<AppRow> rows = Array.Empty<AppRow>();
     public event Action<IReadOnlyList<InstalledApp>, SiteAction>? Chosen;
     public event Action? FileRequested;
+    public event Action? FolderRequested;
     public event Action? Closed;
 
     public AppPicker()
@@ -24,6 +25,7 @@ public partial class AppPicker : UserControl
         AppList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(RowClick));
         BackButton.Click += (_, _) => Closed?.Invoke();
         FileButton.Click += (_, _) => FileRequested?.Invoke();
+        FolderButton.Click += (_, _) => FolderRequested?.Invoke();
         AddButton.Click += (_, _) =>
         {
             var picked = rows.Where(r => r.Checked).Select(r => r.App).ToArray();
@@ -33,8 +35,8 @@ public partial class AppPicker : UserControl
 
     public SiteAction Action => ActionChoice.SelectedIndex switch { 1 => SiteAction.Direct, 2 => SiteAction.Block, _ => SiteAction.Tunnel };
 
-    // added — уже есть в правилах (имя файла → действие): такие строки видны, но не выбираются.
-    public void Open(IReadOnlyDictionary<string, SiteAction> added)
+    // added — правила, которые уже есть: программы под ними видны, но не выбираются.
+    public void Open(IReadOnlyList<ProgramRule> added)
     {
         SearchBox.Clear();
         ActionChoice.SelectedIndex = 0;
@@ -47,7 +49,7 @@ public partial class AppPicker : UserControl
         SearchBox.Focus();
     }
 
-    public void Load(IReadOnlyList<AppRow> found, IReadOnlyDictionary<string, SiteAction> added)
+    public void Load(IReadOnlyList<AppRow> found, IReadOnlyList<ProgramRule> added)
     {
         rows = found;
         foreach (var row in rows) row.SetAdded(added);
@@ -60,7 +62,7 @@ public partial class AppPicker : UserControl
         var byApp = rows.ToDictionary(r => r.App);
         AppList.ItemsSource = shown.Select(a => byApp[a]).ToArray();
         StatusText.Text = rows.Count == 0 ? "Ищем программы на компьютере…"
-            : shown.Count == 0 ? "Не нашли такую программу. Нажмите «Выбрать файл…» и укажите её .exe." : "";
+            : shown.Count == 0 ? "Не нашли такую программу. Укажите её папку («Выбрать папку…») или файл .exe." : "";
         StatusText.Visibility = StatusText.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
         Count();
     }
@@ -95,11 +97,26 @@ public sealed class AppRow(InstalledApp app, ImageSource? icon) : INotifyPropert
     public string Note => note;
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public void SetAdded(IReadOnlyDictionary<string, SiteAction> rules)
+    // Какие правила создаст выбор этой программы (AppRuleScope) — по ним видно, что она уже добавлена.
+    private string[]? keys;
+    private string[] Keys => keys ??= Scope();
+    private string[] Scope()
     {
-        added = rules.TryGetValue(App.Executable, out var action);
+        try { return AppRuleScope.For(App, SiteAction.Tunnel).Select(r => r.Key).ToArray(); }
+        catch (UserError) { return []; }
+    }
+
+    // Правило касается программы: те же папка или файл, либо старое правило по имени её файла.
+    public bool Covers(ProgramRule rule) =>
+        rule.Folder is null ? string.Equals(rule.Executable, App.Executable, StringComparison.OrdinalIgnoreCase) : Keys.Contains(rule.Key, StringComparer.OrdinalIgnoreCase);
+
+    public void SetAdded(IReadOnlyList<ProgramRule> rules)
+    {
+        var match = rules.FirstOrDefault(Covers);
+        added = match is not null;
         if (added) isChecked = false;
-        note = added ? "уже в правилах · " + RuleRow.ActionLabel(action) : App.Executable + (App.Running ? " · запущена" : "");
+        var where = App.Folders is { Length: > 1 } ? " · папок: " + App.Folders.Length : "";
+        note = match is not null ? "уже в правилах · " + RuleRow.ActionLabel(match.Action) : App.Executable + where + (App.Running ? " · запущена" : "");
         Changed(nameof(Added)); Changed(nameof(Note)); Changed(nameof(Checked));
     }
 

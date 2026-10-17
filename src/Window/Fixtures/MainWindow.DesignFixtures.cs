@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Input;
 
 namespace Oblachka;
@@ -126,8 +126,10 @@ public partial class MainWindow
             SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(1); Routes.ShowSites(false);
             if (page == "apps-rules")
             {
+                // Как после выбора в списке: папка программы целиком; чего нет на компьютере — старое правило по имени.
                 foreach (var (exe, action) in new[] { ("Telegram.exe", SiteAction.Direct), ("Steam.exe", SiteAction.Direct), ("chrome.exe", SiteAction.Tunnel), ("game.exe", SiteAction.Block) })
-                    AddProgramRule(exe, action);
+                    AddProgramRules(appCatalog.FirstOrDefault(a => string.Equals(a.App.Executable, exe, StringComparison.OrdinalIgnoreCase)) is { } app
+                        ? AppRuleScope.For(app.App, action) : [ProgramRoutingPlan.Create(exe, action)]);
                 return;
             }
             OpenAppPicker(); Picker.Load(appCatalog, AddedPrograms());

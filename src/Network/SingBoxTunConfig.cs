@@ -118,8 +118,8 @@ public static class SingBoxTunConfig
             rules.Insert(0, new JsonObject { ["inbound"] = new JsonArray(CoreDirectInbound), ["outbound"] = UserDirect });
         }
         if (lease.SiteRules.Count > 0) rules.Add(new JsonObject { ["action"] = "sniff" });
-        foreach (var rule in lease.ProgramRules)
-            rules.Add(Route(new JsonObject { ["process_name"] = new JsonArray(rule.Executable) }, rule.Action));
+        foreach (var rule in ProgramRoutingPlan.Ordered(lease.ProgramRules))
+            rules.Add(Route(ProgramRoutingPlan.Match(rule), rule.Action));
         foreach (var rule in lease.SiteRules.OrderByDescending(r => r.Domain.Count(c => c == '.')))
             rules.Add(Route(new JsonObject { ["domain_suffix"] = new JsonArray(rule.Domain) }, rule.Action));
     }
