@@ -53,6 +53,8 @@ public partial class MainWindow
             if (closed) return;
             Live.Load(apps.Select(LiveRow).ToArray());
         }
+        // Список — справочный: сбой чтения таблиц или одной строки не должен ронять окно.
+        catch (Exception ex) when (ex is not OutOfMemoryException) { Live.Load([]); }
         finally { liveBusy = false; }
     }
 
@@ -60,7 +62,9 @@ public partial class MainWindow
     {
         if (!liveRows.TryGetValue(app.Path, out var row))
         {
-            row = new ConnectionRow(app.Path) { Name = LiveName(app.Path), Icon = AppIcons.For(app.Path), Configurable = !SystemFile(app.Path) };
+            // Правило можно поставить, только если путь программы годится для правила: необычное
+            // имя файла (claude.exe.old.123, символы вне допустимых) — без кнопок, с пояснением.
+            row = new ConnectionRow(app.Path) { Name = LiveName(app.Path), Icon = AppIcons.For(app.Path), Configurable = !SystemFile(app.Path) && TryScope(app.Path) is not null };
             liveRows[app.Path] = row;
         }
         row.Summary = (app.Vpn > 0 ? "через VPN " + app.Vpn : "") + (app.Vpn > 0 && app.Direct > 0 ? " · " : "") + (app.Direct > 0 ? "напрямую " + app.Direct : "");
@@ -69,8 +73,9 @@ public partial class MainWindow
         // Правило меняет только новые соединения: уже открытые идут прежним путём, пока не закроются.
         if (SystemTunnelActive && row.Rule is { } action && (action == SiteAction.Direct ? app.Vpn : action == SiteAction.Tunnel ? app.Direct : app.Total) > 0)
             row.Summary += " · открыты до правила";
-        row.Scope = !row.Configurable ? "Системные программы Windows правилами не настраиваются: правило задело бы службы самой системы."
-            : ScopeText(LiveScope(app.Path, SiteAction.Tunnel));
+        row.Scope = SystemFile(app.Path) ? "Системные программы Windows правилами не настраиваются: правило задело бы службы самой системы."
+            : TryScope(app.Path) is { } scope ? ScopeText(scope)
+            : "Для этой программы правило не поставить: у её файла необычное имя.";
         return row;
     }
 
@@ -100,6 +105,12 @@ public partial class MainWindow
                 a.Folders?.Any(f => path.StartsWith(f + "\\", StringComparison.OrdinalIgnoreCase)) == true)
             .OrderByDescending(a => a.Folders?.Where(f => path.StartsWith(f + "\\", StringComparison.OrdinalIgnoreCase)).Max(f => f.Length) ?? 0).FirstOrDefault();
         return AppRuleScope.For(owner ?? new InstalledApp(LiveName(path), Path.GetFileName(path), path, true), action);
+    }
+
+    private ProgramRule[]? TryScope(string path)
+    {
+        try { return LiveScope(path, SiteAction.Tunnel); }
+        catch (UserError) { return null; }
     }
 
     private static string ScopeText(ProgramRule[] rules) => rules.Length > 1 ? "Правило возьмёт папки: " + string.Join(", ", rules.Select(r => ShortPath(r.Folder!)))
