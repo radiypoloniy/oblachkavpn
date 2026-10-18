@@ -75,6 +75,15 @@ public partial class MainWindow
         if (ProfilesOf(ProfileGroup.ManualId).Count != 1 || importedProfiles.Count != 2)
             throw new InvalidOperationException("Deleting a manual server failed");
         checks.Add("A subscription server hides (and survives saving hidden, returns on demand); a manual server deletes");
+        // Убранная подписка запоминается: ссылка со страницы подписки спросит «Вернуть?», а не «Добавить?».
+        var swedenGroup = groups.First(g => g.IsSubscription).Id;
+        RemoveGroup(swedenGroup);
+        if (!removedSubscriptions.Contains(swedenGroup)) throw new InvalidOperationException("Removed subscription was not remembered");
+        store.Save(CaptureState()); removedSubscriptions.Clear(); ApplySnapshot(store.Load()!);
+        if (!removedSubscriptions.Contains(swedenGroup)) throw new InvalidOperationException("Removed subscription was forgotten after saving");
+        await Load("https://other.invalid/s/b", new ImportResult(new[] { Node("Швеция", 3) }, 0, 0));
+        if (removedSubscriptions.Contains(swedenGroup)) throw new InvalidOperationException("Re-added subscription still counted as removed");
+        checks.Add("A removed subscription is remembered across saving and forgotten once added back");
         hiddenServers.Clear();
         serviceProfiles = Array.Empty<Profile>(); externalProfiles = Array.Empty<Profile>(); profile = null;
         LoadPreviewProfiles();

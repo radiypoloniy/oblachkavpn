@@ -8,7 +8,7 @@ namespace Oblachka;
 // программа, адрес и выход, через который соединение ушло на самом деле. В «Весь компьютер»
 // таблицы Windows этого не показывают: программа всегда подключается к адаптеру туннеля, а
 // напрямую её отправляет уже ядро — по правилу программы или сайта.
-public sealed record CoreConnection(string? ProcessPath, bool Udp, string? Host, string? Address, int Port, IReadOnlyList<string> Chains);
+public sealed record CoreConnection(string? ProcessPath, bool Udp, string? Host, string? Address, int Port, IReadOnlyList<string> Chains, string? Id = null);
 
 public static class CoreConnections
 {
@@ -29,6 +29,29 @@ public static class CoreConnections
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or InvalidOperationException) { return null; }
     }
 
+    // Закрыть соединения программ, чьё правило изменилось: ядро рвёт их и со стороны туннеля, так
+    // что программа переподключается уже по новому правилу. В отличие от сброса TCP службой
+    // (ConnectionReset), так закрываются и UDP (голос, игры, Steam), и IPv6.
+    public static async Task<int> CloseChangedAsync(CoreStatsEntry entry, IReadOnlyList<ProgramRule> before, IReadOnlyList<ProgramRule> after, CancellationToken token)
+    {
+        var connections = await ReadAsync(entry, token).ConfigureAwait(false);
+        if (connections is null) return 0;
+        var closed = 0;
+        foreach (var connection in connections)
+        {
+            if (connection is not { ProcessPath: { } path, Id: { } id } || !ConnectionReset.Changed(before, after, path)) continue;
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Delete, $"http://127.0.0.1:{entry.Port}/connections/{Uri.EscapeDataString(id)}");
+                request.Headers.Authorization = new("Bearer", entry.Secret);
+                using var response = await Http.SendAsync(request, token).ConfigureAwait(false);
+                if (response.IsSuccessStatusCode) closed++;
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException) { }
+        }
+        return closed;
+    }
+
     internal static IReadOnlyList<CoreConnection> Parse(string json)
     {
         var result = new List<CoreConnection>();
@@ -39,7 +62,7 @@ public static class CoreConnections
             var chains = (node["chains"] as JsonArray)?.Select(c => c?.GetValue<string>()).OfType<string>().ToArray() ?? [];
             int.TryParse(meta?["destinationPort"]?.ToString(), out var port);
             result.Add(new(Text(meta?["processPath"]), string.Equals(Text(meta?["network"]), "udp", StringComparison.OrdinalIgnoreCase),
-                Text(meta?["host"]), Text(meta?["destinationIP"]), port, chains));
+                Text(meta?["host"]), Text(meta?["destinationIP"]), port, chains, Text(node["id"])));
         }
         return result;
     }
