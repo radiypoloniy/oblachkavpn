@@ -10,7 +10,7 @@ public enum ConnectionState { Idle, Validating, Starting, Running, Verified, Fai
 public enum ProbeFailure { None, Reachability, TargetResponse }
 public sealed record ProbeResult(bool Success, long Milliseconds, string Message, ProbeFailure Failure = ProbeFailure.None);
 
-public sealed class Engine : ITunnelController
+public sealed partial class Engine : ITunnelController
 {
     private CoreAdapter adapter;
     private Process? process;
@@ -18,7 +18,7 @@ public sealed class Engine : ITunnelController
     private bool stopping;
     private int preferredPort;
     public int Port { get; private set; }
-    public int? ProcessId => Alive(process, null) is { } p ? p.Id : null;
+    public int? ProcessId => carrier is not null ? Environment.ProcessId : Alive(process, null) is { } p ? p.Id : null;
 
     // Процесс жив и тот же. Поле читается один раз: его может обнулить остановка с другого потока,
     // а у остановленного процесса HasExited бросает исключение.
@@ -52,7 +52,8 @@ public sealed class Engine : ITunnelController
 
     public Task StartAsync(Profile profile, CancellationToken token)
     {
-        if (process is not null) throw new UserError("Сначала остановите текущее подключение.");
+        if (process is not null || carrier is not null) throw new UserError("Сначала остановите текущее подключение.");
+        if (CarriedBy is { } carriedBy) return StartCarried(carriedBy);
         var filename = profile.Core == CoreKind.Xray ? "xray.exe" : "sing-box.exe";
         adapter = new(profile.Core, Path.Combine(Path.GetDirectoryName(adapter.Executable)!, filename));
         var rules = SiteRules; var routing = Routing; var entry = DirectEntry;
@@ -150,6 +151,7 @@ public sealed class Engine : ITunnelController
 
     public async Task<ProbeResult> ProbeAsync(Uri target, CancellationToken token)
     {
+        if (carrier is { } carried) return await CarriedProbeAsync(carried, target, token);
         if (Alive(process, null) is not { } current) throw new UserError("Сначала запустите подключение.");
         var pid = current.Id;
         var port = Port;
@@ -208,6 +210,7 @@ public sealed class Engine : ITunnelController
             running.Dispose();
         }
         Interlocked.Exchange(ref job, null)?.Dispose();
+        carrier = null;
         Port = 0;
         Set(ConnectionState.Idle, "Подключение остановлено");
     }

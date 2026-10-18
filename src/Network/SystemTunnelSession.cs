@@ -91,16 +91,21 @@ public sealed class SystemTunnelSession : IAsyncDisposable
             {
                 plans = prepared.ToArray(); current = plans[0];
                 var peers = plans.SelectMany(p => p.Peers).Distinct(StringComparer.Ordinal).ToArray();
-                await core.StartAsync(current.PinnedProfile, token).ConfigureAwait(false);
-                leasePort = core.Port;
-                // Запрос к помощнику не прерывается отменой: отмена посреди него закрывает канал,
-                // служба считает окно погибшим и держит сеть закрытой, а Release уже не дойдёт.
-                // Запрос ограничен своим сроком в канале; отмена проверяется после него, и
-                // сессия снимается обычным Release.
                 Stats = CoreStatsEntry.Create(Engine.FreePort());
                 // Выходы прямо на серверы — по одному на узел плана; у кого перевода нет — ядро окна.
                 direct = DirectAllowed?.Invoke() == true ? plans.Select(p => DirectOutbound.From(p.PinnedProfile)).ToArray() : null;
                 if (direct is not null && direct.All(o => o is null)) direct = null;
+                selective = directByDefault;
+                // Узел идёт прямо из туннеля — процесс ядра окна не запускается (Engine.Carried).
+                core.CarriedBy = Carries(Choose(current)) ? Stats : null;
+                await core.StartAsync(current.PinnedProfile, token).ConfigureAwait(false);
+                leasePort = core.Port;
+                // Порт ядра закреплён, но в режиме туннеля не занят: совпадение с портом статистики — новый порт.
+                while (leasePort == Stats.Port) Stats = CoreStatsEntry.Create(Engine.FreePort());
+                // Запрос к помощнику не прерывается отменой: отмена посреди него закрывает канал,
+                // служба считает окно погибшим и держит сеть закрытой, а Release уже не дойдёт.
+                // Запрос ограничен своим сроком в канале; отмена проверяется после него, и
+                // сессия снимается обычным Release.
                 BlocksBypass = await helper.AcquireAsync(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, leasePort, peers,
                     sites?.ToArray(), programs?.ToArray(), coreDirect, directByDefault, Stats, direct, lists), CancellationToken.None).ConfigureAwait(false);
                 DirectActive = direct?[0] is not null;
@@ -134,6 +139,8 @@ public sealed class SystemTunnelSession : IAsyncDisposable
                 throw new UserError("Этот сервер не был разрешён при включении системного режима. " +
                     "Остановите подключение и запустите его снова на нужном сервере.");
             Set(SystemTunnelState.Holding);
+            var outbound = Choose(plan);
+            core.CarriedBy = Carries(outbound) ? Stats : null;
             core.Stop();
             await core.StartAsync(plan.PinnedProfile, token).ConfigureAwait(false);
             if (core.Port != leasePort)
@@ -142,7 +149,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
                 core.Stop();
                 throw new UserError("Ядро не смогло занять прежний локальный порт. Остановите подключение и запустите его снова.");
             }
-            await SelectAsync(plan, token).ConfigureAwait(false);
+            await SelectAsync(outbound, token).ConfigureAwait(false);
             current = plan;
             Set(SystemTunnelState.Running);
         }
@@ -150,12 +157,21 @@ public sealed class SystemTunnelSession : IAsyncDisposable
     }
 
     // Выход ядра туннеля для узла: прямой, если он есть и сейчас допустим, иначе ядро окна.
-    private async Task SelectAsync(TunnelEndpointPlan plan, CancellationToken token)
+    private string Choose(TunnelEndpointPlan plan)
     {
-        if (direct is null || Stats is null) return;
         var index = -1;
         for (var i = 0; i < plans.Count; i++) if (ReferenceEquals(plans[i], plan)) index = i;
-        var name = index >= 0 && direct[index] is not null && DirectAllowed?.Invoke() == true ? SingBoxTunConfig.DirectTag(index) : "local-core";
+        return direct is not null && index >= 0 && direct[index] is not null && DirectAllowed?.Invoke() == true ? SingBoxTunConfig.DirectTag(index) : "local-core";
+    }
+
+    // Ядро окна не нужно, когда трафик идёт прямо из туннеля. «Через VPN только выбранное» — нужно:
+    // там итог туннеля «напрямую», и проверка связи шла бы мимо сервера.
+    private bool Carries(string outbound) => outbound != "local-core" && !selective && Stats is not null;
+    private bool selective;
+
+    private async Task SelectAsync(string name, CancellationToken token)
+    {
+        if (direct is null || Stats is null) return;
         if (!await CoreSelector.SelectAsync(Stats, name, token).ConfigureAwait(false))
             throw new UserError("Ядро туннеля не переключило сервер. Остановите подключение и запустите его снова.");
         DirectActive = name != "local-core";

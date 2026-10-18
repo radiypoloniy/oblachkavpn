@@ -74,13 +74,15 @@ public static partial class SelfTests
         await check("System session sends direct outbounds only while the window allows them", async () =>
         {
             var ssLink = "ss://" + B64("2022-blake3-aes-128-gcm:ISQz02o+aQdntLC3EX4AjQ==").TrimEnd('=') + "@203.0.113.7:443#S";
-            foreach (var allowed in new[] { true, false })
+            foreach (var (allowed, selective) in new[] { (true, false), (false, false), (true, true) })
             {
-                var calls = new List<string>(); var helper = new SessionHelper(calls);
-                await using var session = new SystemTunnelSession(new SessionCore(calls), helper) { DirectAllowed = () => allowed };
+                var calls = new List<string>(); var helper = new SessionHelper(calls); var core = new SessionCore(calls);
+                await using var session = new SystemTunnelSession(core, helper) { DirectAllowed = () => allowed };
                 var plan = await TunnelEndpoints.PrepareAsync(Profiles.Parse(ssLink), CancellationToken.None);
-                await session.StartWithSparesAsync([plan], CancellationToken.None);
+                await session.StartWithSparesAsync([plan], CancellationToken.None, directByDefault: selective);
                 Assert(allowed ? helper.LastRequest!.Direct is [{ }] && session.DirectActive : helper.LastRequest!.Direct is null && !session.DirectActive);
+                // Ядро окна не запускается, когда трафик идёт прямо из туннеля; в выборочном режиме — запускается.
+                Assert(ReferenceEquals(core.CarriedBy, allowed && !selective ? session.Stats : null));
             }
         });
         await check("Window switches the tunnel core's server selector through the pinned sing-box clash API", async () =>
@@ -112,6 +114,18 @@ public static partial class SelfTests
                 request.Headers.Authorization = new("Bearer", stats.Secret);
                 var now = JsonNode.Parse(await (await http.SendAsync(request)).Content.ReadAsStringAsync())!["now"]!.GetValue<string>();
                 Assert(now == "local-core");
+                // Ядро окна в режиме туннеля: процесса нет, порт закреплён. Сама проверка связи
+                // (/delay) идёт в интернет — она проверяется на стенде, а не здесь: sing-box подменяет
+                // адрес http:// на gstatic, а выход тестового ядра на машине разработчика закрыт его VPN.
+                using (var carried = new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), Path.GetTempPath()) { CarriedBy = stats })
+                {
+                    await carried.StartAsync(Profiles.Parse(realityLink), CancellationToken.None);
+                    Assert(carried.State == ConnectionState.Running && carried.ProcessId == Environment.ProcessId && carried.Port > 0);
+                    carried.Stop();
+                    Assert(carried.ProcessId is null && carried.State == ConnectionState.Idle);
+                }
+                // Неответ ядра туннеля — «не прошло», а не исключение.
+                Assert(await CoreSelector.DelayAsync(stats with { Secret = new string('0', 32) }, new Uri("https://www.cloudflare.com/"), CancellationToken.None) is null);
                 // Чужой секрет не переключает.
                 Assert(!await CoreSelector.SelectAsync(stats with { Secret = new string('0', 32) }, SingBoxTunConfig.DirectTag(0), CancellationToken.None));
             }

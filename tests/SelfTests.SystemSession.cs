@@ -108,6 +108,7 @@ public static partial class SelfTests
         public int? ProcessId { get; private set; }
         public ConnectionState State { get; private set; }
         public string CoreLabel => "fixture";
+        public CoreStatsEntry? CarriedBy { get; set; }
         public event Action<ConnectionState, string>? Changed;
         public Task StartAsync(Profile profile, CancellationToken token)
         { calls.Add("core:start"); ProcessId = 42; State = ConnectionState.Running; Changed?.Invoke(State, "fixture"); return Task.CompletedTask; }
