@@ -99,7 +99,7 @@ public static class NetworkHelperHost
     // Сетевая сессия с настоящими backend: общая для помощника с UAC и для службы.
     internal static SessionHost CreateSession(Func<string, ITunnelProcess>? core)
     {
-        var executable = Path.Combine(AppContext.BaseDirectory, "tools", "sing-box.exe");
+        var executable = TunCore.Program();
         var start = core is null
             ? new Func<ValidatedNetworkLease, CancellationToken, ITunnelProcess>((lease, token) => SingBoxTunnelProcess.Start(lease, executable, token))
             : ((lease, _) => core(executable));

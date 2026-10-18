@@ -111,7 +111,7 @@ public partial class MainWindow
     {
         if (programRules.Count == 0) return;
         var request = new NetworkLeaseRequest(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, 10808, ["192.0.2.1"]);
-        var adapter = new CoreAdapter(CoreKind.SingBox, Path.Combine(AppContext.BaseDirectory, "tools", "sing-box.exe"));
+        var adapter = new CoreAdapter(CoreKind.SingBox, TunCore.Program());
         await CoreConfigurationCheck.ValidateAsync(adapter, ProgramRoutingPlan.Compile(request, programRules), token);
     }
 }

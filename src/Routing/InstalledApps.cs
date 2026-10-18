@@ -90,7 +90,7 @@ public static class InstalledApps
     private static readonly string[] NotApps = { "unins", "uninst", "setup", "install", "remove", "crashpad", "crashreport", "helper", "elevate",
         "notification_helper", "maintenanceservice", "vc_redist", "dotnet-", "windowsdesktop-runtime" };
     // Свои: правило на окно или ядра Облачков сломало бы сам туннель.
-    private static readonly string[] Own = { "oblachka.exe", "oblachka.tests.exe", "xray.exe", "sing-box.exe" };
+    private static readonly string[] Own = { "oblachka.exe", "oblachka.tests.exe", "xray.exe", "sing-box.exe", TunCore.FileName };
     // Кэши установщиков: DisplayIcon в реестре часто указывает туда, на сам установщик.
     private static readonly string[] NotAppFolders = { @"\package cache\", @"\installer\", @"\windowsapps\microsoft.", @"\temp\" };
 

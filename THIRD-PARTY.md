@@ -21,6 +21,10 @@
 
 Запись происхождения: `vendor/sing-box-1.14.3/provenance.json`.
 
+## oblachka-core (ядро системного туннеля)
+
+Собирается из исходников в `core/` (`scripts/build-core.ps1`): sing-box 1.14.3 и Xray-core 26.9.9 как библиотеки Go (версии закреплены в `core/go.mod` и `core/go.sum`) плюс выход `xray`, который передаёт соединения встроенному Xray внутри процесса. Код sing-box и Xray не изменяется. Сборка воспроизводимая (`-trimpath`, без `buildid` и cgo), SHA256 файла закреплён в `src/Network/TunCore.cs`. Лицензия — GPL-3.0-or-later, как у sing-box и всего клиента. Название своё: условие sing-box запрещает производным работам называться sing-box.
+
 ## zapret и набор Flowseal
 
 Не входят в установщик: сетевая служба скачивает их по включению «YouTube и Discord без VPN» с официальных релизов и сверяет SHA256 по манифесту `zapret/manifest.json` (см. [docs/zapret.md](docs/zapret.md)).

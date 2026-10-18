@@ -27,6 +27,7 @@ public sealed class KillSwitchBackend : INetworkSessionBackend
     // ходила бы любая программа: разрешение действует на адрес, а не на того, кто идёт.
     public static readonly string PeerXrayRule = ServiceBrand.Name + " — соединение с сервером (Xray)";
     public static readonly string PeerSingBoxRule = ServiceBrand.Name + " — соединение с сервером (sing-box)";
+    public static readonly string PeerTunCoreRule = ServiceBrand.Name + " — соединение с сервером (ядро туннеля)";
     // Прежнее разрешение без привязки к программе. Не ставится, но снимается: могло
     // остаться от сборки, которая его ставила.
     public static readonly string PeerRule = ServiceBrand.Name + " — соединение с сервером";
@@ -63,7 +64,7 @@ public sealed class KillSwitchBackend : INetworkSessionBackend
     // Имена правил постоянны и не содержат идентификатора сессии: правило, оставшееся
     // после потери журнала, иначе стало бы невидимым для уборки. Одновременных сессий
     // не бывает — журнал этого не допускает.
-    public static IReadOnlyList<string> RuleNames => new[] { TunnelRule, PeerXrayRule, PeerSingBoxRule, DhcpRule, TunnelDnsRule, DnsRule, DnsTcpRule };
+    public static IReadOnlyList<string> RuleNames => new[] { TunnelRule, PeerXrayRule, PeerSingBoxRule, PeerTunCoreRule, DhcpRule, TunnelDnsRule, DnsRule, DnsTcpRule };
     private static IReadOnlyList<string> CleanupNames => RuleNames.Append(PeerRule).ToArray();
 
     private readonly IFirewallPolicy firewall;
@@ -81,6 +82,7 @@ public sealed class KillSwitchBackend : INetworkSessionBackend
 
     public string XrayProgram => Path.Combine(tools, "xray.exe");
     public string SingBoxProgram => Path.Combine(tools, "sing-box.exe");
+    public string TunCoreProgram => TunCore.Program(tools);
 
     // Блокировка имеет смысл только при включённом брандмауэре: иначе исходящее действие
     // профиля ни на что не влияет, и мы бы обещали защиту, которой нет. Отказ брандмауэра
@@ -122,6 +124,7 @@ public sealed class KillSwitchBackend : INetworkSessionBackend
             LocalAddresses: SingBoxTunConfig.TunHost4 + "," + SingBoxTunConfig.TunHost6));
         firewall.AddRule(new FirewallRule(PeerXrayRule, RemoteAddresses: peers, Program: XrayProgram));
         firewall.AddRule(new FirewallRule(PeerSingBoxRule, RemoteAddresses: peers, Program: SingBoxProgram));
+        firewall.AddRule(new FirewallRule(PeerTunCoreRule, RemoteAddresses: peers, Program: TunCoreProgram));
         firewall.AddRule(new FirewallRule(DhcpRule, WindowsFirewallPolicy.Udp,
             LocalPorts: "68", RemotePorts: "67"));
         // Резолверу туннеля нужно собственное разрешение. Правило по локальному адресу

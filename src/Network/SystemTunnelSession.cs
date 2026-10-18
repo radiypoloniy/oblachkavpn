@@ -93,7 +93,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
                 var peers = plans.SelectMany(p => p.Peers).Distinct(StringComparer.Ordinal).ToArray();
                 Stats = CoreStatsEntry.Create(Engine.FreePort());
                 // Выходы прямо на серверы — по одному на узел плана; у кого перевода нет — ядро окна.
-                direct = DirectAllowed?.Invoke() == true ? plans.Select(p => DirectOutbound.From(p.PinnedProfile)).ToArray() : null;
+                direct = DirectAllowed?.Invoke() == true ? DirectOutbound.Fit(plans.Select(p => DirectOutbound.From(p.PinnedProfile)).ToArray()) : null;
                 if (direct is not null && direct.All(o => o is null)) direct = null;
                 selective = directByDefault;
                 // Узел идёт прямо из туннеля — процесс ядра окна не запускается (Engine.Carried).

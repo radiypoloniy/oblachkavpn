@@ -25,16 +25,18 @@ public static partial class SelfTests
                 Assert(JsonNode.DeepEquals(accepted, outbound));
                 // Закреплённая версия sing-box принимает выход в рабочей конфигурации.
                 var config = new JsonObject { ["log"] = new JsonObject { ["disabled"] = true }, ["outbounds"] = new JsonArray(accepted.DeepClone()) };
-                await CoreConfigurationCheck.ValidateAsync(new(CoreKind.SingBox, Path.Combine(AppContext.BaseDirectory, "tools", "sing-box.exe")), config, CancellationToken.None);
+                await CoreConfigurationCheck.ValidateAsync(new(CoreKind.SingBox, TunCore.Program()), config, CancellationToken.None);
             }
         });
-        await check("Profiles sing-box cannot carry the same way stay on the window core", () => Sync(() =>
+        await check("Profiles sing-box cannot carry the same way go to the tunnel core's Xray; redirected sockets and names stay on the window core", () => Sync(() =>
         {
-            Assert(DirectOutbound.From(Profiles.Parse("vless://6f1c2e0a-5b7d-4c3e-9a1f-0b2c3d4e5f60@203.0.113.7:443?security=reality&sni=www.example.com&pbk=SbVKOEMjK0sIlbwg4akyBg5mL5KZwwB-ed4eEE7YnRc&type=xhttp&path=%2Fx#X")) is null);
-            Assert(DirectOutbound.From(Profiles.Parse("vless://6f1c2e0a-5b7d-4c3e-9a1f-0b2c3d4e5f60@203.0.113.7:443?security=tls&sni=example.com&type=ws&path=%2Fws%3Fed%3D2048#E")) is null);
-            Assert(DirectOutbound.From(Profiles.Parse("vless://6f1c2e0a-5b7d-4c3e-9a1f-0b2c3d4e5f60@203.0.113.7:443?security=tls&sni=example.com&ech=AEX%2B#ECH")) is null);
+            // Чего sing-box не умеет так же, идёт встроенным Xray ядра туннеля (выход "xray").
+            string? Kind(Profile p) => DirectOutbound.From(p)?["type"]?.GetValue<string>();
+            Assert(Kind(Profiles.Parse("vless://6f1c2e0a-5b7d-4c3e-9a1f-0b2c3d4e5f60@203.0.113.7:443?security=reality&sni=www.example.com&pbk=SbVKOEMjK0sIlbwg4akyBg5mL5KZwwB-ed4eEE7YnRc&type=xhttp&path=%2Fx#X")) == "xray");
+            Assert(Kind(Profiles.Parse("vless://6f1c2e0a-5b7d-4c3e-9a1f-0b2c3d4e5f60@203.0.113.7:443?security=tls&sni=example.com&type=ws&path=%2Fws%3Fed%3D2048#E")) == "xray");
+            Assert(Kind(Profiles.Parse("vless://6f1c2e0a-5b7d-4c3e-9a1f-0b2c3d4e5f60@203.0.113.7:443?security=tls&sni=example.com&ech=AEX%2B#ECH")) == "xray");
             var mux = Profiles.Parse(realityLink); mux.Outbound["mux"] = new JsonObject { ["enabled"] = true };
-            Assert(DirectOutbound.From(mux) is null);
+            Assert(Kind(mux) == "xray");
             var sockopt = Profiles.Parse(realityLink); sockopt.Outbound["streamSettings"]!["sockopt"] = new JsonObject { ["dialerProxy"] = "x" };
             Assert(DirectOutbound.From(sockopt) is null);
             // Адрес не IP — профиль ещё не закреплён планом узла.
@@ -98,7 +100,7 @@ public static partial class SelfTests
                     new JsonObject { ["type"] = "selector", ["tag"] = SingBoxTunConfig.ServerSelector, ["outbounds"] = new JsonArray(SingBoxTunConfig.DirectTag(0), "local-core"), ["default"] = SingBoxTunConfig.DirectTag(0) }),
                 ["experimental"] = new JsonObject { ["clash_api"] = new JsonObject { ["external_controller"] = "127.0.0.1:" + stats.Port, ["secret"] = stats.Secret } }
             };
-            var start = new System.Diagnostics.ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "tools", "sing-box.exe")) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardError = true, RedirectStandardOutput = true };
+            var start = new System.Diagnostics.ProcessStartInfo(TunCore.Program()) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardError = true, RedirectStandardOutput = true };
             foreach (var a in new[] { "run", "-c", "stdin" }) start.ArgumentList.Add(a);
             using var process = System.Diagnostics.Process.Start(start)!;
             using var job = new ProcessJob(); job.Attach(process);

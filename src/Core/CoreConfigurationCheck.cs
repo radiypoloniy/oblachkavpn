@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Text.Json.Nodes;
-using System.Security.Cryptography;
 
 namespace Oblachka;
 
@@ -8,13 +7,8 @@ public static class CoreConfigurationCheck
 {
     public static async Task ValidateTunAsync(NetworkLeaseRequest request, CancellationToken token, bool ipv6 = true, System.Net.IPAddress? localDns = null, string? ruleSet = null, string? programSets = null, string? listsFolder = null)
     {
-        var executable = Path.Combine(AppContext.BaseDirectory, "tools", "sing-box.exe");
-        await using (var input = File.OpenRead(executable))
-        {
-            var hash = Convert.ToHexString(await SHA256.HashDataAsync(input, token));
-            if (hash != "5C19BB3F8C12D4E85B3D47FE63123A7624B314B58DD7A8E32F51004F1C4D2FAF")
-                throw new UserError("Ядро sing-box не соответствует закреплённой версии.");
-        }
+        var executable = TunCore.Program();
+        await TunCore.VerifyAsync(executable, token);
         await ValidateAsync(new(CoreKind.SingBox, executable), SingBoxTunConfig.Create(request, ipv6, localDns, ruleSet, programSets, listsFolder), token);
     }
 

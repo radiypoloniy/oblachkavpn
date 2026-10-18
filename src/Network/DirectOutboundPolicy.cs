@@ -5,7 +5,7 @@ namespace Oblachka;
 
 // Проверка выхода «прямо на сервер» в службе. Служба работает от SYSTEM, а outbound приходит от окна,
 // поэтому ничего не берётся как есть: выход собирается заново из проверенных значений. Разрешены
-// только VLESS, Trojan и Shadowsocks; сервер — точный IP из адресов аренды (их же разрешает защита
+// только VLESS, Trojan и Shadowsocks (и они же в формате Xray — XrayOutboundPolicy); сервер — точный IP из адресов аренды (их же разрешает защита
 // WFP); проверка сертификата не отключается; нет путей к файлам, detour, привязки к интерфейсу и
 // прочих полей, которыми ядро от SYSTEM можно было бы направить на что-то кроме сервера.
 // Ключи живут только в памяти: в журнал сессии и в отчёты они не попадают.
@@ -16,6 +16,11 @@ public static class DirectOutboundPolicy
     public static JsonObject Validate(JsonObject outbound, IReadOnlyList<IPAddress> peers)
     {
         var type = Text(outbound, "type");
+        if (type == "xray")
+        {
+            Only(outbound, "type", "xray");
+            return new JsonObject { ["type"] = "xray", ["xray"] = XrayOutboundPolicy.Validate(outbound["xray"], peers) };
+        }
         var allowed = type switch
         {
             "vless" => new[] { "type", "server", "server_port", "uuid", "flow", "packet_encoding", "tls", "transport" },

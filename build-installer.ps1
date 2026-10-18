@@ -6,7 +6,7 @@ $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 . (Join-Path $root 'scripts\build-info.ps1')
 $verified = Join-Path $root 'out\app'
-foreach ($core in 'xray.exe', 'sing-box.exe') {
+foreach ($core in 'xray.exe', 'sing-box.exe', 'oblachka-core.exe') {
     if (-not (Test-Path -LiteralPath (Join-Path $verified ('tools\' + $core)))) { throw 'Сначала запустите .\build.ps1: ядра берутся из сборки out\app.' }
 }
 if (git -C $root status --porcelain -- src installer) { throw 'Есть незакоммиченные изменения в src или installer: установщик должен соответствовать ревизии.' }
@@ -25,7 +25,7 @@ if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -F
     -p:UseSharedCompilation=false -p:DebugType=none "-p:SourceRevisionId=$revision" --source 'https://api.nuget.org/v3/index.json' -o $stage
 if ($LASTEXITCODE -ne 0) { throw 'Публикация не прошла.' }
 New-Item -ItemType Directory -Force (Join-Path $stage 'tools') | Out-Null
-foreach ($file in 'xray.exe', 'sing-box.exe', 'libcronet.dll', 'LICENSE-Xray', 'LICENSE-sing-box', 'COPYING-GPL-3.0') {
+foreach ($file in 'xray.exe', 'sing-box.exe', 'libcronet.dll', 'oblachka-core.exe', 'LICENSE-Xray', 'LICENSE-sing-box', 'COPYING-GPL-3.0') {
     Copy-Item -LiteralPath (Join-Path $verified ('tools\' + $file)) -Destination (Join-Path $stage 'tools')
 }
 Copy-Item -LiteralPath (Join-Path $root 'THIRD-PARTY.md') -Destination $stage

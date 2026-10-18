@@ -64,12 +64,13 @@ public static partial class SelfTests
                     packet.Conditions.Any(c => c.Kind == WfpConditionKind.InterfaceTypeNot && c.Number == WfpProtectionBackend.TunnelInterfaceType));
                 // Запрет без условий и с наименьшим весом: ниже всех разрешений подслоя.
                 Assert(block.Conditions.Length == 0 && block.Weight == 0 && family.Where(f => f.Permit).All(f => f.Weight > 0));
-                // Адрес узла открыт только программам ядер — по одному фильтру на ядро.
+                // Адрес узла открыт только программам ядер: один фильтр на адрес, программы в нём —
+                // условия одного поля (WFP объединяет их через «или»), адрес — ровно один.
                 var peers = family.Where(f => f.Conditions.Any(c => c.Kind == WfpConditionKind.Application)).ToArray();
-                Assert(peers.Length == 2 && peers.All(f => f.Conditions.Any(c => c.Kind == WfpConditionKind.RemoteAddress &&
-                    (c.Address!.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) == v6)));
-                Assert(peers.Select(f => f.Conditions.Single(c => c.Kind == WfpConditionKind.Application).Program)
-                    .SequenceEqual(new[] { @"C:\app\tools\xray.exe", @"C:\app\tools\sing-box.exe" }));
+                Assert(peers.Length == 1 && peers.All(f => f.Conditions.Single(c => c.Kind == WfpConditionKind.RemoteAddress).Address!.AddressFamily ==
+                    (v6 ? System.Net.Sockets.AddressFamily.InterNetworkV6 : System.Net.Sockets.AddressFamily.InterNetwork)));
+                Assert(peers.All(f => f.Conditions.Length == 4 && f.Conditions.Where(c => c.Kind == WfpConditionKind.Application).Select(c => c.Program)
+                    .SequenceEqual(new[] { @"C:\app\tools\xray.exe", @"C:\app\tools\sing-box.exe", @"C:\app\tools\oblachka-core.exe" })));
                 // Разрешений без условий быть не может: такое открыло бы всё.
                 Assert(family.Where(f => f.Permit).All(f => f.Conditions.Length > 0));
                 Assert(family.Any(f => f.Conditions.Any(c => c.Kind == WfpConditionKind.Loopback)));

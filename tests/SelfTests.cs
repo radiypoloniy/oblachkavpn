@@ -66,6 +66,7 @@ public static partial class SelfTests
         await TunConfigurationChecksAsync(CheckAsync);
         await DirectOutboundChecksAsync(CheckAsync);
         await TunnelListsChecksAsync(CheckAsync);
+        await XrayBridgeChecksAsync(CheckAsync);
         await SystemSessionChecksAsync(CheckAsync);
         await SystemHoldChecksAsync(CheckAsync);
         await VmKitChecksAsync(CheckAsync, root);

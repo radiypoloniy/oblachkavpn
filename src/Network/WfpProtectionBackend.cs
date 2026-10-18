@@ -24,7 +24,7 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
     public const string ResourceId = "wfp-protection";
     public static readonly Guid ProviderKey = new("6f1a3c52-0b7e-4d0e-9a1d-0b1a5c7e2f01");
     public static readonly Guid SublayerKey = new("6f1a3c52-0b7e-4d0e-9a1d-0b1a5c7e2f02");
-    // Номеров с запасом: два ядра на 16 адресов узлов плюс общие фильтры обоих семейств.
+    // Номеров с запасом: фильтр на каждый из 16 адресов узлов плюс общие фильтры обоих семейств.
     public const int MaxFilters = 64;
     private const ushort SublayerWeight = ushort.MaxValue;
     // Тип интерфейса wintun по IANA: IF_TYPE_PROP_VIRTUAL. Физические адаптеры — другие
@@ -42,6 +42,9 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
 
     public string XrayProgram => Path.Combine(tools, "xray.exe");
     public string SingBoxProgram => Path.Combine(tools, "sing-box.exe");
+    public string TunCoreProgram => TunCore.Program(tools);
+    // Ядра, которым открыты адреса узлов: окна (прежний путь через SOCKS) и туннеля (прямо на сервер).
+    public IReadOnlyList<string> CorePrograms => new[] { XrayProgram, SingBoxProgram, TunCoreProgram };
 
     public static Guid FilterKey(int index)
     {
@@ -117,14 +120,15 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
             Add("loopback" + family, v6, 15, true, new WfpCondition(WfpConditionKind.Loopback));
             Add("трафик в туннель" + family, v6, 14, true, new WfpCondition(WfpConditionKind.LocalAddress, host));
             Add("DNS туннеля" + family, v6, 14, true, new WfpCondition(WfpConditionKind.RemoteAddress, resolver));
+            // Условия одного поля WFP объединяет через «или»: фильтр открывает адрес узла
+            // любому из ядер и никому больше. По фильтру на ядро и адрес номеров не хватало бы.
             foreach (var peer in peers.Where(p => (p.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) == v6))
-                foreach (var program in new[] { XrayProgram, SingBoxProgram })
-                    Add("ядро к узлу" + family, v6, 13, true, new WfpCondition(WfpConditionKind.Application, Program: program),
-                        new WfpCondition(WfpConditionKind.RemoteAddress, peer));
+                Add("ядро к узлу" + family, v6, 13, true, CorePrograms.Select(program => new WfpCondition(WfpConditionKind.Application, Program: program))
+                    .Append(new WfpCondition(WfpConditionKind.RemoteAddress, peer)).ToArray());
             // Правила «напрямую» исполняет ядро системного туннеля выходом direct. Без
             // таких правил ядрам открыты только адреса узлов.
             if (direct)
-                Add("правила «напрямую»" + family, v6, 13, true, new WfpCondition(WfpConditionKind.Application, Program: SingBoxProgram));
+                Add("правила «напрямую»" + family, v6, 13, true, new WfpCondition(WfpConditionKind.Application, Program: TunCoreProgram));
             Add("DHCP" + family, v6, 12, true, new WfpCondition(WfpConditionKind.Protocol, Number: 17),
                 new WfpCondition(WfpConditionKind.LocalPort, Number: v6 ? 546 : 68), new WfpCondition(WfpConditionKind.RemotePort, Number: v6 ? 547 : 67));
             Add("запрет мимо туннеля" + family, v6, 0, false);

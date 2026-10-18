@@ -7,8 +7,9 @@ namespace Oblachka;
 // скорость +45–60%, процессор на гигабайт −22%, новое соединение 1,2 мс против 1,6, памяти −60 МБ.
 //
 // Перевод осторожный: только то, что sing-box умеет так же, как Xray. Всё прочее (XHTTP, ECH,
-// ранние данные ws, mux, VLESS Encryption, sockopt) — null, и профиль идёт прежним путём через
-// ядро окна. Ошибиться здесь — значит молча изменить защиту соединения, поэтому лучше null.
+// ранние данные ws, mux, VLESS Encryption) ядро туннеля исполняет встроенным Xray — выход
+// "xray" (TunCore, XrayOutboundPolicy). Чего не принимает и он — null, и профиль идёт прежним
+// путём через ядро окна. Ошибиться здесь — значит молча изменить защиту соединения, поэтому лучше null.
 public static class DirectOutbound
 {
     // Отпечатки uTLS, одинаково понятные Xray и sing-box.
@@ -24,11 +25,48 @@ public static class DirectOutbound
         // отклонила бы, не должен сорвать подключение — профиль просто идёт прежним путём.
         try
         {
-            var outbound = Translate(pinned);
-            return outbound is not null && System.Net.IPAddress.TryParse(outbound["server"]?.GetValue<string>(), out var ip)
+            var outbound = Translate(pinned) ?? Bridge(pinned);
+            var server = outbound?["type"]?.GetValue<string>() == "xray" ? ProfileServer.Of(pinned.Outbound, pinned.Core).Host : outbound?["server"]?.GetValue<string>();
+            return outbound is not null && System.Net.IPAddress.TryParse(server, out var ip)
                 ? DirectOutboundPolicy.Validate(outbound, new[] { ip }) : null;
         }
         catch (Exception ex) when (ex is InvalidOperationException or UserError) { return null; }
+    }
+
+    // Профиль Xray как есть — встроенному Xray ядра туннеля. Убирается только то, что на путь
+    // трафика не влияет: метка, уровень и почта пользователя, выключенный mux, настройки сокета
+    // без перенаправления (их набиратель ядра туннеля всё равно не применяет).
+    // Аренда идёт одним сообщением канала (HelperProtocol.MaxBytes). Выходы с постквантовыми
+    // ключами и ECH весят килобайты: что не помещается, идёт прежним путём через ядро окна.
+    public const int LeaseBudget = 32 * 1024;
+
+    public static JsonObject?[] Fit(JsonObject?[] outbounds, int budget = LeaseBudget)
+    {
+        var used = 0;
+        return outbounds.Select(o =>
+        {
+            if (o is null) return null;
+            var size = System.Text.Encoding.UTF8.GetByteCount(o.ToJsonString());
+            if (used + size > budget) return null;
+            used += size;
+            return o;
+        }).ToArray();
+    }
+
+    private static JsonObject? Bridge(Profile pinned)
+    {
+        if (pinned.Core != CoreKind.Xray) return null;
+        var copy = (JsonObject)pinned.Outbound.DeepClone();
+        copy.Remove("tag");
+        foreach (var user in copy["settings"]?["vnext"]?[0]?["users"] as JsonArray ?? [])
+            if (user is JsonObject u) { u.Remove("level"); u.Remove("email"); if (Text(u["flow"]) == "") u.Remove("flow"); }
+        foreach (var server in copy["settings"]?["servers"] as JsonArray ?? [])
+            if (server is JsonObject s) { s.Remove("level"); s.Remove("email"); }
+        if (copy["mux"] is JsonObject mux && mux["enabled"] is JsonValue on && on.TryGetValue<bool>(out var enabled) && !enabled) copy.Remove("mux");
+        if (copy["streamSettings"] is JsonObject stream && stream["sockopt"] is JsonObject sockopt &&
+            sockopt.All(p => p.Key is "tcpFastOpen" or "tcpNoDelay" or "tcpKeepAliveIdle" or "tcpKeepAliveInterval" or "domainStrategy"))
+            stream.Remove("sockopt");
+        return new JsonObject { ["type"] = "xray", ["xray"] = copy };
     }
 
     private static JsonObject? Translate(Profile pinned)

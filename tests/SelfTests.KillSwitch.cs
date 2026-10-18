@@ -83,6 +83,8 @@ public static partial class SelfTests
             var singBox = firewall.Rules[KillSwitchBackend.PeerSingBoxRule];
             Assert(xray.RemoteAddresses == "203.0.113.7" && singBox.RemoteAddresses == "203.0.113.7");
             Assert(xray.Program == kill.XrayProgram && singBox.Program == kill.SingBoxProgram);
+            var tunCore = firewall.Rules[KillSwitchBackend.PeerTunCoreRule];
+            Assert(tunCore.RemoteAddresses == "203.0.113.7" && tunCore.Program == kill.TunCoreProgram && tunCore.Program!.EndsWith(TunCore.FileName, StringComparison.Ordinal));
             Assert(Path.IsPathFullyQualified(xray.Program!) && xray.Program!.EndsWith(Path.Combine("tools", "xray.exe"), StringComparison.Ordinal));
             Assert(!firewall.Rules.ContainsKey(KillSwitchBackend.PeerRule));
             Assert(firewall.Rules.Values.Where(r => r.Action == FirewallAction.Allow && r.Program is null)
