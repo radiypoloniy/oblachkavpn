@@ -82,8 +82,12 @@ public partial class MainWindow
         {
             var own = Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory) + "\\";
             var tunnel = SystemTunnelActive; var proxy = engine.Port;
-            var apps = await Task.Run(() => LiveApps.Group(ConnectionTable.Read(), tunnel, proxy, LivePath,
-                path => path.StartsWith(own, StringComparison.OrdinalIgnoreCase)));
+            bool Own(string path) => path.StartsWith(own, StringComparison.OrdinalIgnoreCase);
+            // «Весь компьютер»: куда ушло соединение, знает только ядро туннеля — по таблицам Windows
+            // любое соединение открыто с адреса туннеля, даже по правилу «напрямую».
+            var core = tunnel && systemTunnel?.Stats is { } stats ? await CoreConnections.ReadAsync(stats, CancellationToken.None) : null;
+            var apps = core is not null ? LiveApps.FromCore(core, Own)
+                : await Task.Run(() => LiveApps.Group(ConnectionTable.Read(), tunnel, proxy, LivePath, Own));
             if (closed) return;
             Live.SetNote(LiveNote);
             // Заблокированная программа соединений не открывает и пропала бы из списка — а снять

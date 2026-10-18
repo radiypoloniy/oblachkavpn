@@ -152,6 +152,30 @@ public static partial class SelfTests
             var loose = AppRuleScope.For(new InstalledApp("Tool", "tool.exe", @"C:\Users\Bob\Downloads\tool.exe", false), SiteAction.Direct);
             Assert(loose.Single() is { AllInFolder: false, FilePath: @"C:\Users\Bob\Downloads\tool.exe" });
         }));
+        await check("Live list takes the real exit of each connection from the tunnel core", () => Task.Run(() =>
+        {
+            // Формат clash API sing-box: порт строкой, выходы — в chains.
+            const string json = """
+                {"connections":[
+                 {"metadata":{"network":"tcp","destinationIP":"149.154.167.51","destinationPort":"443","host":"","processPath":"C:\\Apps\\Telegram\\Telegram.exe"},"chains":["user-direct"]},
+                 {"metadata":{"network":"udp","destinationIP":"149.154.167.52","destinationPort":"3478","processPath":"C:\\Apps\\Telegram\\Telegram.exe"},"chains":["local-core"]},
+                 {"metadata":{"network":"tcp","destinationIP":"87.250.250.242","destinationPort":"443","processPath":"C:\\Apps\\Chrome\\chrome.exe"},"chains":["local-core"]},
+                 {"metadata":{"network":"tcp","destinationIP":"142.250.1.1","destinationPort":"443","processPath":"C:\\Apps\\Chrome\\chrome.exe"},"chains":["local-core"]},
+                 {"metadata":{"network":"tcp","destinationIP":"87.250.250.242","destinationPort":"443","processPath":"C:\\Program Files\\Oblachka\\tools\\xray.exe"},"chains":["user-direct"]},
+                 {"metadata":{"network":"tcp","destinationIP":"1.1.1.1","destinationPort":"443"},"chains":["local-core"]}
+                ]}
+                """;
+            var connections = CoreConnections.Parse(json);
+            Assert(connections.Count == 6 && connections[0].Port == 443 && connections[1].Udp);
+            var apps = LiveApps.FromCore(connections, path => path.StartsWith(@"C:\Program Files\Oblachka\", StringComparison.OrdinalIgnoreCase));
+            Assert(apps.Count == 2);
+            var telegram = apps.Single(a => a.Path.EndsWith("Telegram.exe"));
+            Assert(telegram is { Direct: 1, Vpn: 1, Udp: 1 });
+            // Сайт из «Российских сайтов»: ядро окна вернуло его туннелю на прямой вход — это напрямую.
+            var chrome = apps.Single(a => a.Path.EndsWith("chrome.exe"));
+            Assert(chrome is { Direct: 1, Vpn: 1 });
+            Assert(CoreConnections.Parse("{}").Count == 0);
+        }));
         await check("Changing a program rule resets only that program's open connections", () => Task.Run(() =>
         {
             var tg = ProgramRoutingPlan.Create(@"C:\Apps\Telegram\Telegram.exe", SiteAction.Tunnel, allInFolder: true);

@@ -20,7 +20,24 @@ public sealed record NetworkLeaseRequest(
     // на стенде правило по пути ядра не срабатывало, и трафик шёл по кругу.
     CoreDirectEntry? CoreDirect = null,
     // «Через VPN только выбранное»: всё, что не попало в правила «через VPN», идёт напрямую.
-    bool DirectByDefault = false);
+    bool DirectByDefault = false,
+    // Чтение соединений ядра туннеля («Сейчас в сети»): куда на самом деле ушло каждое соединение.
+    CoreStatsEntry? Stats = null);
+
+// Локальный интерфейс соединений ядра туннеля (clash API sing-box) на 127.0.0.1 с секретом сессии.
+// Окно читает по нему, через какой выход ушло соединение программы: по таблицам Windows этого не
+// видно — в «Весь компьютер» любое соединение открыто с адреса туннеля, даже по правилу «напрямую».
+public sealed record CoreStatsEntry(
+    [property: JsonRequired] int Port,
+    [property: JsonRequired] string Secret)
+{
+    public static CoreStatsEntry Create(int port) => new(port, Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16)));
+    public void Validate()
+    {
+        if (Port is < 1024 or > 65535 || Secret is not { Length: >= 16 and <= 64 } || !Secret.All(char.IsAsciiLetterOrDigit))
+            throw new UserError("Неверные параметры статистики ядра.");
+    }
+}
 
 public sealed record CoreDirectEntry(
     [property: JsonRequired] int Port,
@@ -39,7 +56,8 @@ public sealed record CoreDirectEntry(
 // Правила сайтов и программ — ограниченные данные: домены и имена .exe без путей,
 // проверенные теми же правилами, что и в окне. Конфигурацию ядра помощник строит сам.
 public sealed record ValidatedNetworkLease(Guid LeaseId, NetworkLeaseAction Action, int LoopbackPort, IReadOnlyList<IPAddress> Peers,
-    IReadOnlyList<SiteRule>? Sites = null, IReadOnlyList<ProgramRule>? Programs = null, CoreDirectEntry? CoreDirect = null, bool DirectByDefault = false)
+    IReadOnlyList<SiteRule>? Sites = null, IReadOnlyList<ProgramRule>? Programs = null, CoreDirectEntry? CoreDirect = null, bool DirectByDefault = false,
+    CoreStatsEntry? Stats = null)
 {
     public IReadOnlyList<SiteRule> SiteRules => Sites ?? Array.Empty<SiteRule>();
     public IReadOnlyList<ProgramRule> ProgramRules => Programs ?? Array.Empty<ProgramRule>();
@@ -80,7 +98,7 @@ public static class NetworkHelperContracts
             throw new UserError("Неверная версия или идентификатор сетевой сессии.");
         if (request.Action == NetworkLeaseAction.Release)
         {
-            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 } || request.CoreDirect is not null || request.DirectByDefault)
+            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 } || request.CoreDirect is not null || request.DirectByDefault || request.Stats is not null)
                 throw new UserError("Завершение сессии не принимает сетевые параметры.");
             return new(request.LeaseId, request.Action, 0, Array.Empty<IPAddress>());
         }
@@ -108,6 +126,9 @@ public static class NetworkHelperContracts
         ProgramRoutingPlan.Validate(programs);
         request.CoreDirect?.Validate();
         if (request.CoreDirect?.Port == request.LoopbackPort) throw new UserError("Прямой выход ядра совпадает с портом ядра.");
-        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs, request.CoreDirect, request.DirectByDefault);
+        request.Stats?.Validate();
+        if (request.Stats is { } stats && (stats.Port == request.LoopbackPort || stats.Port == request.CoreDirect?.Port))
+            throw new UserError("Порт статистики ядра совпадает с другим портом сессии.");
+        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs, request.CoreDirect, request.DirectByDefault, request.Stats);
     }
 }
