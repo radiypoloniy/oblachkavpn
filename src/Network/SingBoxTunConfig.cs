@@ -44,7 +44,13 @@ public static class SingBoxTunConfig
                     ["path"] = "/dns-query", ["detour"] = "local-core",
                     ["tls"] = new JsonObject { ["enabled"] = true, ["server_name"] = "cloudflare-dns.com" }
                 }),
-                ["final"] = "remote-dns"
+                ["final"] = "remote-dns",
+                // У сайтов на CDN срок записи — минуты: без этого каждый истёкший адрес ждал бы
+                // запроса DoH через туннель. Истёкшая запись отдаётся сразу, обновляется в фоне;
+                // старше 6 часов — запрос заново. Кэш только в памяти ядра: на диск история
+                // посещённых сайтов не пишется (store_dns в cache_file — сознательно нет).
+                ["cache_capacity"] = 8192,
+                ["optimistic"] = new JsonObject { ["enabled"] = true, ["timeout"] = "6h" }
             },
             ["inbounds"] = new JsonArray(new JsonObject
             {
