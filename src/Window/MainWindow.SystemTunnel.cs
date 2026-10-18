@@ -110,14 +110,15 @@ public partial class MainWindow
         {
             // Одно ядро: трафик из туннеля прямо на сервер. Списки «напрямую» (DirectEntry) и обход
             // DPI фрагментацией исполняет ядро окна — с ними трафик идёт через него, как раньше.
-            DirectAllowed = () => engine is Engine core && core.DirectEntry is null && !core.Fragment
+            DirectAllowed = () => engine is Engine core && (core.DirectEntry is null || tunnelLists is not null) && !core.Fragment
         };
         session.Changed += OnSystemTunnelChanged;
         systemTunnel = session;
         // Правила сайтов и программ исполняет ядро туннеля у помощника; ядро окна в этом
         // режиме правил не несёт (Engine.SiteRules пуст), иначе «напрямую» шло бы из него.
         RememberTunnelDirect(); sentRules = LeasePrograms().ToArray(); sentProgramRules = string.Join('|', LeasePrograms().Select(r => r.Key + ">" + r.Action));
-        await session.StartWithSparesAsync(plans, token, LeaseSites(), LeasePrograms(), (engine as Engine)?.DirectEntry, selectiveVpn).ConfigureAwait(true);
+        var lists = await SendTunnelListsAsync(helperLifetime.Client).ConfigureAwait(true);
+        await session.StartWithSparesAsync(plans, token, LeaseSites(), LeasePrograms(), (engine as Engine)?.DirectEntry, selectiveVpn, lists).ConfigureAwait(true);
     }
 
     // Выбранный узел первым, затем запасные в том порядке, в каком их переберёт подбор.
@@ -170,7 +171,7 @@ public partial class MainWindow
         finally
         {
             session.Changed -= OnSystemTunnelChanged;
-            systemStopping = false;
+            systemStopping = false; tunnelLists = null;
             if (lifetime is not null) await lifetime.DisposeAsync().ConfigureAwait(true);
             // Снятая не до конца сессия видна только по журналу: окно должно о ней сказать.
             if (!closed) { UpdateSystemTunnelNote(null); UpdateControls(); }

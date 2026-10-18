@@ -33,7 +33,7 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
     // и сайты из списков «напрямую» не открывались.
     internal static NetworkLeaseRequest RequestFor(ValidatedNetworkLease lease) =>
         new(1, lease.LeaseId, NetworkLeaseAction.Acquire, lease.LoopbackPort, lease.Peers.Select(p => p.ToString()).ToArray(),
-            lease.SiteRules.ToArray(), lease.ProgramRules.ToArray(), lease.CoreDirect, lease.DirectByDefault, lease.Stats, lease.Direct?.ToArray());
+            lease.SiteRules.ToArray(), lease.ProgramRules.ToArray(), lease.CoreDirect, lease.DirectByDefault, lease.Stats, lease.Direct?.ToArray(), lease.Lists);
 
     internal static ITunnelProcess Start(ValidatedNetworkLease lease, string executable, CancellationToken token)
     {
@@ -46,12 +46,15 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         var localDns = DirectDns.PhysicalResolver();
         // Правила программ — в файлах, которые окно меняет на ходу (ProgramRuleSets); при запуске — из аренды.
         ProgramRuleSets.Write(ProgramRuleSets.Folder, lease.ProgramRules);
-        CoreConfigurationCheck.ValidateTunAsync(request, token, ipv6, localDns, DirectDns.RuleSetPath, ProgramRuleSets.Folder).GetAwaiter().GetResult();
-        var config = SingBoxTunConfig.Create(request, ipv6, localDns, DirectDns.RuleSetPath, ProgramRuleSets.Folder).ToJsonString();
+        // Списки маршрутизации — в файлах, которые окно передало до запуска и меняет на ходу (RoutingLists).
+        RoutingLists.EnsureFiles(RoutingLists.Folder);
+        CoreConfigurationCheck.ValidateTunAsync(request, token, ipv6, localDns, DirectDns.RuleSetPath, ProgramRuleSets.Folder, RoutingLists.Folder).GetAwaiter().GetResult();
+        var config = SingBoxTunConfig.Create(request, ipv6, localDns, DirectDns.RuleSetPath, ProgramRuleSets.Folder, RoutingLists.Folder).ToJsonString();
         NetworkHelperHost.RecordStep(DateTime.UtcNow.ToString("HH:mm:ss.fff") + " DNS прямых сайтов: " + (localDns is null ? "через туннель" : "сеть"));
         // Только число: сами выходы содержат ключи и в след не пишутся.
         NetworkHelperHost.RecordStep(DateTime.UtcNow.ToString("HH:mm:ss.fff") + " выходов прямо на сервер: " +
             (lease.Direct is { } direct ? direct.Count(o => o is not null) + " из " + direct.Count : "нет, через ядро окна"));
+        NetworkHelperHost.RecordStep(DateTime.UtcNow.ToString("HH:mm:ss.fff") + " списки маршрутизации: " + (lease.Lists is { } lists ? "в ядре туннеля, " + string.Join('-', lists.Order) : "нет"));
 
         var start = new ProcessStartInfo(executable)
         {

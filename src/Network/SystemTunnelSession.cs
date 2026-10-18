@@ -78,7 +78,8 @@ public sealed class SystemTunnelSession : IAsyncDisposable
 
     // Первый план запускается, остальные только разрешаются: их адреса входят в аренду.
     public async Task StartWithSparesAsync(IReadOnlyList<TunnelEndpointPlan> prepared, CancellationToken token,
-        IReadOnlyList<SiteRule>? sites = null, IReadOnlyList<ProgramRule>? programs = null, CoreDirectEntry? coreDirect = null, bool directByDefault = false)
+        IReadOnlyList<SiteRule>? sites = null, IReadOnlyList<ProgramRule>? programs = null, CoreDirectEntry? coreDirect = null, bool directByDefault = false,
+        RoutingListsEntry? lists = null)
     {
         if (prepared.Count == 0) throw new UserError("Нет подготовленного сервера для системного режима.");
         await operations.WaitAsync(token).ConfigureAwait(false);
@@ -98,10 +99,10 @@ public sealed class SystemTunnelSession : IAsyncDisposable
                 // сессия снимается обычным Release.
                 Stats = CoreStatsEntry.Create(Engine.FreePort());
                 // Выходы прямо на серверы — по одному на узел плана; у кого перевода нет — ядро окна.
-                direct = coreDirect is null && DirectAllowed?.Invoke() == true ? plans.Select(p => DirectOutbound.From(p.PinnedProfile)).ToArray() : null;
+                direct = DirectAllowed?.Invoke() == true ? plans.Select(p => DirectOutbound.From(p.PinnedProfile)).ToArray() : null;
                 if (direct is not null && direct.All(o => o is null)) direct = null;
                 BlocksBypass = await helper.AcquireAsync(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, leasePort, peers,
-                    sites?.ToArray(), programs?.ToArray(), coreDirect, directByDefault, Stats, direct), CancellationToken.None).ConfigureAwait(false);
+                    sites?.ToArray(), programs?.ToArray(), coreDirect, directByDefault, Stats, direct, lists), CancellationToken.None).ConfigureAwait(false);
                 DirectActive = direct?[0] is not null;
                 token.ThrowIfCancellationRequested();
                 Set(SystemTunnelState.Running);

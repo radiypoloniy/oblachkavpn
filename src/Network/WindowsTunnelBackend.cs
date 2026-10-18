@@ -81,7 +81,7 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
         // пишутся (в описании входа — пароль). Потерянный здесь вход (0.10) оставлял «Российские
         // сайты напрямую» без выхода: ядро слало их на порт, где никого не было.
         if (prepared is { } rules && rules.LeaseId == leaseId)
-            lease = lease with { Sites = rules.SiteRules, Programs = rules.ProgramRules, CoreDirect = rules.CoreDirect, DirectByDefault = rules.DirectByDefault, Stats = rules.Stats, Direct = rules.Direct };
+            lease = lease with { Sites = rules.SiteRules, Programs = rules.ProgramRules, CoreDirect = rules.CoreDirect, DirectByDefault = rules.DirectByDefault, Stats = rules.Stats, Direct = rules.Direct, Lists = rules.Lists };
         var started = startCore(lease, CancellationToken.None);
         try
         {

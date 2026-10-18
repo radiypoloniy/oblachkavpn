@@ -8,7 +8,8 @@ namespace Oblachka;
 // Repair — исправление сети Windows (NetworkRepairBackend): узкий список действий, вне сессии.
 // Zapret — обход блокировок без VPN (ZapretRunner): подготовка набора, запуск, остановка, состояние.
 // ProgramRules — новые правила программ для работающего туннеля (ProgramRuleSets), без переподключения.
-public enum HelperOperation { Acquire, Release, Heartbeat, Recover, Repair, Zapret, DirectDns, ProgramRules }
+// RoutingLists — списки маршрутизации для ядра туннеля (RoutingLists), частями, тоже на ходу.
+public enum HelperOperation { Acquire, Release, Heartbeat, Recover, Repair, Zapret, DirectDns, ProgramRules, RoutingLists }
 // SystemRefused — отказ самой системы, а не ошибка в запросе. Без него такой отказ
 // вылетал мимо ответа и завершал помощника: клиент видел обрыв канала вместо причины.
 public enum HelperFailure { None, InvalidRequest, Busy, RecoveryRequired, SystemRefused }
@@ -20,7 +21,8 @@ public sealed record HelperRequest(
     RepairRequest? Repair = null,
     ZapretRequest? Zapret = null,
     DirectDnsRequest? DirectDns = null,
-    ProgramRulesRequest? Programs = null);
+    ProgramRulesRequest? Programs = null,
+    RoutingListsRequest? Lists = null);
 // Blocking говорит, встала ли блокировка трафика мимо туннеля. Поле нужно затем,
 // что помощник решает это сам: при выключенном брандмауэре блокировки не будет, и
 // окно обязано сообщить пользователю то, что есть, а не то, на что мы рассчитывали.
@@ -75,6 +77,14 @@ public static class HelperProtocol
     {
         if (request.Version != 1 || request.RequestId == Guid.Empty || !Enum.IsDefined(request.Operation))
             throw new UserError("Неизвестная команда helper.");
+        if (request.Operation == HelperOperation.RoutingLists)
+        {
+            if (request.Lease is not null || request.Repair is not null || request.Zapret is not null || request.DirectDns is not null || request.Programs is not null || request.Lists is null)
+                throw new UserError("Неверная часть списков маршрутизации.");
+            request.Lists.Validate();
+            return;
+        }
+        if (request.Lists is not null) throw new UserError("Списки маршрутизации передаются только командой RoutingLists.");
         if (request.Operation == HelperOperation.ProgramRules)
         {
             if (request.Lease is not null || request.Repair is not null || request.Zapret is not null || request.DirectDns is not null || request.Programs is null)

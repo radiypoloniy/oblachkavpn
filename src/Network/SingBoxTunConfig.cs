@@ -27,7 +27,9 @@ public static class SingBoxTunConfig
     // их имена разрешаются там же, куда пойдёт трафик. null — всё через DoH в туннеле.
     // programSets — папка файлов правил программ (ProgramRuleSets): правила меняются без
     // переподключения. null — правила программ прямо в конфигурации (проверка черновика).
-    public static JsonObject Create(NetworkLeaseRequest request, bool ipv6 = true, System.Net.IPAddress? localDns = null, string? ruleSet = null, string? programSets = null)
+    // listsFolder — файлы списков маршрутизации (RoutingLists), если аренда передала их ядру туннеля.
+    public static JsonObject Create(NetworkLeaseRequest request, bool ipv6 = true, System.Net.IPAddress? localDns = null, string? ruleSet = null, string? programSets = null,
+        string? listsFolder = null)
     {
         var lease = NetworkHelperContracts.Validate(request);
         if (lease.Action != NetworkLeaseAction.Acquire) throw new UserError("TUN требует новую сетевую сессию.");
@@ -87,6 +89,7 @@ public static class SingBoxTunConfig
         };
         AddServers(config, lease);
         AddRules(config, lease, programSets, tunnel);
+        AddLists(config, lease, listsFolder, tunnel);
         if (lease.HasDirect && localDns is not null && ruleSet is not null) AddDirectDns(config, localDns, ruleSet);
         if (lease.DirectByDefault && localDns is not null && ruleSet is not null) DnsByDefaultDirect(config, lease);
         return config;
@@ -147,6 +150,27 @@ public static class SingBoxTunConfig
         });
     }
 
+    // Списки маршрутизации — после правил пользователя: явное правило сайта или программы сильнее
+    // списка. Порядок наборов — как задал сервис. «Напрямую» без разрешения защиты (аренда без прямого
+    // выхода) — блок: мимо VPN без разрешения трафик не уходит.
+    private static void AddLists(JsonObject config, ValidatedNetworkLease lease, string? folder, string tunnel)
+    {
+        if (lease.Lists is not { } lists) return;
+        if (folder is null) throw new UserError("Нет папки списков маршрутизации.");
+        var sets = config["route"]!["rule_set"] as JsonArray ?? new JsonArray();
+        config["route"]!["rule_set"] = sets;
+        var rules = (JsonArray)config["route"]!["rules"]!;
+        foreach (var set in lists.Order)
+        {
+            sets.Add(new JsonObject { ["type"] = "local", ["tag"] = RoutingLists.Tag(set), ["format"] = "source", ["path"] = RoutingLists.PathOf(folder, set) });
+            var match = new JsonObject { ["rule_set"] = new JsonArray(RoutingLists.Tag(set)) };
+            if (set == "block" || set == "direct" && !lease.HasDirect) match["action"] = "reject";
+            else match["outbound"] = set == "direct" ? UserDirect : tunnel;
+            rules.Add(match);
+        }
+        if (!lists.GlobalProxy && lease.HasDirect && !lease.DirectByDefault) config["route"]!["final"] = UserDirect;
+    }
+
     public const string ServerSelector = "server";
     public static string DirectTag(int index) => "direct-" + index;
 
@@ -169,7 +193,7 @@ public static class SingBoxTunConfig
             });
             rules.Insert(0, new JsonObject { ["inbound"] = new JsonArray(CoreDirectInbound), ["outbound"] = UserDirect });
         }
-        if (lease.SiteRules.Count > 0) rules.Add(new JsonObject { ["action"] = "sniff" });
+        if (lease.SiteRules.Count > 0 || lease.Lists is not null) rules.Add(new JsonObject { ["action"] = "sniff" });
         // Прямой выход разрешён защитой, только если «напрямую» было при подключении. Правило
         // «напрямую», добавленное на ходу без него, блокирует программу: мимо VPN без разрешения
         // она не уйдёт, а окно попросит переподключиться.

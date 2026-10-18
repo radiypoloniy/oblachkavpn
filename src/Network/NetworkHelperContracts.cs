@@ -26,7 +26,10 @@ public sealed record NetworkLeaseRequest(
     // Выходы ядра туннеля прямо на серверы (DirectOutbound), по одному на подготовленный узел в том же
     // порядке; null — узел идёт через ядро окна. Это профили с ключами: служба проверяет их
     // DirectOutboundPolicy и держит только в памяти.
-    System.Text.Json.Nodes.JsonObject?[]? Direct = null);
+    System.Text.Json.Nodes.JsonObject?[]? Direct = null,
+    // Списки маршрутизации исполняет ядро туннеля (RoutingLists): здесь порядок наборов и итог,
+    // сами наборы — в файлах службы. null — списков в ядре туннеля нет.
+    RoutingListsEntry? Lists = null);
 
 // Локальный интерфейс соединений ядра туннеля (clash API sing-box) на 127.0.0.1 с секретом сессии.
 // Окно читает по нему, через какой выход ушло соединение программы: по таблицам Windows этого не
@@ -61,7 +64,7 @@ public sealed record CoreDirectEntry(
 // проверенные теми же правилами, что и в окне. Конфигурацию ядра помощник строит сам.
 public sealed record ValidatedNetworkLease(Guid LeaseId, NetworkLeaseAction Action, int LoopbackPort, IReadOnlyList<IPAddress> Peers,
     IReadOnlyList<SiteRule>? Sites = null, IReadOnlyList<ProgramRule>? Programs = null, CoreDirectEntry? CoreDirect = null, bool DirectByDefault = false,
-    CoreStatsEntry? Stats = null, IReadOnlyList<System.Text.Json.Nodes.JsonObject?>? Direct = null)
+    CoreStatsEntry? Stats = null, IReadOnlyList<System.Text.Json.Nodes.JsonObject?>? Direct = null, RoutingListsEntry? Lists = null)
 {
     public IReadOnlyList<SiteRule> SiteRules => Sites ?? Array.Empty<SiteRule>();
     public IReadOnlyList<ProgramRule> ProgramRules => Programs ?? Array.Empty<ProgramRule>();
@@ -102,7 +105,7 @@ public static class NetworkHelperContracts
             throw new UserError("Неверная версия или идентификатор сетевой сессии.");
         if (request.Action == NetworkLeaseAction.Release)
         {
-            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 } || request.CoreDirect is not null || request.DirectByDefault || request.Stats is not null || request.Direct is not null)
+            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 } || request.CoreDirect is not null || request.DirectByDefault || request.Stats is not null || request.Direct is not null || request.Lists is not null)
                 throw new UserError("Завершение сессии не принимает сетевые параметры.");
             return new(request.LeaseId, request.Action, 0, Array.Empty<IPAddress>());
         }
@@ -142,6 +145,7 @@ public static class NetworkHelperContracts
             if (request.Stats is null) throw new UserError("Выходам ядра туннеля нужен интерфейс ядра.");
             direct = outbounds.Select(o => o is null ? null : DirectOutboundPolicy.Validate(o, peers)).ToArray();
         }
-        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs, request.CoreDirect, request.DirectByDefault, request.Stats, direct);
+        request.Lists?.Validate();
+        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs, request.CoreDirect, request.DirectByDefault, request.Stats, direct, request.Lists);
     }
 }

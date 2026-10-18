@@ -65,6 +65,8 @@ public partial class MainWindow
         if (closed || !ConnectionActive) return;
         if (operation is not null || systemStopping) { DetailText.Text = "Списки применятся со следующего подключения."; return; }
         recoveryWait?.Cancel();
+        // Списки в ядре туннеля — новые файлы на ходу: ни ядро, ни туннель не перезапускаются.
+        if (TunnelListsActive && await UpdateTunnelListsAsync()) { DetailText.Text = "Списки применены; туннель и защита не снимались."; return; }
         // «Весь компьютер»: если у сессии уже есть вход для прямого трафика (или он не нужен),
         // перезапускается только ядро — туннель и защита остаются, связь пропадает на секунду.
         // Полностью переподключаться приходится, только когда вход для прямого трафика нужен впервые.
