@@ -25,7 +25,7 @@ public partial class MainWindow
 
     private void WireHome()
     {
-        Home.DirectChip.Click += (_, _) => OpenSettings(1);
+        Home.DirectChip.Click += (_, _) => OpenSettings(Views.SettingsPanel.BypassPage);
         Home.Power.Click += (_, _) => { if (StopButton.IsEnabled) StopClick(this, new RoutedEventArgs()); else if (ConnectButton.IsEnabled) ConnectClick(this, new RoutedEventArgs()); };
         Home.SettingsButton.Click += SettingsClick;
         Home.AllServersButton.Click += (_, _) => Navigate("Servers");

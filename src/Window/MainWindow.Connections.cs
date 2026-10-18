@@ -32,7 +32,7 @@ public partial class MainWindow
     // «Сейчас в сети» — раздел острова: настройки и «Все серверы» уступают ему место.
     private void ShowLiveSection()
     {
-        Settings.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed; Servers.Visibility = Visibility.Collapsed;
+        Settings.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed; Servers.Visibility = Visibility.Collapsed; RulesPage.Visibility = Visibility.Collapsed;
         Doctor.Visibility = Visibility.Collapsed; SiteCheck.Visibility = Visibility.Collapsed;
         if (currentPage is "Routes" or "Diagnostics" or "Servers") currentPage = "Connection";
         OpenConnections(focus: true);

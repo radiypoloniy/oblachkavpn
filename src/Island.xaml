@@ -77,6 +77,103 @@
     </Style.Triggers>
   </Style>
 
+  <!-- Настройки: группы строк на карточке, цветной значок слева (как в iOS), переключатель или шеврон справа. -->
+  <Geometry x:Key="IcoBolt">M13,3 L5,14 L11,14 L10,21 L18,10 L12,10 Z</Geometry>
+  <Geometry x:Key="IcoShield">M12,3 L5,6 L5,12 C5,16 8,19 12,21 C16,19 19,16 19,12 L19,6 Z M9,12 L11,14 L15,10</Geometry>
+  <Geometry x:Key="IcoCard">M3,6 L21,6 L21,18 L3,18 Z M3,10 L21,10 M6,14 L10,14</Geometry>
+  <Geometry x:Key="IcoApp">M4,5 L20,5 L20,19 L4,19 Z M4,9 L20,9 M7,7 L7.1,7</Geometry>
+  <Geometry x:Key="IcoHelp">M21,12 A9,9 0 1 1 3,12 A9,9 0 1 1 21,12 M9.5,9.5 A2.5,2.5 0 1 1 12,12 L12,13.5 M12,17 L12,17.1</Geometry>
+  <Geometry x:Key="IcoSwap">M7,7 L18,7 L15,4 M17,17 L6,17 L9,20</Geometry>
+  <Geometry x:Key="IcoPlay">M8,5 L8,19 L19,12 Z</Geometry>
+  <Geometry x:Key="IcoMoon">M20,14 A8,8 0 1 1 10,4 A6,6 0 0 0 20,14 Z</Geometry>
+  <Geometry x:Key="IcoTray">M4,14 L4,20 L20,20 L20,14 M12,4 L12,14 M8,10 L12,14 L16,10</Geometry>
+  <Geometry x:Key="IcoFlag">M5,21 L5,4 M5,4 L17,4 L15,8 L17,12 L5,12</Geometry>
+  <Geometry x:Key="IcoCode">M8,7 L3,12 L8,17 M16,7 L21,12 L16,17</Geometry>
+
+  <Style x:Key="SetGroup" TargetType="Border">
+    <Setter Property="Background" Value="{DynamicResource CardBg}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXl}"/>
+    <Setter Property="Padding" Value="2,4"/>
+  </Style>
+  <Style x:Key="SetCaption" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource FsCaption}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource Fa}"/>
+    <Setter Property="Margin" Value="8,18,8,6"/>
+  </Style>
+  <Style x:Key="SetLine" TargetType="DockPanel">
+    <Setter Property="Margin" Value="12,8,12,8"/>
+    <Setter Property="MinHeight" Value="34"/>
+  </Style>
+  <Style x:Key="SetNavRow" TargetType="Button" BasedOn="{StaticResource Row}">
+    <Setter Property="Height" Value="Auto"/>
+    <Setter Property="MinHeight" Value="50"/>
+    <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusLg}"/>
+  </Style>
+  <Style x:Key="SetIcon" TargetType="Border">
+    <Setter Property="Width" Value="28"/>
+    <Setter Property="Height" Value="28"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusIcon}"/>
+    <Setter Property="Margin" Value="0,0,12,0"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="DockPanel.Dock" Value="Left"/>
+  </Style>
+  <Style x:Key="SetGlyph" TargetType="Path">
+    <Setter Property="Width" Value="15"/>
+    <Setter Property="Height" Value="15"/>
+    <Setter Property="Stretch" Value="Uniform"/>
+    <Setter Property="Stroke" Value="{DynamicResource OnAccent}"/>
+    <Setter Property="StrokeThickness" Value="2.2"/>
+    <Setter Property="StrokeStartLineCap" Value="Round"/>
+    <Setter Property="StrokeEndLineCap" Value="Round"/>
+    <Setter Property="StrokeLineJoin" Value="Round"/>
+  </Style>
+  <Style x:Key="SetTitle" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource FsRow}"/>
+    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+  </Style>
+  <Style x:Key="SetSub" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource FsSmall}"/>
+    <Setter Property="Foreground" Value="{DynamicResource Mu2}"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
+    <Setter Property="Margin" Value="0,1,0,0"/>
+  </Style>
+  <Style x:Key="SetValue" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource FsBody}"/>
+    <Setter Property="Foreground" Value="{DynamicResource Mu}"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="Margin" Value="8,0,8,0"/>
+    <Setter Property="DockPanel.Dock" Value="Right"/>
+  </Style>
+  <Style x:Key="SetChevron" TargetType="Path">
+    <Setter Property="Data" Value="{StaticResource IcoChevronRight}"/>
+    <Setter Property="Width" Value="12"/>
+    <Setter Property="Height" Value="12"/>
+    <Setter Property="Stretch" Value="Uniform"/>
+    <Setter Property="Stroke" Value="{DynamicResource Fa}"/>
+    <Setter Property="StrokeThickness" Value="2.2"/>
+    <Setter Property="StrokeStartLineCap" Value="Round"/>
+    <Setter Property="StrokeEndLineCap" Value="Round"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="DockPanel.Dock" Value="Right"/>
+  </Style>
+  <!-- Разделы настроек в левой колонке: значок и название, выбранный — подложкой. -->
+  <Style x:Key="SetCategory" TargetType="Button" BasedOn="{StaticResource Plain}">
+    <Setter Property="Height" Value="44"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="Margin" Value="0,0,0,2"/>
+    <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    <Setter Property="FontSize" Value="{StaticResource FsLabel}"/>
+    <Style.Triggers>
+      <Trigger Property="o:Ui.Selected" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Acs}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
   <!-- Подпись над строкой подробностей: «Сейчас на связи с». -->
   <Style x:Key="DetailKey" TargetType="TextBlock">
     <Setter Property="FontSize" Value="{StaticResource FsCaption}"/>

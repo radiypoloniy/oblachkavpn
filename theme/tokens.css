@@ -69,6 +69,13 @@
   --brand-you-tube: #FF0033;
   --brand-discord: #5865F2;
   --close-hover: #E81123;
+  --ic-blue: #2F7BEA;
+  --ic-green: #2FB36A;
+  --ic-orange: #F29A1E;
+  --ic-purple: #8B5CF6;
+  --ic-teal: #14A89A;
+  --ic-red: #EF4B4B;
+  --ic-gray: #8E95A3;
   --ui-font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --mono-font: "Cascadia Mono", "Consolas", system-ui, sans-serif;
   --fs-caption: 11.5px;
@@ -95,6 +102,7 @@
   --radius-avatar: 15px;
   --radius-sky: 18px;
   --radius-orb: 27px;
+  --radius-icon: 7px;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --page: #0A0D12;
@@ -166,6 +174,13 @@
   --brand-you-tube: #FF0033;
   --brand-discord: #5865F2;
   --close-hover: #C42B1C;
+  --ic-blue: #2F7BEA;
+  --ic-green: #2FB36A;
+  --ic-orange: #F29A1E;
+  --ic-purple: #8B5CF6;
+  --ic-teal: #14A89A;
+  --ic-red: #EF4B4B;
+  --ic-gray: #8E95A3;
   color-scheme: dark; } }
 :root[data-theme="dark"] {
   --page: #0A0D12;
@@ -237,4 +252,11 @@
   --brand-you-tube: #FF0033;
   --brand-discord: #5865F2;
   --close-hover: #C42B1C;
+  --ic-blue: #2F7BEA;
+  --ic-green: #2FB36A;
+  --ic-orange: #F29A1E;
+  --ic-purple: #8B5CF6;
+  --ic-teal: #14A89A;
+  --ic-red: #EF4B4B;
+  --ic-gray: #8E95A3;
   color-scheme: dark; }

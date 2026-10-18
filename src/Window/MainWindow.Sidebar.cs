@@ -11,14 +11,38 @@ public partial class MainWindow
     private void WireSidebar()
     {
         Home.ServerCard.Click += (_, _) => Navigate("Servers");
-        Home.RulesNav.Click += (_, _) => OpenSettings(1);
-        Home.BypassOpen.Click += (_, _) => OpenSettings(1);
+        Home.RulesNav.Click += (_, _) => ShowRulesSection();
+        Home.BypassOpen.Click += (_, _) => OpenSettings(Views.SettingsPanel.BypassPage);
+        RulesPage.BackButton.Click += (_, _) => CloseRulesSection();
+        Settings.Bypass.OpenRules.Click += (_, _) => ShowRulesSection();
+        Settings.General.SkyToggle.Click += (_, _) => { Home.Sky.Animate = Settings.General.SkyToggle.IsChecked == true; QueueStateSave(); };
         Home.BypassToggle.Click += async (_, _) =>
         {
             if (Home.BypassToggle.IsChecked == true) await EnableZapretAsync(); else await DisableZapretAsync();
             if (!closed) RefreshZapret();
         };
         WireLayout();
+    }
+
+    // «Правила» — раздел острова: свои правила сайтов и программ.
+    private void ShowRulesSection()
+    {
+        ShowModeMenu(false);
+        CloseConnections();
+        Settings.Visibility = Visibility.Collapsed; Servers.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed;
+        Doctor.Visibility = Visibility.Collapsed; SiteCheck.Visibility = Visibility.Collapsed;
+        if (currentPage is "Servers" or "Diagnostics") currentPage = "Connection";
+        RulesPage.Visibility = Visibility.Visible;
+        RefreshRules();
+        OpenSection();
+    }
+
+    private void CloseRulesSection()
+    {
+        RulesPage.Visibility = Visibility.Collapsed;
+        if (currentPage == "Routes") currentPage = "Connection";
+        ShowDefaultSection();
+        Home.RulesNav.Focus();
     }
 
     private void RefreshSidebar()
