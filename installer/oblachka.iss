@@ -18,7 +18,8 @@ AppName=Облачка
 AppVersion={#Version}
 AppVerName=Облачка {#Version}
 AppPublisher=Облачка
-VersionInfoVersion={#Version}
+; Числовая часть: у предварительных версий (0.17.0-rc.1) суффикс в ресурсах файла не допускается.
+VersionInfoVersion={#VersionNumber}
 VersionInfoDescription=Установщик Облачков
 DefaultDirName={autopf}\Oblachka
 DisableDirPage=yes

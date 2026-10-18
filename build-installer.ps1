@@ -31,7 +31,7 @@ foreach ($file in 'xray.exe', 'sing-box.exe', 'libcronet.dll', 'LICENSE-Xray', '
 Copy-Item -LiteralPath (Join-Path $root 'THIRD-PARTY.md') -Destination $stage
 Write-ClientBuildInfo $stage $revision
 
-& $iscc /Q "/DVersion=$version" "/DRevision=$short" "/DSourceDir=$stage" "/DOutputDir=$(Join-Path $root 'dist')" (Join-Path $root 'installer\oblachka.iss')
+& $iscc /Q "/DVersion=$version" "/DVersionNumber=$(($version -split '-')[0])" "/DRevision=$short" "/DSourceDir=$stage" "/DOutputDir=$(Join-Path $root 'dist')" (Join-Path $root 'installer\oblachka.iss')
 if ($LASTEXITCODE -ne 0) { throw 'Inno Setup не собрал установщик.' }
 Remove-Item -LiteralPath $stage -Recurse -Force
 $setup = Join-Path $root ('dist\Oblachka-setup-' + $version + '-' + $short + '.exe')
