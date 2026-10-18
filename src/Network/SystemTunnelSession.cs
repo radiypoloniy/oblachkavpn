@@ -27,6 +27,8 @@ public sealed class SystemTunnelSession : IAsyncDisposable
     public SystemTunnelState State { get; private set; }
     // Блокируется ли трафик мимо туннеля. Решает помощник, окно только сообщает.
     public bool BlocksBypass { get; private set; }
+    // Доступ к соединениям ядра туннеля этой сессии («Сейчас в сети»).
+    public CoreStatsEntry? Stats { get; private set; }
     public event Action<SystemTunnelState>? Changed;
 
     public SystemTunnelSession(ITunnelController core, INetworkHelperClient helper)
@@ -88,8 +90,9 @@ public sealed class SystemTunnelSession : IAsyncDisposable
                 // служба считает окно погибшим и держит сеть закрытой, а Release уже не дойдёт.
                 // Запрос ограничен своим сроком в канале; отмена проверяется после него, и
                 // сессия снимается обычным Release.
+                Stats = CoreStatsEntry.Create(Engine.FreePort());
                 BlocksBypass = await helper.AcquireAsync(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, leasePort, peers,
-                    sites?.ToArray(), programs?.ToArray(), coreDirect, directByDefault), CancellationToken.None).ConfigureAwait(false);
+                    sites?.ToArray(), programs?.ToArray(), coreDirect, directByDefault, Stats), CancellationToken.None).ConfigureAwait(false);
                 token.ThrowIfCancellationRequested();
                 Set(SystemTunnelState.Running);
             }

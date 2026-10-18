@@ -119,6 +119,9 @@ public static class SingBoxTunConfig
     {
         var rules = (JsonArray)config["route"]!["rules"]!;
         if (lease.HasDirect) ((JsonArray)config["outbounds"]!).Add(new JsonObject { ["type"] = "direct", ["tag"] = UserDirect });
+        // Соединения для «Сейчас в сети»: только 127.0.0.1 и только с секретом этой сессии.
+        if (lease.Stats is { } stats)
+            config["experimental"] = new JsonObject { ["clash_api"] = new JsonObject { ["external_controller"] = "127.0.0.1:" + stats.Port, ["secret"] = stats.Secret } };
         // Прямой трафик ядра окна (списки маршрутизации) приходит на свой локальный вход с паролем
         // сессии и уходит мимо туннеля. Правило — самое первое, раньше перехвата DNS: этот трафик
         // ядро уже разобрало, и возвращать его ядру нельзя — получилась бы петля.
