@@ -51,7 +51,7 @@ public partial class MainWindow
         ApplyProfiles(!removedSelected);
         RefreshGroups();
         UpdateControls();
-        QueueStateSave();
+        QueueStateSave(); FlushStateSave();
     }
 
     private bool ConfirmRemoveGroup(ProfileGroup group)

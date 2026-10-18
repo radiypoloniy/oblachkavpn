@@ -84,6 +84,19 @@ public partial class MainWindow
         await Load("https://other.invalid/s/b", new ImportResult(new[] { Node("Швеция", 3) }, 0, 0));
         if (removedSubscriptions.Contains(swedenGroup)) throw new InvalidOperationException("Re-added subscription still counted as removed");
         checks.Add("A removed subscription is remembered across saving and forgotten once added back");
+        // Убрать — значит насовсем: отложенное до отключения обновление её не вернёт, а пустой список сохраняется.
+        var pendingGroup = groups.First(g => g.IsSubscription);
+        pendingImport = (pendingGroup, new ImportResult(new[] { Node("Швеция", 3) }, 0, 0));
+        RemoveGroup(pendingGroup.Id);
+        if (pendingImport is not null || groups.Any(g => g.Id == pendingGroup.Id))
+            throw new InvalidOperationException("A pending refresh survived removing its subscription");
+        UpdateControls();
+        if (groups.Any(g => g.Id == pendingGroup.Id)) throw new InvalidOperationException("A pending refresh brought a removed subscription back");
+        foreach (var id in groups.Select(g => g.Id).ToArray()) RemoveGroup(id);
+        store.Save(CaptureState());
+        ApplySnapshot(store.Load()!);
+        if (groups.Count != 0 || importedProfiles.Count != 0) throw new InvalidOperationException("Removing every subscription did not survive saving");
+        checks.Add("Removing a subscription is final: a pending refresh cannot bring it back and an empty list is saved");
         hiddenServers.Clear();
         serviceProfiles = Array.Empty<Profile>(); externalProfiles = Array.Empty<Profile>(); profile = null;
         LoadPreviewProfiles();

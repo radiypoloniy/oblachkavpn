@@ -93,12 +93,14 @@ public partial class MainWindow
         if (operation is not null) return;
         var removingSelected = profile?.Group == id;
         if (groups.FirstOrDefault(g => g.Id == id) is { IsSubscription: true }) { removedSubscriptions.Add(id); TrimRemoved(); }
+        // Обновление этой подписки, отложенное до отключения, вернуло бы её — выбрасываем.
+        if (pendingImport?.Group.Id == id) pendingImport = null;
         groups.RemoveAll(g => g.Id == id); groupProfiles.Remove(id);
         if (removingSelected) profile = null;
         ApplyProfiles(!removingSelected);
         RefreshGroups();
         UpdateControls();
-        QueueStateSave();
+        QueueStateSave(); FlushStateSave();
     }
 
     // Обновить все подписки: сервис первым, затем сторонние. «Вручную» не обновляется.

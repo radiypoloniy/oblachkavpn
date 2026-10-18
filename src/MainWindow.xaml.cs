@@ -97,8 +97,8 @@ public partial class MainWindow : Window
         if (pendingImport is not null && operation is null && engine.State == ConnectionState.Idle)
         {
             var pending = pendingImport.Value; pendingImport = null;
-            ApplyGroupImport(pending.Group, pending.Result, true);
-            return;
+            // Подписку убрали, пока её обновление ждало отключения, — не возвращать.
+            if (!removedSubscriptions.Contains(pending.Group.Id)) { ApplyGroupImport(pending.Group, pending.Result, true); return; }
         }
         var active = engine.State is not ConnectionState.Idle;
         ConnectButton.IsEnabled = profile is not null && !active && operation is null;
