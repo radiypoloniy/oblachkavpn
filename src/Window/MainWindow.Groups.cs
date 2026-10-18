@@ -70,8 +70,13 @@ public partial class MainWindow
     }
 
     // Новая или обновлённая группа целиком. Узлы получают её источник и идентификатор.
+    // Убранные подписки (идентификаторы групп): ссылка oblachka:// на такую спрашивает отдельно.
+    private readonly HashSet<string> removedSubscriptions = new(StringComparer.Ordinal);
+    private void TrimRemoved() { while (removedSubscriptions.Count > 32) removedSubscriptions.Remove(removedSubscriptions.First()); }
+
     private void SetGroup(ProfileGroup group, IReadOnlyList<Profile> profiles)
     {
+        removedSubscriptions.Remove(group.Id);
         var tagged = profiles.Select(p => p with { Source = group.Source, Group = group.Id }).ToArray();
         var exists = groups.Any(g => g.Id == group.Id);
         if (!exists && groups.Count >= ProfileGroup.MaxGroups) throw new UserError($"Не больше {ProfileGroup.MaxGroups} подписок: уберите ненужную в «Настройки → Подписки и ключ».");
@@ -87,6 +92,7 @@ public partial class MainWindow
     {
         if (operation is not null) return;
         var removingSelected = profile?.Group == id;
+        if (groups.FirstOrDefault(g => g.Id == id) is { IsSubscription: true }) { removedSubscriptions.Add(id); TrimRemoved(); }
         groups.RemoveAll(g => g.Id == id); groupProfiles.Remove(id);
         if (removingSelected) profile = null;
         ApplyProfiles(!removingSelected);

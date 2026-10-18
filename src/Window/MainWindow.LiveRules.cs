@@ -8,6 +8,7 @@ public partial class MainWindow
 {
     private bool tunnelDirectAllowed;
     private string sentProgramRules = "";
+    private ProgramRule[] sentRules = [];
 
     // Вызывается при запуске сессии: то же условие, что у ValidatedNetworkLease.HasDirect.
     private void RememberTunnelDirect() =>
@@ -32,6 +33,14 @@ public partial class MainWindow
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
             await lifetime.Client.ProgramRulesAsync(rules, timeout.Token);
             sentProgramRules = key;
+            var before = sentRules; sentRules = rules.ToArray();
+            // Ядро перечитывает файлы правил не мгновенно: открытые соединения закрываем, когда
+            // новые правила уже действуют, иначе программа переподключилась бы прежним путём.
+            if (systemTunnel?.Stats is { } stats)
+            {
+                await Task.Delay(1500);
+                await CoreConnections.CloseChangedAsync(stats, before, sentRules, CancellationToken.None);
+            }
         }
         // Старая служба без этой команды или сбой канала: правила вступят в силу при следующем подключении.
         catch (Exception ex) when (ex is UserError or IOException or OperationCanceledException or TimeoutException)

@@ -38,6 +38,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public string[] Favorites { get; init; } = Array.Empty<string>();
     // Скрытые серверы подписок — те же ключи, что у избранного.
     public string[] HiddenServers { get; init; } = Array.Empty<string>();
+    // Убранные подписки — идентификаторы групп.
+    public string[] RemovedSubscriptions { get; init; } = Array.Empty<string>();
     // Маршрутизация сервиса (последняя присланная), решение по ней (нет значения — ещё не
     // спрашивали) и встроенный набор «Российские сайты напрямую».
     public RoutingProfile? ProviderRouting { get; init; }
@@ -174,6 +176,9 @@ public sealed class ClientStateStore(string path)
         if (snapshot.HiddenServers is null || snapshot.HiddenServers.Length > Subscriptions.MaxProfiles ||
             snapshot.HiddenServers.Any(f => f is null || f.Length != 64 || f.Any(c => !char.IsAsciiHexDigit(c))))
             throw new UserError("Сохранённый список скрытых серверов повреждён.");
+        if (snapshot.RemovedSubscriptions is null || snapshot.RemovedSubscriptions.Length > 32 ||
+            snapshot.RemovedSubscriptions.Any(id => id is not { Length: > 0 and <= 32 } || id.Any(c => !(char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c == '-'))))
+            throw new UserError("Сохранённый список убранных подписок повреждён.");
         RoutingPlan.Validate(snapshot.RouteRules);
         ProgramRoutingPlan.Validate(snapshot.ProgramRules);
         if (snapshot.Measurements is null || snapshot.Measurements.Length > Subscriptions.MaxProfiles || snapshot.Measurements.Any(m => m is null ||

@@ -111,7 +111,7 @@ public partial class MainWindow
         systemTunnel = session;
         // Правила сайтов и программ исполняет ядро туннеля у помощника; ядро окна в этом
         // режиме правил не несёт (Engine.SiteRules пуст), иначе «напрямую» шло бы из него.
-        RememberTunnelDirect(); sentProgramRules = string.Join('|', LeasePrograms().Select(r => r.Key + ">" + r.Action));
+        RememberTunnelDirect(); sentRules = LeasePrograms().ToArray(); sentProgramRules = string.Join('|', LeasePrograms().Select(r => r.Key + ">" + r.Action));
         await session.StartWithSparesAsync(plans, token, LeaseSites(), LeasePrograms(), (engine as Engine)?.DirectEntry, selectiveVpn).ConfigureAwait(true);
     }
 
