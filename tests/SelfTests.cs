@@ -79,7 +79,9 @@ public static partial class SelfTests
     {
         using var engine = new Engine(new CoreAdapter(core, Path.Combine(AppContext.BaseDirectory, "tools", core == CoreKind.Xray ? "xray.exe" : "sing-box.exe")));
         await engine.StartAsync(core == CoreKind.Xray ? Direct() : new JsonObject { ["type"] = "direct" }, CancellationToken.None);
-        await File.WriteAllTextAsync(Path.Combine(folder, "pid.txt"), engine.ProcessId!.Value.ToString());
+        // Через временный файл: проверка ждёт pid.txt и читала его, пока он ещё писался.
+        await File.WriteAllTextAsync(Path.Combine(folder, "pid.tmp"), engine.ProcessId!.Value.ToString());
+        File.Move(Path.Combine(folder, "pid.tmp"), Path.Combine(folder, "pid.txt"));
         await Task.Delay(Timeout.Infinite); return 0;
     }
     private static JsonObject Direct() => new() { ["protocol"] = "freedom", ["settings"] = new JsonObject() };
