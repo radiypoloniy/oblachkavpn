@@ -139,7 +139,7 @@ public sealed class ClientStateStore(string path)
 
     private static void Validate(ClientSnapshot snapshot)
     {
-        if (snapshot.Version != 1 || snapshot.Profiles is null || snapshot.Profiles.Length is < 1 or > ProfileGroup.MaxTotalProfiles ||
+        if (snapshot.Version != 1 || snapshot.Profiles is null || snapshot.Profiles.Length > ProfileGroup.MaxTotalProfiles ||
             snapshot.SubscriptionSources is null || snapshot.SubscriptionSources.Length > 5)
             throw new UserError("Формат сохранённых подключений не поддерживается.");
         if (snapshot.Profiles.Any(p => p is null || p.Outbound is null || string.IsNullOrWhiteSpace(p.Name) || p.Name.Length > 80 || p.Name.Any(char.IsControl)))

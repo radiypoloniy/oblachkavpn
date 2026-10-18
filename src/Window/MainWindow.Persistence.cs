@@ -13,12 +13,16 @@ public partial class MainWindow
 
     private void QueueStateSave()
     {
-        if (stateStore is not null && !restoringState && rememberConnections && profile is not null) stateDirty = true;
+        // Без выбранного сервера тоже: убранная последняя подписка должна сохраниться пустым списком.
+        if (stateStore is not null && !restoringState && rememberConnections && (stateRestored || profile is not null)) stateDirty = true;
     }
 
     private void FlushStateSave()
     {
-        if (!stateDirty || restoringState || stateStore is null || !rememberConnections || profile is null || operation is not null || pendingImport is not null) return;
+        // Отложенное обновление подписки (оно ждёт отключения) сохранению не мешает: сохраняется то,
+        // что сейчас в списке. Раньше из-за него за всю подключённую сессию не сохранялось ничего —
+        // и убранная подписка возвращалась после перезапуска.
+        if (!stateDirty || restoringState || stateStore is null || !rememberConnections || !(stateRestored || profile is not null) || operation is not null) return;
         stateDirty = false;
         try
         {
@@ -46,7 +50,6 @@ public partial class MainWindow
     private void SaveStateClick(object sender, RoutedEventArgs args)
     {
         if (stateStore is null || profile is null || operation is not null) return;
-        if (pendingImport is not null) { DetailText.Text = "Сначала остановите подключение, чтобы сохранить обновлённый список."; return; }
         try
         {
             stateStore.Save(CaptureState());
