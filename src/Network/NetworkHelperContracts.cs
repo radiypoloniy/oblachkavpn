@@ -22,7 +22,11 @@ public sealed record NetworkLeaseRequest(
     // «Через VPN только выбранное»: всё, что не попало в правила «через VPN», идёт напрямую.
     bool DirectByDefault = false,
     // Чтение соединений ядра туннеля («Сейчас в сети»): куда на самом деле ушло каждое соединение.
-    CoreStatsEntry? Stats = null);
+    CoreStatsEntry? Stats = null,
+    // Выходы ядра туннеля прямо на серверы (DirectOutbound), по одному на подготовленный узел в том же
+    // порядке; null — узел идёт через ядро окна. Это профили с ключами: служба проверяет их
+    // DirectOutboundPolicy и держит только в памяти.
+    System.Text.Json.Nodes.JsonObject?[]? Direct = null);
 
 // Локальный интерфейс соединений ядра туннеля (clash API sing-box) на 127.0.0.1 с секретом сессии.
 // Окно читает по нему, через какой выход ушло соединение программы: по таблицам Windows этого не
@@ -57,7 +61,7 @@ public sealed record CoreDirectEntry(
 // проверенные теми же правилами, что и в окне. Конфигурацию ядра помощник строит сам.
 public sealed record ValidatedNetworkLease(Guid LeaseId, NetworkLeaseAction Action, int LoopbackPort, IReadOnlyList<IPAddress> Peers,
     IReadOnlyList<SiteRule>? Sites = null, IReadOnlyList<ProgramRule>? Programs = null, CoreDirectEntry? CoreDirect = null, bool DirectByDefault = false,
-    CoreStatsEntry? Stats = null)
+    CoreStatsEntry? Stats = null, IReadOnlyList<System.Text.Json.Nodes.JsonObject?>? Direct = null)
 {
     public IReadOnlyList<SiteRule> SiteRules => Sites ?? Array.Empty<SiteRule>();
     public IReadOnlyList<ProgramRule> ProgramRules => Programs ?? Array.Empty<ProgramRule>();
@@ -98,7 +102,7 @@ public static class NetworkHelperContracts
             throw new UserError("Неверная версия или идентификатор сетевой сессии.");
         if (request.Action == NetworkLeaseAction.Release)
         {
-            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 } || request.CoreDirect is not null || request.DirectByDefault || request.Stats is not null)
+            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 } || request.CoreDirect is not null || request.DirectByDefault || request.Stats is not null || request.Direct is not null)
                 throw new UserError("Завершение сессии не принимает сетевые параметры.");
             return new(request.LeaseId, request.Action, 0, Array.Empty<IPAddress>());
         }
@@ -129,6 +133,15 @@ public static class NetworkHelperContracts
         request.Stats?.Validate();
         if (request.Stats is { } stats && (stats.Port == request.LoopbackPort || stats.Port == request.CoreDirect?.Port))
             throw new UserError("Порт статистики ядра совпадает с другим портом сессии.");
-        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs, request.CoreDirect, request.DirectByDefault, request.Stats);
+        IReadOnlyList<System.Text.Json.Nodes.JsonObject?>? direct = null;
+        if (request.Direct is { } outbounds)
+        {
+            if (outbounds.Length is < 1 or > DirectOutboundPolicy.MaxOutbounds || outbounds.All(o => o is null))
+                throw new UserError("Неверный список выходов ядра туннеля.");
+            // Переключение сервера идёт через clash API: без него выбрать другой выход нечем.
+            if (request.Stats is null) throw new UserError("Выходам ядра туннеля нужен интерфейс ядра.");
+            direct = outbounds.Select(o => o is null ? null : DirectOutboundPolicy.Validate(o, peers)).ToArray();
+        }
+        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs, request.CoreDirect, request.DirectByDefault, request.Stats, direct);
     }
 }

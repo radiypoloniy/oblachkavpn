@@ -31,6 +31,8 @@ public static class SingBoxTunConfig
     {
         var lease = NetworkHelperContracts.Validate(request);
         if (lease.Action != NetworkLeaseAction.Acquire) throw new UserError("TUN требует новую сетевую сессию.");
+        // Куда идёт трафик «через VPN»: прямо на сервер через переключатель (одно ядро) или в ядро окна.
+        var tunnel = lease.Direct is null ? "local-core" : ServerSelector;
         var exclusions = new JsonArray(lease.Peers.Select(ip => (JsonNode?)JsonValue.Create(
             ip + (ip.AddressFamily == AddressFamily.InterNetwork ? "/32" : "/128"))).ToArray());
         var config = new JsonObject
@@ -41,7 +43,7 @@ public static class SingBoxTunConfig
                 ["servers"] = new JsonArray(new JsonObject
                 {
                     ["type"] = "https", ["tag"] = "remote-dns", ["server"] = "1.1.1.1", ["server_port"] = 443,
-                    ["path"] = "/dns-query", ["detour"] = "local-core",
+                    ["path"] = "/dns-query", ["detour"] = tunnel,
                     ["tls"] = new JsonObject { ["enabled"] = true, ["server_name"] = "cloudflare-dns.com" }
                 }),
                 ["final"] = "remote-dns",
@@ -71,7 +73,7 @@ public static class SingBoxTunConfig
             ["route"] = new JsonObject
             {
                 // «Через VPN только выбранное»: в туннель — только правила «через VPN», остальное мимо.
-                ["auto_detect_interface"] = true, ["final"] = lease.DirectByDefault ? UserDirect : "local-core",
+                ["auto_detect_interface"] = true, ["final"] = lease.DirectByDefault ? UserDirect : tunnel,
                 // Поиск процесса — системный вызов на каждое соединение; без него правила программ
                 // молча не срабатывают. С файлами правил он нужен всегда: правило может появиться
                 // на ходу, а включается поиск только при запуске ядра. На стенде скорости его
@@ -83,7 +85,8 @@ public static class SingBoxTunConfig
                     new JsonObject { ["port"] = 53, ["action"] = "hijack-dns" })
             }
         };
-        AddRules(config, lease, programSets);
+        AddServers(config, lease);
+        AddRules(config, lease, programSets, tunnel);
         if (lease.HasDirect && localDns is not null && ruleSet is not null) AddDirectDns(config, localDns, ruleSet);
         if (lease.DirectByDefault && localDns is not null && ruleSet is not null) DnsByDefaultDirect(config, lease);
         return config;
@@ -121,7 +124,33 @@ public static class SingBoxTunConfig
     // они относятся ко всей программе; затем правила сайтов, длинные домены раньше.
     // «Напрямую» — отдельный выход direct из этого ядра; защита WFP разрешает его только
     // при наличии таких правил (WfpProtectionBackend).
-    private static void AddRules(JsonObject config, ValidatedNetworkLease lease, string? programSets)
+    // Выходы прямо на серверы и переключатель между ними. Ядро окна (local-core) остаётся в
+    // переключателе: на узел без перевода (XHTTP и т. п.) окно переключает туда же, без перезапуска
+    // туннеля и без снятия защиты (CoreSelector). Начальный выход — первый узел аренды.
+    private static void AddServers(JsonObject config, ValidatedNetworkLease lease)
+    {
+        if (lease.Direct is not { } direct) return;
+        var outbounds = (JsonArray)config["outbounds"]!;
+        var members = new JsonArray();
+        for (var i = 0; i < direct.Count; i++)
+        {
+            if (direct[i] is not { } outbound) continue;
+            var copy = (JsonObject)outbound.DeepClone();
+            copy["tag"] = DirectTag(i);
+            outbounds.Add(copy); members.Add(DirectTag(i));
+        }
+        members.Add("local-core");
+        outbounds.Add(new JsonObject
+        {
+            ["type"] = "selector", ["tag"] = ServerSelector, ["outbounds"] = members,
+            ["default"] = direct[0] is null ? "local-core" : DirectTag(0), ["interrupt_exist_connections"] = true
+        });
+    }
+
+    public const string ServerSelector = "server";
+    public static string DirectTag(int index) => "direct-" + index;
+
+    private static void AddRules(JsonObject config, ValidatedNetworkLease lease, string? programSets, string tunnel)
     {
         var rules = (JsonArray)config["route"]!["rules"]!;
         if (lease.HasDirect) ((JsonArray)config["outbounds"]!).Add(new JsonObject { ["type"] = "direct", ["tag"] = UserDirect });
@@ -145,21 +174,21 @@ public static class SingBoxTunConfig
         // «напрямую», добавленное на ходу без него, блокирует программу: мимо VPN без разрешения
         // она не уйдёт, а окно попросит переподключиться.
         if (programSets is not null)
-            ProgramRuleSets.AddTo(config, programSets, (match, action) => Route(match, action == SiteAction.Direct && !lease.HasDirect ? SiteAction.Block : action));
+            ProgramRuleSets.AddTo(config, programSets, (match, action) => Route(match, action == SiteAction.Direct && !lease.HasDirect ? SiteAction.Block : action, tunnel));
         else
             foreach (var rule in ProgramRoutingPlan.Ordered(lease.ProgramRules))
-                rules.Add(Route(ProgramRoutingPlan.Match(rule), rule.Action));
+                rules.Add(Route(ProgramRoutingPlan.Match(rule), rule.Action, tunnel));
         foreach (var rule in lease.SiteRules.OrderByDescending(r => r.Domain.Count(c => c == '.')))
-            rules.Add(Route(new JsonObject { ["domain_suffix"] = new JsonArray(rule.Domain) }, rule.Action));
+            rules.Add(Route(new JsonObject { ["domain_suffix"] = new JsonArray(rule.Domain) }, rule.Action, tunnel));
     }
 
     public const string UserDirect = "user-direct";
     public const string CoreDirectInbound = "core-direct";
 
-    private static JsonObject Route(JsonObject match, SiteAction action)
+    private static JsonObject Route(JsonObject match, SiteAction action, string tunnel)
     {
         if (action == SiteAction.Block) match["action"] = "reject";
-        else match["outbound"] = action == SiteAction.Direct ? UserDirect : "local-core";
+        else match["outbound"] = action == SiteAction.Direct ? UserDirect : tunnel;
         return match;
     }
 }

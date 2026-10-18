@@ -40,6 +40,83 @@ public static partial class SelfTests
             // Адрес не IP — профиль ещё не закреплён планом узла.
             Assert(DirectOutbound.From(Profiles.Parse(realityLink.Replace("203.0.113.7", "node.example.com"))) is null);
         }));
+        await check("Lease carries direct outbounds only for its own servers; tunnel core gets a server selector and sing-box accepts it", async () =>
+        {
+            var outbound = DirectOutbound.From(Profiles.Parse(realityLink))!;
+            var stats = CoreStatsEntry.Create(23999);
+            var request = new NetworkLeaseRequest(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, 10808, ["203.0.113.7", "198.51.100.9"], Stats: stats, Direct: [outbound, null]);
+            var lease = NetworkHelperContracts.Validate(request);
+            Assert(lease.Direct!.Count == 2 && lease.Direct[1] is null && !lease.HasDirect);
+            // Служба строит конфигурацию из запроса, собранного заново по аренде: выходы не теряются.
+            Assert(SingBoxTunnelProcess.RequestFor(lease).Direct is { Length: 2 } again && again[0] is not null && again[1] is null);
+            // И бэкенд службы, который переносит поля аренды в ядро по одному (так в 0.10 терялся вход «напрямую»).
+            ValidatedNetworkLease? started = null; var up = false;
+            using (var tunnel = new WindowsTunnelBackend((l, _) => { started = l; up = true; return new FakeTunnelProcess(); }, _ => up,
+                delay: static (_, _) => Task.CompletedTask))
+            {
+                var change = tunnel.Prepare(lease).Single();
+                tunnel.Apply(lease.LeaseId, change);
+            }
+            Assert(started?.Direct is { Count: 2 } carried && carried[0] is not null);
+            ExpectUserError(() => NetworkHelperContracts.Validate(request with { Stats = null }));
+            ExpectUserError(() => NetworkHelperContracts.Validate(request with { Direct = [null, null] }));
+            ExpectUserError(() => NetworkHelperContracts.Validate(request with { PeerAddresses = ["198.51.100.9"] }));
+            ExpectUserError(() => NetworkHelperContracts.Validate(new(1, Guid.NewGuid(), NetworkLeaseAction.Release, 0, [], Direct: [outbound])));
+            await CoreConfigurationCheck.ValidateTunAsync(request, CancellationToken.None);
+            var config = SingBoxTunConfig.Create(request);
+            var selector = config["outbounds"]!.AsArray().Single(o => o!["type"]!.GetValue<string>() == "selector")!;
+            Assert(selector["tag"]!.GetValue<string>() == SingBoxTunConfig.ServerSelector && selector["default"]!.GetValue<string>() == "direct-0");
+            Assert(selector["outbounds"]!.AsArray().Select(n => n!.GetValue<string>()).SequenceEqual(["direct-0", "local-core"]));
+            Assert(config["route"]!["final"]!.GetValue<string>() == SingBoxTunConfig.ServerSelector && config["dns"]!["servers"]![0]!["detour"]!.GetValue<string>() == SingBoxTunConfig.ServerSelector);
+            // Без выходов — всё как раньше: туннель смотрит в ядро окна.
+            Assert(SingBoxTunConfig.Create(request with { Direct = null })["route"]!["final"]!.GetValue<string>() == "local-core");
+        });
+        await check("System session sends direct outbounds only while the window allows them", async () =>
+        {
+            var ssLink = "ss://" + B64("2022-blake3-aes-128-gcm:ISQz02o+aQdntLC3EX4AjQ==").TrimEnd('=') + "@203.0.113.7:443#S";
+            foreach (var allowed in new[] { true, false })
+            {
+                var calls = new List<string>(); var helper = new SessionHelper(calls);
+                await using var session = new SystemTunnelSession(new SessionCore(calls), helper) { DirectAllowed = () => allowed };
+                var plan = await TunnelEndpoints.PrepareAsync(Profiles.Parse(ssLink), CancellationToken.None);
+                await session.StartWithSparesAsync([plan], CancellationToken.None);
+                Assert(allowed ? helper.LastRequest!.Direct is [{ }] && session.DirectActive : helper.LastRequest!.Direct is null && !session.DirectActive);
+            }
+        });
+        await check("Window switches the tunnel core's server selector through the pinned sing-box clash API", async () =>
+        {
+            // Настоящее ядро без входов и без TUN: только переключатель и интерфейс на 127.0.0.1.
+            var stats = CoreStatsEntry.Create(Engine.FreePort());
+            var config = new JsonObject
+            {
+                ["log"] = new JsonObject { ["disabled"] = true },
+                ["outbounds"] = new JsonArray(
+                    new JsonObject { ["type"] = "direct", ["tag"] = SingBoxTunConfig.DirectTag(0) },
+                    new JsonObject { ["type"] = "direct", ["tag"] = "local-core" },
+                    new JsonObject { ["type"] = "selector", ["tag"] = SingBoxTunConfig.ServerSelector, ["outbounds"] = new JsonArray(SingBoxTunConfig.DirectTag(0), "local-core"), ["default"] = SingBoxTunConfig.DirectTag(0) }),
+                ["experimental"] = new JsonObject { ["clash_api"] = new JsonObject { ["external_controller"] = "127.0.0.1:" + stats.Port, ["secret"] = stats.Secret } }
+            };
+            var start = new System.Diagnostics.ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "tools", "sing-box.exe")) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardError = true, RedirectStandardOutput = true };
+            foreach (var a in new[] { "run", "-c", "stdin" }) start.ArgumentList.Add(a);
+            using var process = System.Diagnostics.Process.Start(start)!;
+            using var job = new ProcessJob(); job.Attach(process);
+            try
+            {
+                process.BeginOutputReadLine(); process.BeginErrorReadLine();
+                await process.StandardInput.WriteAsync(config.ToJsonString()); process.StandardInput.Close();
+                var selected = false;
+                for (var i = 0; i < 50 && !selected; i++) { await Task.Delay(100); selected = await CoreSelector.SelectAsync(stats, "local-core", CancellationToken.None); }
+                Assert(selected);
+                using var http = new HttpClient(new SocketsHttpHandler { UseProxy = false });
+                using var request = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{stats.Port}/proxies/{SingBoxTunConfig.ServerSelector}");
+                request.Headers.Authorization = new("Bearer", stats.Secret);
+                var now = JsonNode.Parse(await (await http.SendAsync(request)).Content.ReadAsStringAsync())!["now"]!.GetValue<string>();
+                Assert(now == "local-core");
+                // Чужой секрет не переключает.
+                Assert(!await CoreSelector.SelectAsync(stats with { Secret = new string('0', 32) }, SingBoxTunConfig.DirectTag(0), CancellationToken.None));
+            }
+            finally { try { process.Kill(); } catch (InvalidOperationException) { } }
+        });
         await check("Service rebuilds direct outbounds and refuses foreign servers, extra fields and disabled certificate checks", () => Sync(() =>
         {
             var good = DirectOutbound.From(Profiles.Parse(realityLink))!;

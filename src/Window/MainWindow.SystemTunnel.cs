@@ -106,7 +106,12 @@ public partial class MainWindow
         if (service && SessionLeft(NetworkService.JournalPath)) await RecoverServiceSessionAsync(token).ConfigureAwait(true);
         var plans = await TunnelEndpoints.PrepareSetAsync(SystemCandidates(profile), token).ConfigureAwait(true);
         helperLifetime = await NetworkHelperConnection.ConnectAsync(token).ConfigureAwait(true);
-        var session = new SystemTunnelSession(engine, helperLifetime.Client);
+        var session = new SystemTunnelSession(engine, helperLifetime.Client)
+        {
+            // Одно ядро: трафик из туннеля прямо на сервер. Списки «напрямую» (DirectEntry) и обход
+            // DPI фрагментацией исполняет ядро окна — с ними трафик идёт через него, как раньше.
+            DirectAllowed = () => engine is Engine core && core.DirectEntry is null && !core.Fragment
+        };
         session.Changed += OnSystemTunnelChanged;
         systemTunnel = session;
         // Правила сайтов и программ исполняет ядро туннеля у помощника; ядро окна в этом

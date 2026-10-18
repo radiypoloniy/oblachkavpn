@@ -33,7 +33,7 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
     // и сайты из списков «напрямую» не открывались.
     internal static NetworkLeaseRequest RequestFor(ValidatedNetworkLease lease) =>
         new(1, lease.LeaseId, NetworkLeaseAction.Acquire, lease.LoopbackPort, lease.Peers.Select(p => p.ToString()).ToArray(),
-            lease.SiteRules.ToArray(), lease.ProgramRules.ToArray(), lease.CoreDirect, lease.DirectByDefault, lease.Stats);
+            lease.SiteRules.ToArray(), lease.ProgramRules.ToArray(), lease.CoreDirect, lease.DirectByDefault, lease.Stats, lease.Direct?.ToArray());
 
     internal static ITunnelProcess Start(ValidatedNetworkLease lease, string executable, CancellationToken token)
     {
@@ -49,6 +49,9 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         CoreConfigurationCheck.ValidateTunAsync(request, token, ipv6, localDns, DirectDns.RuleSetPath, ProgramRuleSets.Folder).GetAwaiter().GetResult();
         var config = SingBoxTunConfig.Create(request, ipv6, localDns, DirectDns.RuleSetPath, ProgramRuleSets.Folder).ToJsonString();
         NetworkHelperHost.RecordStep(DateTime.UtcNow.ToString("HH:mm:ss.fff") + " DNS прямых сайтов: " + (localDns is null ? "через туннель" : "сеть"));
+        // Только число: сами выходы содержат ключи и в след не пишутся.
+        NetworkHelperHost.RecordStep(DateTime.UtcNow.ToString("HH:mm:ss.fff") + " выходов прямо на сервер: " +
+            (lease.Direct is { } direct ? direct.Count(o => o is not null) + " из " + direct.Count : "нет, через ядро окна"));
 
         var start = new ProcessStartInfo(executable)
         {
