@@ -137,7 +137,7 @@ func (d *boxSystemDialer) Dial(ctx context.Context, _ xnet.Address, destination 
 		if err != nil {
 			return nil, err
 		}
-		return &internet.PacketConnWrapper{PacketConn: packetConn, Dest: target.UDPAddr()}, nil
+		return &xnet.PacketConnWrapper{PacketConn: packetConn, Dest: target.UDPAddr()}, nil
 	}
 	return d.dialer.DialContext(ctx, N.NetworkTCP, target)
 }

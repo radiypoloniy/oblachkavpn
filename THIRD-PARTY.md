@@ -2,13 +2,13 @@
 
 Облачка запускает ядра Xray и sing-box отдельными процессами. Их код не изменяется и в исходники клиента не входит. Бинарники скачиваются с официальных релизов скриптом `scripts/fetch-cores.ps1`, который сверяет SHA256 архива и каждого файла. В установщике они лежат в `tools\` рядом с лицензиями.
 
-## Xray-core 26.9.9
+## Xray-core 26.10.17
 
-- Релиз: https://github.com/XTLS/Xray-core/releases/tag/v26.9.9
-- Исходники: https://github.com/XTLS/Xray-core/tree/v26.9.9
-- Лицензия: MPL-2.0 (`vendor/xray-26.9.9/LICENSE-Xray`, в установке — `tools/LICENSE-Xray`)
-- SHA256 архива `Xray-windows-64.zip`: `244DEABA2098C2964E49BBA90DF3707777E5F5F428A82D2F29604015F24BEEC2`. Совпадает с файлом `.dgst` релиза.
-- SHA256 `xray.exe`: `0D0FC0EA2B05641ACB78C01FC36AD694E7B029861B2D5EB93DA0E3E9FDA9A98F`
+- Релиз: https://github.com/XTLS/Xray-core/releases/tag/v26.10.17
+- Исходники: https://github.com/XTLS/Xray-core/tree/v26.10.17
+- Лицензия: MPL-2.0 (`vendor/xray-26.10.17/LICENSE-Xray`, в установке — `tools/LICENSE-Xray`)
+- SHA256 архива `Xray-windows-64.zip`: `C10A532A9271964F2AA2F4B4C0757605FF529222CB1D5D7AB88F8ECC52E67FB0`. Совпадает с файлом `.dgst` релиза.
+- SHA256 `xray.exe`: `A743B8C2CE49CB33D6C1CF764C780BF1A475D746AD7485E7C3FCFE6458511C92`
 
 ## sing-box 1.14.3
 
@@ -23,7 +23,7 @@
 
 ## oblachka-core (ядро системного туннеля)
 
-Собирается из исходников в `core/` (`scripts/build-core.ps1`): sing-box 1.14.3 и Xray-core 26.9.9 как библиотеки Go (версии закреплены в `core/go.mod` и `core/go.sum`) плюс выход `xray`, который передаёт соединения встроенному Xray внутри процесса. Код sing-box и Xray не изменяется. Сборка воспроизводимая (`-trimpath`, без `buildid` и cgo), SHA256 файла закреплён в `src/Network/TunCore.cs`. Лицензия — GPL-3.0-or-later, как у sing-box и всего клиента. Название своё: условие sing-box запрещает производным работам называться sing-box.
+Собирается из исходников в `core/` (`scripts/build-core.ps1`): sing-box 1.14.3 и Xray-core 26.10.17 как библиотеки Go (версии закреплены в `core/go.mod` и `core/go.sum`) плюс выход `xray`, который передаёт соединения встроенному Xray внутри процесса. Код sing-box и Xray не изменяется. Сборка воспроизводимая (`-trimpath`, без `buildid` и cgo), SHA256 файла закреплён в `src/Network/TunCore.cs`. Лицензия — GPL-3.0-or-later, как у sing-box и всего клиента. Название своё: условие sing-box запрещает производным работам называться sing-box.
 
 ## zapret и набор Flowseal
 
