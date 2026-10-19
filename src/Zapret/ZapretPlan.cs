@@ -37,12 +37,14 @@ public static class ZapretPlan
     public static bool Better(string[] candidate, string[] current) => candidate.Length > current.Length;
 
     // Подпись в настройках: что идёт напрямую, что через VPN и какие адреса не открылись.
-    public static string Describe(string strategy, string[] direct, ZapretProbeResult? lastProbe)
+    // vpn — группы, которые человек сам оставил в VPN.
+    public static string Describe(string strategy, string[] direct, ZapretProbeResult? lastProbe, IReadOnlyCollection<string>? vpn = null)
     {
         var parts = new List<string>();
         foreach (var group in Groups)
         {
-            if (direct.Contains(group.Key))
+            if (vpn?.Contains(group.Key) == true) parts.Add(group.Title + " — через VPN, так выбрано.");
+            else if (direct.Contains(group.Key))
             {
                 var quic = lastProbe is null ? [] : group.Targets.Where(i => lastProbe.QuicOnly.Contains(i)).Select(i => ZapretProbe.Targets[i].Host).ToArray();
                 parts.Add(group.Title + " — напрямую" + (strategy == NoBypass ? ", обход не нужен" : $" через zapret («{strategy}»)") +

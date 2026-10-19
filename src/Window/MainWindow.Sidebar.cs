@@ -69,6 +69,10 @@ public partial class MainWindow
         Home.AllServersText.Text = importedProfiles.Count > 0 ? importedProfiles.Count.ToString() : "";
     }
 
+    // Остальные группы в VPN: «Discord работает · YouTube через VPN».
+    private string ZapretInVpn() =>
+        ZapretPlan.Groups.Select(g => g.Key).Except(zapretActiveGroups).ToArray() is { Length: > 0 } rest ? " · " + string.Join(" и ", rest.Select(ZapretTitle)) + " через VPN" : "";
+
     // Карточка обхода: работает ли обход и для чего. Жёлтым — обход сломался и сайт временно в VPN.
     private void RefreshBypassCard()
     {
@@ -76,8 +80,10 @@ public partial class MainWindow
         var (text, color) =
             !zapretEnabled ? ("YouTube и Discord без VPN", "Mu2")
             : zapretDemoted.Length > 0 ? (string.Join(" и ", zapretDemoted.Select(ZapretTitle)) + " временно через VPN", "WI")
-            : zapretBusy ? ("подбираем обход…", "Mu2")
-            : zapretActiveGroups.Length > 0 ? (string.Join(" и ", zapretActiveGroups.Select(ZapretTitle)) + (zapretActiveGroups.Length > 1 ? " работают" : " работает"), "OkF")
+            : zapretBusy ? ("подбираем обход… сайты пока через VPN", "Mu2")
+            : zapretActiveGroups.Length > 0 ? (string.Join(" и ", zapretActiveGroups.Select(ZapretTitle)) + (zapretActiveGroups.Length > 1 ? " работают" : " работает") + ZapretInVpn(), "OkF")
+            : ZapretCandidates.Length == 0 ? ("YouTube и Discord через VPN — так выбрано", "Mu2")
+            : !zapretTried ? ("ещё не проверяли", "Mu2")
             : ("в этой сети не помог — через VPN", "Mu2");
         Home.BypassText.Text = text;
         Home.BypassText.SetResourceReference(TextBlock.ForegroundProperty, color);

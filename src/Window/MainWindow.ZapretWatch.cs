@@ -29,7 +29,11 @@ public partial class MainWindow
         if (closed || !zapretEnabled || zapretBusy || zapretWatching) return;
         var now = DateTimeOffset.UtcNow;
         if (now >= zapretRepickAt) { zapretRepickAt = DateTimeOffset.MaxValue; _ = PickZapretAsync(force: true); return; }
-        if (zapretActiveGroups.Length == 0 || now < zapretNextWatch || operation is not null || systemStopping) return;
+        // Подбор при запуске пропустился (служба ещё не работала) — начинаем, как только она готова.
+        // Иначе карточка так и висела бы в «не помог», хотя ничего не проверяли.
+        if (!zapretTried && !zapretAfterConnect && operation is null && !systemStopping && NetworkHelperConnection.ServiceRunning)
+        { _ = PickZapretAsync(force: false); return; }
+        if (zapretActiveGroups.Length == 0 || now < zapretNextWatch || operation is not null || systemStopping || !ZapretProbeReady) return;
         // Другая сеть: запомненный для неё выбор (или новый подбор) вместо проверки старого.
         if ((NetworkIdentity.Current() ?? "unknown") != zapretActiveNetwork) { zapretNextWatch = DateTimeOffset.MaxValue; _ = PickZapretAsync(force: false); return; }
         zapretWatching = true;
@@ -40,7 +44,7 @@ public partial class MainWindow
             try
             {
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-                var probe = await ZapretProbe.RunAsync(ProbePort, timeout.Token);
+                var probe = await ZapretProbe.RunAsync(ZapretProbeRoute, timeout.Token);
                 if (closed || zapretBusy) return;
                 var passing = ZapretPlan.Passing(probe);
                 var lost = new List<string>();
@@ -70,7 +74,7 @@ public partial class MainWindow
         if (groups.Length == 0 && zapretBypassing) await ZapretCallAsync(new(ZapretAction.Stop));
         var titles = ZapretPlan.Groups.Where(g => lost.Contains(g.Key)).Select(g => g.Title);
         Note(string.Join(", ", titles) + " перестал открываться напрямую — вернули в VPN, подбираем заново. " +
-            ZapretPlan.Describe(zapretActiveStrategy, groups, probe));
+            ZapretPlan.Describe(zapretActiveStrategy, groups, probe, zapretVpnGroups));
         await ApplyZapretRoutingAsync();
         zapretRepickAt = DateTimeOffset.UtcNow + TimeSpan.FromMinutes(1);
     }

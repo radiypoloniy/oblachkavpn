@@ -80,10 +80,18 @@ public partial class MainWindow
             // закрыт. Не прячем это за «применено», а переподключаемся полностью.
             if (manualStop || systemTunnel is null) return;
         }
+        if (await ReconnectAsync()) DetailText.Text = "Списки включены, подключение перезапущено.";
+    }
+
+    // Полное переподключение: новая сессия «Весь компьютер» с новым входом прямого трафика.
+    private async Task<bool> ReconnectAsync()
+    {
         manualStop = true;
         if (systemTunnel is not null) await StopSystemTunnelAsync(); else engine.Stop();
         UpdateControls();
-        if (!closed && ConnectButton.IsEnabled) { await ConnectCoreAsync(); DetailText.Text = "Списки включены, подключение перезапущено."; }
+        if (closed || !ConnectButton.IsEnabled) return false;
+        await ConnectCoreAsync();
+        return true;
     }
 
     // Недостающие базы скачиваются; force — обновить и имеющиеся.
