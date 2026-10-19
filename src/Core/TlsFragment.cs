@@ -19,8 +19,10 @@ public static class TlsFragment
         : !ProfileServer.IsUdp(profile) && profile.Outbound["tls"]?["enabled"]?.GetValue<bool>() == true;
 
     // Меняет готовую конфигурацию ядра на месте. false — для этого профиля неприменимо.
-    public static bool Apply(JsonObject config, CoreKind core)
+    // shape — длины и паузы от провайдера подписки (fragmentation-*); sing-box режет по-своему.
+    public static bool Apply(JsonObject config, CoreKind core, ProviderFragment? shape = null)
     {
+        shape ??= ProviderFragment.Default;
         var tunnel = Tunnel(config);
         if (tunnel is null) return false;
         if (core == CoreKind.SingBox)
@@ -36,7 +38,7 @@ public static class TlsFragment
         ((JsonArray)config["outbounds"]!).Add(new JsonObject
         {
             ["tag"] = XrayTag, ["protocol"] = "freedom",
-            ["settings"] = new JsonObject { ["fragment"] = new JsonObject { ["packets"] = "tlshello", ["length"] = "50-100", ["interval"] = "5-10" } }
+            ["settings"] = new JsonObject { ["fragment"] = new JsonObject { ["packets"] = shape.Packets, ["length"] = shape.Length, ["interval"] = shape.Interval } }
         });
         return true;
     }

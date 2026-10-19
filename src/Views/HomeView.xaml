@@ -109,7 +109,10 @@
             <Button x:Name="AnnounceClose" DockPanel.Dock="Right" Style="{StaticResource SmallIconButton}" AutomationProperties.Name="Скрыть объявление" VerticalAlignment="Top">
               <Path Data="{StaticResource IcoClose}" Style="{StaticResource Icon}" Width="12" Height="12" StrokeThickness="2.4"/>
             </Button>
-            <TextBlock x:Name="AnnounceText" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource NF}" TextWrapping="Wrap" VerticalAlignment="Center" LineHeight="17"/>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock x:Name="AnnounceText" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource NF}" TextWrapping="Wrap" LineHeight="17"/>
+              <Button x:Name="AnnounceLink" Content="Подробнее" Style="{StaticResource BtnGhost}" Height="28" Padding="10,0" Margin="-10,4,0,0" HorizontalAlignment="Left" FontSize="{StaticResource FsNote}" Visibility="Collapsed"/>
+            </StackPanel>
           </DockPanel>
         </Border>
         <Border x:Name="RoutingOffer" Margin="0,10,0,0" Padding="12" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource Bg}" Visibility="Collapsed">

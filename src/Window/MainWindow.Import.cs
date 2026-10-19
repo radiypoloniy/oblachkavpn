@@ -114,10 +114,12 @@ public partial class MainWindow
             operation.Token.ThrowIfCancellationRequested();
             if (closed) return;
             var kind = ServiceKey.SourceOf(sources);
-            var id = ProfileGroup.IdFor(sources, kind);
-            var previous = groups.FirstOrDefault(g => g.Id == id);
+            // Подписка, переехавшая на новый адрес, остаётся той же группой: id не пересчитывается.
+            var previous = groups.FirstOrDefault(g => g.Sources.SequenceEqual(sources)) ?? groups.FirstOrDefault(g => g.Id == ProfileGroup.IdFor(sources, kind));
+            var id = previous?.Id ?? ProfileGroup.IdFor(sources, kind);
             var metadata = result.Import.Metadata ?? previous?.Metadata;
-            var group = new ProfileGroup(id, ProfileGroup.NameFor(sources, metadata, kind), kind, sources.ToArray())
+            var current = result.Sources ?? sources;
+            var group = new ProfileGroup(id, ProfileGroup.NameFor(current, metadata, kind), kind, current.ToArray())
                 { PreferredSource = result.SourceIndex, Metadata = metadata, Updated = DateTimeOffset.UtcNow };
             var imported = result.Import.WithSource(kind);
             if (engine.State is ConnectionState.Running or ConnectionState.Verified)
@@ -126,6 +128,8 @@ public partial class MainWindow
                 DetailText.Text = $"Получено подключений: {result.Import.Profiles.Count}; адрес №{result.SourceIndex + 1}. Текущий туннель сохранён. Новый список применится после остановки.";
             }
             else { ApplyGroupImport(group, imported, true); DetailText.Text += $" Загрузка: адрес №{result.SourceIndex + 1}, попыток {result.Attempts}."; }
+            if (result.Moved) DetailText.Text += " Подписка переехала на новый адрес, прежний оставлен запасным.";
+            if (result.Sources is not null) QueueStateSave();
         }
         catch (OperationCanceledException) { subscriptionSchedule.Complete(DateTimeOffset.UtcNow, false); if (!closed) DetailText.Text = "Загрузка отменена. Предыдущий список сохранён."; }
         catch (SubscriptionAccessDenied ex) { subscriptionSchedule.AccessDenied(); if (!closed) DetailText.Text = ex.Message; }

@@ -43,6 +43,7 @@ public static partial class SelfTests
         await AliasChecksAsync(CheckAsync, root);
         await SourceChecksAsync(CheckAsync, root);
         await PanelHeaderChecksAsync(CheckAsync, root);
+        await ProviderHeaderChecksAsync(CheckAsync, root);
         await DeviceIdentityChecksAsync(CheckAsync);
         await TunnelBackendChecksAsync(CheckAsync, root);
         await KillSwitchChecksAsync(CheckAsync, root);

@@ -58,18 +58,19 @@ public sealed partial class Engine : ITunnelController
         adapter = new(profile.Core, Path.Combine(Path.GetDirectoryName(adapter.Executable)!, filename));
         var rules = SiteRules; var routing = Routing; var entry = DirectEntry;
         FragmentActive = Fragment && TlsFragment.Applies(profile);
-        var fragment = FragmentActive;
+        var fragment = FragmentActive; var shape = FragmentShape;
         return StartCoreAsync(port =>
         {
             var config = rules.Count == 0 && routing is null ? adapter.RuntimeConfig(profile.Outbound, port)
                 : RoutingPlan.Compile(adapter, profile, port, rules, routing, entry);
-            if (fragment) TlsFragment.Apply(config, adapter.Kind);
+            if (fragment) TlsFragment.Apply(config, adapter.Kind, shape);
             return config;
         }, token);
     }
 
     // «Обход DPI» для следующего запуска (TlsFragment). FragmentActive — включён у работающего ядра.
     public bool Fragment { get; set; }
+    public ProviderFragment? FragmentShape { get; set; }
     public bool FragmentActive { get; private set; }
 
     internal async Task StartCoreAsync(Func<int, JsonObject> configFactory, CancellationToken token)

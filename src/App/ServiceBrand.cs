@@ -29,5 +29,20 @@ public static class ServiceBrand
     public const string SupportUrl = "";
 
     public static bool IsServiceHost(string host) =>
-        SubscriptionHosts.Any(h => string.Equals(h, host, StringComparison.OrdinalIgnoreCase));
+        SubscriptionHosts.Concat(learnedHosts).Any(h => string.Equals(h, host, StringComparison.OrdinalIgnoreCase));
+
+    // Домены, на которые подписка сервиса переехала заголовками new-url / fallback-url
+    // (SubscriptionMirrors.MigrateAsync). Сохраняются в состоянии клиента.
+    public const int MaxLearnedHosts = 8;
+    private static string[] learnedHosts = Array.Empty<string>();
+    public static IReadOnlyList<string> LearnedHosts => learnedHosts;
+    public static bool Learn(string host)
+    {
+        host = host.ToLowerInvariant();
+        if (IsServiceHost(host) || learnedHosts.Length >= MaxLearnedHosts || Uri.CheckHostName(host) != UriHostNameType.Dns) return false;
+        learnedHosts = learnedHosts.Append(host).ToArray();
+        return true;
+    }
+    public static void Forget(string host) =>
+        learnedHosts = learnedHosts.Where(h => !string.Equals(h, host, StringComparison.OrdinalIgnoreCase)).ToArray();
 }

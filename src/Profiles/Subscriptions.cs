@@ -120,23 +120,24 @@ public static class Subscriptions
     private static string CleanLabel(string name) => new(name.Where(c => !char.IsControl(c)).Take(80).ToArray());
 
     // Заголовки панели: срок и трафик, название подписки, объявление, период обновления,
-    // маршрутизация и ссылки на поддержку и личный кабинет.
+    // маршрутизация, ссылки на поддержку и личный кабинет; управление клиентом — ProviderOptions.
     // Текстовые значения приходят от сервера и очищаются перед показом.
-    private static SubscriptionMetadata? ReadMetadata(HttpResponseMessage response)
+    private static SubscriptionMetadata? ReadMetadata(HttpResponseMessage response, Uri source)
     {
         string? Header(string name) =>
             response.Headers.TryGetValues(name, out var values) ? values.FirstOrDefault() : null;
         var usage = response.Headers.TryGetValues("subscription-userinfo", out var info)
             ? SubscriptionMetadata.Parse(info) : null;
         var title = SubscriptionMetadata.DecodeText(Header("profile-title"));
-        var announce = SubscriptionMetadata.DecodeText(Header("announce"));
+        var announce = SubscriptionMetadata.DecodeText(Header("announce")) ?? SubscriptionMetadata.DecodeText(Header("banner-text"));
         var interval = SubscriptionMetadata.ParseUpdateInterval(Header("profile-update-interval"));
         var routing = RoutingProfile.ParseHapp(Header("routing"));
         var support = SubscriptionMetadata.ParseLink(Header("support-url"));
         var page = SubscriptionMetadata.ParseLink(Header("profile-web-page-url"));
-        if (usage is null && title is null && announce is null && interval is null && routing is null && support is null && page is null) return null;
+        var provider = ProviderOptions.Read(Header, source);
+        if (usage is null && title is null && announce is null && interval is null && routing is null && support is null && page is null && provider is null) return null;
         return (usage ?? new SubscriptionMetadata(null, null, null, null))
-            with { Title = title, Announce = announce, UpdateInterval = interval, Routing = routing, SupportUrl = support, WebPageUrl = page };
+            with { Title = title, Announce = announce, UpdateInterval = interval, Routing = routing, SupportUrl = support, WebPageUrl = page, Provider = provider };
     }
 
     public static async Task<ImportResult> FetchAsync(string url, CancellationToken token, int? socksPort = null)
@@ -185,7 +186,7 @@ public static class Subscriptions
                 memory.Write(buffer, 0, n);
             }
             var imported = Parse(new UTF8Encoding(false, true).GetString(memory.ToArray()));
-            return imported with { Metadata = ReadMetadata(response) };
+            return imported with { Metadata = ReadMetadata(response, uri) };
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or DecoderFallbackException or IOException)

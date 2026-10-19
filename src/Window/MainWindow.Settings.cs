@@ -84,8 +84,9 @@ public partial class MainWindow
         else { mark.Fill = System.Windows.Media.Brushes.Transparent; mark.SetResourceReference(Shape.StrokeProperty, "Ring"); mark.StrokeThickness = 1.5; }
     }
 
-    // Личный кабинет из profile-web-page-url; для сервиса — его постоянный адрес, если он задан.
-    private string? RenewUrl => subscriptionMetadata?.WebPageUrl ??
+    // Куда ведёт «Продлить»: ссылка продления от панели (premium-url и др., ProviderOptions),
+    // иначе личный кабинет из profile-web-page-url; для сервиса — его постоянный адрес, если он задан.
+    private string? RenewUrl => subscriptionMetadata?.Provider?.RenewUrl ?? subscriptionMetadata?.WebPageUrl ??
         (ServiceBrand.SupportUrl.Length > 0 && CurrentGroup?.Source == ProfileSource.Service ? ServiceBrand.SupportUrl : null);
 
     private void OpenLink(string? url, string what)

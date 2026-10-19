@@ -51,7 +51,7 @@ public static class ServerPing
         budget.CancelAfter(Timeout);
         try
         {
-            var addresses = IPAddress.TryParse(host, out var ip) ? new[] { ip } : await Dns.GetHostAddressesAsync(host, budget.Token).ConfigureAwait(false);
+            var addresses = IPAddress.TryParse(host, out var ip) ? new[] { ip } : await DohResolver.ResolveAsync(host, budget.Token).ConfigureAwait(false);
             var address = addresses.OrderBy(a => a.AddressFamily == AddressFamily.InterNetwork ? 0 : 1).FirstOrDefault();
             if (address is null) return null;
             using var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
@@ -62,5 +62,7 @@ public static class ServerPing
         catch (OperationCanceledException) when (!token.IsCancellationRequested) { return null; }
         catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AccessDenied) { return Blocked; }
         catch (SocketException) { return null; }
+        // Имя не разрешилось ни DNS сети, ни DoH.
+        catch (UserError) { return null; }
     }
 }

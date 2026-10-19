@@ -70,6 +70,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public bool WasConnected { get; init; }
     // Подписки и «Вручную» (0.11). Нет значения — снимок прежней версии.
     public ProfileGroup[]? Groups { get; init; }
+    // Домены, на которые переехала подписка сервиса (0.18, ServiceBrand.LearnedHosts).
+    public string[]? ServiceHosts { get; init; }
 }
 
 // The OS binds the encrypted file to the current Windows user. Never stage plaintext on disk.
@@ -194,6 +196,9 @@ public sealed class ClientStateStore(string path)
             c.Key.Any(char.IsControl) || c.Value.Any(char.IsControl)))) throw new UserError("Сохранённые настройки zapret повреждены.");
         if (snapshot.ZapretVpnGroups is { } vpnGroups && (vpnGroups.Length > ZapretPlan.Groups.Length || vpnGroups.Any(g => !ZapretPlan.Groups.Any(z => z.Key == g))))
             throw new UserError("Сохранённые настройки zapret повреждены.");
+        if (snapshot.ServiceHosts is { } hosts && (hosts.Length > ServiceBrand.MaxLearnedHosts ||
+            hosts.Any(h => h is not { Length: > 0 and <= 253 } || Uri.CheckHostName(h) != UriHostNameType.Dns)))
+            throw new UserError("Сохранённые адреса сервиса повреждены.");
         foreach (var info in (snapshot.Groups ?? Array.Empty<ProfileGroup>()).Select(g => g?.Metadata).Append(snapshot.Metadata))
             if (info is not null) SubscriptionMetadata.Validate(info);
     }
