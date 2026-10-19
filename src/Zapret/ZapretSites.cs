@@ -23,6 +23,15 @@ public static class ZapretSites
         return result.Take(RoutingProfile.MaxEntries).ToArray();
     }
 
+    // Сайт из набора: сам домен или его поддомен (списки Flowseal — суффиксы).
+    public static bool Covers(IReadOnlySet<string> domains, string host)
+    {
+        host = host.TrimEnd('.').ToLowerInvariant();
+        for (var at = 0; at >= 0; at = host.IndexOf('.', at) is var dot and >= 0 ? dot + 1 : -1)
+            if (domains.Contains(host[at..])) return true;
+        return false;
+    }
+
     internal static string? Clean(string line)
     {
         var value = line.Split('#')[0].Trim().TrimStart('.').ToLowerInvariant();

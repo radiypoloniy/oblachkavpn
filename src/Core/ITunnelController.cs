@@ -10,5 +10,8 @@ public interface ITunnelController : IDisposable
     event Action<ConnectionState, string>? Changed;
     Task StartAsync(Profile profile, CancellationToken token);
     Task<ProbeResult> ProbeAsync(Uri target, CancellationToken token);
+    // Трафик несёт ядро туннеля (одно ядро, DirectOutbound): процесс ядра окна не нужен, проверка
+    // связи идёт через переключатель ядра туннеля. null — обычное ядро окна.
+    CoreStatsEntry? CarriedBy { get => null; set { } }
     void Stop();
 }

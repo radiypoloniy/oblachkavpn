@@ -36,7 +36,7 @@ internal sealed class VmTunSession : IDisposable
         var config = SingBoxTunConfig.Create(lease);
         InterfaceName = config["inbounds"]![0]!["interface_name"]!.GetValue<string>();
         status("Создаём сетевой адаптер внутри виртуалки…");
-        var start = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "tools", "sing-box.exe"))
+        var start = new ProcessStartInfo(TunCore.Program())
         {
             UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true,
             RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = AppContext.BaseDirectory

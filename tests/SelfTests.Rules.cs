@@ -85,7 +85,7 @@ public static partial class SelfTests
             var backend = new WfpProtectionBackend(() => new FakeWfp(), @"C:\app\tools");
             var peers = new[] { IPAddress.Parse("203.0.113.7") };
             bool Open(IReadOnlyList<WfpFilter> filters) => filters.Any(f => f.Permit &&
-                f.Conditions.All(c => c.Kind == WfpConditionKind.Application) && f.Conditions.Single().Program == backend.SingBoxProgram);
+                f.Conditions.All(c => c.Kind == WfpConditionKind.Application) && f.Conditions.Single().Program == backend.TunCoreProgram);
             Assert(!Open(backend.Filters(peers)) && Open(backend.Filters(peers, direct: true)));
             var direct = backend.Prepare(NetworkHelperContracts.Validate(Lease(sites)))[0];
             var strict = backend.Prepare(NetworkHelperContracts.Validate(Lease([RoutingPlan.Create("example.org", SiteAction.Block)])))[0];

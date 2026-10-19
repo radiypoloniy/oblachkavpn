@@ -40,22 +40,27 @@ public static class ZapretProbe
     // в браузере он работал (0.13.3-rc.4, redirector.googlevideo.com).
     public static readonly int[] QuicFallback = [2];
 
-    // proxyPort — проверять через локальный прокси ядра (под «Весь компьютер» эти сайты идут
-    // напрямую через ядро); null — напрямую из окна.
-    public static async Task<ZapretProbeResult> RunAsync(int? proxyPort, CancellationToken token, IReadOnlyList<Uri>? targets = null)
+    // via — вход прямого трафика ядра туннеля (под «Весь компьютер»: тот же путь, которым пойдут
+    // сайты zapret, — выход ядра на физическую сеть через winws, DNS сети); null — напрямую из окна.
+    // Раньше проверка шла через SOCKS ядра окна: с 0.17 у него нет списков (мерила VPN), а при
+    // выходе прямо на сервер его нет вовсе (не открывалось ничего).
+    public static async Task<ZapretProbeResult> RunAsync(SocksRoute? via, CancellationToken token, IReadOnlyList<Uri>? targets = null)
     {
         var list = targets ?? Targets;
         var watch = Stopwatch.StartNew();
         using var handler = new SocketsHttpHandler
         {
-            UseProxy = proxyPort is not null, Proxy = proxyPort is { } port ? new WebProxy($"socks5://127.0.0.1:{port}", false) : null,
+            UseProxy = via is not null,
+            Proxy = via is null ? null : new WebProxy($"socks5://127.0.0.1:{via.Port}", false)
+                { Credentials = via.User is null ? null : new NetworkCredential(via.User, via.Password) },
             AllowAutoRedirect = false, UseCookies = false, ConnectTimeout = TimeSpan.FromSeconds(5), PooledConnectionLifetime = TimeSpan.Zero
         };
         using var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
         client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36");
         var results = await Task.WhenAll(list.Select((t, i) => ReachAsync(client, t, token, targets is null && Heavy.Contains(i)))).ConfigureAwait(false);
         var quic = new List<int>();
-        if (targets is null && System.Net.Quic.QuicConnection.IsSupported)
+        // QUIC — только без VPN: под «Весь компьютер» HTTP/3 из окна ушёл бы в туннель, а не напрямую.
+        if (targets is null && via is null && System.Net.Quic.QuicConnection.IsSupported)
             // Только если остальные адреса группы открылись: иначе группа всё равно не пройдёт,
             // а лишняя попытка удлинила бы каждый шаг подбора.
             foreach (var i in QuicFallback.Where(i => !results[i] && ZapretPlan.Groups.First(g => g.Targets.Contains(i)).Targets.All(j => j == i || results[j])))
@@ -63,8 +68,7 @@ public static class ZapretProbe
         return new(results.Count(r => r), list.Count, watch.ElapsedMilliseconds) { Ok = results, QuicOnly = quic };
     }
 
-    // HTTP/3 без прокси — по маршрутам Windows, как у браузера. Под «Весь компьютер» это туннель
-    // и ядро, которое отправляет сайты zapret напрямую; SOCKS ядра UDP для HTTP/3 не несёт.
+    // HTTP/3 без прокси — по маршрутам Windows, как у браузера (только без VPN).
     private static async Task<bool> ReachQuicAsync(Uri target, CancellationToken token, bool heavy)
     {
         using var handler = new SocketsHttpHandler { UseProxy = false, AllowAutoRedirect = false, UseCookies = false, ConnectTimeout = TimeSpan.FromSeconds(5) };

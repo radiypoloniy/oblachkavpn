@@ -32,14 +32,22 @@ public static class CoreConnections
     // Закрыть соединения программ, чьё правило изменилось: ядро рвёт их и со стороны туннеля, так
     // что программа переподключается уже по новому правилу. В отличие от сброса TCP службой
     // (ConnectionReset), так закрываются и UDP (голос, игры, Steam), и IPv6.
-    public static async Task<int> CloseChangedAsync(CoreStatsEntry entry, IReadOnlyList<ProgramRule> before, IReadOnlyList<ProgramRule> after, CancellationToken token)
+    public static Task<int> CloseChangedAsync(CoreStatsEntry entry, IReadOnlyList<ProgramRule> before, IReadOnlyList<ProgramRule> after, CancellationToken token) =>
+        CloseAsync(entry, c => c.ProcessPath is { } path && ConnectionReset.Changed(before, after, path), token);
+
+    // Закрыть соединения к сайтам, чей путь сменился (сайты zapret: напрямую ↔ VPN). Имя сайта ядро
+    // знает из TLS/QUIC (sniff), поэтому закрываются и соединения, открытые по адресу.
+    public static Task<int> CloseHostsAsync(CoreStatsEntry entry, Func<string, bool> host, CancellationToken token) =>
+        CloseAsync(entry, c => c.Host is { } name && host(name), token);
+
+    private static async Task<int> CloseAsync(CoreStatsEntry entry, Func<CoreConnection, bool> match, CancellationToken token)
     {
         var connections = await ReadAsync(entry, token).ConfigureAwait(false);
         if (connections is null) return 0;
         var closed = 0;
         foreach (var connection in connections)
         {
-            if (connection is not { ProcessPath: { } path, Id: { } id } || !ConnectionReset.Changed(before, after, path)) continue;
+            if (connection.Id is not { } id || !match(connection)) continue;
             try
             {
                 using var request = new HttpRequestMessage(HttpMethod.Delete, $"http://127.0.0.1:{entry.Port}/connections/{Uri.EscapeDataString(id)}");

@@ -16,6 +16,26 @@
               <Button x:Name="ZapretPick" Content="Проверить заново" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Margin="-8,2,0,0" Visibility="Collapsed"/>
             </StackPanel>
           </DockPanel>
+          <!-- Группы обхода раздельно: где обход в сети не справляется (YouTube), группу можно оставить
+               в VPN, не выключая обход для другой (Discord). Подбор такую группу не проверяет. -->
+          <StackPanel x:Name="ZapretGroups" Visibility="Collapsed">
+            <DockPanel Style="{StaticResource SetLine}">
+              <CheckBox x:Name="YouTubeBypass" DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" AutomationProperties.Name="YouTube через обход"/>
+              <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcRed}"><Path Data="{StaticResource IcoPlay}" Style="{StaticResource SetGlyph}"/></Border>
+              <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
+                <TextBlock Text="YouTube через обход" Style="{StaticResource SetTitle}"/>
+                <TextBlock x:Name="YouTubeState" Style="{StaticResource SetSub}"/>
+              </StackPanel>
+            </DockPanel>
+            <DockPanel Style="{StaticResource SetLine}">
+              <CheckBox x:Name="DiscordBypass" DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" AutomationProperties.Name="Discord через обход"/>
+              <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcBlue}"><Path Data="{StaticResource IcoSpeaker}" Style="{StaticResource SetGlyph}"/></Border>
+              <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
+                <TextBlock Text="Discord и сайты из общего списка через обход" Style="{StaticResource SetTitle}"/>
+                <TextBlock x:Name="DiscordState" Style="{StaticResource SetSub}"/>
+              </StackPanel>
+            </DockPanel>
+          </StackPanel>
           <DockPanel Style="{StaticResource SetLine}">
             <CheckBox x:Name="SelectiveToggle" DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" AutomationProperties.Name="Через VPN только YouTube и Discord"/>
             <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcPurple}"><Path Data="{StaticResource IcoRoute}" Style="{StaticResource SetGlyph}"/></Border>

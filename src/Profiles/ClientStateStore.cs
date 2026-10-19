@@ -60,6 +60,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     // «Через VPN только YouTube и Discord» (MainWindow.Selective).
     public bool SelectiveVpn { get; init; }
     public Dictionary<string, string>? ZapretChoices { get; init; }
+    // Группы zapret, которые человек оставил в VPN (0.17): «youtube», «discord».
+    public string[]? ZapretVpnGroups { get; init; }
     // Пул «Автовыбора» (0.13.3): только отличия от умолчания, ключ — хеш источника и имени.
     public Dictionary<string, bool>? AutoPool { get; init; }
     // Подключаться при запуске (0.14.3): по умолчанию да, если при выходе VPN был включён (WasConnected).
@@ -190,6 +192,8 @@ public sealed class ClientStateStore(string path)
         // управляющие символы или сменить HTTPS на что-то другое. У групп — так же.
         if (snapshot.ZapretChoices is { } choices && (choices.Count > 64 || choices.Any(c => c.Key.Length is 0 or > 32 || c.Value.Length is 0 or > 40 ||
             c.Key.Any(char.IsControl) || c.Value.Any(char.IsControl)))) throw new UserError("Сохранённые настройки zapret повреждены.");
+        if (snapshot.ZapretVpnGroups is { } vpnGroups && (vpnGroups.Length > ZapretPlan.Groups.Length || vpnGroups.Any(g => !ZapretPlan.Groups.Any(z => z.Key == g))))
+            throw new UserError("Сохранённые настройки zapret повреждены.");
         foreach (var info in (snapshot.Groups ?? Array.Empty<ProfileGroup>()).Select(g => g?.Metadata).Append(snapshot.Metadata))
             if (info is not null) SubscriptionMetadata.Validate(info);
     }

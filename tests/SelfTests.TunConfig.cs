@@ -11,6 +11,9 @@ public static partial class SelfTests
             var config = SingBoxTunConfig.Create(request);
             Assert(config["outbounds"]!.AsArray().Count == 1 && config["outbounds"]![0]!["type"]!.GetValue<string>() == "socks");
             Assert(config["dns"]!["servers"]![0]!["detour"]!.GetValue<string>() == "local-core");
+            // Истёкшие адреса — сразу из кэша, обновление в фоне; кэш только в памяти, не на диске.
+            Assert(config["dns"]!["optimistic"]!["enabled"]!.GetValue<bool>() && config["dns"]!["cache_capacity"]!.GetValue<int>() >= 4096);
+            Assert(config["experimental"]?["cache_file"] is null);
             var exclusions = config["inbounds"]![0]!["route_exclude_address"]!.AsArray().Select(n => n!.GetValue<string>()).ToArray();
             Assert(exclusions.SequenceEqual(new[] { "192.0.2.1/32", "2001:db8::1/128" }));
             Assert(!config.ToJsonString().Contains("direct") && !config.ToJsonString().Contains("insecure"));

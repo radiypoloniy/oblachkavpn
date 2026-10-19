@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 
 namespace Oblachka;
 
@@ -108,6 +108,7 @@ public static partial class SelfTests
         public int? ProcessId { get; private set; }
         public ConnectionState State { get; private set; }
         public string CoreLabel => "fixture";
+        public CoreStatsEntry? CarriedBy { get; set; }
         public event Action<ConnectionState, string>? Changed;
         public Task StartAsync(Profile profile, CancellationToken token)
         { calls.Add("core:start"); ProcessId = 42; State = ConnectionState.Running; Changed?.Invoke(State, "fixture"); return Task.CompletedTask; }
@@ -124,12 +125,13 @@ public static partial class SelfTests
         public void Lose() => ConnectionLost?.Invoke();
         public bool Blocking = true;
         public string[] LastPeers = Array.Empty<string>();
+        public NetworkLeaseRequest? LastRequest;
         // Как настоящий канал: отмена посреди Acquire закрывает канал, и Release уже не пройдёт.
         public Action? DuringAcquire;
         private bool pipeLost;
         public Task<bool> AcquireAsync(NetworkLeaseRequest request, CancellationToken token)
         {
-            calls.Add("helper:acquire"); LastPeers = request.PeerAddresses; if (FailAcquire) throw new UserError("fixture");
+            calls.Add("helper:acquire"); LastPeers = request.PeerAddresses; LastRequest = request; if (FailAcquire) throw new UserError("fixture");
             DuringAcquire?.Invoke();
             if (token.IsCancellationRequested) { pipeLost = true; throw new OperationCanceledException(token); }
             return Task.FromResult(Blocking);

@@ -12,8 +12,10 @@ public partial class MainWindow
     private bool zapretRoutingRetry;
     private DateTimeOffset zapretRoutingTried = DateTimeOffset.MinValue;
 
-    // Какой набор нужен сейчас: «*» — все домены (идёт подбор), список — открывшиеся группы.
-    private string DesiredZapretKey => forceZapretRouting ? "*" : ZapretRouting ? string.Join(',', zapretDomains) : "";
+    // Какой набор нужен сейчас: домены открывшихся групп или ничего.
+    private string DesiredZapretKey => ZapretRouting ? string.Join(',', zapretDomains) : "";
+    // Набор, с которым ядро туннеля работает сейчас: его соединения закрываются при смене (CloseZapretConnectionsAsync).
+    private string[] appliedZapretDomains = [];
 
     // Команда службе: через соединение «Весь компьютер», если оно со службой, иначе через временное.
     // Помощник с UAC zapret не запускает — только установленная служба.
@@ -41,6 +43,22 @@ public partial class MainWindow
         RefreshZapret();
         if (!ConnectionActive || DesiredZapretKey == coreZapretKey) return;
         await RoutingChangedAsync();
+        await CloseZapretConnectionsAsync();
+    }
+
+    // Списки в ядре туннеля меняются на ходу, а открытые соединения остаются на прежнем пути:
+    // браузер держал YouTube напрямую (RU у логотипа), когда обход уже вернул его в VPN. Как с
+    // правилами программ (CoreConnections.CloseChangedAsync), закрываем соединения к сайтам,
+    // чей путь сменился, — браузер переподключится уже по новому.
+    private async Task CloseZapretConnectionsAsync()
+    {
+        var now = ZapretRouting ? zapretDomains : [];
+        if (coreZapretKey != DesiredZapretKey) return;
+        var changed = appliedZapretDomains.Except(now).Concat(now.Except(appliedZapretDomains)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        appliedZapretDomains = now;
+        if (changed.Count == 0 || !TunnelListsActive || systemTunnel?.Stats is not { } stats) return;
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await CoreConnections.CloseHostsAsync(stats, host => ZapretSites.Covers(changed, host), timeout.Token);
     }
 
     // Догоняет расхождение, если перезапуск ядра не случился (оно было занято). Не чаще раза
@@ -51,12 +69,12 @@ public partial class MainWindow
             DateTimeOffset.UtcNow - zapretRoutingTried < TimeSpan.FromSeconds(10)) return;
         zapretRoutingRetry = true; zapretRoutingTried = DateTimeOffset.UtcNow;
         _ = Retry();
-        async Task Retry() { try { await RoutingChangedAsync(); } finally { zapretRoutingRetry = false; } }
+        async Task Retry() { try { await RoutingChangedAsync(); await CloseZapretConnectionsAsync(); } finally { zapretRoutingRetry = false; } }
     }
 
     private IEnumerable<RoutingProfile> ZapretRoutingProfiles()
     {
-        if (forceZapretRouting || ZapretRouting) yield return ZapretProfile;
+        if (ZapretRouting) yield return ZapretProfile;
     }
 
     // После запуска: включённый обход поднимается сам — запомненной для этой сети стратегией

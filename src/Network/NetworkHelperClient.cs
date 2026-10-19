@@ -98,6 +98,19 @@ public sealed class NetworkHelperClient : INetworkHelperClient
         finally { operations.Release(); }
     }
 
+    // Списки маршрутизации для ядра туннеля (RoutingLists): до запуска сессии и на ходу.
+    public async Task RoutingListsAsync(CompiledRouting routing, CancellationToken token)
+    {
+        await operations.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            foreach (var part in RoutingListsRequest.Split(routing))
+                if ((await pipe.SendAsync(HelperOperation.RoutingLists, null, token, lists: part).ConfigureAwait(false)).Failure != HelperFailure.None)
+                    throw new UserError("Служба не приняла списки маршрутизации.");
+        }
+        finally { operations.Release(); }
+    }
+
     // Правила программ для работающего туннеля: ядро перечитывает их без переподключения.
     public async Task ProgramRulesAsync(IReadOnlyList<ProgramRule> rules, CancellationToken token)
     {

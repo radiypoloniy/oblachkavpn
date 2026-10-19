@@ -12,7 +12,10 @@ if (-not (Test-Path -LiteralPath (Join-Path $verified 'tools\xray.exe'))) { thro
 & (Join-Path $projectRoot 'scripts\check-tokens.ps1')
 & dotnet build (Join-Path $projectRoot 'tests\Oblachka.Tests.csproj') -c Release -o $testDirectory --configfile (Join-Path $projectRoot 'src\NuGet.Config') -p:UseSharedCompilation=false -p:IncludeTestCode=true
 if ($LASTEXITCODE -ne 0) { throw 'Сборка проверок не прошла.' }
-Copy-Item -LiteralPath (Join-Path $verified 'tools') -Destination (Join-Path $testDirectory 'tools') -Recurse -Force
+# Содержимое, а не папка: в существующую tools Copy-Item положил бы вложенную tools\tools,
+# и новые файлы ядер до проверок не доходили бы.
+New-Item -ItemType Directory -Force (Join-Path $testDirectory 'tools') | Out-Null
+Copy-Item -Path (Join-Path $verified 'tools\*') -Destination (Join-Path $testDirectory 'tools') -Recurse -Force
 
 $reportPath = Join-Path $testDirectory ('self-test-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.json')
 $testProcess = Start-Process -FilePath (Join-Path $testDirectory 'Oblachka.Tests.exe') -ArgumentList @('--self-test', ('"' + $reportPath + '"')) -WorkingDirectory $testDirectory -WindowStyle Hidden -PassThru -Wait

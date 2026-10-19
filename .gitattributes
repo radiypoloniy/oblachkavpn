@@ -7,3 +7,5 @@
 *.png binary
 *.exe binary
 *.dll binary
+# Исходники ядра туннеля — как в Go принято: LF, чтобы go.sum и сборка не зависели от машины.
+core/** text eol=lf

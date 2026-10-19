@@ -105,6 +105,7 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                     }
                     else if (request.Operation == HelperOperation.DirectDns) DirectDns.Accept(request.DirectDns!);
                     else if (request.Operation == HelperOperation.ProgramRules) ProgramRuleSets.Accept(request.Programs!);
+                    else if (request.Operation == HelperOperation.RoutingLists) RoutingLists.Accept(request.Lists!);
                     else if (request.Operation == HelperOperation.Recover)
                     {
                         // Только чужая, оставленная сессия: свою владелец снимает через Release.

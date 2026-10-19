@@ -48,7 +48,12 @@ public class UserError(string message, Exception? inner = null) : Exception(mess
 public static class Profiles
 {
     public const int MaxBytes = 1024 * 1024;
-    public static string Fingerprint(Profile profile)
+    // Отпечаток нужен окну каждую секунду для каждого сервера (подписи, быстрый список, трей):
+    // копия JSON и SHA-256 на каждый вызов давали заметную долю процессора окна и работу сборщику.
+    // Профиль не меняют на месте (только `with` и копии), поэтому отпечаток считается один раз.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Profile, string> fingerprints = new();
+    public static string Fingerprint(Profile profile) => fingerprints.GetValue(profile, ComputeFingerprint);
+    private static string ComputeFingerprint(Profile profile)
     {
         JsonNode? Canonical(JsonNode? node) => node switch
         {

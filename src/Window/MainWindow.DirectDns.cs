@@ -21,7 +21,7 @@ public partial class MainWindow
     private async Task SyncDirectDnsAsync()
     {
         if (helperLifetime is not { } lifetime || !SystemTunnelActive || engine is not Engine core) return;
-        var domains = DirectDomains(core.Routing, siteRules);
+        var domains = DirectDomains(core.Routing ?? (TunnelListsActive ? CurrentRouting() : null), siteRules);
         var key = string.Join(',', domains);
         if (key == sentDirectDns) return;
         try

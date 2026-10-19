@@ -103,5 +103,25 @@ public static partial class SelfTests
             var quic = Probe(true, true, true, false, false, false) with { QuicOnly = new[] { 2 } };
             Assert(ZapretPlan.Passing(quic).SequenceEqual(new[] { "youtube" }) && ZapretPlan.Describe("ALT4", new[] { "youtube" }, quic).Contains("redirector.googlevideo.com — по QUIC"));
         }));
+        await check("zapret: a group left in VPN by hand is described so, survives a restart, and foreign keys are refused", () => Sync(() =>
+        {
+            var text = ZapretPlan.Describe("general", new[] { "discord" }, null, new[] { "youtube" });
+            Assert(text.Contains("YouTube — через VPN, так выбрано") && text.Contains("Discord и сайты из общего списка — напрямую через zapret"));
+            var path = Path.Combine(Path.GetTempPath(), "oblachka-zapret-" + Guid.NewGuid().ToString("N") + ".bin");
+            try
+            {
+                var store = new ClientStateStore(path);
+                store.Save(new ClientSnapshot(1, [], null, [], 0, false, false) { ZapretEnabled = true, ZapretVpnGroups = ["youtube"] });
+                Assert(store.Load()?.ZapretVpnGroups is ["youtube"]);
+                ExpectUserError(() => store.Save(new ClientSnapshot(1, [], null, [], 0, false, false) { ZapretVpnGroups = ["evil"] }));
+            }
+            finally { File.Delete(path); }
+        }));
+        await check("zapret: a changed site closes its connections and its subdomains, not look-alikes", () => Sync(() =>
+        {
+            var changed = new HashSet<string>(["youtube.com", "googlevideo.com"], StringComparer.OrdinalIgnoreCase);
+            Assert(ZapretSites.Covers(changed, "www.youtube.com") && ZapretSites.Covers(changed, "rr3---sn-4g5e6nsz.googlevideo.com") && ZapretSites.Covers(changed, "YouTube.com."));
+            Assert(!ZapretSites.Covers(changed, "notyoutube.com") && !ZapretSites.Covers(changed, "youtube.com.evil.example") && !ZapretSites.Covers(changed, "discord.com"));
+        }));
     }
 }
