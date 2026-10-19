@@ -116,6 +116,9 @@ public partial class MainWindow
                 Note(ZapretPlan.Describe(ZapretPlan.NoBypass, [], null, zapretVpnGroups));
                 return;
             }
+            // Пока winws перебирает стратегии, прямой путь сломан: сайты zapret — в VPN (их открытые
+            // соединения закрываются), вернутся напрямую с итогом подбора.
+            await ApplyZapretRoutingAsync();
             Note("Готовим набор zapret…");
             var status = await ZapretCallAsync(new(ZapretAction.Prepare));
             if (status is not { Ready: true }) { Note(status?.Error ?? "Не удалось подготовить zapret."); return; }
