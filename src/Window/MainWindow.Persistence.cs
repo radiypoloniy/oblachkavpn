@@ -46,7 +46,7 @@ public partial class MainWindow
             ZapretEnabled = zapretEnabled, SelectiveVpn = selectiveVpn, ZapretChoices = new Dictionary<string, string>(zapretChoices), ZapretVpnGroups = zapretVpnGroups.Order(StringComparer.Ordinal).ToArray(),
             AutoPool = autoPool.Snapshot(importedProfiles),
             ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected,
-            ServiceHosts = ServiceBrand.LearnedHosts.ToArray() };
+            ServiceHosts = ServiceBrand.LearnedHosts.ToArray(), LocalNetwork = Settings.LocalNetwork.IsChecked == true };
 
     private void SaveStateClick(object sender, RoutedEventArgs args)
     {
@@ -84,6 +84,7 @@ public partial class MainWindow
         var restored = ClientStateStore.RestoreProfiles(snapshot);
         Settings.StayInTray.IsChecked = snapshot.CloseToTray ?? true; AutoRecover.IsChecked = snapshot.AutoRecover;
         Settings.ConnectOnLaunch.IsChecked = snapshot.ConnectOnLaunch; wasConnected = snapshot.WasConnected;
+        Settings.LocalNetwork.IsChecked = snapshot.LocalNetwork;
         Settings.AutoRefresh.IsChecked = snapshot.AutoRefresh;
         ThemeManager.Apply(snapshot.Theme ?? ThemeChoice.System);
         Settings.SystemProxy.IsChecked = snapshot.SystemProxy;

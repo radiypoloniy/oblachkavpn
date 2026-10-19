@@ -65,6 +65,7 @@ public static partial class SelfTests
         await HelperPipeChecksAsync(CheckAsync, root);
         await ServiceChecksAsync(CheckAsync);
         await TunConfigurationChecksAsync(CheckAsync);
+        await LocalNetworkChecksAsync(CheckAsync);
         await DirectOutboundChecksAsync(CheckAsync);
         await TunnelListsChecksAsync(CheckAsync);
         await XrayBridgeChecksAsync(CheckAsync);

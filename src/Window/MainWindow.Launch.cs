@@ -12,7 +12,11 @@ public partial class MainWindow
 
     private bool ConnectAtLaunchPlanned => Settings.ConnectOnLaunch.IsChecked == true && wasConnected && !isolatedPersistence && !vmTestActive;
 
-    private void InitLaunch() => Settings.ConnectOnLaunch.Click += (_, _) => QueueStateSave();
+    private void InitLaunch()
+    {
+        Settings.ConnectOnLaunch.Click += (_, _) => QueueStateSave();
+        Settings.LocalNetwork.Click += (_, _) => QueueStateSave();
+    }
 
     private void RememberConnected(bool connected)
     {

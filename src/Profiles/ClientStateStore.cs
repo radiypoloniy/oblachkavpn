@@ -72,6 +72,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public ProfileGroup[]? Groups { get; init; }
     // Домены, на которые переехала подписка сервиса (0.18, ServiceBrand.LearnedHosts).
     public string[]? ServiceHosts { get; init; }
+    // «Локальная сеть напрямую» в «Весь компьютер» (0.18). По умолчанию включена.
+    public bool LocalNetwork { get; init; } = true;
 }
 
 // The OS binds the encrypted file to the current Windows user. Never stage plaintext on disk.

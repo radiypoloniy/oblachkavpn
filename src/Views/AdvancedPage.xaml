@@ -29,6 +29,16 @@
           </Button>
         </StackPanel>
       </Border>
+      <Border Style="{StaticResource SetGroup}" Margin="0,8,0,0">
+        <DockPanel Style="{StaticResource SetLine}">
+          <CheckBox x:Name="LocalNetwork" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" VerticalAlignment="Center" AutomationProperties.Name="Локальная сеть напрямую"/>
+          <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcTeal}"><Path Data="{StaticResource IcoRoute}" Style="{StaticResource SetGlyph}"/></Border>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Локальная сеть напрямую" Style="{StaticResource SetTitle}"/>
+            <TextBlock Text="Принтер, NAS, телевизор и роутер в «Весь компьютер». Сработает со следующего подключения" Style="{StaticResource SetSub}"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
       <TextBlock x:Name="SystemTunnelNote" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="10,6,10,0"/>
       <Button x:Name="RestoreNetwork" Content="Восстановить сеть" Style="{StaticResource BtnOutline}" Height="34" o:Ui.CornerRadius="{StaticResource RadiusSeg}" Padding="14,0" HorizontalAlignment="Left" Margin="10,8,0,0" Visibility="Collapsed"/>
 

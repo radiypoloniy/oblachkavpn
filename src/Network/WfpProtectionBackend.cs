@@ -55,8 +55,8 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
     public IReadOnlyList<NetworkChange> Prepare(ValidatedNetworkLease lease)
     {
         if (lease.Action != NetworkLeaseAction.Acquire) throw new UserError("Для запуска нужна команда Acquire.");
-        // direct=1 — пользователь сам отправил часть трафика мимо туннеля правилами.
-        var after = "sublayer=" + SublayerKey + (lease.HasDirect ? " direct=1" : "") +
+        // direct=1 — часть трафика идёт мимо туннеля: правила пользователя или локальная сеть.
+        var after = "sublayer=" + SublayerKey + (lease.DirectExit ? " direct=1" : "") +
             " peers=" + string.Join(',', lease.Peers.Select(p => p.ToString()));
         return new[] { new NetworkChange(NetworkResourceKind.WfpProtection, ResourceId, null, after) };
     }
