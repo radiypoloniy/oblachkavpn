@@ -32,11 +32,11 @@ jobs:
 
       - name: Сборка
         shell: powershell
-        run: .uild.ps1
+        run: .\build.ps1
 
       - name: Проверки
         shell: powershell
-        run: .	est.ps1
+        run: .\test.ps1
 
       # Версии инструментов закреплены; go install сверяет модули с sum.golang.org.
       - name: Уязвимости зависимостей ядра
