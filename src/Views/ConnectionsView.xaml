@@ -53,8 +53,45 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <TextBlock Text="Сейчас на связи с" Style="{StaticResource DetailKey}"/>
-            <TextBlock Text="{Binding Remotes}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu}" TextWrapping="Wrap"/>
+            <TextBlock Text="Файлы программы" Style="{StaticResource DetailKey}" Visibility="{Binding FilesVisibility}"/>
+            <ItemsControl ItemsSource="{Binding Files}" Visibility="{Binding FilesVisibility}" Focusable="False">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type v:FileRow}">
+                  <Grid Margin="0,3">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
+                      <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                      <TextBlock Text="{Binding Summary}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                      <Button Tag="file-remove" Content="Убрать" Style="{StaticResource BtnLink}" FontSize="{StaticResource FsSmall}" Visibility="{Binding RemoveVisibility}" AutomationProperties.Name="Убрать правило файла"/>
+                      <Border Style="{StaticResource PickPlate}" Visibility="{Binding PickVisibility}">
+                        <StackPanel Orientation="Horizontal">
+                          <Button Tag="file-vpn" Content="VPN" Style="{StaticResource PickVpn}" o:Ui.Selected="{Binding RuleVpn, Mode=OneWay}" AutomationProperties.Name="Этот файл через VPN"/>
+                          <Button Tag="file-direct" Content="Напрямую" Style="{StaticResource PickDirect}" o:Ui.Selected="{Binding RuleDirect, Mode=OneWay}" AutomationProperties.Name="Этот файл напрямую"/>
+                          <Button Tag="file-block" Content="Блок" Style="{StaticResource PickBlock}" o:Ui.Selected="{Binding RuleBlock, Mode=OneWay}" AutomationProperties.Name="Блокировать этот файл"/>
+                        </StackPanel>
+                      </Border>
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="С кем на связи" Style="{StaticResource DetailKey}" Visibility="{Binding SitesVisibility}"/>
+            <ItemsControl ItemsSource="{Binding Sites}" Visibility="{Binding SitesVisibility}" Focusable="False">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type v:SiteRow}">
+                  <Grid Margin="0,2">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsSmall}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Detail}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    <Button Grid.Column="2" Tag="site-close" Content="Закрыть" Style="{StaticResource BtnLink}" FontSize="{StaticResource FsSmall}" Margin="4,0,-8,0" Visibility="{Binding CloseVisibility}"
+                            AutomationProperties.Name="Закрыть соединения с сайтом" ToolTip="Закрыть соединения: программа переподключится заново"/>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Tag="close-all" Content="Закрыть все соединения программы" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Margin="-8,4,0,0" FontSize="{StaticResource FsSmall}" Visibility="{Binding CloseAllVisibility}"/>
             <TextBlock Text="{Binding Pending}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource WF}" TextWrapping="Wrap" Margin="0,6,0,0" Visibility="{Binding PendingVisibility}"/>
             <Button Tag="remove" Content="Убрать правило" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Margin="-8,6,0,0" FontSize="{StaticResource FsSmall}" Visibility="{Binding RemoveVisibility}"/>
           </StackPanel>
@@ -69,6 +106,10 @@
         <DataTrigger Binding="{Binding RouteKind}" Value="direct">
           <Setter TargetName="Route" Property="Background" Value="{DynamicResource OkB}"/>
           <Setter TargetName="RouteText" Property="Foreground" Value="{DynamicResource OkF}"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding RouteKind}" Value="switch">
+          <Setter TargetName="Route" Property="Background" Value="{DynamicResource Field}"/>
+          <Setter TargetName="RouteText" Property="Foreground" Value="{DynamicResource Ac}"/>
         </DataTrigger>
         <DataTrigger Binding="{Binding RouteKind}" Value="block">
           <Setter TargetName="Route" Property="Background" Value="{DynamicResource RB}"/>

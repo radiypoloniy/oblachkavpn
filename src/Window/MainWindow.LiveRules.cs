@@ -34,12 +34,18 @@ public partial class MainWindow
             await lifetime.Client.ProgramRulesAsync(rules, timeout.Token);
             sentProgramRules = key;
             var before = sentRules; sentRules = rules.ToArray();
-            // Ядро перечитывает файлы правил не мгновенно: открытые соединения закрываем, когда
-            // новые правила уже действуют, иначе программа переподключилась бы прежним путём.
+            // Ядро перечитывает файлы правил не мгновенно. Первый проход — почти сразу: обычно ядро уже
+            // успело, и программа переподключается по новому правилу без заметной паузы. Второй —
+            // через секунду, только для соединений, что всё ещё идут не туда (переподключились раньше,
+            // чем ядро перечитало правила). Свежие соединения по новому правилу он не трогает.
             if (systemTunnel?.Stats is { } stats)
             {
-                await Task.Delay(1500);
-                await CoreConnections.CloseChangedAsync(stats, before, sentRules, CancellationToken.None);
+                var after = sentRules;
+                await Task.Delay(400);
+                await CoreConnections.CloseChangedAsync(stats, before, after, CancellationToken.None);
+                _ = RefreshConnectionsAsync();
+                await Task.Delay(1100);
+                if (await CoreConnections.CloseMismatchedAsync(stats, before, after, CancellationToken.None) > 0) _ = RefreshConnectionsAsync();
             }
         }
         // Старая служба без этой команды или сбой канала: правила вступят в силу при следующем подключении.

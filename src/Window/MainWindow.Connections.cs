@@ -22,12 +22,20 @@ public partial class MainWindow
         // «Назад» есть только в узком окне: там раздел закрывается, и видна боковая панель.
         Live.Closed += () => { CloseConnections(); narrowOpen = false; ApplyLayout(); Home.LiveNav.Focus(); };
         Live.ActionChosen += ApplyLiveRule;
+        Live.FileActionChosen += ApplyFileRule;
+        Live.CloseChosen += ids => _ = CloseLiveAsync(ids);
         // Окно в фоне — список реже: каждое обновление перерисовывает строки, а смотрят на него редко.
         Activated += (_, _) => LivePace();
         Deactivated += (_, _) => LivePace();
     }
 
-    private void LivePace() { if (liveTimer is not null) liveTimer.Interval = TimeSpan.FromSeconds(IsActive ? 2 : 6); }
+    // После правила или «Закрыть» — дважды в секунду, пока соединения переезжают (StartLiveBurst).
+    private void LivePace()
+    {
+        if (liveTimer is null) return;
+        var next = TimeSpan.FromSeconds(DateTime.UtcNow < liveBurstUntil ? 0.5 : IsActive ? 2 : 6);
+        if (liveTimer.Interval != next) liveTimer.Interval = next;
+    }
 
     // «Сейчас в сети» — раздел острова: настройки и «Все серверы» уступают ему место.
     private void ShowLiveSection()
@@ -71,6 +79,7 @@ public partial class MainWindow
     {
         liveTimer?.Stop();
         Live.Visibility = Visibility.Collapsed;
+        liveFiles.Clear(); liveSites.Clear();
     }
 
     private async Task RefreshConnectionsAsync()
@@ -86,52 +95,23 @@ public partial class MainWindow
             // «Весь компьютер»: куда ушло соединение, знает только ядро туннеля — по таблицам Windows
             // любое соединение открыто с адреса туннеля, даже по правилу «напрямую».
             var core = tunnel && systemTunnel?.Stats is { } stats ? await CoreConnections.ReadAsync(stats, CancellationToken.None) : null;
-            var apps = core is not null ? LiveApps.FromCore(core, Own)
+            var apps = core is not null ? LiveApps.FromCore(core, Own, liveSpeed.Measure(core, DateTime.UtcNow))
                 : await Task.Run(() => LiveApps.Group(ConnectionTable.Read(), tunnel, proxy, LivePath, Own));
             if (closed) return;
             Live.SetNote(LiveNote);
-            // Заблокированная программа соединений не открывает и пропала бы из списка — а снять
-            // блок удобнее всего там же, где его поставили. Такие остаются, пока окно открыто.
-            var shown = apps.ToList();
-            foreach (var row in liveRows.Values)
-                if (row.Rule == SiteAction.Block && !shown.Any(a => string.Equals(a.Path, row.Path, StringComparison.OrdinalIgnoreCase)))
-                    shown.Add(new LiveApp(row.Path, 0, 0, 0, []));
-            Live.Load(shown.Select(LiveRow).ToArray());
-            Home.LiveCount.Text = apps.Count > 0 ? apps.Count.ToString() : "";
+            var rows = LiveTree(apps);
+            Live.Load(rows);
+            var online = rows.Count(r => r.Vpn + r.Direct > 0);
+            Home.LiveCount.Text = online > 0 ? online.ToString() : "";
         }
         // Список — справочный: сбой чтения таблиц или одной строки не должен ронять окно.
         catch (Exception ex) when (ex is not OutOfMemoryException) { Live.Load([]); }
-        finally { liveBusy = false; }
-    }
-
-    private ConnectionRow LiveRow(LiveApp app)
-    {
-        if (!liveRows.TryGetValue(app.Path, out var row))
-        {
-            // Правило можно поставить, только если путь программы годится для правила: необычное
-            // имя файла (claude.exe.old.123, символы вне допустимых) — без кнопок, с пояснением.
-            row = new ConnectionRow(app.Path) { Name = LiveName(app.Path), Icon = AppIcons.For(app.Path), Configurable = !SystemFile(app.Path) && TryScope(app.Path) is not null };
-            liveRows[app.Path] = row;
-        }
-        row.Vpn = app.Vpn; row.Direct = app.Direct;
-        row.Summary = app.Total == 0 ? "в сеть не выходит" : ConnectionCount(app.Total);
-        (row.Route, row.RouteKind) = app.Total == 0 ? ("заблокирована", "block") : app.Direct == 0 ? ("через VPN", "vpn") : app.Vpn == 0 ? ("напрямую", "direct") : ($"VPN {app.Vpn} · напрямую {app.Direct}", "mix");
-        row.Remotes = string.Join(" · ", app.Remotes);
-        ShowLiveRule(row);
-        // Правило меняет только новые соединения: уже открытые идут прежним путём, пока не закроются.
-        row.Pending = SystemTunnelActive && row.Rule is { } action && (action == SiteAction.Direct ? app.Vpn : action == SiteAction.Tunnel ? app.Direct : app.Total) > 0
-            ? "Соединения, открытые до правила, Облачка обрывает — программа переподключится уже по правилу. Голос и видео (UDP) переходят, когда звонок закончится." : "";
-        var scope = SystemFile(app.Path) ? null : TryScope(app.Path);
-        row.Scope = SystemFile(app.Path) ? "Системные программы Windows правилами не настраиваются: правило задело бы службы самой системы."
-            : scope is not null ? ScopeText(scope.Value.Rules, scope.Value.Owner)
-            : "Для этой программы правило не поставить: у её файла необычное имя.";
-        row.Folders = scope?.Rules is { } rules && rules.All(r => r.AllInFolder) ? rules.Select(r => r.Folder!).ToArray() : [];
-        return row;
+        finally { liveBusy = false; LivePace(); }
     }
 
     private void ShowLiveRule(ConnectionRow row)
     {
-        var rule = ProgramRoutingPlan.Find(programRules, row.Path);
+        var rule = AppRule(row);
         row.Rule = rule?.Action;
         row.RuleText = rule is null ? "" : RuleRow.ActionLabel(rule.Action);
     }
@@ -178,23 +158,27 @@ public partial class MainWindow
 
     private static string Folders(int n) => n + (n % 10 == 1 && n % 100 != 11 ? " папка" : n % 10 is >= 2 and <= 4 && n % 100 is < 12 or > 14 ? " папки" : " папок");
 
-    private static string ConnectionCount(int n) =>
-        n + (n % 10 == 1 && n % 100 != 11 ? " соединение" : n % 10 is >= 2 and <= 4 && n % 100 is < 12 or > 14 ? " соединения" : " соединений");
-
     private void ApplyLiveRule(ConnectionRow row, SiteAction? action)
     {
         if (!row.Configurable) return;
         if (action is null)
         {
-            if (ProgramRoutingPlan.Find(programRules, row.Path) is { } rule) RemoveRule(rule);
+            // Правило программы — иногда несколько папок (Steam и его библиотеки): убираются все разом.
+            var keys = TryScope(row.Path)?.Rules.Select(r => r.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var scoped = programRules.Where(r => keys?.Contains(r.Key) == true).ToArray();
+            if (scoped.Length > 0) { programRules.RemoveAll(scoped.Contains); RefreshRules(); QueueStateSave(); ProgramRulesChanged(); }
+            else if (AppRule(row) is { } rule) RemoveRule(rule);
         }
         else
         {
-            try { AddProgramRules(LiveScope(row.Path, action.Value)); }
+            try { if (!AddProgramRules(LiveScope(row.Path, action.Value))) return; }
             catch (UserError ex) { DetailText.Text = ex.Message; return; }
+            // Плашка сразу показывает новый путь: «→ через VPN…», пока соединения переезжают.
+            if (SystemTunnelActive) row.SwitchTo(action.Value);
         }
         ShowLiveRule(row);
         row.Expanded = false;
+        StartLiveBurst();
         _ = RefreshConnectionsAsync();
         if (!SystemTunnelActive) DetailText.Text = "Правило сохранено. Заработает в режиме «Весь компьютер».";
     }
