@@ -43,7 +43,7 @@ jobs:
         shell: pwsh
         working-directory: core
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
           $tags = (Get-Content ../scripts/build-core.ps1 | Where-Object { $_ -like '$tags = *' } | Select-Object -First 1).Split("'")[1]
           & "$(go env GOPATH)/bin/govulncheck" -tags $tags ./...
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
