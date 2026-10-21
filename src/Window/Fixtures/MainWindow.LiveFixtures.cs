@@ -33,7 +33,10 @@ public partial class MainWindow
         }
         steam.Files = [File(@"D:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive\game\bin\win64\cs2.exe", 3, 0, "1,4 МБ/с", SiteAction.Tunnel),
             File(@"C:\Program Files (x86)\Steam\steam.exe", 0, 12, "220 КБ/с"), File(@"C:\Program Files (x86)\Steam\bin\cef\cef.win7x64\steamwebhelper.exe", 0, 8, "")];
-        steam.Sites = [Site("cache8-fra1.steamcontent.com", 0, 6, "4,8 МБ/с"), Site("155.133.252.38", 3, 0, "1,4 МБ/с"), Site("steamcommunity.com", 0, 4, ""), Site("api.steampowered.com", 0, 2, "")];
+        steam.Sites = [Site("steamcontent.com", 0, 6, "4,8 МБ/с"), Site("155.133.252.38", 3, 0, "1,4 МБ/с"), Site("steamcommunity.com", 0, 4, ""), Site("steampowered.com", 0, 2, "")];
+        // Раскрытый сайт: правило только в Steam и для всех программ.
+        steam.Sites[0].Domain = "steamcontent.com"; steam.Sites[0].AppConfigurable = true; steam.Sites[0].AppLabel = "Только в Steam";
+        steam.Sites[0].AppRule = SiteAction.Direct; steam.Sites[0].Expanded = true;
         steam.Summary = "23 соединения · 6,4 МБ/с";
         Live.Load([new Views.ConnectionRow(@"C:\Apps\Telegram\Telegram.exe") { Name = "Telegram Desktop", Summary = "8 соединений", Route = "напрямую", RouteKind = "direct", Direct = 8, Rule = SiteAction.Direct, RuleText = "напрямую" },
             steam, Switching(new Views.ConnectionRow(@"C:\Apps\Chrome\chrome.exe") { Name = "Google Chrome", Summary = "33 соединения · 2,1 МБ/с", Vpn = 31, Direct = 2 }),

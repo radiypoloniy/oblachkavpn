@@ -85,13 +85,39 @@ public sealed class FileRow(string path) : LiveRouteRow
 }
 
 // Сайт или адрес, с которым программа на связи: сколько соединений, куда, скорость; «Закрыть».
+// Раскрытый (нажатие на имя) — правило на сайт: только в этой программе или для всех программ.
+// Domain — сайт для правила; у адреса без имени его нет, и правил у такой строки нет.
 public sealed class SiteRow(string name) : LiveRouteRow
 {
-    private string detail = "";
+    private string detail = "", appLabel = "", note = "";
     private string[] ids = [];
+    private bool expanded;
+    private SiteAction? appRule, allRule;
     public string Name { get; } = name;
+    public string? Domain { get; set; }
+    public string OwnerPath { get; set; } = "";
+    public bool AppConfigurable { get; set; }
     public string Detail { get => detail; set => Set(ref detail, value, nameof(Detail)); }
+    // «Только в Google Chrome»
+    public string AppLabel { get => appLabel; set => Set(ref appLabel, value, nameof(AppLabel)); }
+    // Почему правило для всех программ здесь может не сработать: правило программы сильнее.
+    public string Note { get => note; set => Set(ref note, value, nameof(Note), nameof(NoteVisibility)); }
     public string[] Ids { get => ids; set { ids = value; Changed(nameof(CloseVisibility)); } }
+    public bool Expanded { get => expanded; set { if (expanded == value) return; expanded = value; Changed(nameof(RulesVisibility)); Changed(nameof(AppRulesVisibility)); } }
+    public SiteAction? AppRule { get => appRule; set { if (appRule == value) return; appRule = value; foreach (var n in new[] { nameof(AppVpn), nameof(AppDirect), nameof(AppBlock), nameof(AppRemoveVisibility), nameof(RuleTagVisibility) }) Changed(n); } }
+    public SiteAction? AllRule { get => allRule; set { if (allRule == value) return; allRule = value; foreach (var n in new[] { nameof(AllVpn), nameof(AllDirect), nameof(AllBlock), nameof(AllRemoveVisibility), nameof(RuleTagVisibility) }) Changed(n); } }
+    public bool AppVpn => appRule == SiteAction.Tunnel;
+    public bool AppDirect => appRule == SiteAction.Direct;
+    public bool AppBlock => appRule == SiteAction.Block;
+    public bool AllVpn => allRule == SiteAction.Tunnel;
+    public bool AllDirect => allRule == SiteAction.Direct;
+    public bool AllBlock => allRule == SiteAction.Block;
     public Visibility CloseVisibility => ids.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility RulesVisibility => expanded && Domain is not null ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility AppRulesVisibility => expanded && Domain is not null && AppConfigurable ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility AppRemoveVisibility => appRule is null ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility AllRemoveVisibility => allRule is null ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility RuleTagVisibility => appRule is null && allRule is null ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility NoteVisibility => note.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     public override string ToString() => Name;
 }

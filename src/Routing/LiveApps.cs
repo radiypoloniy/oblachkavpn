@@ -94,6 +94,8 @@ public static class LiveApps
             Speed += speed;
             var endpoint = port > 0 ? site + ":" + port : site;
             if (Remotes.Count < 3 && !Remotes.Contains(endpoint)) Remotes.Add(endpoint);
+            // Сайты — по основному домену: десяток rr3---sn-….googlevideo.com — одна строка googlevideo.com.
+            site = MainDomain(site) ?? site;
             if (!Sites.TryGetValue(site, out var tally)) Sites[site] = tally = new SiteTally();
             if (vpn) tally.Vpn++; else tally.Direct++;
             tally.Speed += speed;
@@ -102,6 +104,18 @@ public static class LiveApps
     }
 
     private sealed class SiteTally { public int Vpn, Direct; public long Speed; public readonly List<string> Ids = new(); }
+
+    // Основной домен: последние две части имени, а у доменов вида bbc.co.uk и mail.com.ru — три.
+    // Адрес без имени (IP, «IP:порт») — null.
+    public static string? MainDomain(string host)
+    {
+        host = host.TrimEnd('.').ToLowerInvariant();
+        if (host.Contains(':') || IPAddress.TryParse(host, out _) || !host.Contains('.')) return null;
+        var labels = host.Split('.');
+        if (labels.Length <= 2) return host;
+        var take = labels[^1].Length == 2 && labels[^2].Length <= 3 && labels[^2] is "co" or "com" or "net" or "org" or "gov" or "ac" or "edu" ? 3 : 2;
+        return string.Join('.', labels[^take..]);
+    }
 
     private static IPAddress Plain(IPAddress address) => address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;
 }

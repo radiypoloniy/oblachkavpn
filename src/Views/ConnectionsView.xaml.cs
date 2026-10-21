@@ -16,6 +16,8 @@ public partial class ConnectionsView : UserControl
     public event Action<ConnectionRow, SiteAction?>? ActionChosen;
     public event Action<FileRow, SiteAction?>? FileActionChosen;
     public event Action<IReadOnlyCollection<string>>? CloseChosen;
+    // Правило на сайт: app — только в этой программе, иначе для всех программ; null — убрать.
+    public event Action<SiteRow, bool, SiteAction?>? SiteActionChosen;
     public event Action? Closed;
 
     public ConnectionsView()
@@ -79,7 +81,14 @@ public partial class ConnectionsView : UserControl
             FileActionChosen?.Invoke(file, fileTag switch { "file-vpn" => SiteAction.Tunnel, "file-direct" => SiteAction.Direct, "file-block" => SiteAction.Block, _ => null });
             return;
         }
-        if (source is Button { Tag: "site-close" } && source.DataContext is SiteRow site) { CloseChosen?.Invoke(site.Ids); return; }
+        if (source is Button { Tag: string siteTag } && source.DataContext is SiteRow site)
+        {
+            if (siteTag == "site-close") CloseChosen?.Invoke(site.Ids);
+            else if (siteTag == "site") site.Expanded = !site.Expanded;
+            else if (siteTag.Split('-') is [var scope and ("app" or "all"), var verb])
+                SiteActionChosen?.Invoke(site, scope == "app", verb switch { "vpn" => SiteAction.Tunnel, "direct" => SiteAction.Direct, "block" => SiteAction.Block, _ => null });
+            return;
+        }
         if (source?.DataContext is not ConnectionRow row) return;
         if (source is Button { Tag: "close-all" }) { CloseChosen?.Invoke(row.Sites.SelectMany(s => s.Ids).ToArray()); return; }
         if (args.OriginalSource is Button { Tag: "folders" }) { row.FoldersShown = !row.FoldersShown; return; }

@@ -46,6 +46,7 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         var localDns = DirectDns.PhysicalResolver();
         // Правила программ — в файлах, которые окно меняет на ходу (ProgramRuleSets); при запуске — из аренды.
         ProgramRuleSets.Write(ProgramRuleSets.Folder, lease.ProgramRules);
+        SiteRuleSets.Write(SiteRuleSets.NextTo(ProgramRuleSets.Folder), lease.SiteRules);
         // Списки маршрутизации — в файлах, которые окно передало до запуска и меняет на ходу (RoutingLists).
         RoutingLists.EnsureFiles(RoutingLists.Folder);
         CoreConfigurationCheck.ValidateTunAsync(request, token, ipv6, localDns, DirectDns.RuleSetPath, ProgramRuleSets.Folder, RoutingLists.Folder).GetAwaiter().GetResult();

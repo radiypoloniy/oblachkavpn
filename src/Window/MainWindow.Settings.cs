@@ -110,7 +110,7 @@ public partial class MainWindow
         if (rule is SiteRule site && siteRules.IndexOf(site) is var i and >= 0) siteRules[i] = site with { Action = Next(site.Action) };
         else if (rule is ProgramRule program && programRules.IndexOf(program) is var j and >= 0) programRules[j] = program with { Action = Next(program.Action) };
         RefreshRules(); QueueStateSave();
-        if (rule is ProgramRule) ProgramRulesChanged();
+        ProgramRulesChanged();
     }
 
     private void RemoveRule(object rule)
@@ -118,7 +118,7 @@ public partial class MainWindow
         if (rule is SiteRule site) siteRules.Remove(site);
         else if (rule is ProgramRule program) programRules.Remove(program);
         RefreshRules(); QueueStateSave();
-        if (rule is ProgramRule) ProgramRulesChanged();
+        ProgramRulesChanged();
     }
 
     // «Куда пойдёт сайт?»: самое длинное подходящее правило сайта, иначе — через VPN.

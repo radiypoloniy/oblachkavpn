@@ -69,6 +69,7 @@ public partial class MainWindow
             .Select(g => (Name: g.Key, Vpn: g.Sum(s => s.Vpn), Direct: g.Sum(s => s.Direct), Speed: g.Sum(s => s.Speed), Ids: g.SelectMany(s => s.Ids).ToArray()))
             .OrderByDescending(s => s.Speed).ThenByDescending(s => s.Vpn + s.Direct).ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
             .Take(LiveSitesShown).Select(s => LiveSite(row, s.Name, s.Vpn, s.Direct, s.Speed, s.Ids)).ToArray();
+        foreach (var site in row.Sites) ShowSiteRules(row, site);
     }
 
     private FileRow LiveFile(LiveApp part)
@@ -108,7 +109,7 @@ public partial class MainWindow
     }
 
     private ProgramRule? FileRule(string path) => programRules.FirstOrDefault(r =>
-        r.Folder is not null && !r.AllInFolder && string.Equals(r.FilePath, path, StringComparison.OrdinalIgnoreCase));
+        r.Domain is null && r.Folder is not null && !r.AllInFolder && string.Equals(r.FilePath, path, StringComparison.OrdinalIgnoreCase));
 
     private void ApplyFileRule(FileRow file, SiteAction? action)
     {

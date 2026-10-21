@@ -81,13 +81,52 @@
             <ItemsControl ItemsSource="{Binding Sites}" Visibility="{Binding SitesVisibility}" Focusable="False">
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type v:SiteRow}">
-                  <Grid Margin="0,2">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsSmall}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="1" Text="{Binding Detail}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu}" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                    <Button Grid.Column="2" Tag="site-close" Content="Закрыть" Style="{StaticResource BtnLink}" FontSize="{StaticResource FsSmall}" Margin="4,0,-8,0" Visibility="{Binding CloseVisibility}"
-                            AutomationProperties.Name="Закрыть соединения с сайтом" ToolTip="Закрыть соединения: программа переподключится заново"/>
-                  </Grid>
+                  <StackPanel Margin="0,1">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <Button Tag="site" Style="{StaticResource Row}" Height="Auto" Padding="6,3" Margin="-6,0,0,0" HorizontalContentAlignment="Left" AutomationProperties.Name="{Binding Name}"
+                              ToolTip="Правило для этого сайта">
+                        <StackPanel Orientation="Horizontal">
+                          <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsSmall}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                          <Border Style="{StaticResource RuleTag}" Visibility="{Binding RuleTagVisibility}">
+                            <TextBlock Text="правило" FontSize="{StaticResource FsCaption}" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
+                          </Border>
+                        </StackPanel>
+                      </Button>
+                      <TextBlock Grid.Column="1" Text="{Binding Detail}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                      <Button Grid.Column="2" Tag="site-close" Content="Закрыть" Style="{StaticResource BtnLink}" FontSize="{StaticResource FsSmall}" Margin="4,0,-8,0" Visibility="{Binding CloseVisibility}"
+                              AutomationProperties.Name="Закрыть соединения с сайтом" ToolTip="Закрыть соединения: программа переподключится заново"/>
+                    </Grid>
+                    <Grid Margin="0,4,0,2" Visibility="{Binding AppRulesVisibility}">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <TextBlock Text="{Binding AppLabel}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                      <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Tag="app-remove" Content="Убрать" Style="{StaticResource BtnLink}" FontSize="{StaticResource FsSmall}" Visibility="{Binding AppRemoveVisibility}"/>
+                        <Border Style="{StaticResource PickPlate}">
+                          <StackPanel Orientation="Horizontal">
+                            <Button Tag="app-vpn" Content="VPN" Style="{StaticResource PickVpn}" o:Ui.Selected="{Binding AppVpn, Mode=OneWay}" AutomationProperties.Name="Сайт в этой программе через VPN"/>
+                            <Button Tag="app-direct" Content="Напрямую" Style="{StaticResource PickDirect}" o:Ui.Selected="{Binding AppDirect, Mode=OneWay}" AutomationProperties.Name="Сайт в этой программе напрямую"/>
+                            <Button Tag="app-block" Content="Блок" Style="{StaticResource PickBlock}" o:Ui.Selected="{Binding AppBlock, Mode=OneWay}" AutomationProperties.Name="Блокировать сайт в этой программе"/>
+                          </StackPanel>
+                        </Border>
+                      </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,2,0,4" Visibility="{Binding RulesVisibility}">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <TextBlock Text="Во всех программах" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
+                      <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Tag="all-remove" Content="Убрать" Style="{StaticResource BtnLink}" FontSize="{StaticResource FsSmall}" Visibility="{Binding AllRemoveVisibility}"/>
+                        <Border Style="{StaticResource PickPlate}">
+                          <StackPanel Orientation="Horizontal">
+                            <Button Tag="all-vpn" Content="VPN" Style="{StaticResource PickVpn}" o:Ui.Selected="{Binding AllVpn, Mode=OneWay}" AutomationProperties.Name="Сайт везде через VPN"/>
+                            <Button Tag="all-direct" Content="Напрямую" Style="{StaticResource PickDirect}" o:Ui.Selected="{Binding AllDirect, Mode=OneWay}" AutomationProperties.Name="Сайт везде напрямую"/>
+                            <Button Tag="all-block" Content="Блок" Style="{StaticResource PickBlock}" o:Ui.Selected="{Binding AllBlock, Mode=OneWay}" AutomationProperties.Name="Блокировать сайт везде"/>
+                          </StackPanel>
+                        </Border>
+                      </StackPanel>
+                    </Grid>
+                    <TextBlock Text="{Binding Note}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" Margin="0,0,0,4" Visibility="{Binding NoteVisibility}"/>
+                  </StackPanel>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>

@@ -11,9 +11,14 @@ namespace Oblachka;
 // сильнее имени. Файлов — уровни × действия; правило попадает на уровень после всех правил,
 // которые обязаны сработать раньше него. Внутри уровня правила не пересекаются, и порядок
 // действий там не важен.
-public sealed record ProgramRulesRequest(ProgramRule[] Rules)
+// Sites — правила сайтов для всех программ (SiteRuleSets): тоже на ходу. null — прежнее окно без них.
+public sealed record ProgramRulesRequest(ProgramRule[] Rules, SiteRule[]? Sites = null)
 {
-    public void Validate() => ProgramRoutingPlan.Validate(Rules);
+    public void Validate()
+    {
+        ProgramRoutingPlan.Validate(Rules);
+        if (Sites is not null) RoutingPlan.Validate(Sites);
+    }
 }
 
 public static class ProgramRuleSets
@@ -33,6 +38,7 @@ public static class ProgramRuleSets
         request.Validate();
         var before = current;
         Write(Folder, request.Rules);
+        if (request.Sites is not null) SiteRuleSets.Write(SiteRuleSets.Folder, request.Sites);
         // Ядро перечитывает файлы не мгновенно: обрываем соединения, когда новые правила уже
         // действуют, иначе программа переподключилась бы прежним путём.
         var after = request.Rules;
@@ -102,8 +108,21 @@ public static class ProgramRuleSets
     }
 
     // Обязано ли правило a сработать раньше b: они могут поймать один процесс, и a точнее.
+    // Правило с сайтом — раньше правила той же программы без сайта и раньше правила с более общим
+    // сайтом; правило без сайта правило с сайтом не опережает.
     internal static bool Before(ProgramRule a, ProgramRule b)
     {
+        if (a.Domain is not null || b.Domain is not null)
+        {
+            if (a.Domain is null) return false;
+            var plainA = a with { Domain = null }; var plainB = b with { Domain = null };
+            var overlap = plainA.TargetKey.Equals(plainB.TargetKey, StringComparison.OrdinalIgnoreCase) || Before(plainA, plainB) || Before(plainB, plainA);
+            if (!overlap) return false;
+            if (b.Domain is null) return true;
+            return a.Domain.EndsWith("." + b.Domain, StringComparison.Ordinal) ||
+                a.Domain == b.Domain && !plainA.TargetKey.Equals(plainB.TargetKey, StringComparison.OrdinalIgnoreCase) && Before(plainA, plainB);
+        }
+
         static bool Inside(string folder, string outer) =>
             string.Equals(folder, outer, StringComparison.OrdinalIgnoreCase) || folder.StartsWith(outer + "\\", StringComparison.OrdinalIgnoreCase);
         var aExact = a.Folder is not null && !a.AllInFolder;

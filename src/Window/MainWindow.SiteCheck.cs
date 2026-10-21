@@ -148,7 +148,7 @@ public partial class MainWindow
             else siteRules.Add(rule);
         }
         catch (UserError ex) { ShowSiteProgress(ex.Message); return; }
-        RefreshRules(); QueueStateSave();
+        RefreshRules(); QueueStateSave(); ProgramRulesChanged();
         SiteCheck.SuggestButton.IsEnabled = false;
         if (!ConnectionActive) { ShowSiteProgress("Правило добавлено. Оно заработает, когда вы включите VPN."); return; }
         if (operation is not null || systemStopping) { ShowSiteProgress("Правило добавлено и заработает со следующего подключения."); return; }

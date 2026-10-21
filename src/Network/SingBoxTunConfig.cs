@@ -195,15 +195,23 @@ public static class SingBoxTunConfig
         }
         // Локальная сеть — раньше правил сайтов и программ: принтер и NAS не уходят на сервер.
         if (lease.LocalNetwork) rules.Add(new JsonObject { ["ip_cidr"] = new JsonArray(LocalSubnets.Select(s => (JsonNode?)JsonValue.Create(s)).ToArray()), ["outbound"] = UserDirect });
-        if (lease.SiteRules.Count > 0 || lease.Lists is not null) rules.Add(new JsonObject { ["action"] = "sniff" });
+        // Имя сайта ядро узнаёт из TLS/QUIC. С файлами правил сайт может появиться в правилах на ходу,
+        // поэтому имя нужно всегда, а не только когда правила сайтов были при подключении.
+        if (lease.SiteRules.Count > 0 || lease.Lists is not null || programSets is not null) rules.Add(new JsonObject { ["action"] = "sniff" });
         // Прямой выход разрешён защитой, только если «напрямую» было при подключении. Правило
         // «напрямую», добавленное на ходу без него, блокирует программу: мимо VPN без разрешения
         // она не уйдёт, а окно попросит переподключиться.
+        // Правила с сайтом для одной программы — в тех же файлах, что правила программ (раньше них);
+        // правила сайтов для всех программ — после правил программ, своими файлами (SiteRuleSets).
         if (programSets is not null)
-            ProgramRuleSets.AddTo(config, programSets, (match, action) => Route(match, action == SiteAction.Direct && !lease.HasDirect ? SiteAction.Block : action, tunnel));
-        else
-            foreach (var rule in ProgramRoutingPlan.Ordered(lease.ProgramRules))
-                rules.Add(Route(ProgramRoutingPlan.Match(rule), rule.Action, tunnel));
+        {
+            JsonObject Guarded(JsonObject match, SiteAction action) => Route(match, action == SiteAction.Direct && !lease.HasDirect ? SiteAction.Block : action, tunnel);
+            ProgramRuleSets.AddTo(config, programSets, Guarded);
+            SiteRuleSets.AddTo(config, SiteRuleSets.NextTo(programSets), Guarded);
+            return;
+        }
+        foreach (var rule in ProgramRoutingPlan.Ordered(lease.ProgramRules))
+            rules.Add(Route(ProgramRoutingPlan.Match(rule), rule.Action, tunnel));
         foreach (var rule in lease.SiteRules.OrderByDescending(r => r.Domain.Count(c => c == '.')))
             rules.Add(Route(new JsonObject { ["domain_suffix"] = new JsonArray(rule.Domain) }, rule.Action, tunnel));
     }
