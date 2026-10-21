@@ -25,7 +25,7 @@ public partial class MainWindow
         if (engine is Engine core)
         {
             core.SiteRules = SystemTunnelWanted ? Array.Empty<SiteRule>() : siteRules.ToArray();
-            core.Fragment = FragmentWanted;
+            core.Fragment = FragmentWanted; core.FragmentShape = ProviderFragment is { Enabled: true } shape ? shape : null;
             // Списки у ядра туннеля (TunnelLists) — ядру окна под той же сессией они не нужны.
             core.Routing = TunnelListsActive ? null : CurrentRouting();
             coreZapretKey = DesiredZapretKey; appliedZapretDomains = ZapretRouting ? zapretDomains : [];

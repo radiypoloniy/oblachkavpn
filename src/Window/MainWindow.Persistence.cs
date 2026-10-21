@@ -45,7 +45,8 @@ public partial class MainWindow
             UpdateCheck = AppTab.UpdateAuto.IsChecked == true, UpdatePrerelease = AppTab.UpdatePrerelease.IsChecked == true, LiveSky = AppTab.SkyToggle.IsChecked == true, DpiBypass = fragmentMode,
             ZapretEnabled = zapretEnabled, SelectiveVpn = selectiveVpn, ZapretChoices = new Dictionary<string, string>(zapretChoices), ZapretVpnGroups = zapretVpnGroups.Order(StringComparer.Ordinal).ToArray(),
             AutoPool = autoPool.Snapshot(importedProfiles),
-            ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected };
+            ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected,
+            ServiceHosts = ServiceBrand.LearnedIn(groups.SelectMany(g => g.Sources).Concat(subscriptionSources)), LocalNetwork = Settings.LocalNetwork.IsChecked == true };
 
     private void SaveStateClick(object sender, RoutedEventArgs args)
     {
@@ -78,9 +79,12 @@ public partial class MainWindow
 
     private void ApplySnapshot(ClientSnapshot snapshot)
     {
+        // До подписок: по доменам сервиса окно узнаёт свою подписку и шлёт ей идентификатор устройства.
+        foreach (var host in snapshot.ServiceHosts ?? []) ServiceBrand.Learn(host);
         var restored = ClientStateStore.RestoreProfiles(snapshot);
         Settings.StayInTray.IsChecked = snapshot.CloseToTray ?? true; AutoRecover.IsChecked = snapshot.AutoRecover;
         Settings.ConnectOnLaunch.IsChecked = snapshot.ConnectOnLaunch; wasConnected = snapshot.WasConnected;
+        Settings.LocalNetwork.IsChecked = snapshot.LocalNetwork;
         Settings.AutoRefresh.IsChecked = snapshot.AutoRefresh;
         ThemeManager.Apply(snapshot.Theme ?? ThemeChoice.System);
         Settings.SystemProxy.IsChecked = snapshot.SystemProxy;

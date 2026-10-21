@@ -43,6 +43,7 @@ public static partial class SelfTests
         await AliasChecksAsync(CheckAsync, root);
         await SourceChecksAsync(CheckAsync, root);
         await PanelHeaderChecksAsync(CheckAsync, root);
+        await ProviderHeaderChecksAsync(CheckAsync, root);
         await DeviceIdentityChecksAsync(CheckAsync);
         await TunnelBackendChecksAsync(CheckAsync, root);
         await KillSwitchChecksAsync(CheckAsync, root);
@@ -64,6 +65,9 @@ public static partial class SelfTests
         await HelperPipeChecksAsync(CheckAsync, root);
         await ServiceChecksAsync(CheckAsync);
         await TunConfigurationChecksAsync(CheckAsync);
+        await LocalNetworkChecksAsync(CheckAsync);
+        await AuditFixChecksAsync(CheckAsync);
+        await LiveSiteRuleChecksAsync(CheckAsync);
         await DirectOutboundChecksAsync(CheckAsync);
         await TunnelListsChecksAsync(CheckAsync);
         await XrayBridgeChecksAsync(CheckAsync);

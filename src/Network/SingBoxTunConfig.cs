@@ -177,7 +177,7 @@ public static class SingBoxTunConfig
     private static void AddRules(JsonObject config, ValidatedNetworkLease lease, string? programSets, string tunnel)
     {
         var rules = (JsonArray)config["route"]!["rules"]!;
-        if (lease.HasDirect) ((JsonArray)config["outbounds"]!).Add(new JsonObject { ["type"] = "direct", ["tag"] = UserDirect });
+        if (lease.DirectExit) ((JsonArray)config["outbounds"]!).Add(new JsonObject { ["type"] = "direct", ["tag"] = UserDirect });
         // Соединения для «Сейчас в сети»: только 127.0.0.1 и только с секретом этой сессии.
         if (lease.Stats is { } stats)
             config["experimental"] = new JsonObject { ["clash_api"] = new JsonObject { ["external_controller"] = "127.0.0.1:" + stats.Port, ["secret"] = stats.Secret } };
@@ -193,20 +193,34 @@ public static class SingBoxTunConfig
             });
             rules.Insert(0, new JsonObject { ["inbound"] = new JsonArray(CoreDirectInbound), ["outbound"] = UserDirect });
         }
-        if (lease.SiteRules.Count > 0 || lease.Lists is not null) rules.Add(new JsonObject { ["action"] = "sniff" });
+        // Локальная сеть — раньше правил сайтов и программ: принтер и NAS не уходят на сервер.
+        if (lease.LocalNetwork) rules.Add(new JsonObject { ["ip_cidr"] = new JsonArray(LocalSubnets.Select(s => (JsonNode?)JsonValue.Create(s)).ToArray()), ["outbound"] = UserDirect });
+        // Имя сайта ядро узнаёт из TLS/QUIC. С файлами правил сайт может появиться в правилах на ходу,
+        // поэтому имя нужно всегда, а не только когда правила сайтов были при подключении.
+        if (lease.SiteRules.Count > 0 || lease.Lists is not null || programSets is not null) rules.Add(new JsonObject { ["action"] = "sniff" });
         // Прямой выход разрешён защитой, только если «напрямую» было при подключении. Правило
         // «напрямую», добавленное на ходу без него, блокирует программу: мимо VPN без разрешения
         // она не уйдёт, а окно попросит переподключиться.
+        // Правила с сайтом для одной программы — в тех же файлах, что правила программ (раньше них);
+        // правила сайтов для всех программ — после правил программ, своими файлами (SiteRuleSets).
         if (programSets is not null)
-            ProgramRuleSets.AddTo(config, programSets, (match, action) => Route(match, action == SiteAction.Direct && !lease.HasDirect ? SiteAction.Block : action, tunnel));
-        else
-            foreach (var rule in ProgramRoutingPlan.Ordered(lease.ProgramRules))
-                rules.Add(Route(ProgramRoutingPlan.Match(rule), rule.Action, tunnel));
+        {
+            JsonObject Guarded(JsonObject match, SiteAction action) => Route(match, action == SiteAction.Direct && !lease.HasDirect ? SiteAction.Block : action, tunnel);
+            ProgramRuleSets.AddTo(config, programSets, Guarded);
+            SiteRuleSets.AddTo(config, SiteRuleSets.NextTo(programSets), Guarded);
+            return;
+        }
+        foreach (var rule in ProgramRoutingPlan.Ordered(lease.ProgramRules))
+            rules.Add(Route(ProgramRoutingPlan.Match(rule), rule.Action, tunnel));
         foreach (var rule in lease.SiteRules.OrderByDescending(r => r.Domain.Count(c => c == '.')))
             rules.Add(Route(new JsonObject { ["domain_suffix"] = new JsonArray(rule.Domain) }, rule.Action, tunnel));
     }
 
     public const string UserDirect = "user-direct";
+    // Частные сети без адресов самого туннеля (172.31.255.0/30 внутри 172.16/12 — правило DNS
+    // стоит раньше, а другого трафика на адрес туннеля нет) и без CGNAT 100.64/10: там бывают
+    // адреса провайдера, а не домашняя сеть.
+    public static readonly string[] LocalSubnets = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16", "fc00::/7", "fe80::/10"];
     public const string CoreDirectInbound = "core-direct";
 
     private static JsonObject Route(JsonObject match, SiteAction action, string tunnel)

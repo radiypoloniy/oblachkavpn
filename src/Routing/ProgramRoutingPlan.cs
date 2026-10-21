@@ -9,17 +9,23 @@ namespace Oblachka;
 //   Executable + Folder + AllInFolder — всё, что запускается из папки и её подпапок: клиент, его
 //     службы, помощники и игры (Steam — это не только steam.exe). Executable тогда — главная
 //     программа папки, по ней показываются имя и значок.
+// Domain — правило «программа И сайт»: YouTube в Chrome напрямую, остальной Chrome — как обычно.
+// Оно сильнее и правила программы, и правила сайта для всех программ.
 public sealed record ProgramRule(string Executable, SiteAction Action)
 {
     public string? Folder { get; init; }
     public bool AllInFolder { get; init; }
+    public string? Domain { get; init; }
 
-    // По этому ключу правила не повторяются: одно имя, один файл или одна папка — одно правило.
+    // Что берёт правило без сайта: одно имя, один файл или одна папка.
     [System.Text.Json.Serialization.JsonIgnore]
-    public string Key => Folder is null ? Executable : AllInFolder ? Folder + "\\" : Folder + "\\" + Executable;
+    public string TargetKey => Folder is null ? Executable : AllInFolder ? Folder + "\\" : Folder + "\\" + Executable;
+    // По этому ключу правила не повторяются: та же программа с другим сайтом — другое правило.
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string Key => Domain is null ? TargetKey : TargetKey + "@" + Domain;
     [System.Text.Json.Serialization.JsonIgnore]
     public string? FilePath => Folder is null ? null : Folder + "\\" + Executable;
-    public override string ToString() => (Folder is null ? Executable : AllInFolder ? Folder + "\\…" : FilePath) + " — " + new SiteRule("", Action).Label;
+    public override string ToString() => (Folder is null ? Executable : AllInFolder ? Folder + "\\…" : FilePath) + (Domain is null ? "" : " · " + Domain) + " — " + new SiteRule("", Action).Label;
 }
 
 public static class ProgramRoutingPlan
@@ -83,26 +89,40 @@ public static class ProgramRoutingPlan
                 throw new UserError("Правила программ повреждены или повторяются.");
             if (rule.Folder is not null && NormalizeFolder(rule.Folder, rule.AllInFolder) != rule.Folder) throw new UserError("Правила программ повреждены или повторяются.");
             if (rule.Folder is null && rule.AllInFolder) throw new UserError("Правила программ повреждены или повторяются.");
+            if (rule.Domain is { } domain && RoutingPlan.Create(domain, rule.Action).Domain != domain) throw new UserError("Правила программ повреждены или повторяются.");
         }
     }
 
     // Порядок в ядре: первое совпадение побеждает. Сначала точные файлы, потом имена, потом
     // папки — более глубокая раньше: правило на игру из библиотеки Steam сильнее правила на весь Steam.
+    // Правила с сайтом — раньше всех, более глубокий сайт раньше.
     public static IEnumerable<ProgramRule> Ordered(IEnumerable<ProgramRule> rules) => rules
-        .OrderBy(r => r.Folder is null ? 1 : r.AllInFolder ? 2 : 0)
+        .OrderBy(r => r.Domain is null ? 1 : 0)
+        .ThenByDescending(r => r.Domain?.Count(c => c == '.') ?? 0)
+        .ThenBy(r => r.Folder is null ? 1 : r.AllInFolder ? 2 : 0)
         .ThenByDescending(r => r.Folder?.Count(c => c == '\\') ?? 0)
         .ThenByDescending(r => r.Folder?.Length ?? 0);
 
     // Какое правило ядро применит к программе по этому пути: первое совпадение в том же порядке.
-    public static ProgramRule? Find(IEnumerable<ProgramRule> rules, string path) => Ordered(rules).FirstOrDefault(r =>
+    // Правила с сайтом здесь не участвуют: они решают не за всю программу.
+    public static ProgramRule? Find(IEnumerable<ProgramRule> rules, string path) => Ordered(rules).Where(r => r.Domain is null).FirstOrDefault(r => Covers(r, path));
+
+    // Берёт ли правило (без учёта сайта) программу по этому пути.
+    public static bool Covers(ProgramRule r, string path) =>
         r.Folder is null ? string.Equals(Path.GetFileName(path), r.Executable, StringComparison.OrdinalIgnoreCase)
         : r.AllInFolder ? path.StartsWith(r.Folder + "\\", StringComparison.OrdinalIgnoreCase)
-        : string.Equals(path, r.FilePath, StringComparison.OrdinalIgnoreCase));
+        : string.Equals(path, r.FilePath, StringComparison.OrdinalIgnoreCase);
 
     // Условие правила ядра sing-box. Путь процесса Windows сравнивается без учёта регистра.
-    public static JsonObject Match(ProgramRule rule) => rule.Folder is null
-        ? new JsonObject { ["process_name"] = new JsonArray(rule.Executable) }
-        : new JsonObject { ["process_path_regex"] = new JsonArray("(?i)^" + Re2(rule.Folder + "\\") + (rule.AllInFolder ? "" : Re2(rule.Executable) + "$")) };
+    // Поля разных видов sing-box соединяет через «и»: программа и сайт вместе.
+    public static JsonObject Match(ProgramRule rule)
+    {
+        var match = rule.Folder is null
+            ? new JsonObject { ["process_name"] = new JsonArray(rule.Executable) }
+            : new JsonObject { ["process_path_regex"] = new JsonArray("(?i)^" + Re2(rule.Folder + "\\") + (rule.AllInFolder ? "" : Re2(rule.Executable) + "$")) };
+        if (rule.Domain is { } domain) match["domain_suffix"] = new JsonArray(domain);
+        return match;
+    }
 
     // Экранирование для RE2 (Go): Regex.Escape из .NET экранирует и пробел, а RE2 такого не принимает.
     internal static string Re2(string text)

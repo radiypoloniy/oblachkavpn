@@ -5,8 +5,8 @@ using System.Runtime.InteropServices;
 namespace Oblachka;
 
 // KernelProcess — соединения от имени System (pid 4): так Windows видит пакеты, которые драйвер
-// перехвата (WinDivert у zapret) отправил заново. RemotePortRange — порты Number…High.
-public enum WfpConditionKind { Loopback, LocalAddress, RemoteAddress, Application, Protocol, LocalPort, RemotePort, InterfaceTypeNot, KernelProcess, RemotePortRange }
+// перехвата (WinDivert у zapret) отправил заново. RemotePortRange — порты Number…High. RemoteSubnet — адрес Address с длиной префикса Number.
+public enum WfpConditionKind { Loopback, LocalAddress, RemoteAddress, Application, Protocol, LocalPort, RemotePort, InterfaceTypeNot, KernelProcess, RemotePortRange, RemoteSubnet }
 public sealed record WfpCondition(WfpConditionKind Kind, IPAddress? Address = null, string? Program = null, int Number = 0, int High = 0);
 // Packet — слой исходящих IP-пакетов, а не установления соединений: там видны пакеты
 // уже разрешённых потоков, в том числе закрытие соединения после снятия туннеля.
@@ -56,7 +56,7 @@ public sealed class WfpEngine : IWfpEngine
     // в том числе брандмауэр Windows, если в нём исходящее по умолчанию запрещено.
     private const uint FlagClearActionRight = 0x8;
     private const uint MatchEqual = 0, MatchRange = 5, MatchFlagsAllSet = 6, MatchNotEqual = 10;
-    private const uint TypeUint8 = 1, TypeUint16 = 2, TypeUint32 = 3, TypeArray16 = 11, TypeBlob = 12, TypeRange = 0x102;
+    private const uint TypeUint8 = 1, TypeUint16 = 2, TypeUint32 = 3, TypeArray16 = 11, TypeBlob = 12, TypeV4Mask = 0x100, TypeV6Mask = 0x101, TypeRange = 0x102;
     private const uint IsLoopback = 0x1;
     private const uint FilterNotFound = 0x80320003, ProviderNotFound = 0x80320005, SublayerNotFound = 0x80320007;
 
@@ -138,6 +138,7 @@ public sealed class WfpEngine : IWfpEngine
         WfpConditionKind.InterfaceTypeNot => new() { Field = ConditionInterfaceType, Match = MatchNotEqual, Value = new() { Type = TypeUint32, Data = (ulong)c.Number } },
         WfpConditionKind.Application => new() { Field = ConditionAppId, Value = new() { Type = TypeBlob, Data = (ulong)memory.AppId(c.Program!) } },
         WfpConditionKind.KernelProcess => new() { Field = ConditionAppId, Value = new() { Type = TypeBlob, Data = (ulong)memory.KernelAppId() } },
+        WfpConditionKind.RemoteSubnet => Subnet(ConditionRemoteAddress, c.Address!, c.Number, memory),
         WfpConditionKind.RemotePortRange => new() { Field = ConditionRemotePort, Match = MatchRange, Value = new() { Type = TypeRange, Data = (ulong)memory.PortRange(c.Number, c.High) } },
         _ => throw new UserError("Неизвестное условие фильтра.")
     };
@@ -151,6 +152,27 @@ public sealed class WfpEngine : IWfpEngine
         var buffer = memory.Alloc(16);
         Marshal.Copy(bytes, 0, buffer, 16);
         return new() { Field = field, Match = MatchEqual, Value = new() { Type = TypeArray16, Data = (ulong)buffer } };
+    }
+
+    // FWP_V4_ADDR_AND_MASK — адрес и маска числами в порядке байт узла; FWP_V6_ADDR_AND_MASK —
+    // 16 байт адреса и длина префикса.
+    private static WfpNative.Condition Subnet(Guid field, IPAddress address, int prefix, Strings memory)
+    {
+        var bytes = address.GetAddressBytes();
+        if (address.AddressFamily == AddressFamily.InterNetwork)
+        {
+            if (prefix is < 0 or > 32) throw new UserError("Неверная длина префикса подсети.");
+            var mask = prefix == 0 ? 0u : uint.MaxValue << (32 - prefix);
+            var v4 = memory.Alloc(8);
+            Marshal.WriteInt32(v4, (int)((uint)(bytes[0] << 24 | bytes[1] << 16 | bytes[2] << 8 | bytes[3]) & mask));
+            Marshal.WriteInt32(v4 + 4, (int)mask);
+            return new() { Field = field, Match = MatchEqual, Value = new() { Type = TypeV4Mask, Data = (ulong)v4 } };
+        }
+        if (prefix is < 0 or > 128) throw new UserError("Неверная длина префикса подсети.");
+        var v6 = memory.Alloc(17);
+        Marshal.Copy(bytes, 0, v6, 16);
+        Marshal.WriteByte(v6 + 16, (byte)prefix);
+        return new() { Field = field, Match = MatchEqual, Value = new() { Type = TypeV6Mask, Data = (ulong)v6 } };
     }
 
     private static bool Deleted(uint status, uint notFound, string what)

@@ -14,6 +14,8 @@ public sealed record SubscriptionMetadata(long? Upload, long? Download, long? To
     // Ссылки панели (заголовки Happ / Remnawave): поддержка и личный кабинет для продления.
     public string? SupportUrl { get; init; }
     public string? WebPageUrl { get; init; }
+    // Переезд, «Продлить», объявление с кнопкой, DoH и обход DPI (ProviderHeaders).
+    public ProviderOptions? Provider { get; init; }
 
     public const int MaxTextLength = 300;
     public static readonly TimeSpan MinUpdateInterval = TimeSpan.FromMinutes(30);
@@ -86,6 +88,7 @@ public sealed record SubscriptionMetadata(long? Upload, long? Download, long? To
                 throw new UserError("Ссылки подписки повреждены.");
         if (info.UpdateInterval is { } interval && (interval < MinUpdateInterval || interval > MaxUpdateInterval))
             throw new UserError("Период обновления подписки повреждён.");
+        if (info.Provider is { } provider) ProviderOptions.Validate(provider);
     }
 
     // profile-update-interval в документации панели задан в днях.

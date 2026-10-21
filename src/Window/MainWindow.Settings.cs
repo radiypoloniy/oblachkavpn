@@ -84,8 +84,9 @@ public partial class MainWindow
         else { mark.Fill = System.Windows.Media.Brushes.Transparent; mark.SetResourceReference(Shape.StrokeProperty, "Ring"); mark.StrokeThickness = 1.5; }
     }
 
-    // Личный кабинет из profile-web-page-url; для сервиса — его постоянный адрес, если он задан.
-    private string? RenewUrl => subscriptionMetadata?.WebPageUrl ??
+    // Куда ведёт «Продлить»: ссылка продления от панели (premium-url и др., ProviderOptions),
+    // иначе личный кабинет из profile-web-page-url; для сервиса — его постоянный адрес, если он задан.
+    private string? RenewUrl => subscriptionMetadata?.Provider?.RenewUrl ?? subscriptionMetadata?.WebPageUrl ??
         (ServiceBrand.SupportUrl.Length > 0 && CurrentGroup?.Source == ProfileSource.Service ? ServiceBrand.SupportUrl : null);
 
     private void OpenLink(string? url, string what)
@@ -109,7 +110,7 @@ public partial class MainWindow
         if (rule is SiteRule site && siteRules.IndexOf(site) is var i and >= 0) siteRules[i] = site with { Action = Next(site.Action) };
         else if (rule is ProgramRule program && programRules.IndexOf(program) is var j and >= 0) programRules[j] = program with { Action = Next(program.Action) };
         RefreshRules(); QueueStateSave();
-        if (rule is ProgramRule) ProgramRulesChanged();
+        ProgramRulesChanged();
     }
 
     private void RemoveRule(object rule)
@@ -117,7 +118,7 @@ public partial class MainWindow
         if (rule is SiteRule site) siteRules.Remove(site);
         else if (rule is ProgramRule program) programRules.Remove(program);
         RefreshRules(); QueueStateSave();
-        if (rule is ProgramRule) ProgramRulesChanged();
+        ProgramRulesChanged();
     }
 
     // «Куда пойдёт сайт?»: самое длинное подходящее правило сайта, иначе — через VPN.

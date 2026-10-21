@@ -65,7 +65,7 @@
               <Ellipse x:Name="ModeProxyRadio" DockPanel.Dock="Right" Width="18" Height="18" Stroke="{DynamicResource Ring}" StrokeThickness="1.5" VerticalAlignment="Top" Margin="10,2,0,0"/>
               <StackPanel>
                 <TextBlock Text="Браузеры и программы" FontSize="{StaticResource FsLabel}" FontWeight="SemiBold"/>
-                <TextBlock Text="Прокси Windows: без прав администратора, но не для всех приложений." Style="{StaticResource Small}" Margin="0,2,0,0"/>
+                <TextBlock Text="Прокси Windows: без прав администратора, но не для всех приложений. Браузер может показать сайтам настоящий IP через WebRTC." TextWrapping="Wrap" Style="{StaticResource Small}" Margin="0,2,0,0"/>
               </StackPanel>
             </DockPanel>
           </Button>

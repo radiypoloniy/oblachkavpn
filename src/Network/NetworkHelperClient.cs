@@ -112,12 +112,12 @@ public sealed class NetworkHelperClient : INetworkHelperClient
     }
 
     // Правила программ для работающего туннеля: ядро перечитывает их без переподключения.
-    public async Task ProgramRulesAsync(IReadOnlyList<ProgramRule> rules, CancellationToken token)
+    public async Task ProgramRulesAsync(IReadOnlyList<ProgramRule> rules, IReadOnlyList<SiteRule> sites, CancellationToken token)
     {
         await operations.WaitAsync(token).ConfigureAwait(false);
         try
         {
-            if ((await pipe.SendAsync(HelperOperation.ProgramRules, null, token, programs: new([.. rules])).ConfigureAwait(false)).Failure != HelperFailure.None)
+            if ((await pipe.SendAsync(HelperOperation.ProgramRules, null, token, programs: new([.. rules], [.. sites])).ConfigureAwait(false)).Failure != HelperFailure.None)
                 throw new UserError("Служба не приняла правила программ.");
         }
         finally { operations.Release(); }

@@ -29,12 +29,16 @@ public partial class MainWindow
         {
             FragmentMode.Always => "Рукопожатие режется всегда: медленнее на десятки миллисекунд",
             FragmentMode.Off => "Не режем рукопожатие, даже если фильтр его обрывает",
-            _ => fragmentLearned ? "В этой сети помогло: режем рукопожатие" : "Режем рукопожатие, если фильтр его обрывает"
+            _ => fragmentLearned ? "В этой сети помогло: режем рукопожатие"
+                : ProviderFragment is { Enabled: true } ? "Режем рукопожатие: так советует сервис. Соединение чуть медленнее"
+                : "Режем рукопожатие, если фильтр его обрывает"
         };
     }
 
     // Резать ли рукопожатие при обычном подключении (не в подборе).
-    private bool FragmentWanted => fragmentMode == FragmentMode.Always || fragmentMode == FragmentMode.Auto && fragmentLearned;
+    // Провайдер подписки сервиса может включить его для всех (fragmentation-enable) — в «Авто».
+    private bool FragmentWanted => fragmentMode == FragmentMode.Always || fragmentMode == FragmentMode.Auto && (fragmentLearned || ProviderFragment is { Enabled: true });
+    private ProviderFragment? ProviderFragment => ServiceGroup?.Metadata?.Provider?.Fragment;
 
     private Action<bool> FragmentSetter => cut => { if (engine is Engine core) core.Fragment = cut; };
 

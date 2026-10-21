@@ -94,7 +94,8 @@ public partial class MainWindow
     {
         var app = appCatalog?.FirstOrDefault(a => a.Covers(rule)) ??
             appCatalog?.FirstOrDefault(a => string.Equals(a.App.Executable, rule.Executable, StringComparison.OrdinalIgnoreCase));
-        var sub = rule.Folder is null ? rule.Executable + " · в любой папке" : rule.AllInFolder ? "вся папка · " + ShortPath(rule.Folder) : ShortPath(rule.FilePath!);
+        var sub = (rule.Domain is null ? "" : "только " + rule.Domain + " · ") +
+            (rule.Folder is null ? rule.Executable + " · в любой папке" : rule.AllInFolder ? "вся папка · " + ShortPath(rule.Folder) : ShortPath(rule.FilePath!));
         var text = app?.Name ?? (rule.AllInFolder ? Path.GetFileName(rule.Folder!) : rule.Executable);
         return new RuleRow { Rule = rule, Text = text, Sub = sub, Icon = app?.Icon, Action = rule.Action };
     }

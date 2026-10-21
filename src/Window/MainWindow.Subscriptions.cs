@@ -24,6 +24,12 @@ public partial class MainWindow
         // показывается как обычный текст и только при наличии подписки сервиса.
         var announce = serviceProfiles.Count > 0 ? ServiceGroup?.Metadata?.Announce : null;
         Home.AnnounceText.Text = announce ?? "";
+        // Кнопка объявления (announce-url, banner-button-*) — только с проверенной HTTPS-ссылкой.
+        var provider = ServiceGroup?.Metadata?.Provider;
+        Home.AnnounceLink.Content = provider?.AnnounceButton ?? "Подробнее";
+        Home.AnnounceLink.Visibility = provider?.AnnounceUrl is not null ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        // DoH для адресов серверов, если сервис его попросил (server-address-resolve-*).
+        DohResolver.Preferred = provider?.Resolve;
         // Скрытое крестиком объявление не возвращается, пока сервис не пришлёт новое.
         Home.AnnounceCard.Visibility = announce is null || announce == dismissedAnnounce
             ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;

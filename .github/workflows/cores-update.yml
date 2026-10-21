@@ -1,0 +1,40 @@
+name: Новые ядра
+
+# Раз в неделю: вышли ли новые Xray и sing-box. Ядра сами не обновляются — их запускает служба
+# с правами SYSTEM, а выпуск проходит проверки и стенд скорости. Задача открывает issue с тем,
+# что вышло; обновляет scripts/update-cores.ps1 -Apply на машине разработки.
+on:
+  schedule:
+    - cron: '41 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Сверить версии
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $report = ./scripts/update-cores.ps1 | ConvertFrom-Json
+          Write-Host ("Xray " + $report.Xray + ", sing-box " + $report.SingBox)
+          if (-not $report.Updates) { exit 0 }
+          $title = "Новые ядра: Xray " + $report.Xray + ", sing-box " + $report.SingBox
+          $open = gh issue list --state open --search "in:title Новые ядра" --json title | ConvertFrom-Json
+          if ($open | Where-Object { $_.title -eq $title }) { Write-Host 'Issue уже открыт.'; exit 0 }
+          $body = @(
+            'Вышли новые версии ядер:', '',
+            ('- Xray: ' + $report.Xray + ' — https://github.com/XTLS/Xray-core/releases'),
+            ('- sing-box: ' + $report.SingBox + ' — https://github.com/SagerNet/sing-box/releases'), '',
+            'Обновление: `.\scripts\update-cores.ps1 -Apply`, затем `.\build.ps1`, `.\test.ps1`, стенд скорости и раздел в CHANGELOG.md.',
+            'Если oblachka-core не собрался — поправить core\ под новое API (список изменений — в релизе).'
+          ) -join "`n"
+          gh issue create --title $title --body $body

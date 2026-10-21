@@ -32,6 +32,7 @@ public partial class MainWindow
         Home.ModeButton.Click += (_, _) => ShowModeMenu(ModeMenuLayer.Visibility != Visibility.Visible);
         ModeTunOption.Click += async (_, _) => await SetModeAsync(tunnel: true);
         ModeProxyOption.Click += async (_, _) => await SetModeAsync(tunnel: false);
+        Home.AnnounceLink.Click += (_, _) => OpenLink(ServiceGroup?.Metadata?.Provider?.AnnounceUrl, "ссылку объявления");
         Home.AnnounceClose.Click += (_, _) => { dismissedAnnounce = Home.AnnounceText.Text; Home.AnnounceCard.Visibility = Visibility.Collapsed; };
         Home.QuickList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(QuickRowClick));
         toastTimer.Tick += (_, _) => { toastTimer.Stop(); Toast.Visibility = Visibility.Collapsed; };

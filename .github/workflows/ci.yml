@@ -1,0 +1,63 @@
+name: Проверки
+
+# Каждое изменение (push в любую ветку, pull request): сборка, проверки, уязвимости зависимостей
+# ядра (govulncheck) и секреты в истории (gitleaks). Релиз — только release.yml по тегу.
+# Actions закреплены по SHA коммита: это сборка установщика, который ставят люди (аудит 19.10, В-3).
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: windows-2025
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: core/go.mod
+          cache-dependency-path: core/go.sum
+
+      - name: Сборка
+        shell: powershell
+        run: .uild.ps1
+
+      - name: Проверки
+        shell: powershell
+        run: .	est.ps1
+
+      # Версии инструментов закреплены; go install сверяет модули с sum.golang.org.
+      - name: Уязвимости зависимостей ядра
+        shell: pwsh
+        working-directory: core
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          $tags = (Get-Content ../scripts/build-core.ps1 | Where-Object { $_ -like '$tags = *' } | Select-Object -First 1).Split("'")[1]
+          & "$(go env GOPATH)/bin/govulncheck" -tags $tags ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Секреты в истории
+        shell: pwsh
+        run: |
+          go install github.com/zricethezav/gitleaks/v8@v8.30.1
+          & "$(go env GOPATH)/bin/gitleaks" git --redact --no-banner .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Пакеты .NET без известных уязвимостей
+        shell: pwsh
+        run: |
+          $report = dotnet list src/Oblachka.csproj package --vulnerable --include-transitive 2>&1 | Out-String
+          Write-Host $report
+          if ($report -match 'has the following vulnerable packages') { exit 1 }

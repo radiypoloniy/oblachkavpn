@@ -104,6 +104,14 @@ end;
 
 // Прежняя служба удаляется до замены файлов: она держит Oblachka.exe и ядро туннеля,
 // а её остановка возвращает сеть, если подключение было активно.
+// Службы нет (sc query отвечает 1060): снимать нечего, даже если прежняя версия не запускается.
+function ServiceMissing(): Boolean;
+var
+  Code: Integer;
+begin
+  Result := Exec(ExpandConstant('{sys}\sc.exe'), 'query OblachkaNetwork', '', SW_HIDE, ewWaitUntilTerminated, Code) and (Code = 1060);
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   Code: Integer;
@@ -114,7 +122,9 @@ begin
   if FileExists(Old) then
   begin
     Exec(Old, '--uninstall-service', '', SW_HIDE, ewWaitUntilTerminated, Code);
-    if Code <> ServiceOk then
+    // Повреждённая прежняя установка (файлы не запускаются) без службы не должна навсегда
+    // запрещать новую: иначе выйти из этого состояния можно только удалением вручную.
+    if (Code <> ServiceOk) and not ServiceMissing() then
       Result := 'Не удалось остановить сетевую службу прежней версии (' + ServiceError(Code) + '). Перезагрузите компьютер и запустите установку снова.';
   end;
 end;

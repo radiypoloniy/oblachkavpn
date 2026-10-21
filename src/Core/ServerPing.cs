@@ -35,7 +35,7 @@ public static class ServerPing
             await gate.WaitAsync(token).ConfigureAwait(false);
             try
             {
-                var result = await (ping ?? PingAsync)(endpoint.Host, endpoint.Port, token).ConfigureAwait(false);
+                var result = await (ping ?? ((h, p, t) => PingAsync(h, p, t, profile.IsService)))(endpoint.Host, endpoint.Port, token).ConfigureAwait(false);
                 token.ThrowIfCancellationRequested();
                 if (result is not Blocked) measured(profile, result);
             }
@@ -45,13 +45,13 @@ public static class ServerPing
     }
 
     // Имя разрешается до замера: в отклик идёт только рукопожатие, без времени DNS.
-    public static async Task<long?> PingAsync(string host, int port, CancellationToken token)
+    public static async Task<long?> PingAsync(string host, int port, CancellationToken token, bool service = false)
     {
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(token);
         budget.CancelAfter(Timeout);
         try
         {
-            var addresses = IPAddress.TryParse(host, out var ip) ? new[] { ip } : await Dns.GetHostAddressesAsync(host, budget.Token).ConfigureAwait(false);
+            var addresses = IPAddress.TryParse(host, out var ip) ? new[] { ip } : await DohResolver.ResolveAsync(host, service, budget.Token).ConfigureAwait(false);
             var address = addresses.OrderBy(a => a.AddressFamily == AddressFamily.InterNetwork ? 0 : 1).FirstOrDefault();
             if (address is null) return null;
             using var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
@@ -62,5 +62,7 @@ public static class ServerPing
         catch (OperationCanceledException) when (!token.IsCancellationRequested) { return null; }
         catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AccessDenied) { return Blocked; }
         catch (SocketException) { return null; }
+        // Имя не разрешилось ни DNS сети, ни DoH.
+        catch (UserError) { return null; }
     }
 }

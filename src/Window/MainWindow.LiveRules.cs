@@ -7,8 +7,8 @@
 public partial class MainWindow
 {
     private bool tunnelDirectAllowed;
-    private string sentProgramRules = "";
-    private ProgramRule[] sentRules = [];
+    // Правила программ и сайтов, что сейчас у ядра туннеля.
+    private SentRules sentRules = SentRules.None;
 
     // Вызывается при запуске сессии: то же условие, что у ValidatedNetworkLease.HasDirect.
     private void RememberTunnelDirect() =>
@@ -18,28 +18,32 @@ public partial class MainWindow
     {
         if (!SystemTunnelActive) return;
         _ = SyncProgramRulesAsync();
-        if (!tunnelDirectAllowed && programRules.Any(r => r.Action == SiteAction.Direct))
-            DetailText.Text = "Правило «напрямую» заработает после переподключения: до него программа заблокирована, а не идёт мимо VPN.";
+        if (!tunnelDirectAllowed && (programRules.Any(r => r.Action == SiteAction.Direct) || siteRules.Any(r => r.Action == SiteAction.Direct)))
+            DetailText.Text = "Правило «напрямую» заработает после переподключения: до него программа или сайт заблокированы, а не идут мимо VPN.";
     }
 
     private async Task SyncProgramRulesAsync()
     {
         if (helperLifetime is not { } lifetime || !SystemTunnelActive) return;
-        var rules = LeasePrograms();
-        var key = string.Join('|', rules.Select(r => r.Key + ">" + r.Action));
-        if (key == sentProgramRules) return;
+        var next = new SentRules(LeasePrograms().ToArray(), LeaseSites());
+        if (next.Key == sentRules.Key) return;
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-            await lifetime.Client.ProgramRulesAsync(rules, timeout.Token);
-            sentProgramRules = key;
-            var before = sentRules; sentRules = rules.ToArray();
-            // Ядро перечитывает файлы правил не мгновенно: открытые соединения закрываем, когда
-            // новые правила уже действуют, иначе программа переподключилась бы прежним путём.
+            await lifetime.Client.ProgramRulesAsync(next.Programs, next.Sites, timeout.Token);
+            var before = sentRules; sentRules = next;
+            // Ядро перечитывает файлы правил не мгновенно. Первый проход — почти сразу: обычно ядро уже
+            // успело, и программа переподключается по новому правилу без заметной паузы. Второй —
+            // через секунду, только для соединений, что всё ещё идут не туда (переподключились раньше,
+            // чем ядро перечитало правила). Свежие соединения по новому правилу он не трогает.
             if (systemTunnel?.Stats is { } stats)
             {
-                await Task.Delay(1500);
-                await CoreConnections.CloseChangedAsync(stats, before, sentRules, CancellationToken.None);
+                var after = sentRules;
+                await Task.Delay(400);
+                await CoreConnections.CloseChangedAsync(stats, before, after, CancellationToken.None);
+                _ = RefreshConnectionsAsync();
+                await Task.Delay(1100);
+                if (await CoreConnections.CloseMismatchedAsync(stats, before, after, CancellationToken.None) > 0) _ = RefreshConnectionsAsync();
             }
         }
         // Старая служба без этой команды или сбой канала: правила вступят в силу при следующем подключении.

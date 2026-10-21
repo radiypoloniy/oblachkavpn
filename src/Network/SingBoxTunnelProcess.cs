@@ -33,7 +33,7 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
     // и сайты из списков «напрямую» не открывались.
     internal static NetworkLeaseRequest RequestFor(ValidatedNetworkLease lease) =>
         new(1, lease.LeaseId, NetworkLeaseAction.Acquire, lease.LoopbackPort, lease.Peers.Select(p => p.ToString()).ToArray(),
-            lease.SiteRules.ToArray(), lease.ProgramRules.ToArray(), lease.CoreDirect, lease.DirectByDefault, lease.Stats, lease.Direct?.ToArray(), lease.Lists);
+            lease.SiteRules.ToArray(), lease.ProgramRules.ToArray(), lease.CoreDirect, lease.DirectByDefault, lease.Stats, lease.Direct?.ToArray(), lease.Lists, lease.LocalNetwork);
 
     internal static ITunnelProcess Start(ValidatedNetworkLease lease, string executable, CancellationToken token)
     {
@@ -46,6 +46,7 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         var localDns = DirectDns.PhysicalResolver();
         // Правила программ — в файлах, которые окно меняет на ходу (ProgramRuleSets); при запуске — из аренды.
         ProgramRuleSets.Write(ProgramRuleSets.Folder, lease.ProgramRules);
+        SiteRuleSets.Write(SiteRuleSets.NextTo(ProgramRuleSets.Folder), lease.SiteRules);
         // Списки маршрутизации — в файлах, которые окно передало до запуска и меняет на ходу (RoutingLists).
         RoutingLists.EnsureFiles(RoutingLists.Folder);
         CoreConfigurationCheck.ValidateTunAsync(request, token, ipv6, localDns, DirectDns.RuleSetPath, ProgramRuleSets.Folder, RoutingLists.Folder).GetAwaiter().GetResult();

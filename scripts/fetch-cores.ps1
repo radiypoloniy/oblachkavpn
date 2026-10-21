@@ -10,11 +10,11 @@ $cores = Join-Path $root 'vendor\cores'
 
 $pins = @(
     @{
-        Name = 'Xray 26.9.9'
-        Url = 'https://github.com/XTLS/Xray-core/releases/download/v26.9.9/Xray-windows-64.zip'
-        Archive = 'Xray-windows-64-26.9.9.zip'
-        ArchiveSha256 = '244DEABA2098C2964E49BBA90DF3707777E5F5F428A82D2F29604015F24BEEC2'
-        Files = @{ 'xray.exe' = '0D0FC0EA2B05641ACB78C01FC36AD694E7B029861B2D5EB93DA0E3E9FDA9A98F' }
+        Name = 'Xray 26.10.17'
+        Url = 'https://github.com/XTLS/Xray-core/releases/download/v26.10.17/Xray-windows-64.zip'
+        Archive = 'Xray-windows-64-26.10.17.zip'
+        ArchiveSha256 = 'C10A532A9271964F2AA2F4B4C0757605FF529222CB1D5D7AB88F8ECC52E67FB0'
+        Files = @{ 'xray.exe' = 'A743B8C2CE49CB33D6C1CF764C780BF1A475D746AD7485E7C3FCFE6458511C92' }
         Folder = ''
     },
     @{

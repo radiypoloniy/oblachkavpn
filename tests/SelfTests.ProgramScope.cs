@@ -67,6 +67,7 @@ public static partial class SelfTests
             try
             {
                 ProgramRuleSets.Write(folder, [steam, game]);
+                SiteRuleSets.Write(SiteRuleSets.NextTo(folder), []);
                 Assert(Directory.GetFiles(folder, "*.json").Length == ProgramRuleSets.Levels * 3);
                 var gameSet = JsonNode.Parse(File.ReadAllText(Path.Combine(folder, ProgramRuleSets.Tag(0, SiteAction.Tunnel) + ".json")))!;
                 Assert(gameSet["rules"]![0]!["process_path_regex"]![0]!.GetValue<string>().Contains(@"common\\Game\\"));
