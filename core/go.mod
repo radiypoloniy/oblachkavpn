@@ -1,6 +1,6 @@
 module github.com/radiypoloniy/oblachkavpn/core
 
-go 1.27.2
+go 1.27.3
 
 require (
 	github.com/sagernet/sing v0.9.7-0.20260929150544-0ad23b637bd4
