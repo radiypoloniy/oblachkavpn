@@ -61,18 +61,22 @@ public static class SubscriptionMirrors
     internal static async Task<MirrorResult> MigrateAsync(IReadOnlyList<string> sources, MirrorResult result,
         Func<string, CancellationToken, Task<ImportResult>> fetch, CancellationToken token)
     {
-        if (result.Import.Metadata?.Provider is not { } provider) return result;
+        // Переезд и запасной адрес принимаются только с основного адреса. Запасной (часто прежний,
+        // уже брошенный домен) мог достаться чужому — он не должен уводить подписку (аудит 19.10, Р-1).
+        if (result.Import.Metadata?.Provider is not { } provider || result.SourceIndex != 0) return result;
         var service = ServiceKey.SourceOf(sources) == ProfileSource.Service;
+        // Для подписки сервиса новый домен должен стать доменом сервиса. Не вышло (выучено
+        // предельное число) — адрес не берётся: смешанный список сделал бы подписку «другой» (Р-2).
+        bool Trusted(string url) => !service || ServiceBrand.IsServiceHost(new Uri(url).Host);
         var list = sources.ToList();
-        if (provider.FallbackUrl is { } fallback && !list.Contains(fallback) && list.Count < MaxSources)
-        {
-            if (service) ServiceBrand.Learn(new Uri(fallback).Host);
+        if (provider.FallbackUrl is { } fallback && !list.Contains(fallback) && list.Count < MaxSources &&
+            (Trusted(fallback) || ServiceBrand.Learn(new Uri(fallback).Host)))
             list.Add(fallback);
-        }
         if (provider.NewUrl is { } moved && list[0] != moved)
         {
             var host = new Uri(moved).Host;
             var learned = service && ServiceBrand.Learn(host);
+            if (!Trusted(moved)) return list.Count == sources.Count ? result : result with { Sources = list };
             using var budget = CancellationTokenSource.CreateLinkedTokenSource(token);
             budget.CancelAfter(TimeSpan.FromSeconds(30));
             try

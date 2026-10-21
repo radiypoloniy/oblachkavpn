@@ -45,7 +45,7 @@ public static class TunnelEndpoints
             throw new UserError("TUN: отдельный адрес XHTTP downstream ещё не поддержан.");
         var host = ProfileServer.Of(copy, profile.Core).Host;
         var addresses = IPAddress.TryParse(host, out var ip) ? new[] { ip } :
-            await (resolve ?? DohResolver.ResolveAsync)(host, token).ConfigureAwait(false);
+            await (resolve ?? ((h, t) => DohResolver.ResolveAsync(h, profile.IsService, t)))(host, token).ConfigureAwait(false);
         var peers = addresses.Select(a => a.IsIPv4MappedToIPv6 ? a.MapToIPv4() : a).Distinct()
             .OrderBy(a => a.AddressFamily == AddressFamily.InterNetwork ? 0 : 1).Select(a => a.ToString()).ToArray();
         NetworkHelperContracts.Validate(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, 10808, peers));

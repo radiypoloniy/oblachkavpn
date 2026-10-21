@@ -1,0 +1,8 @@
+# Правила gitleaks по умолчанию. Исключения — файлы с закреплёнными SHA256 ядер и zapret:
+# длинные шестнадцатеричные строки там не секреты (аудит 19.10: оба срабатывания ложные).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "SHA256 закреплённых файлов"
+paths = ['''scripts/fetch-cores\.ps1''', '''zapret/manifest\.json''']

@@ -26,10 +26,15 @@ public static class NetworkHelperHost
     // Помощник с UAC пишет рядом с данными пользователя, служба — в ProgramData (UseDataRoot).
     private static string root = ClientDataPaths.Root;
     internal static void UseDataRoot(string path) => root = path;
+    // Журнал читает и окно: по нему оно узнаёт брошенную сессию. Остальное (правила «напрямую»,
+    // программы, списки, трассировка) — в закрытой папке: у службы её читают только SYSTEM и
+    // администраторы, а не все пользователи компьютера (аудит 19.10, С-3).
+    public const string PrivateFolder = "private";
     public static string JournalPath => Path.Combine(root, "network-session.json");
-    internal static string DataPath(string name) => Path.Combine(root, name);
-    public static string FailurePath => Path.Combine(root, "helper-failure.txt");
-    public static string TracePath => Path.Combine(root, "helper-trace.txt");
+    internal static string DataPath(string name) => Path.Combine(Private(), name);
+    public static string FailurePath => Path.Combine(Private(), "helper-failure.txt");
+    public static string TracePath => Path.Combine(Private(), "helper-trace.txt");
+    private static string Private() => Directory.CreateDirectory(Path.Combine(root, PrivateFolder)).FullName;
 
     // Отметки шагов сессии: время UTC и вид изменения. Файл не растёт без предела.
     internal static void RecordStep(string line)

@@ -55,15 +55,16 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
     public IReadOnlyList<NetworkChange> Prepare(ValidatedNetworkLease lease)
     {
         if (lease.Action != NetworkLeaseAction.Acquire) throw new UserError("Для запуска нужна команда Acquire.");
-        // direct=1 — часть трафика идёт мимо туннеля: правила пользователя или локальная сеть.
-        var after = "sublayer=" + SublayerKey + (lease.DirectExit ? " direct=1" : "") +
+        // direct=1 — пользователь сам отправил часть трафика мимо туннеля правилами: ядру туннеля
+        // открыт любой адрес. local=1 — только локальная сеть: ядру туннеля открыты частные подсети.
+        var after = "sublayer=" + SublayerKey + (lease.HasDirect ? " direct=1" : "") + (lease.LocalNetwork ? " local=1" : "") +
             " peers=" + string.Join(',', lease.Peers.Select(p => p.ToString()));
         return new[] { new NetworkChange(NetworkResourceKind.WfpProtection, ResourceId, null, after) };
     }
 
     public NetworkWriteResult Apply(Guid leaseId, NetworkChange change)
     {
-        var filters = Filters(Peers(change), change.After.Contains(" direct=1 ", StringComparison.Ordinal));
+        var filters = Filters(Peers(change), change.After.Contains(" direct=1 ", StringComparison.Ordinal), change.After.Contains(" local=1 ", StringComparison.Ordinal));
         using var engine = open();
         // Остатки прошлой сессии снимаются отдельной транзакцией: новая не должна
         // зависеть от того, что от старой осталось.
@@ -105,7 +106,7 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
     }
 
     // Состав фильтров. Вес внутри подслоя: разрешения выше запрета.
-    public IReadOnlyList<WfpFilter> Filters(IReadOnlyList<IPAddress> peers, bool direct = false)
+    public IReadOnlyList<WfpFilter> Filters(IReadOnlyList<IPAddress> peers, bool direct = false, bool local = false)
     {
         var list = new List<WfpFilter>();
         void Add(string name, bool v6, byte weight, bool permit, params WfpCondition[] conditions) =>
@@ -129,6 +130,11 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
             // таких правил ядрам открыты только адреса узлов.
             if (direct)
                 Add("правила «напрямую»" + family, v6, 13, true, new WfpCondition(WfpConditionKind.Application, Program: TunCoreProgram));
+            // «Локальная сеть напрямую» без правил «напрямую»: ядру туннеля — только частные подсети.
+            // Подсети одного поля WFP объединяет через «или», с программой — через «и».
+            else if (local)
+                Add("локальная сеть" + family, v6, 13, true, LocalSubnets(v6)
+                    .Prepend(new WfpCondition(WfpConditionKind.Application, Program: TunCoreProgram)).ToArray());
             Add("DHCP" + family, v6, 12, true, new WfpCondition(WfpConditionKind.Protocol, Number: 17),
                 new WfpCondition(WfpConditionKind.LocalPort, Number: v6 ? 546 : 68), new WfpCondition(WfpConditionKind.RemotePort, Number: v6 ? 547 : 67));
             Add("запрет мимо туннеля" + family, v6, 0, false);
@@ -142,6 +148,12 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
         if (list.Count > WfpReinjection.First) throw new UserError("Слишком много адресов узлов для защиты.");
         return list;
     }
+
+    // Те же подсети, что ядро туннеля отправляет прямым выходом (SingBoxTunConfig.LocalSubnets).
+    public static IEnumerable<WfpCondition> LocalSubnets(bool v6) => SingBoxTunConfig.LocalSubnets
+        .Select(s => s.Split('/')).Select(p => (Address: IPAddress.Parse(p[0]), Prefix: int.Parse(p[1], System.Globalization.CultureInfo.InvariantCulture)))
+        .Where(s => (s.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) == v6)
+        .Select(s => new WfpCondition(WfpConditionKind.RemoteSubnet, s.Address, Number: s.Prefix));
 
     private static IReadOnlyList<IPAddress> Peers(NetworkChange change)
     {

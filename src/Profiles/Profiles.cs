@@ -124,6 +124,15 @@ public static class Profiles
             throw new UserError("Этот транспорт пока не поддерживается.");
         var sockopt = stream["sockopt"] as JsonObject;
         if (sockopt?["dialerProxy"] is not null) throw new UserError("Профиль с дополнительным dialerProxy пока не поддерживается.");
+        // Белый список верхних уровней (аудит 19.10, В-4): новые возможности Xray (скрипты Finalmask,
+        // XDRIVE, MASQUE) появляются новыми полями здесь. Непроверенное поле убирается, а не
+        // отклоняет профиль: так ядро окна его не включит, а подписка с ним всё равно загрузится.
+        Keep(outbound, "tag", "protocol", "settings", "streamSettings", "mux", "targetStrategy");
+        Keep(stream, "network", "method", "security", "tlsSettings", "realitySettings", "rawSettings", "tcpSettings", "xhttpSettings",
+            "splithttpSettings", "wsSettings", "grpcSettings", "httpupgradeSettings", "sockopt");
+        // Без привязки к интерфейсу и метки: ими ядро обошло бы туннель.
+        if (sockopt is not null) Keep(sockopt, "tcpFastOpen", "tcpKeepAliveInterval", "tcpKeepAliveIdle", "tcpNoDelay", "tcpMptcp",
+            "tcpCongestion", "tcpUserTimeout", "tcpMaxSeg", "tcpWindowClamp", "domainStrategy", "happyEyeballs");
         outbound["tag"] = "tunnel";
         var label = (protocol == "vless" ? "" : protocol.ToUpperInvariant() + " · ") + network.ToUpperInvariant() +
             (security == "none" ? "" : " / " + security.ToUpperInvariant());
@@ -168,6 +177,11 @@ public static class Profiles
         if (node is JsonObject obj)
             return obj.Any(pair => pair.Key.Equals("allowInsecure", StringComparison.OrdinalIgnoreCase) && pair.Value is JsonValue value && value.TryGetValue<bool>(out var insecure) && insecure || HasInsecureTls(pair.Value));
         return node is JsonArray array && array.Any(HasInsecureTls);
+    }
+
+    private static void Keep(JsonObject node, params string[] keys)
+    {
+        foreach (var key in node.Select(p => p.Key).Where(k => !keys.Contains(k, StringComparer.Ordinal)).ToArray()) node.Remove(key);
     }
 
     private static void RejectExternalResources(JsonNode? node)

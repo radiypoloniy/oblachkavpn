@@ -43,6 +43,9 @@ public static partial class SelfTests
             Assert(ServerResolve.Create("https://dns.fixture.invalid/dns-query", "192.168.1.1") is null);
             Assert(ProviderOptions.Read(Headers(("server-address-resolve-enable", "0")), source) is null);
             Assert(ProviderOptions.Read(Headers(("fragmentation-enable", "0")), source)!.Fragment is { Enabled: false });
+            // Значения вне границ (длина 0, пауза в секунды, пакет 0) заменяются умолчанием (Р-4).
+            Assert(ProviderOptions.Read(Headers(("fragmentation-enable", "1"), ("fragmentation-length", "0-10"), ("fragmentation-interval", "500"), ("fragmentation-packets", "0-2")), source)!.Fragment
+                == new ProviderFragment(true, "tlshello", "50-100", "5-10"));
         }));
         await check("Fragment shape from the provider reaches the Xray fragment outbound", () => Sync(() =>
         {
@@ -61,6 +64,9 @@ public static partial class SelfTests
             // Новый адрес не отдал подписку — остаёмся на прежнем, запасной всё равно запоминается.
             var failed = await SubscriptionMirrors.MigrateAsync(sources, new(withMove, 0, 1), (_, _) => throw new UserError("нет"), CancellationToken.None);
             Assert(!failed.Moved && failed.Import == withMove && failed.Sources!.SequenceEqual(new[] { "https://old.fixture.invalid/sub/k", "https://backup.fixture.invalid/sub/k" }));
+            // Ответ запасного адреса подписку не уводит и адресов не добавляет (Р-1).
+            var fromMirror = await SubscriptionMirrors.MigrateAsync(new[] { "https://a.fixture.invalid/sub/k", "https://b.fixture.invalid/sub/k" }, new(withMove, 1, 2), (_, _) => Task.FromResult(profiles), CancellationToken.None);
+            Assert(!fromMirror.Moved && fromMirror.Sources is null);
             // Подписка сервиса: новый домен становится доменом сервиса, неудачный — забывается.
             var service = new[] { "https://" + ServiceBrand.SubscriptionHosts[0] + ServiceBrand.SubscriptionPath + "abcdefghij" };
             var serviceMove = profiles with { Metadata = new SubscriptionMetadata(null, null, null, null) { Provider = new() { NewUrl = "https://moved.fixture.invalid/sub/abcdefghij" } } };
@@ -70,6 +76,8 @@ public static partial class SelfTests
                 Assert(!ServiceBrand.IsServiceHost("moved.fixture.invalid"));
                 var accepted = await SubscriptionMirrors.MigrateAsync(service, new(serviceMove, 0, 1), (_, _) => Task.FromResult(profiles), CancellationToken.None);
                 Assert(accepted.Moved && ServiceBrand.IsServiceHost("moved.fixture.invalid") && ServiceKey.SourceOf(accepted.Sources!) == ProfileSource.Service);
+                // Сохраняются только домены, что ещё стоят в адресах подписок.
+                Assert(ServiceBrand.LearnedIn(accepted.Sources!).Contains("moved.fixture.invalid") && ServiceBrand.LearnedIn(service).Length == 0);
                 // Сторонняя подписка доменов сервиса не добавляет.
                 await SubscriptionMirrors.MigrateAsync(sources, new(profiles with { Metadata = new SubscriptionMetadata(null, null, null, null) { Provider = new() { NewUrl = "https://other.fixture.invalid/x" } } }, 0, 1), (_, _) => Task.FromResult(profiles), CancellationToken.None);
                 Assert(!ServiceBrand.IsServiceHost("other.fixture.invalid"));

@@ -46,7 +46,7 @@ public partial class MainWindow
             ZapretEnabled = zapretEnabled, SelectiveVpn = selectiveVpn, ZapretChoices = new Dictionary<string, string>(zapretChoices), ZapretVpnGroups = zapretVpnGroups.Order(StringComparer.Ordinal).ToArray(),
             AutoPool = autoPool.Snapshot(importedProfiles),
             ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected,
-            ServiceHosts = ServiceBrand.LearnedHosts.ToArray(), LocalNetwork = Settings.LocalNetwork.IsChecked == true };
+            ServiceHosts = ServiceBrand.LearnedIn(groups.SelectMany(g => g.Sources).Concat(subscriptionSources)), LocalNetwork = Settings.LocalNetwork.IsChecked == true };
 
     private void SaveStateClick(object sender, RoutedEventArgs args)
     {

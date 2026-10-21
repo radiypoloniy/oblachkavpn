@@ -43,6 +43,14 @@ public static class ServiceBrand
         learnedHosts = learnedHosts.Append(host).ToArray();
         return true;
     }
+    // Выученные домены, которые ещё стоят в адресах подписок. Домен, убранный из всех подписок,
+    // не сохраняется: брошенный сервисом и перерегистрированный чужим, он не получит
+    // идентификатор устройства (аудит 19.10, Р-1).
+    public static string[] LearnedIn(IEnumerable<string> sources)
+    {
+        var hosts = sources.Select(s => Uri.TryCreate(s, UriKind.Absolute, out var uri) ? uri.Host : null).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return learnedHosts.Where(hosts.Contains).ToArray();
+    }
     public static void Forget(string host) =>
         learnedHosts = learnedHosts.Where(h => !string.Equals(h, host, StringComparison.OrdinalIgnoreCase)).ToArray();
 }

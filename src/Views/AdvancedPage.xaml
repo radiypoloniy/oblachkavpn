@@ -23,7 +23,7 @@
               <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcGray}"><Path Data="{StaticResource IcoApp}" Style="{StaticResource SetGlyph}"/></Border>
               <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
                 <TextBlock Text="Браузеры и программы" Style="{StaticResource SetTitle}"/>
-                <TextBlock Text="Прокси Windows: без прав администратора, но не для всех приложений" Style="{StaticResource SetSub}"/>
+                <TextBlock Text="Прокси Windows: без прав администратора, но не для всех приложений. Браузер может показать сайтам настоящий IP через WebRTC" TextWrapping="Wrap" Style="{StaticResource SetSub}"/>
               </StackPanel>
             </DockPanel>
           </Button>

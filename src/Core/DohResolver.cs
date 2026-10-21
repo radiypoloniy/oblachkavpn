@@ -19,18 +19,28 @@ public static class DohResolver
     // DoH провайдера подписки сервиса; меняет окно, когда приходит подписка.
     public static ServerResolve? Preferred { get; set; }
 
-    public static async Task<IPAddress[]> ResolveAsync(string host, CancellationToken token)
+    public static Task<IPAddress[]> ResolveAsync(string host, CancellationToken token) => ResolveAsync(host, false, token);
+
+    // service — узел подписки сервиса. DoH сервиса спрашивают только о его узлах: имена серверов
+    // сторонних подписок ему знать незачем (аудит 19.10, Р-5).
+    public static async Task<IPAddress[]> ResolveAsync(string host, bool service, CancellationToken token)
     {
         if (IPAddress.TryParse(host, out var literal)) return new[] { literal };
-        if (Preferred is { } preferred && await TryDohAsync(preferred, host, token).ConfigureAwait(false) is { Length: > 0 } first) return first;
+        var preferred = service ? Preferred : null;
+        if (preferred is not null && await TryDohAsync(preferred, host, token).ConfigureAwait(false) is { Length: > 0 } first) return first;
+        // Только частные адреса от DNS сети — похоже на заглушку провайдера: сначала DoH, а если
+        // и он не ответил, то всё же они (сервер бывает и в локальной сети).
+        var stub = Array.Empty<IPAddress>();
         try
         {
             var system = Usable(await Dns.GetHostAddressesAsync(host, token).ConfigureAwait(false));
-            if (system.Length > 0) return system;
+            if (system.Any(a => !IsPrivate(a))) return system;
+            stub = system;
         }
         catch (SocketException) { }
-        foreach (var doh in new[] { Cloudflare, Google }.Where(d => d != Preferred))
+        foreach (var doh in new[] { Cloudflare, Google }.Where(d => d != preferred))
             if (await TryDohAsync(doh, host, token).ConfigureAwait(false) is { Length: > 0 } found) return found;
+        if (stub.Length > 0) return stub;
         throw new UserError($"Не удалось узнать адрес сервера {host}: не ответили ни DNS сети, ни DoH.");
     }
 
@@ -43,8 +53,12 @@ public static class DohResolver
             using var client = Client(doh);
             var v4 = QueryAsync(client, doh, host, 1, budget.Token);
             var v6 = QueryAsync(client, doh, host, 28, budget.Token);
-            var all = Usable((await v4.ConfigureAwait(false)).Concat(await SafeAsync(v6).ConfigureAwait(false)).ToArray());
-            return all;
+            // AAAA дожидается и при упавшем A-запросе: клиент закрывается только после обеих задач.
+            var aaaa = SafeAsync(v6);
+            IPAddress[] a;
+            try { a = await v4.ConfigureAwait(false); }
+            finally { await aaaa.ConfigureAwait(false); }
+            return Usable(a.Concat(await aaaa.ConfigureAwait(false)).ToArray());
         }
         catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or FormatException or IOException or SocketException)
         { token.ThrowIfCancellationRequested(); return null; }
@@ -130,7 +144,7 @@ public static class DohResolver
         throw new FormatException("DoH: обрезанное имя.");
     }
 
-    // Подменённые ответы: 0.0.0.0, свой компьютер, заглушки в локальной сети.
+    // Подменённые ответы: 0.0.0.0 и свой компьютер. Заглушки в локальной сети — в ResolveAsync.
     private static IPAddress[] Usable(IPAddress[] addresses) => addresses
         .Select(a => a.IsIPv4MappedToIPv6 ? a.MapToIPv4() : a)
         .Where(a => !a.Equals(IPAddress.Any) && !a.Equals(IPAddress.IPv6Any) && !IPAddress.IsLoopback(a)).Distinct().ToArray();

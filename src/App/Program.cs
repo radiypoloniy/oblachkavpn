@@ -2,6 +2,11 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
+// Все DllImport — системные библиотеки (fwpuclnt, iphlpapi, advapi32, kernel32, winsqlite3):
+// искать их только в System32, а не рядом с программой и не в текущей папке. Служба SYSTEM
+// иначе загрузила бы подложенную DLL с тем же именем (аудит 19.10, В-2).
+[assembly: System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
+
 namespace Oblachka;
 
 public static class Program

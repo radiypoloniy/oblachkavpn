@@ -152,6 +152,17 @@ public static class NetworkService
             FileSystemRights.ReadAndExecute, all, PropagationFlags.None, AccessControlType.Allow));
         var directory = new DirectoryInfo(root);
         if (!directory.Exists) directory.Create(security); else directory.SetAccessControl(security);
+        // Закрытая папка помощника: без права чтения для пользователей (NetworkHelperHost.PrivateFolder).
+        var hidden = new DirectorySecurity();
+        hidden.SetAccessRuleProtection(true, false);
+        hidden.SetOwner(admins);
+        hidden.AddAccessRule(new FileSystemAccessRule(system, FileSystemRights.FullControl, all, PropagationFlags.None, AccessControlType.Allow));
+        hidden.AddAccessRule(new FileSystemAccessRule(admins, FileSystemRights.FullControl, all, PropagationFlags.None, AccessControlType.Allow));
+        var closed = new DirectoryInfo(Path.Combine(root, NetworkHelperHost.PrivateFolder));
+        if (!closed.Exists) closed.Create(hidden); else closed.SetAccessControl(hidden);
+        // До 0.18 правила и трассировка лежали прямо в папке, читаемой всеми.
+        foreach (var old in new[] { "programs", "routing-lists" }.Select(n => Path.Combine(root, n)).Where(Directory.Exists)) Directory.Delete(old, recursive: true);
+        foreach (var old in new[] { "direct-dns.json", "helper-trace.txt", "helper-failure.txt" }.Select(n => Path.Combine(root, n))) File.Delete(old);
         return root;
     }
 

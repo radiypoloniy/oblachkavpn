@@ -59,9 +59,13 @@ public sealed record ProviderOptions
         return SubscriptionMetadata.ParseLink(new UriBuilder(source) { Host = host, Port = -1 }.Uri.AbsoluteUri);
     }
 
-    internal static bool IsRange(string? value) => value is not null && Range.IsMatch(value) &&
-        value.Split('-').Select(int.Parse).ToArray() is var n && (n.Length == 1 || n[0] <= n[1]);
-    internal static bool IsPackets(string? value) => value is not null && Packets.IsMatch(value);
+    // Границы по смыслу (аудит 19.10, Р-4): длина 0 не запускает ядро, а пауза в секунды вешает
+    // каждое TLS-соединение. Опечатка в панели не должна задеть всех клиентов.
+    internal static bool IsRange(string? value, int min, int max) => value is not null && Range.IsMatch(value) &&
+        value.Split('-').Select(int.Parse).ToArray() is var n && n.All(x => x >= min && x <= max) && (n.Length == 1 || n[0] <= n[1]);
+    internal static bool IsLength(string? value) => IsRange(value, 1, 1000);
+    internal static bool IsInterval(string? value) => IsRange(value, 0, 200);
+    internal static bool IsPackets(string? value) => value == "tlshello" || value is not null && Packets.IsMatch(value) && IsRange(value, 1, 99);
 
     // Снимок проверяется так же строго, как пришедшее от сервера.
     public static void Validate(ProviderOptions options)
@@ -72,7 +76,7 @@ public sealed record ProviderOptions
             throw new UserError("Сведения подписки повреждены.");
         if (options.Resolve is { } resolve && ServerResolve.Create(resolve.DohUrl, resolve.Bootstrap) != resolve)
             throw new UserError("Настройки DNS подписки повреждены.");
-        if (options.Fragment is { } fragment && (!IsPackets(fragment.Packets) || !IsRange(fragment.Length) || !IsRange(fragment.Interval)))
+        if (options.Fragment is { } fragment && (!IsPackets(fragment.Packets) || !IsLength(fragment.Length) || !IsInterval(fragment.Interval)))
             throw new UserError("Настройки обхода DPI подписки повреждены.");
     }
 
@@ -110,8 +114,8 @@ public sealed record ProviderFragment(bool Enabled, string Packets, string Lengt
             header(name)?.Trim().ToLowerInvariant() is var v && valid(v) ? v! : fallback;
         return new(ProviderOptions.Flag(enable),
             Pick("fragmentation-packets", "tlshello", ProviderOptions.IsPackets),
-            Pick("fragmentation-length", "50-100", ProviderOptions.IsRange),
-            Pick("fragmentation-interval", "5-10", ProviderOptions.IsRange));
+            Pick("fragmentation-length", "50-100", ProviderOptions.IsLength),
+            Pick("fragmentation-interval", "5-10", ProviderOptions.IsInterval));
     }
     public static ProviderFragment Default { get; } = new(true, "tlshello", "50-100", "5-10");
 }

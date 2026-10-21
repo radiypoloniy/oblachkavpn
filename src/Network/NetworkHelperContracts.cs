@@ -73,7 +73,8 @@ public sealed record ValidatedNetworkLease(Guid LeaseId, NetworkLeaseAction Acti
     // Есть ли трафик, который пользователь сам отправил мимо туннеля.
     public bool HasDirect => DirectByDefault || CoreDirect is not null || SiteRules.Any(r => r.Action == SiteAction.Direct) || ProgramRules.Any(r => r.Action == SiteAction.Direct);
     // Нужен ли ядру туннеля прямой выход (и разрешение защиты для него): правила «напрямую»
-    // или локальная сеть. Локальная сеть не меняет смысл правил и списков — только выход.
+    // или локальная сеть. Локальная сеть не меняет смысл правил и списков — только выход;
+    // защита открывает ей только частные подсети (WfpProtectionBackend.LocalSubnets).
     public bool DirectExit => HasDirect || LocalNetwork;
 }
 
