@@ -79,6 +79,7 @@ public partial class MainWindow
             : running && lastProbe is { Success: false } ? "Проверка связи не прошла"
             : running ? "Проверяем связь…"
             : busy ? "Запускаем ядро и проверяем связь" : "Туннель выключен";
+        RefreshExit(checkedOk);
         Home.CheckChip.SetResourceReference(Border.BackgroundProperty, checkedOk ? "OkB" : "Field");
         Home.CheckText.SetResourceReference(TextBlock.ForegroundProperty, checkedOk ? "OkF" : "Mu2");
         Home.CheckIcon.Visibility = checkedOk ? Visibility.Visible : Visibility.Collapsed;

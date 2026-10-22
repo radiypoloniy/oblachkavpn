@@ -33,5 +33,12 @@ public static partial class SelfTests
             Assert(authorized && meter.Total == 4150 && meter.Fresh && meter.Down == 3000 && meter.Up == 50);
             await serve; listener.Stop();
         });
+        await check("Exit address is read from the Cloudflare trace: address and country, junk refused", () => Sync(() =>
+        {
+            var exit = ExitAddress.Parse("fl=123\nh=cloudflare.com\nip=185.12.34.56\nts=1\nloc=DE\ncolo=FRA\n");
+            Assert(exit is not null && exit.Address.ToString() == "185.12.34.56" && exit.Country.Code == "DE" && exit.Text == "185.12.34.56 (Германия)");
+            Assert(ExitAddress.Parse("ip=2a01:4f8::1\nloc=XX\n") is { Country.Code: null } v6 && v6.Text == "2a01:4f8::1");
+            Assert(ExitAddress.Parse("loc=DE\n") is null && ExitAddress.Parse("ip=not-an-ip\nloc=DE") is null && ExitAddress.Parse("<html>") is null);
+        }));
     }
 }
