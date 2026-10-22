@@ -44,6 +44,29 @@
         </StackPanel>
       </Border>
 
+      <!-- Резервная копия настроек (ClientBackup): переезд на другой компьютер, переустановка. -->
+      <TextBlock Text="РЕЗЕРВНАЯ КОПИЯ" Style="{StaticResource SetCaption}"/>
+      <Border Style="{StaticResource SetGroup}">
+        <StackPanel>
+          <DockPanel Style="{StaticResource SetLine}">
+            <Button x:Name="BackupSave" DockPanel.Dock="Right" Content="Сохранить" Style="{StaticResource BtnOutline}" Height="32" Padding="12,0" o:Ui.CornerRadius="{StaticResource RadiusSeg}" FontSize="{StaticResource FsNote}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcTeal}"><Path Data="{StaticResource IcoFile}" Style="{StaticResource SetGlyph}"/></Border>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="Настройки в файл" Style="{StaticResource SetTitle}"/>
+              <TextBlock Text="Подписки, серверы и правила — для переезда на другой компьютер. В файле ключи: не пересылайте" TextWrapping="Wrap" Style="{StaticResource SetSub}"/>
+            </StackPanel>
+          </DockPanel>
+          <DockPanel Style="{StaticResource SetLine}">
+            <Button x:Name="BackupRestore" DockPanel.Dock="Right" Content="Восстановить" Style="{StaticResource BtnOutline}" Height="32" Padding="12,0" o:Ui.CornerRadius="{StaticResource RadiusSeg}" FontSize="{StaticResource FsNote}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcGray}"><Path Data="{StaticResource IcoFolder}" Style="{StaticResource SetGlyph}"/></Border>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="Восстановить из файла" Style="{StaticResource SetTitle}"/>
+              <TextBlock Text="Текущие настройки заменятся копией. VPN нужно выключить" TextWrapping="Wrap" Style="{StaticResource SetSub}"/>
+            </StackPanel>
+          </DockPanel>
+        </StackPanel>
+      </Border>
+
       <!-- Обновление без переустановки (AppUpdate): релизы GitHub, установщик по нажатию. -->
       <TextBlock Text="ОБНОВЛЕНИЯ" Style="{StaticResource SetCaption}"/>
       <Border Style="{StaticResource SetGroup}">

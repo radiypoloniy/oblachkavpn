@@ -23,5 +23,15 @@ public partial class MainWindow
             throw new InvalidOperationException("Saved session lost selection, settings or sources, or started a tunnel without consent");
         Settings.StayInTray.IsChecked = false; Settings.Hotkey.IsChecked = true;
         checks.Add("Explicit encrypted session restoration preserves names, selection, subscription and settings while leaving the tunnel stopped");
+        // Резервная копия в файл: тот же снимок туда и обратно; чужой, новый или битый файл — отказ.
+        var (copy, saved) = ClientBackup.Read(ClientBackup.Write(snapshot, DateTimeOffset.Now));
+        if (saved is null || System.Text.Json.JsonSerializer.Serialize(copy) != System.Text.Json.JsonSerializer.Serialize(snapshot))
+            throw new InvalidOperationException("Backup did not round-trip the snapshot");
+        foreach (var junk in new[] { "{}", "[1]", "not json", "{\"format\":\"oblachka-backup\",\"version\":2,\"state\":{}}", "{\"format\":\"other\",\"version\":1,\"state\":{}}" })
+        {
+            try { ClientBackup.Read(System.Text.Encoding.UTF8.GetBytes(junk)); throw new InvalidOperationException("Backup accepted junk: " + junk); }
+            catch (UserError) { }
+        }
+        checks.Add("A settings backup round-trips the snapshot; foreign, newer or broken files are refused");
     }
 }

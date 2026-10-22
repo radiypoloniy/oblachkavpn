@@ -47,6 +47,7 @@ public partial class MainWindow : Window
         InitStartup(persistenceEnabled && isolatedStore is null);
         InitLaunch();
         InitHotkey();
+        InitBackup();
         Settings.VersionText.Text = BuildIdentity.Label;
         // Идентификатор установки виден пользователю: по нему сервис находит устройство
         // в списке, когда надо освободить место в лимите.

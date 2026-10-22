@@ -53,6 +53,8 @@ public partial class SettingsPanel : UserControl
     public CheckBox StayInTray => General.StayInTray;
     public CheckBox Hotkey => General.Hotkey;
     public TextBlock HotkeyNote => General.HotkeyNote;
+    public Button BackupSave => General.BackupSave;
+    public Button BackupRestore => General.BackupRestore;
     public StackPanel AutoPoolList => AutoPool.AutoPoolList;
     public CheckBox AutoRefresh => Subscription.AutoRefresh;
     public TextBlock StorageStatus => Subscription.StorageStatus;
