@@ -62,6 +62,23 @@ public static class NetworkHelperHost
         catch (Exception write) when (write is IOException or UnauthorizedAccessException) { }
     }
 
+    // Сторож защиты: раз в 5 с сверяет фильтры WFP с журналом и ставит пропавшие заново
+    // (NetworkSession.Guard), вместе с разрешениями zapret. Окно узнаёт об этом из пульса.
+    internal static readonly TimeSpan GuardInterval = TimeSpan.FromSeconds(5);
+    internal static void StartGuard(NetworkSession session, CancellationToken token) => new Thread(() =>
+    {
+        while (!token.WaitHandle.WaitOne(GuardInterval))
+        {
+            try
+            {
+                if (!session.Guard()) continue;
+                RecordStep(DateTime.UtcNow.ToString("HH:mm:ss.fff") + " защита WFP пропала и поставлена заново");
+                HelperPipeServer.SyncReinjection();
+            }
+            catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException) { RecordFailure(ex); }
+        }
+    }) { IsBackground = true, Name = "Oblachka WFP guard" }.Start();
+
     public static bool IsElevated()
     {
         using var identity = WindowsIdentity.GetCurrent();
@@ -85,6 +102,8 @@ public static class NetworkHelperHost
         {
             using var host = CreateSession(core);
             var server = new HelperPipeServer(host.Session, parsed.PipeName, owner, report: RecordFailure);
+            using var guard = new CancellationTokenSource();
+            StartGuard(host.Session, guard.Token);
             try
             {
                 server.RunAsync(CancellationToken.None).GetAwaiter().GetResult();
@@ -98,6 +117,7 @@ public static class NetworkHelperHost
                 RecordFailure(ex);
                 return 2;
             }
+            finally { guard.Cancel(); }
         }
     }
 

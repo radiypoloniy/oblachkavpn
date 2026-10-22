@@ -69,6 +69,7 @@ public static class NetworkService
         // Отказ не роняет службу: клиент повторит восстановление командой Recover.
         try { session.Recover(); }
         catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException) { NetworkHelperHost.RecordFailure(ex); }
+        NetworkHelperHost.StartGuard(session, token);
         try
         {
             while (!token.IsCancellationRequested)

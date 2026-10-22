@@ -65,7 +65,7 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
 
     public NetworkWriteResult Apply(Guid leaseId, NetworkChange change)
     {
-        var filters = Filters(Peers(change), change.After.Contains(" direct=1 ", StringComparison.Ordinal), change.After.Contains(" local=1 ", StringComparison.Ordinal));
+        var filters = FiltersOf(change);
         using var engine = open();
         // Остатки прошлой сессии снимаются отдельной транзакцией: новая не должна
         // зависеть от того, что от старой осталось.
@@ -82,6 +82,19 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
         if (!engine.SublayerExists(SublayerKey)) throw new IOException("Фильтрация Windows не сохранила подслой защиты.");
         return NetworkWriteResult.Changed;
     }
+
+    // Подслой и все фильтры на месте. Их снимает без нас перезапуск службы фильтрации Windows
+    // (фильтры не постоянные) или чужая программа с правами администратора — тогда сеть мимо
+    // туннеля открыта. Служба проверяет это раз в несколько секунд и ставит защиту заново.
+    public bool Intact(NetworkChange change)
+    {
+        var filters = FiltersOf(change);
+        using var engine = open();
+        return engine.SublayerExists(SublayerKey) && filters.All(f => engine.FilterExists(f.Key));
+    }
+
+    private IReadOnlyList<WfpFilter> FiltersOf(NetworkChange change) =>
+        Filters(Peers(change), change.After.Contains(" direct=1 ", StringComparison.Ordinal), change.After.Contains(" local=1 ", StringComparison.Ordinal));
 
     public NetworkWriteResult Restore(Guid leaseId, NetworkChange change)
     {

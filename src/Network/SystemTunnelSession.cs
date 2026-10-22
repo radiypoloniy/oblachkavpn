@@ -36,11 +36,14 @@ public sealed class SystemTunnelSession : IAsyncDisposable
     public bool DirectActive { get; private set; }
     private System.Text.Json.Nodes.JsonObject?[]? direct;
     public event Action<SystemTunnelState>? Changed;
+    // Защиту от утечек сняли без нас (служба фильтрации, чужая программа), служба поставила её заново.
+    public event Action? ProtectionRepaired;
 
     public SystemTunnelSession(ITunnelController core, INetworkHelperClient helper)
     {
         this.core = core; this.helper = helper;
         helper.ConnectionLost += OnHelperLost;
+        helper.ProtectionRepaired += OnProtectionRepaired;
         core.Changed += CoreChanged;
     }
 
@@ -61,6 +64,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
     }
 
     private void OnHelperLost() => _ = HelperLostAsync();
+    private void OnProtectionRepaired() => ProtectionRepaired?.Invoke();
     private async Task HelperLostAsync()
     {
         await operations.WaitAsync().ConfigureAwait(false);
@@ -214,7 +218,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        helper.ConnectionLost -= OnHelperLost; core.Changed -= CoreChanged;
+        helper.ConnectionLost -= OnHelperLost; helper.ProtectionRepaired -= OnProtectionRepaired; core.Changed -= CoreChanged;
         try { await StopAsync().ConfigureAwait(false); }
         finally { core.Dispose(); await helper.DisposeAsync().ConfigureAwait(false); }
     }

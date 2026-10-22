@@ -3,6 +3,8 @@
 public interface INetworkHelperClient : IAsyncDisposable
 {
     event Action? ConnectionLost;
+    // Служба заметила, что защиту сняли без нас, и поставила её заново.
+    event Action? ProtectionRepaired;
     // Возвращает признак того, блокируется ли трафик мимо туннеля.
     Task<bool> AcquireAsync(NetworkLeaseRequest request, CancellationToken token);
     Task<NetworkSessionState> ReleaseAsync(CancellationToken token);
@@ -19,6 +21,7 @@ public sealed class NetworkHelperClient : INetworkHelperClient
     private Task? pulse;
     private bool disposed;
     public event Action? ConnectionLost;
+    public event Action? ProtectionRepaired;
     public NetworkHelperClient(HelperPipeClient pipe, TimeSpan? interval = null)
     {
         this.pipe = pipe; this.interval = interval ?? TimeSpan.FromSeconds(3);
@@ -151,6 +154,8 @@ public sealed class NetworkHelperClient : INetworkHelperClient
 
     private async Task PulseAsync(CancellationToken token)
     {
+        // Счётчик восстановлений службы с её запуска: первый пульс задаёт отсчёт, рост — событие.
+        var repairs = -1;
         try
         {
             while (true)
@@ -159,6 +164,11 @@ public sealed class NetworkHelperClient : INetworkHelperClient
                 var response = await pipe.SendAsync(HelperOperation.Heartbeat, null, CancellationToken.None).ConfigureAwait(false);
                 if (response.Failure != HelperFailure.None || response.State != NetworkSessionState.Applied)
                     throw new UserError("Сетевая сессия больше не подтверждена helper.");
+                if (response.Repairs is int count)
+                {
+                    if (repairs >= 0 && count > repairs) _ = Task.Run(() => ProtectionRepaired?.Invoke());
+                    repairs = count;
+                }
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }

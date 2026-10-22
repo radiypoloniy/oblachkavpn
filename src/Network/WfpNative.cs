@@ -66,6 +66,7 @@ internal static class WfpNative
     [DllImport(Dll)] internal static extern uint FwpmSubLayerGetByKey0(IntPtr engine, ref Guid key, out IntPtr sublayer);
     [DllImport(Dll)] internal static extern uint FwpmFilterAdd0(IntPtr engine, ref Filter filter, IntPtr sd, out ulong id);
     [DllImport(Dll)] internal static extern uint FwpmFilterDeleteByKey0(IntPtr engine, ref Guid key);
+    [DllImport(Dll)] internal static extern uint FwpmFilterGetByKey0(IntPtr engine, ref Guid key, out IntPtr filter);
     [DllImport(Dll, CharSet = CharSet.Unicode)] internal static extern uint FwpmGetAppIdFromFileName0(string fileName, out IntPtr appId);
     [DllImport(Dll)] internal static extern void FwpmFreeMemory0(ref IntPtr memory);
 }

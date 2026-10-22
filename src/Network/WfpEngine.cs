@@ -20,6 +20,7 @@ public interface IWfpEngine : IDisposable
     void Commit();
     void Abort();
     bool SublayerExists(Guid key);
+    bool FilterExists(Guid key);
     void AddProvider(Guid key, string name);
     void AddSublayer(Guid key, Guid provider, string name, ushort weight);
     void AddFilter(WfpFilter filter, Guid provider, Guid sublayer);
@@ -82,6 +83,15 @@ public sealed class WfpEngine : IWfpEngine
         if (found != IntPtr.Zero) WfpNative.FwpmFreeMemory0(ref found);
         if (status == SublayerNotFound) return false;
         Check(status, "поиск подслоя");
+        return true;
+    }
+
+    public bool FilterExists(Guid key)
+    {
+        var status = WfpNative.FwpmFilterGetByKey0(engine, ref key, out var found);
+        if (found != IntPtr.Zero) WfpNative.FwpmFreeMemory0(ref found);
+        if (status == FilterNotFound) return false;
+        Check(status, "поиск фильтра");
         return true;
     }
 

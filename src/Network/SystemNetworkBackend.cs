@@ -41,6 +41,8 @@ public sealed class SystemNetworkBackend : INetworkSessionBackend, IDisposable
 
     public NetworkWriteResult Restore(Guid leaseId, NetworkChange change) => Pick(change).Restore(leaseId, change);
 
+    public bool Intact(NetworkChange change) => change.Kind != NetworkResourceKind.WfpProtection || wfp is null || wfp.Intact(change);
+
     // Восстановление должно работать и тогда, когда блокировку сейчас поставить нельзя:
     // запись в журнале могла остаться от сессии, когда брандмауэр был включён. Поэтому
     // здесь проверяется наличие backend, а не его готовность ставить новую блокировку.

@@ -113,6 +113,8 @@ public partial class MainWindow
             DirectAllowed = () => engine is Engine core && (core.DirectEntry is null || tunnelLists is not null) && !core.Fragment
         };
         session.Changed += OnSystemTunnelChanged;
+        session.ProtectionRepaired += () => Dispatcher.BeginInvoke(() =>
+            DetailText.Text = "Защиту от утечек кто-то снял (перезапуск службы фильтрации Windows или другая программа) — Облачка поставила её заново.");
         systemTunnel = session;
         // Правила сайтов и программ исполняет ядро туннеля у помощника; ядро окна в этом
         // режиме правил не несёт (Engine.SiteRules пуст), иначе «напрямую» шло бы из него.
