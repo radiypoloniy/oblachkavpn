@@ -42,6 +42,8 @@ public interface INetworkSessionBackend
     // Restore compares After AND ownership; unrelated changes return Conflict without writing.
     // Original Before is Unchanged. Expected OS failures become IOException/UserError.
     NetworkWriteResult Restore(Guid leaseId, NetworkChange change);
+    // Цело ли применённое изменение: его могли снять без нас (NetworkSession.Guard).
+    bool Intact(NetworkChange change) => true;
 }
 
 public static class NetworkSessionValidation

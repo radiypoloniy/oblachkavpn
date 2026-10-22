@@ -112,7 +112,8 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                         if (activeLease is not null) throw new UserError("Сессия этого владельца ещё активна.");
                         state = session.Recover()?.State ?? NetworkSessionState.Released;
                     }
-                    response = new(1, request.RequestId, state == NetworkSessionState.RecoveryRequired ? HelperFailure.RecoveryRequired : HelperFailure.None, state, blocking, zapret);
+                    response = new(1, request.RequestId, state == NetworkSessionState.RecoveryRequired ? HelperFailure.RecoveryRequired : HelperFailure.None, state, blocking, zapret,
+                        request.Operation == HelperOperation.Heartbeat ? session.Repairs : null);
                 }
                 catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException)
                 {
@@ -138,7 +139,7 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
     // Разрешения для пакетов zapret под защитой: есть winws — на его порты, нет — снять.
     // Повторно отправленные WinDivert пакеты Windows иначе режет как соединения от System.
     internal static Func<IWfpEngine> ReinjectionEngine { get; set; } = WfpEngine.Open;
-    private static void SyncReinjection()
+    internal static void SyncReinjection()
     {
         if (ZapretRunner.CapturedPorts is { Count: > 0 } ports) WfpReinjection.Allow(ReinjectionEngine, ports);
         else WfpReinjection.Revoke(ReinjectionEngine);

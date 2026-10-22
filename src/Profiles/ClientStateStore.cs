@@ -74,6 +74,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public string[]? ServiceHosts { get; init; }
     // «Локальная сеть напрямую» в «Весь компьютер» (0.18). По умолчанию включена.
     public bool LocalNetwork { get; init; } = true;
+    // «QUIC через TCP» в «Весь компьютер» (0.19). По умолчанию выключен.
+    public bool QuicOverTcp { get; init; }
 }
 
 // The OS binds the encrypted file to the current Windows user. Never stage plaintext on disk.

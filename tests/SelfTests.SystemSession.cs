@@ -122,7 +122,9 @@ public static partial class SelfTests
         public bool FailAcquire;
         public NetworkSessionState ReleaseState = NetworkSessionState.Released;
         public event Action? ConnectionLost;
+        public event Action? ProtectionRepaired;
         public void Lose() => ConnectionLost?.Invoke();
+        public void Repaired() => ProtectionRepaired?.Invoke();
         public bool Blocking = true;
         public string[] LastPeers = Array.Empty<string>();
         public NetworkLeaseRequest? LastRequest;

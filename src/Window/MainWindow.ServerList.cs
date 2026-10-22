@@ -71,7 +71,7 @@ public partial class MainWindow
         }
         Group(new SheetHeader("ИЗБРАННОЕ"), shown.Where(p => favorites.Contains(FavoriteKey(p))), note: true);
         foreach (var group in groups)
-            Group(new SheetHeader(group.Name.ToUpperInvariant(), group.Id, group.IsSubscription, HiddenIn(group.Id)),
+            Group(new SheetHeader(group.Name.ToUpperInvariant(), group.Id, group.IsSubscription, HiddenIn(group.Id), group.IsSubscription ? Junk(group.Id).Length : 0),
                 shown.Where(p => p.Group == group.Id && !favorites.Contains(FavoriteKey(p))));
         Servers.SheetList.ItemsSource = items;
         RefreshMeasurement();

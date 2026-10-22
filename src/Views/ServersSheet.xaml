@@ -3,10 +3,12 @@
   <!-- Панель «Все серверы» (экран 09): выезжает поверх главного окна. Группы: автовыбор, избранное,
        свои узлы, сторонние. Звезда справа переключает избранное, клик по строке — подключение. -->
   <UserControl.Resources>
-    <!-- Заголовок подписки: справа «Вернуть скрытые», «Обновить», «Убрать». -->
+    <!-- Заголовок подписки: справа «Скрыть лишние», «Вернуть скрытые», «Обновить», «Убрать». -->
     <DataTemplate DataType="{x:Type o:SheetHeader}">
       <DockPanel Margin="10,10,4,2">
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Visibility="{Binding ActionsVisibility}">
+          <Button Tag="group-hide-junk" Content="{Binding JunkText}" Style="{StaticResource BtnLink}" Height="26" FontSize="{StaticResource FsSmall}" Visibility="{Binding JunkVisibility}"
+                  ToolTip="Скрыть серверы, которые не ответили при последней проверке, и повторы — серверы с той же настройкой, что уже есть выше"/>
           <Button Tag="group-unhide" Content="{Binding UnhideText}" Style="{StaticResource BtnLink}" Height="26" FontSize="{StaticResource FsSmall}" Visibility="{Binding UnhideVisibility}"/>
           <Button Tag="group-refresh" Content="Обновить" Style="{StaticResource BtnLink}" Height="26" FontSize="{StaticResource FsSmall}" Visibility="{Binding RefreshVisibility}"/>
           <Button Tag="group-remove" Content="Убрать" Style="{StaticResource BtnLink}" Height="26" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" AutomationProperties.Name="{Binding RemoveName}"/>

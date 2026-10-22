@@ -16,6 +16,7 @@ public partial class MainWindow
     {
         Settings.ConnectOnLaunch.Click += (_, _) => QueueStateSave();
         Settings.LocalNetwork.Click += (_, _) => QueueStateSave();
+        Settings.QuicOverTcp.Click += (_, _) => QueueStateSave();
     }
 
     private void RememberConnected(bool connected)

@@ -49,6 +49,7 @@ public partial class SettingsPanel : UserControl
     public CheckBox StartWithWindows => Advanced.StartWithWindows;
     public CheckBox ConnectOnLaunch => Advanced.ConnectOnLaunch;
     public CheckBox LocalNetwork => Advanced.LocalNetwork;
+    public CheckBox QuicOverTcp => Advanced.QuicOverTcp;
     public CheckBox StayInTray => General.StayInTray;
     public StackPanel AutoPoolList => AutoPool.AutoPoolList;
     public CheckBox AutoRefresh => Subscription.AutoRefresh;

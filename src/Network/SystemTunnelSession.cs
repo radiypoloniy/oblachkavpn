@@ -36,11 +36,14 @@ public sealed class SystemTunnelSession : IAsyncDisposable
     public bool DirectActive { get; private set; }
     private System.Text.Json.Nodes.JsonObject?[]? direct;
     public event Action<SystemTunnelState>? Changed;
+    // Защиту от утечек сняли без нас (служба фильтрации, чужая программа), служба поставила её заново.
+    public event Action? ProtectionRepaired;
 
     public SystemTunnelSession(ITunnelController core, INetworkHelperClient helper)
     {
         this.core = core; this.helper = helper;
         helper.ConnectionLost += OnHelperLost;
+        helper.ProtectionRepaired += OnProtectionRepaired;
         core.Changed += CoreChanged;
     }
 
@@ -61,6 +64,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
     }
 
     private void OnHelperLost() => _ = HelperLostAsync();
+    private void OnProtectionRepaired() => ProtectionRepaired?.Invoke();
     private async Task HelperLostAsync()
     {
         await operations.WaitAsync().ConfigureAwait(false);
@@ -79,7 +83,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
     // Первый план запускается, остальные только разрешаются: их адреса входят в аренду.
     public async Task StartWithSparesAsync(IReadOnlyList<TunnelEndpointPlan> prepared, CancellationToken token,
         IReadOnlyList<SiteRule>? sites = null, IReadOnlyList<ProgramRule>? programs = null, CoreDirectEntry? coreDirect = null, bool directByDefault = false,
-        RoutingListsEntry? lists = null, bool localNetwork = false)
+        RoutingListsEntry? lists = null, bool localNetwork = false, bool quicOverTcp = false)
     {
         if (prepared.Count == 0) throw new UserError("Нет подготовленного сервера для системного режима.");
         await operations.WaitAsync(token).ConfigureAwait(false);
@@ -107,7 +111,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
                 // Запрос ограничен своим сроком в канале; отмена проверяется после него, и
                 // сессия снимается обычным Release.
                 BlocksBypass = await helper.AcquireAsync(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, leasePort, peers,
-                    sites?.ToArray(), programs?.ToArray(), coreDirect, directByDefault, Stats, direct, lists, localNetwork), CancellationToken.None).ConfigureAwait(false);
+                    sites?.ToArray(), programs?.ToArray(), coreDirect, directByDefault, Stats, direct, lists, localNetwork, quicOverTcp), CancellationToken.None).ConfigureAwait(false);
                 DirectActive = direct?[0] is not null;
                 token.ThrowIfCancellationRequested();
                 Set(SystemTunnelState.Running);
@@ -214,7 +218,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        helper.ConnectionLost -= OnHelperLost; core.Changed -= CoreChanged;
+        helper.ConnectionLost -= OnHelperLost; helper.ProtectionRepaired -= OnProtectionRepaired; core.Changed -= CoreChanged;
         try { await StopAsync().ConfigureAwait(false); }
         finally { core.Dispose(); await helper.DisposeAsync().ConfigureAwait(false); }
     }

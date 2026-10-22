@@ -12,7 +12,7 @@ public static class ServiceBrand
     // Латинское имя для всего, что уходит в сеть и в имена файлов: значения заголовков
     // HTTP передаются в однобайтовой кодировке, кириллица там не проходит.
     public const string LatinName = "Oblachka";
-    public const string Version = "0.18.2";
+    public const string Version = "0.19.0";
     public const string UserAgent = LatinName + "/" + Version;
     public static string Label => Name + " " + Version;
 

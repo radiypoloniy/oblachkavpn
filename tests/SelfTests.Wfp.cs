@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Runtime.InteropServices;
 
 namespace Oblachka;
@@ -20,6 +20,7 @@ public static partial class SelfTests
             if (saved is var (s, p, f)) { Sublayer = s; Provider = p; Filters.Clear(); foreach (var kv in f) Filters[kv.Key] = kv.Value; }
         }
         public bool SublayerExists(Guid key) => Sublayer;
+        public bool FilterExists(Guid key) => Filters.ContainsKey(key);
         public void AddProvider(Guid key, string name) { Provider = true; Log.Add("provider+"); }
         public void AddSublayer(Guid key, Guid provider, string name, ushort weight)
         { Assert(weight == ushort.MaxValue && InTransaction); Sublayer = true; Log.Add("sublayer+"); }
@@ -77,6 +78,34 @@ public static partial class SelfTests
             }
             Assert(filters.Select(f => f.Key).Distinct().Count() == filters.Count);
             Assert(filters.Select((f, i) => f.Key == WfpProtectionBackend.FilterKey(i)).All(x => x));
+            return Task.CompletedTask;
+        });
+        await check("The guard puts removed WFP protection back while the session lives, and only then", () =>
+        {
+            var engine = new FakeWfp();
+            var folder = Path.Combine(Path.GetTempPath(), "oblachka-guard-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                using var journal = new NetworkSessionJournal(Path.Combine(folder, "session.json"));
+                var session = new NetworkSession(journal, new WfpProtectionBackend(() => engine));
+                var id = Guid.NewGuid();
+                Assert(!session.Guard());
+                session.Acquire(Request(id, "203.0.113.7"));
+                var full = engine.Filters.Count;
+                Assert(!session.Guard() && session.Repairs == 0);
+                // Чужая программа сняла один фильтр — защита ставится целиком заново.
+                engine.Filters.Remove(engine.Filters.Keys.First());
+                Assert(session.Guard() && session.Repairs == 1 && engine.Filters.Count == full && engine.Sublayer);
+                // Перезапуск службы фильтрации: подслоя и фильтров нет вовсе.
+                engine.Filters.Clear(); engine.Sublayer = false; engine.Provider = false;
+                Assert(session.Guard() && session.Repairs == 2 && engine.Filters.Count == full && engine.Sublayer);
+                Assert(!session.Guard());
+                // Снятая владельцем сессия не восстанавливается.
+                session.Release(id);
+                Assert(!engine.Sublayer && !session.Guard() && !engine.Sublayer);
+            }
+            finally { Directory.Delete(folder, recursive: true); }
             return Task.CompletedTask;
         });
         await check("WFP protection is applied in one transaction and removed completely, leftovers first", () =>

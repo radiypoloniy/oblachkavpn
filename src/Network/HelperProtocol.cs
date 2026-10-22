@@ -32,7 +32,9 @@ public sealed record HelperResponse(
     [property: JsonRequired] HelperFailure Failure,
     [property: JsonRequired] NetworkSessionState? State,
     [property: JsonRequired] bool? Blocking = null,
-    ZapretStatus? Zapret = null);
+    ZapretStatus? Zapret = null,
+    // Сколько раз служба ставила защиту заново (NetworkSession.Guard) — в ответе на пульс.
+    int? Repairs = null);
 
 public static class HelperProtocol
 {

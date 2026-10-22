@@ -69,6 +69,30 @@ public sealed class NetworkSession(INetworkSessionJournal journal, INetworkSessi
         lock (gate) return RecoverCore();
     }
 
+    // Сколько раз защиту пришлось ставить заново за время работы (окно предупреждает об этом).
+    public int Repairs { get; private set; }
+
+    // Защита на месте? Если фильтры пропали при живой сессии, ставит их заново тем же Apply,
+    // что и при подключении: он снимает остатки и ставит полный набор. true — восстанавливали.
+    public bool Guard()
+    {
+        lock (gate)
+        {
+            var record = journal.Load();
+            if (record is not { State: NetworkSessionState.Applied }) return false;
+            var repaired = false;
+            foreach (var change in record.Changes.Where(c => c.Kind == NetworkResourceKind.WfpProtection && c.State == NetworkChangeState.Applied))
+            {
+                if (backend.Intact(change)) continue;
+                backend.Apply(record.LeaseId, change);
+                Mark("repair " + change.Kind);
+                repaired = true;
+            }
+            if (repaired) Repairs++;
+            return repaired;
+        }
+    }
+
     private void Mark(string step) => trace?.Invoke(DateTime.UtcNow.ToString("HH:mm:ss.fff") + " " + step);
 
     private NetworkSessionRecord? RecoverCore()

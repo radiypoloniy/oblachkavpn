@@ -113,12 +113,15 @@ public partial class MainWindow
             DirectAllowed = () => engine is Engine core && (core.DirectEntry is null || tunnelLists is not null) && !core.Fragment
         };
         session.Changed += OnSystemTunnelChanged;
+        session.ProtectionRepaired += () => Dispatcher.BeginInvoke(() =>
+            DetailText.Text = "Защиту от утечек кто-то снял (перезапуск службы фильтрации Windows или другая программа) — Облачка поставила её заново.");
         systemTunnel = session;
         // Правила сайтов и программ исполняет ядро туннеля у помощника; ядро окна в этом
         // режиме правил не несёт (Engine.SiteRules пуст), иначе «напрямую» шло бы из него.
         RememberTunnelDirect(); sentRules = new(LeasePrograms().ToArray(), LeaseSites());
         var lists = await SendTunnelListsAsync(helperLifetime.Client).ConfigureAwait(true);
-        await session.StartWithSparesAsync(plans, token, LeaseSites(), LeasePrograms(), (engine as Engine)?.DirectEntry, selectiveVpn, lists, Settings.LocalNetwork.IsChecked == true).ConfigureAwait(true);
+        await session.StartWithSparesAsync(plans, token, LeaseSites(), LeasePrograms(), (engine as Engine)?.DirectEntry, selectiveVpn, lists, Settings.LocalNetwork.IsChecked == true,
+            Settings.QuicOverTcp.IsChecked == true).ConfigureAwait(true);
     }
 
     // Выбранный узел первым, затем запасные в том порядке, в каком их переберёт подбор.

@@ -24,7 +24,8 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
     public const string ResourceId = "wfp-protection";
     public static readonly Guid ProviderKey = new("6f1a3c52-0b7e-4d0e-9a1d-0b1a5c7e2f01");
     public static readonly Guid SublayerKey = new("6f1a3c52-0b7e-4d0e-9a1d-0b1a5c7e2f02");
-    // Номеров с запасом: фильтр на каждый из 16 адресов узлов плюс общие фильтры обоих семейств.
+    // Номеров с запасом: фильтр на каждый из 16 адресов узлов плюс общие фильтры обоих семейств
+    // (до 10 на семейство с локальной сетью); последние 14 — у WfpReinjection.
     public const int MaxFilters = 64;
     private const ushort SublayerWeight = ushort.MaxValue;
     // Тип интерфейса wintun по IANA: IF_TYPE_PROP_VIRTUAL. Физические адаптеры — другие
@@ -64,7 +65,7 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
 
     public NetworkWriteResult Apply(Guid leaseId, NetworkChange change)
     {
-        var filters = Filters(Peers(change), change.After.Contains(" direct=1 ", StringComparison.Ordinal), change.After.Contains(" local=1 ", StringComparison.Ordinal));
+        var filters = FiltersOf(change);
         using var engine = open();
         // Остатки прошлой сессии снимаются отдельной транзакцией: новая не должна
         // зависеть от того, что от старой осталось.
@@ -81,6 +82,19 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
         if (!engine.SublayerExists(SublayerKey)) throw new IOException("Фильтрация Windows не сохранила подслой защиты.");
         return NetworkWriteResult.Changed;
     }
+
+    // Подслой и все фильтры на месте. Их снимает без нас перезапуск службы фильтрации Windows
+    // (фильтры не постоянные) или чужая программа с правами администратора — тогда сеть мимо
+    // туннеля открыта. Служба проверяет это раз в секунду (около двадцати запросов к службе фильтрации) и ставит защиту заново.
+    public bool Intact(NetworkChange change)
+    {
+        var filters = FiltersOf(change);
+        using var engine = open();
+        return engine.SublayerExists(SublayerKey) && filters.All(f => engine.FilterExists(f.Key));
+    }
+
+    private IReadOnlyList<WfpFilter> FiltersOf(NetworkChange change) =>
+        Filters(Peers(change), change.After.Contains(" direct=1 ", StringComparison.Ordinal), change.After.Contains(" local=1 ", StringComparison.Ordinal));
 
     public NetworkWriteResult Restore(Guid leaseId, NetworkChange change)
     {
@@ -137,6 +151,20 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
                     .Prepend(new WfpCondition(WfpConditionKind.Application, Program: TunCoreProgram)).ToArray());
             Add("DHCP" + family, v6, 12, true, new WfpCondition(WfpConditionKind.Protocol, Number: 17),
                 new WfpCondition(WfpConditionKind.LocalPort, Number: v6 ? 546 : 68), new WfpCondition(WfpConditionKind.RemotePort, Number: v6 ? 547 : 67));
+            // Локальная сеть мимо туннеля (SingBoxTunConfig: частные подсети в route_exclude_address):
+            // программы ходят к принтеру и NAS сами, без ядра. Выше разрешения — два запрета: DNS мимо
+            // туннеля (Windows спрашивает DNS роутера на каждом интерфейсе — это утечка имён) и адреса
+            // узлов для всех, кроме ядер (сервер в локальной сети остаётся только за ядрами).
+            if (local)
+            {
+                Add("DNS мимо туннеля" + family, v6, 12, false, new WfpCondition(WfpConditionKind.RemotePort, Number: 53));
+                var own = peers.Where(p => (p.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) == v6)
+                    .Select(p => new WfpCondition(WfpConditionKind.RemoteAddress, p)).ToArray();
+                if (own.Length > 0) Add("узлы только ядрам" + family, v6, 12, false, own);
+                // Вместе с подсетями — мультикаст и широковещание: на них держится обнаружение устройств
+                // (mDNS, SSDP, WS-Discovery). Они идут на физический интерфейс и за пределы сети не выходят.
+                Add("локальная сеть для программ" + family, v6, 11, true, LocalSubnets(v6).Concat(Discovery(v6)).ToArray());
+            }
             Add("запрет мимо туннеля" + family, v6, 0, false);
             // Пакеты уже разрешённых потоков слой соединений не видит. На снятии туннеля
             // соединения, жившие в нём, закрываются, и их FIN уходил на физический адаптер
@@ -149,8 +177,13 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
         return list;
     }
 
+    public static readonly string[] DiscoverySubnets = ["224.0.0.0/4", "255.255.255.255/32", "ff00::/8"];
+    public static IEnumerable<WfpCondition> Discovery(bool v6) => Subnets(DiscoverySubnets, v6);
+
     // Те же подсети, что ядро туннеля отправляет прямым выходом (SingBoxTunConfig.LocalSubnets).
-    public static IEnumerable<WfpCondition> LocalSubnets(bool v6) => SingBoxTunConfig.LocalSubnets
+    public static IEnumerable<WfpCondition> LocalSubnets(bool v6) => Subnets(SingBoxTunConfig.LocalSubnets, v6);
+
+    private static IEnumerable<WfpCondition> Subnets(IEnumerable<string> subnets, bool v6) => subnets
         .Select(s => s.Split('/')).Select(p => (Address: IPAddress.Parse(p[0]), Prefix: int.Parse(p[1], System.Globalization.CultureInfo.InvariantCulture)))
         .Where(s => (s.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) == v6)
         .Select(s => new WfpCondition(WfpConditionKind.RemoteSubnet, s.Address, Number: s.Prefix));

@@ -45,6 +45,33 @@ public partial class MainWindow
         AfterServerListChange(false);
     }
 
+    // Лишнее в подписке: серверы без ответа на свежей проверке и повторы — та же настройка, что у
+    // видимого сервера выше по списку (в этой или более ранней подписке). Текущий сервер не трогаем.
+    // Повтор под тем же именем не в счёт: скрытие идёт по имени (FavoriteKey) и спрятало бы оригинал.
+    private Profile[] Junk(string groupId)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var first = new Dictionary<string, string>(StringComparer.Ordinal);
+        var junk = new List<Profile>();
+        foreach (var item in groups.SelectMany(g => ProfilesOf(g.Id)).Where(p => !HiddenServer(p)))
+        {
+            var key = FavoriteKey(item);
+            var repeat = !first.TryAdd(Profiles.Fingerprint(item), key) && first[Profiles.Fingerprint(item)] != key;
+            if (item.Group != groupId || runningProfile is not null && FavoriteKey(runningProfile) == FavoriteKey(item)) continue;
+            if (repeat || LatestMeasurement(item) is { Success: false } measured && ServerMeasurements.Fresh(measured, now)) junk.Add(item);
+        }
+        return junk.ToArray();
+    }
+
+    private void HideJunk(string groupId)
+    {
+        var junk = Junk(groupId);
+        if (junk.Length == 0) return;
+        foreach (var item in junk) hiddenServers.Add(FavoriteKey(item));
+        AfterServerListChange(profile is not null && junk.Any(p => FavoriteKey(p) == FavoriteKey(profile)));
+        DetailText.Text = "Скрыли " + ServerCount(junk.Length) + ". Вернуть — «Вернуть скрытые» у заголовка подписки.";
+    }
+
     private void AfterServerListChange(bool removedSelected)
     {
         if (removedSelected) profile = null;
@@ -68,6 +95,7 @@ public partial class MainWindow
         {
             case "group-refresh": await LoadSubscriptionAsync(group.Sources, group.PreferredSource); break;
             case "group-unhide": UnhideServers(group.Id); break;
+            case "group-hide-junk": HideJunk(group.Id); break;
             case "group-remove":
                 if (!ConfirmRemoveGroup(group)) return;
                 RemoveGroup(group.Id);
