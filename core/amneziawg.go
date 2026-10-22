@@ -51,10 +51,11 @@ var amneziaKeys = map[string]bool{"jc": true, "jmin": true, "jmax": true, "s1": 
 
 type AmneziaWGOutbound struct {
 	outbound.Adapter
-	logger log.ContextLogger
-	device *device.Device
-	stack  *netstack.Net
-	bind   *packetBind
+	logger    log.ContextLogger
+	keepalive string
+	device    *device.Device
+	stack     *netstack.Net
+	bind      *packetBind
 }
 
 func RegisterAmneziaWGOutbound(registry *outbound.Registry) {
@@ -98,7 +99,7 @@ func NewAmneziaWGOutbound(ctx context.Context, router adapter.Router, logger log
 	}
 	return &AmneziaWGOutbound{
 		Adapter: outbound.NewAdapter(TypeAmneziaWG, tag, []string{N.NetworkTCP, N.NetworkUDP}, nil),
-		logger:  logger, device: wg, stack: stack, bind: bind,
+		logger:  logger, keepalive: amneziaKeepalive(options), device: wg, stack: stack, bind: bind,
 	}, nil
 }
 
@@ -141,10 +142,17 @@ func amneziaUAPI(options AmneziaWGOptions) (string, error) {
 	// Адрес сервера для устройства условный: пакеты всё равно уходят через packetBind на настоящий.
 	b.WriteString("endpoint=" + amneziaEndpoint + "\n")
 	b.WriteString("allowed_ip=0.0.0.0/0\nallowed_ip=::/0\n")
-	if options.Keepalive > 0 {
-		b.WriteString("persistent_keepalive_interval=" + strconv.Itoa(options.Keepalive) + "\n")
-	}
 	return b.String(), nil
+}
+
+// Keepalive — отдельно и только при запуске выхода: заданный при настройке, он сразу шлёт пакет
+// серверу, и проверка конфигурации (oblachka-core check) ждала бы DNS и сеть.
+func amneziaKeepalive(options AmneziaWGOptions) string {
+	if options.Keepalive <= 0 {
+		return ""
+	}
+	raw, _ := base64.StdEncoding.DecodeString(options.PeerPublicKey)
+	return "public_key=" + hex.EncodeToString(raw) + "\nupdate_only=true\npersistent_keepalive_interval=" + strconv.Itoa(options.Keepalive) + "\n"
 }
 
 func (h *AmneziaWGOutbound) Start(stage adapter.StartStage, scope *adapter.Scope) error {
@@ -153,6 +161,11 @@ func (h *AmneziaWGOutbound) Start(stage adapter.StartStage, scope *adapter.Scope
 	}
 	if err := h.device.Up(); err != nil {
 		return E.Cause(err, "amneziawg up")
+	}
+	if h.keepalive != "" {
+		if err := h.device.IpcSet(h.keepalive); err != nil {
+			return E.Cause(err, "amneziawg keepalive")
+		}
 	}
 	scope.Add(func() error { h.device.Close(); return nil })
 	return nil
@@ -234,20 +247,21 @@ func (b *packetBind) Open(uint16) ([]conn.ReceiveFunc, uint16, error) {
 	if b.conn != nil {
 		return nil, 0, conn.ErrBindAlreadyOpen
 	}
-	packetConn, err := b.dialer.ListenPacket(b.ctx, b.server)
+	// Имя сервера разрешается при первой отправке, а не здесь: Open вызывается и при проверке
+	// конфигурации, и нерешаемое имя держало бы её десятки секунд. В «Весь компьютер» сервер
+	// приходит уже адресом (план туннеля разрешает имена заранее).
+	listen := b.server
+	if listen.IsFqdn() {
+		listen = M.SocksaddrFrom(netip.IPv4Unspecified(), b.server.Port)
+	}
+	packetConn, err := b.dialer.ListenPacket(b.ctx, listen)
 	if err != nil {
 		return nil, 0, err
 	}
-	target := b.server.UDPAddr()
-	if b.server.IsFqdn() {
-		resolved, err := net.ResolveUDPAddr("udp", b.server.String())
-		if err != nil {
-			packetConn.Close()
-			return nil, 0, err
-		}
-		target = resolved
+	b.conn, b.target = packetConn, nil
+	if !b.server.IsFqdn() {
+		b.target = b.server.UDPAddr()
 	}
-	b.conn, b.target = packetConn, target
 	endpoint := bindEndpoint{netip.MustParseAddrPort(amneziaEndpoint)}
 	receive := func(packets [][]byte, sizes []int, eps []conn.Endpoint) (int, error) {
 		n, _, err := packetConn.ReadFrom(packets[0])
@@ -277,6 +291,15 @@ func (b *packetBind) Send(bufs [][]byte, _ conn.Endpoint) error {
 	b.mu.Unlock()
 	if packetConn == nil {
 		return net.ErrClosed
+	}
+	if target == nil {
+		resolved, err := net.ResolveUDPAddr("udp4", b.server.String())
+		if err != nil {
+			return err
+		}
+		b.mu.Lock()
+		b.target, target = resolved, resolved
+		b.mu.Unlock()
 	}
 	for _, buf := range bufs {
 		if _, err := packetConn.WriteTo(buf, target); err != nil {

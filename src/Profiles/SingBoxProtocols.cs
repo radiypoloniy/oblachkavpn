@@ -79,6 +79,42 @@ internal static class SingBoxProtocols
         return "WIREGUARD / UDP";
     }
 
+    // AmneziaWG (выход "amneziawg" ядра туннеля oblachka-core, core/amneziawg.go): адрес сервера,
+    // ключи, адреса интерфейса и параметры обфускации. Значения обфускации — только цифры и
+    // диапазоны (Jc…S4, H1…H4) или печатные символы без «=» (I1…I5): ядро передаёт их строками
+    // настройки устройства, и перевод строки в них дописал бы чужую.
+    public static readonly string[] AmneziaKeys = { "jc", "jmin", "jmax", "s1", "s2", "s3", "s4", "h1", "h2", "h3", "h4", "i1", "i2", "i3", "i4", "i5" };
+
+    public static string AmneziaWG(JsonObject outbound)
+    {
+        SingBoxProfiles.AllowOnly(outbound, "type", "tag", "server", "server_port", "private_key", "peer_public_key", "pre_shared_key",
+            "local_address", "mtu", "persistent_keepalive_interval", "obfuscation");
+        var server = outbound["server"]?.GetValue<string>();
+        if (string.IsNullOrWhiteSpace(server) || server.Any(char.IsWhiteSpace)) throw new UserError("AmneziaWG: нужен адрес сервера (Endpoint).");
+        if ((outbound["server_port"]?.GetValue<int>() ?? 0) is < 1 or > 65535) throw new UserError("AmneziaWG: порт сервера должен быть от 1 до 65535.");
+        Key(outbound["private_key"], "закрытый ключ");
+        Key(outbound["peer_public_key"], "открытый ключ сервера");
+        if (outbound["pre_shared_key"] is { } psk) Key(psk, "общий ключ");
+        if (outbound["local_address"] is not JsonArray addresses || addresses.Count is 0 or > 4 ||
+            addresses.Any(a => a?.GetValue<string>() is not { } cidr || !System.Net.IPNetwork.TryParse(cidr, out _)))
+            throw new UserError("AmneziaWG: нужен адрес интерфейса (Address), например 10.8.1.2/32.");
+        if ((outbound["mtu"]?.GetValue<int>() ?? 1280) is < 1280 or > 1500) throw new UserError("AmneziaWG: MTU должен быть от 1280 до 1500.");
+        if ((outbound["persistent_keepalive_interval"]?.GetValue<int>() ?? 0) is < 0 or > 3600) throw new UserError("AmneziaWG: PersistentKeepalive — от 0 до 3600 секунд.");
+        if (outbound["obfuscation"] is not JsonObject obfuscation || obfuscation.Count == 0)
+            throw new UserError("AmneziaWG: нет параметров обфускации (Jc, S1, H1 …) — это обычный WireGuard.");
+        foreach (var (key, node) in obfuscation)
+            if (!AmneziaKeys.Contains(key) || node?.GetValue<string>() is not { } value || !AmneziaValue(key, value))
+                throw new UserError("AmneziaWG: неверный параметр " + key.ToUpperInvariant() + ".");
+        return "AMNEZIAWG / UDP";
+    }
+
+    public static bool AmneziaValue(string key, string value) => key[0] switch
+    {
+        'h' => System.Text.RegularExpressions.Regex.IsMatch(value, @"^\d{1,10}(-\d{1,10})?$"),
+        'i' => value.Length is > 0 and <= 4096 && value.All(c => c is >= ' ' and <= '~' && c != '='),
+        _ => System.Text.RegularExpressions.Regex.IsMatch(value, @"^\d{1,5}$")
+    };
+
     private static void Key(JsonNode? node, string what)
     {
         var text = node?.GetValue<string>() ?? "";

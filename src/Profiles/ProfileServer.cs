@@ -27,7 +27,10 @@ public static class ProfileServer
 
     // Протоколы поверх UDP/QUIC: TCP-рукопожатие о них ничего не говорит, отклик не меряем.
     public static bool IsUdp(Profile profile) => profile.Core == CoreKind.SingBox &&
-        profile.Outbound["type"]?.GetValue<string>() is "hysteria2" or "tuic" or "wireguard";
+        profile.Outbound["type"]?.GetValue<string>() is "hysteria2" or "tuic" or "wireguard" or "amneziawg";
+
+    // AmneziaWG есть только в своём ядре туннеля (oblachka-core), а не в sing-box.
+    public static bool IsAmnezia(Profile profile) => profile.Core == CoreKind.SingBox && profile.Outbound["type"]?.GetValue<string>() == "amneziawg";
 
     internal static bool IsWireGuard(JsonObject outbound) => outbound["type"]?.GetValue<string>() == "wireguard";
 

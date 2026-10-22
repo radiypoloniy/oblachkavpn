@@ -54,7 +54,7 @@ public static partial class SelfTests
             // TLS обязателен там, где протокол сам не шифрует.
             ExpectUserError(() => SingBoxProfiles.Parse(new JsonObject { ["type"] = "trojan", ["server"] = "203.0.113.1", ["server_port"] = 443, ["password"] = "x" }, "T"));
         }));
-        await check("Protocols: WireGuard .conf imports as one connection; AmneziaWG and multi-peer files are explained", () => Sync(() =>
+        await check("Protocols: WireGuard .conf imports as one connection; AmneziaWG goes to the tunnel core; multi-peer files are explained", async () =>
         {
             var conf = "[Interface]\nPrivateKey = " + WgPrivate + "\nAddress = 10.0.0.2/32, fd00::2/128\nDNS = 1.1.1.1\nMTU = 1380\n\n[Peer]\nPublicKey = " + WgPublic +
                 "\nAllowedIPs = 0.0.0.0/0, ::/0\nEndpoint = vpn.example.org:51820\nPersistentKeepalive = 25\n";
@@ -62,9 +62,23 @@ public static partial class SelfTests
             var wg = result.Profiles.Single();
             Assert(wg.Name == "WireGuard · vpn.example.org" && wg.Outbound["address"]!.AsArray().Count == 2 && wg.Outbound["mtu"]!.GetValue<int>() == 1380);
             Assert(wg.Outbound["peers"]![0]!["persistent_keepalive_interval"]!.GetValue<int>() == 25 && ProfileServer.Of(wg) == ("vpn.example.org", 51820));
-            ExpectUserError(() => Subscriptions.Parse(conf.Replace("MTU = 1380", "MTU = 1380\nJc = 4\nS1 = 50")));
             ExpectUserError(() => Subscriptions.Parse(conf + "\n[Peer]\nPublicKey = " + WgPublic + "\nEndpoint = b.example.org:51820\n"));
-        }));
+            // AmneziaWG (2.0: S3, S4, диапазоны H, сигнатура I1) — выход amneziawg своего ядра туннеля.
+            var awgConf = conf.Replace("MTU = 1380", "MTU = 1380\nJc = 4\nJmin = 10\nJmax = 50\nS1 = 54\nS2 = 125\nS3 = 9\nS4 = 3\nH1 = 1206245290-1206245390\nH2 = 2083540914\nH3 = 2121082093\nH4 = 1468224581\nI1 = <b 0x1a2b><r 16>");
+            var awg = Subscriptions.Parse(awgConf).Profiles.Single();
+            Assert(awg.Name == "AmneziaWG · vpn.example.org" && awg.Transport == "AMNEZIAWG / UDP" && ProfileServer.IsAmnezia(awg) && ProfileServer.IsUdp(awg));
+            Assert(ProfileServer.Of(awg) == ("vpn.example.org", 51820) && CoreAdapter.FileFor(awg) == TunCore.FileName && CoreAdapter.FileFor(wg) == "sing-box.exe");
+            Assert(awg.Outbound["obfuscation"]!["h1"]!.GetValue<string>() == "1206245290-1206245390" && awg.Outbound["obfuscation"]!["i1"]!.GetValue<string>() == "<b 0x1a2b><r 16>");
+            // Настоящее ядро туннеля принимает собранную конфигурацию: имена полей совпадают с core/amneziawg.go.
+            var core = new CoreAdapter(CoreKind.SingBox, Path.Combine(AppContext.BaseDirectory, "tools", CoreAdapter.FileFor(awg)));
+            var runtime = core.RuntimeConfig(awg.Outbound, 10808);
+            Assert(runtime["outbounds"]!.AsArray().Single()!["type"]!.GetValue<string>() == "amneziawg");
+            await CoreConfigurationCheck.ValidateAsync(core, runtime, CancellationToken.None);
+            // Лишняя строка в значении, «=» в сигнатуре, нецифровой H, параметры в [Peer] — отказ.
+            ExpectUserError(() => Subscriptions.Parse(awgConf.Replace("H2 = 2083540914", "H2 = 1;2")));
+            ExpectUserError(() => Subscriptions.Parse(awgConf.Replace("I1 = <b 0x1a2b><r 16>", "I1 = <b 0x1a>=x")));
+            ExpectUserError(() => Subscriptions.Parse(awgConf.Replace("PersistentKeepalive = 25", "PersistentKeepalive = 25\nJc = 4")));
+        });
         await check("Protocols: Xray JSON with VMess and Shadowsocks, sing-box config with a WireGuard endpoint", () => Sync(() =>
         {
             var vmess = Profiles.Parse("{\"outbounds\":[{\"protocol\":\"vmess\",\"settings\":{\"vnext\":[{\"address\":\"203.0.113.21\",\"port\":443,\"users\":[{\"id\":\"" + Uuid +

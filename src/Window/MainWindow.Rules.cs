@@ -20,7 +20,7 @@ public partial class MainWindow
             operation = new CancellationTokenSource(); UpdateControls();
             try
             {
-                var adapter = new CoreAdapter(profile.Core, Path.Combine(AppContext.BaseDirectory, "tools", profile.Core == CoreKind.Xray ? "xray.exe" : "sing-box.exe"));
+                var adapter = new CoreAdapter(profile.Core, Path.Combine(AppContext.BaseDirectory, "tools", CoreAdapter.FileFor(profile)));
                 var config = RoutingPlan.Compile(adapter, profile, 10808, siteRules);
                 await CoreConfigurationCheck.ValidateAsync(adapter, config, operation.Token);
                 await ValidateProgramDraftAsync(operation.Token);

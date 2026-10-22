@@ -74,7 +74,7 @@ func amneziaClient(t *testing.T, port int, clientPrivate, serverPublic []byte, o
 	outboundOptions, _ := json.Marshal(map[string]any{
 		"type": TypeAmneziaWG, "tag": "server", "server": "127.0.0.1", "server_port": port,
 		"private_key": base64.StdEncoding.EncodeToString(clientPrivate), "peer_public_key": base64.StdEncoding.EncodeToString(serverPublic),
-		"local_address": []string{"10.9.0.2/32"}, "obfuscation": obfuscation,
+		"local_address": []string{"10.9.0.2/32"}, "obfuscation": obfuscation, "persistent_keepalive_interval": 25,
 	})
 	config := `{"log":{"level":"error"},"inbounds":[{"type":"mixed","listen":"127.0.0.1","listen_port":0,"tag":"in"}],"outbounds":[` + string(outboundOptions) + `]}`
 	ctx, cancel := context.WithCancel(service.ExtendContext(globalContext()))

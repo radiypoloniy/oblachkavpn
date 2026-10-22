@@ -54,8 +54,7 @@ public sealed partial class Engine : ITunnelController
     {
         if (process is not null || carrier is not null) throw new UserError("Сначала остановите текущее подключение.");
         if (CarriedBy is { } carriedBy) return StartCarried(carriedBy);
-        var filename = profile.Core == CoreKind.Xray ? "xray.exe" : "sing-box.exe";
-        adapter = new(profile.Core, Path.Combine(Path.GetDirectoryName(adapter.Executable)!, filename));
+        adapter = new(profile.Core, Path.Combine(Path.GetDirectoryName(adapter.Executable)!, CoreAdapter.FileFor(profile)));
         var rules = SiteRules; var routing = Routing; var entry = DirectEntry;
         FragmentActive = Fragment && TlsFragment.Applies(profile);
         var fragment = FragmentActive; var shape = FragmentShape;

@@ -4,11 +4,10 @@ namespace Oblachka;
 
 // WireGuard: обычный файл .conf ([Interface] / [Peer]) и общая сборка профиля для ссылок.
 // Профиль — endpoint sing-box. Поддерживается один сервер; DNS из файла не применяется:
-// его задаёт сам клиент. Конфигурации AmneziaWG (Jc, S1, H1 …) отклоняются явно.
+// его задаёт сам клиент. Конфигурация AmneziaWG (Jc, S1, H1 … в [Interface]) — профиль выхода
+// amneziawg своего ядра туннеля; AllowedIPs у неё не применяются — через туннель идёт всё.
 public static class WireGuardConfig
 {
-    private static readonly string[] AmneziaKeys = { "jc", "jmin", "jmax", "s1", "s2", "s3", "s4", "h1", "h2", "h3", "h4", "i1", "i2", "i3", "i4", "i5" };
-
     public static bool Looks(string text) =>
         text.Contains("[Interface]", StringComparison.OrdinalIgnoreCase) && text.Contains("[Peer]", StringComparison.OrdinalIgnoreCase);
 
@@ -31,15 +30,34 @@ public static class WireGuardConfig
         var peers = sections.Where(s => s.Name == "peer").Select(s => s.Values).ToArray();
         if (face.Length != 1) throw new UserError("В конфигурации WireGuard нужен один раздел [Interface].");
         if (peers.Length != 1) throw new UserError("Поддерживается конфигурация WireGuard с одним сервером ([Peer]).");
-        if (face[0].Keys.Concat(peers[0].Keys).Any(k => AmneziaKeys.Contains(k.ToLowerInvariant())))
-            throw new UserError("Это конфигурация AmneziaWG. Её поддержка пока не готова — нужна конфигурация обычного WireGuard.");
+        if (peers[0].Keys.Any(k => SingBoxProtocols.AmneziaKeys.Contains(k.ToLowerInvariant())))
+            throw new UserError("AmneziaWG: параметры Jc, S1, H1 … должны быть в разделе [Interface].");
         string F(Dictionary<string, string> d, string key) => d.TryGetValue(key, out var v) ? v : "";
         var endpoint = F(peers[0], "Endpoint");
         var colon = endpoint.LastIndexOf(':');
         if (colon <= 0 || !int.TryParse(endpoint[(colon + 1)..], out var port)) throw new UserError("WireGuard: нужен Endpoint вида адрес:порт.");
         var host = endpoint[..colon].Trim('[', ']');
+        var amnezia = face[0].Where(p => SingBoxProtocols.AmneziaKeys.Contains(p.Key.ToLowerInvariant())).ToDictionary(p => p.Key.ToLowerInvariant(), p => p.Value);
+        if (amnezia.Count > 0)
+            return Amnezia(F(face[0], "PrivateKey"), F(face[0], "Address"), F(face[0], "MTU"), host, port, F(peers[0], "PublicKey"),
+                F(peers[0], "PresharedKey"), F(peers[0], "PersistentKeepalive"), amnezia, name.Length > 0 ? name : "AmneziaWG · " + host);
         return Build(F(face[0], "PrivateKey"), F(face[0], "Address"), F(face[0], "MTU"), host, port, F(peers[0], "PublicKey"),
             F(peers[0], "PresharedKey"), "", F(peers[0], "PersistentKeepalive"), name.Length > 0 ? name : "WireGuard · " + host, F(peers[0], "AllowedIPs"));
+    }
+
+    public static Profile Amnezia(string privateKey, string addresses, string mtu, string host, int port, string publicKey, string preshared,
+        string keepalive, IReadOnlyDictionary<string, string> obfuscation, string name)
+    {
+        var outbound = new JsonObject
+        {
+            ["type"] = "amneziawg", ["server"] = host, ["server_port"] = port, ["private_key"] = privateKey, ["peer_public_key"] = publicKey,
+            ["local_address"] = new JsonArray(addresses.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(a => (JsonNode?)JsonValue.Create(a)).ToArray()),
+            ["mtu"] = int.TryParse(mtu, out var size) ? size : 1280,
+            ["obfuscation"] = new JsonObject(obfuscation.Select(p => new KeyValuePair<string, JsonNode?>(p.Key, p.Value.Trim())))
+        };
+        if (preshared.Length > 0) outbound["pre_shared_key"] = preshared;
+        if (int.TryParse(keepalive, out var interval) && interval > 0) outbound["persistent_keepalive_interval"] = interval;
+        return SingBoxProfiles.Parse(outbound, name);
     }
 
     public static Profile Build(string privateKey, string addresses, string mtu, string host, int port, string publicKey, string preshared,
