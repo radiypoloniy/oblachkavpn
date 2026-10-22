@@ -118,7 +118,8 @@ public partial class MainWindow
         // режиме правил не несёт (Engine.SiteRules пуст), иначе «напрямую» шло бы из него.
         RememberTunnelDirect(); sentRules = new(LeasePrograms().ToArray(), LeaseSites());
         var lists = await SendTunnelListsAsync(helperLifetime.Client).ConfigureAwait(true);
-        await session.StartWithSparesAsync(plans, token, LeaseSites(), LeasePrograms(), (engine as Engine)?.DirectEntry, selectiveVpn, lists, Settings.LocalNetwork.IsChecked == true).ConfigureAwait(true);
+        await session.StartWithSparesAsync(plans, token, LeaseSites(), LeasePrograms(), (engine as Engine)?.DirectEntry, selectiveVpn, lists, Settings.LocalNetwork.IsChecked == true,
+            Settings.QuicOverTcp.IsChecked == true).ConfigureAwait(true);
     }
 
     // Выбранный узел первым, затем запасные в том порядке, в каком их переберёт подбор.
