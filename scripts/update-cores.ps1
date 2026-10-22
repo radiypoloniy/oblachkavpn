@@ -1,5 +1,6 @@
-﻿# Обновление ядер Xray и sing-box до последних релизов. Без -Apply только сообщает, что вышло
-# (так его запускает задача .github/workflows/cores-update.yml). С -Apply:
+﻿# Обновление ядер Xray и sing-box до последних релизов. Без -Apply только сообщает, что вышло,
+# что из этого срочно и не пора ли поднять Go и .NET (так его запускает задача
+# .github/workflows/cores-update.yml). С -Apply (только ядра; Go и .NET — руками):
 #   1. скачивает архивы релизов и сверяет SHA256 с digest GitHub (у Xray — ещё и с .dgst);
 #   2. переписывает пины в fetch-cores.ps1, THIRD-PARTY.md и папку лицензии в vendor\;
 #   3. поднимает модули в core\go.mod (sing-box по тегу, Xray по коммиту тега), собирает
@@ -32,7 +33,56 @@ $updates = @()
 foreach ($core in 'Xray', 'SingBox') {
     if ([version]$latest[$core] -gt [version]$current[$core]) { $updates += $core }
 }
-$report = [ordered]@{ Xray = $current.Xray + ' -> ' + $latest.Xray; SingBox = $current.SingBox + ' -> ' + $latest.SingBox; Updates = $updates }
+
+# Срочно — если автор отозвал наш релиз (так Xray снял 26.10.17) или в новых релизах есть
+# исправления безопасности. Тогда обновление выпускается за 1–3 дня, а не в плановый раз в месяц.
+$urgent = @(); $notes = @()
+$securityWords = '(?i)CVE-\d|GHSA-|security|vulnerab|撤版|紧急|安全更新|安全修复'
+function Gone([string]$repo, [string]$tag) {
+    try { Api ('repos/' + $repo + '/releases/tags/' + $tag) | Out-Null; return $false }
+    catch { if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 404) { return $true }; throw }
+}
+# У Xray в описании — спонсоры и кошельки; смотрим только текст до них.
+function Notes([object]$release) { ([string]$release.body -split '## Sponsors')[0] }
+if (Gone 'XTLS/Xray-core' ('v' + $current.Xray)) { $urgent += ('Xray ' + $current.Xray + ' отозван автором — релиза больше нет.') }
+if (Gone 'SagerNet/sing-box' ('v' + $current.SingBox)) { $urgent += ('sing-box ' + $current.SingBox + ' отозван автором — релиза больше нет.') }
+foreach ($release in $xrayList | Where-Object { -not $_.draft -and [version]$_.tag_name.TrimStart('v') -gt [version]$current.Xray }) {
+    if ((Notes $release) -match $securityWords) { $urgent += ('Xray ' + $release.tag_name + ': в описании исправление безопасности.') }
+}
+if ($updates -contains 'SingBox') {
+    if ((Notes $singRelease) -match $securityWords) { $urgent += ('sing-box ' + $singRelease.tag_name + ': в описании исправление безопасности.') }
+    $old = [version]$current.SingBox; $new = [version]$latest.SingBox
+    if ($new.Major -ne $old.Major -or $new.Minor -ne $old.Minor) { $notes += ('sing-box ' + $latest.SingBox + ' — новая основная версия: обновлять отдельной веткой, core\ под новое API.') }
+}
+
+# Go: точечные выпуски закрывают уязвимости стандартной библиотеки, из которой собрано ядро туннеля.
+$goMod = [IO.File]::ReadAllText((Join-Path $root 'core\go.mod'))
+$goCurrent = [regex]::Match($goMod, '(?m)^go ([0-9.]+)').Groups[1].Value
+$goLine = ($goCurrent -split '\.')[0..1] -join '.'
+$goLatest = (Invoke-RestMethod -Uri 'https://go.dev/dl/?mode=json' -Headers @{ 'User-Agent' = 'oblachka-cores-update' }) |
+    ForEach-Object { $_.version.TrimStart('go') } | Where-Object { $_ -eq $goLine -or $_.StartsWith($goLine + '.') } | Select-Object -First 1
+if ($goLatest -and [version]$goLatest -gt [version]$goCurrent) { $notes += ('Go ' + $goCurrent + ' -> ' + $goLatest + ': поднять go в core\go.mod и пересобрать ядро туннеля (обычно это исправления безопасности).') }
+
+# .NET входит в установщик (self-contained): его исправления доходят до людей только с нашим выпуском.
+$dotnet = Invoke-RestMethod -Uri 'https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json' -Headers @{ 'User-Agent' = 'oblachka-cores-update' }
+$repo = if ($env:GITHUB_REPOSITORY) { $env:GITHUB_REPOSITORY } else { 'radiypoloniy/oblachkavpn' }
+$ours = Api ('repos/' + $repo + '/releases?per_page=10')
+$lastRelease = $ours | Where-Object { -not $_.draft } | Select-Object -First 1
+if ($lastRelease -and [datetime]$dotnet.'latest-release-date' -gt ([datetime]$lastRelease.published_at).Date) {
+    $security = if ($dotnet.releases[0].security) { ' с исправлениями безопасности' } else { '' }
+    $notes += ('.NET ' + $dotnet.'latest-release' + $security + ' вышел ' + $dotnet.'latest-release-date' + ', после нашего ' + $lastRelease.tag_name + ': пересобрать и выпустить.')
+}
+
+$title = @()
+if ($updates.Count) { $title += ('Новые ядра: Xray ' + $latest.Xray + ', sing-box ' + $latest.SingBox) }
+elseif ($urgent.Count) { $title += 'Ядра: отозван релиз' }
+if ($notes.Count -and -not $updates.Count) { $title += ('Обновления: ' + (($notes | ForEach-Object { ($_ -split ':')[0] }) -join ', ')) }
+$title = ($title -join '; ')
+if ($urgent.Count) { $title = 'СРОЧНО — ' + $title }
+$report = [ordered]@{
+    Xray = $current.Xray + ' -> ' + $latest.Xray; SingBox = $current.SingBox + ' -> ' + $latest.SingBox
+    Updates = $updates; Urgent = $urgent; Notes = $notes; Title = $title
+}
 if (-not $Apply) { $report | ConvertTo-Json -Compress; return }
 if ($updates.Count -eq 0) { Write-Host 'Ядра актуальны.'; return }
 
