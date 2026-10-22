@@ -161,7 +161,9 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
                 var own = peers.Where(p => (p.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) == v6)
                     .Select(p => new WfpCondition(WfpConditionKind.RemoteAddress, p)).ToArray();
                 if (own.Length > 0) Add("узлы только ядрам" + family, v6, 12, false, own);
-                Add("локальная сеть для программ" + family, v6, 11, true, LocalSubnets(v6).ToArray());
+                // Вместе с подсетями — мультикаст и широковещание: на них держится обнаружение устройств
+                // (mDNS, SSDP, WS-Discovery). Они идут на физический интерфейс и за пределы сети не выходят.
+                Add("локальная сеть для программ" + family, v6, 11, true, LocalSubnets(v6).Concat(Discovery(v6)).ToArray());
             }
             Add("запрет мимо туннеля" + family, v6, 0, false);
             // Пакеты уже разрешённых потоков слой соединений не видит. На снятии туннеля
@@ -175,8 +177,13 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
         return list;
     }
 
+    public static readonly string[] DiscoverySubnets = ["224.0.0.0/4", "255.255.255.255/32", "ff00::/8"];
+    public static IEnumerable<WfpCondition> Discovery(bool v6) => Subnets(DiscoverySubnets, v6);
+
     // Те же подсети, что ядро туннеля отправляет прямым выходом (SingBoxTunConfig.LocalSubnets).
-    public static IEnumerable<WfpCondition> LocalSubnets(bool v6) => SingBoxTunConfig.LocalSubnets
+    public static IEnumerable<WfpCondition> LocalSubnets(bool v6) => Subnets(SingBoxTunConfig.LocalSubnets, v6);
+
+    private static IEnumerable<WfpCondition> Subnets(IEnumerable<string> subnets, bool v6) => subnets
         .Select(s => s.Split('/')).Select(p => (Address: IPAddress.Parse(p[0]), Prefix: int.Parse(p[1], System.Globalization.CultureInfo.InvariantCulture)))
         .Where(s => (s.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) == v6)
         .Select(s => new WfpCondition(WfpConditionKind.RemoteSubnet, s.Address, Number: s.Prefix));

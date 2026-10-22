@@ -47,7 +47,9 @@ public static partial class SelfTests
             {
                 var filters = backend.Filters(new[] { peer }, local: true).Where(f => f.V6 == v6 && !f.Packet).ToArray();
                 var lan = filters.Single(f => f.Permit && f.Conditions.All(c => c.Kind == WfpConditionKind.RemoteSubnet));
-                Assert(lan.Conditions.Length == WfpProtectionBackend.LocalSubnets(v6).Count());
+                Assert(lan.Conditions.Length == WfpProtectionBackend.LocalSubnets(v6).Count() + WfpProtectionBackend.Discovery(v6).Count());
+                // Обнаружение устройств: мультикаст (и широковещание в IPv4) открыт программам вместе с подсетями.
+                Assert(lan.Conditions.Any(c => c.Address!.ToString() == (v6 ? "ff00::" : "224.0.0.0")));
                 var dns = filters.Single(f => !f.Permit && f.Conditions.Any(c => c.Kind == WfpConditionKind.RemotePort && c.Number == 53));
                 Assert(dns.Weight > lan.Weight && dns.Weight < filters.Single(f => f.Name.Contains("DNS туннеля")).Weight);
                 // Ядрам DNS к роутеру по-прежнему открыт (DirectDns): их разрешение выше запрета.
