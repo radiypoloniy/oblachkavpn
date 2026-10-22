@@ -7,7 +7,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>Oblachka</AssemblyName>
-    <Version>0.18.2</Version>
+    <Version>0.19.0</Version>
     <PlatformTarget>x64</PlatformTarget>
     <StartupObject>Oblachka.Program</StartupObject>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
