@@ -1,6 +1,6 @@
 ﻿namespace Oblachka;
 
-// Скорость и трафик за день в «Весь компьютер» (TrafficMeter): скорость — в строке состояния и в
+// Скорость и трафик за день в «Весь компьютер» (TrafficMeter): скорость — в строке под статусом и в
 // трее, трафик за день — в подсказке к строке. В «Браузеры и программы» у ядра окна такого
 // интерфейса нет, там строка прежняя.
 public partial class MainWindow
@@ -33,5 +33,6 @@ public partial class MainWindow
         Home.StatusSub.ToolTip = trafficToday > 0 ? "Сегодня через ядро туннеля: " + TrafficMeter.Size(trafficToday) : null;
     }
 
-    private string TrafficText => meter is { Fresh: true } m ? " · ↓ " + TrafficMeter.Rate(m.Down) + " ↑ " + TrafficMeter.Rate(m.Up) : "";
+    // Строка под статусом: имя сервера и так в карточке ниже, а скорость с ним в боковую панель не влезала.
+    private string? TrafficText => meter is { Fresh: true } m ? "↓ " + TrafficMeter.Rate(m.Down) + " · ↑ " + TrafficMeter.Rate(m.Up) : null;
 }
