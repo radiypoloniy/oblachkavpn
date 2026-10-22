@@ -147,10 +147,10 @@ public static class Profiles
 
     private static void ValidateVless(JsonObject settings)
     {
-        // Xray 26.10.17 uses vnext. Newer flat address/id syntax is intentionally not guessed.
+        // Xray 26.10.21 uses vnext. Newer flat address/id syntax is intentionally not guessed.
         var vnext = settings["vnext"] as JsonArray;
         if (vnext?.Count != 1 || vnext[0] is not JsonObject peer || peer["users"] is not JsonArray users || users.Count != 1)
-            throw new UserError("Для Xray 26.10.17 нужны settings.vnext с одним сервером и одним пользователем.");
+            throw new UserError("Для Xray 26.10.21 нужны settings.vnext с одним сервером и одним пользователем.");
         ValidateEndpoint(peer);
         var user = users[0] as JsonObject ?? throw new UserError("Не указан пользователь VLESS.");
         if (string.IsNullOrWhiteSpace(user["id"]?.GetValue<string>())) throw new UserError("Не указан идентификатор VLESS.");

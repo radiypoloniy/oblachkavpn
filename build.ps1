@@ -17,7 +17,7 @@ New-Item -ItemType Directory -Force $tools | Out-Null
 foreach ($core in 'xray.exe', 'sing-box.exe', 'libcronet.dll', 'oblachka-core.exe') {
     Copy-Item -LiteralPath (Join-Path $projectRoot ('vendor\cores\' + $core)) -Destination $tools -Force
 }
-Copy-Item -LiteralPath (Join-Path $projectRoot 'vendor\xray-26.10.17\LICENSE-Xray') -Destination $tools -Force
+Copy-Item -LiteralPath (Join-Path $projectRoot 'vendor\xray-26.10.21\LICENSE-Xray') -Destination $tools -Force
 foreach ($license in 'LICENSE-sing-box', 'COPYING-GPL-3.0') {
     Copy-Item -LiteralPath (Join-Path $projectRoot ('vendor\sing-box-1.14.3\' + $license)) -Destination $tools -Force
 }

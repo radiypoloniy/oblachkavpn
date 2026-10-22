@@ -1,8 +1,10 @@
 name: Новые ядра
 
-# Раз в неделю: вышли ли новые Xray и sing-box. Ядра сами не обновляются — их запускает служба
-# с правами SYSTEM, а выпуск проходит проверки и стенд скорости. Задача открывает issue с тем,
-# что вышло; обновляет scripts/update-cores.ps1 -Apply на машине разработки.
+# Раз в неделю: вышли ли новые Xray и sing-box, не отозван ли наш релиз, нет ли уязвимостей
+# в модулях ядра туннеля и не пора ли поднять Go и .NET. Ядра сами не обновляются — их запускает
+# служба с правами SYSTEM, а выпуск проходит проверки и стенд скорости. Задача открывает issue
+# с тем, что вышло; обновляет scripts/update-cores.ps1 -Apply на машине разработки.
+# Срочное (отзыв, безопасность, govulncheck) — выпуск за 1–3 дня, остальное — раз в месяц.
 on:
   schedule:
     - cron: '41 5 * * 1'
@@ -15,26 +17,57 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: core/go.mod
+          cache-dependency-path: core/go.sum
+
+      # Тот же govulncheck, что в ci.yml: базы уязвимостей пополняются и без наших коммитов.
+      - name: Уязвимости зависимостей ядра
+        id: vuln
+        shell: pwsh
+        working-directory: core
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+          $tags = (Get-Content ../scripts/build-core.ps1 | Where-Object { $_ -like '$tags = *' } | Select-Object -First 1).Split("'")[1]
+          & "$(go env GOPATH)/bin/govulncheck" -tags $tags ./... | Tee-Object -FilePath ../govulncheck.txt
+          "found=$(if ($LASTEXITCODE -ne 0) { 'true' } else { 'false' })" >> $env:GITHUB_OUTPUT
+          exit 0
 
       - name: Сверить версии
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          VULN: ${{ steps.vuln.outputs.found }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           $report = ./scripts/update-cores.ps1 | ConvertFrom-Json
           Write-Host ("Xray " + $report.Xray + ", sing-box " + $report.SingBox)
-          if (-not $report.Updates) { exit 0 }
-          $title = "Новые ядра: Xray " + $report.Xray + ", sing-box " + $report.SingBox
-          $open = gh issue list --state open --search "in:title Новые ядра" --json title | ConvertFrom-Json
+          $urgent = @($report.Urgent)
+          $title = $report.Title
+          if ($env:VULN -eq 'true') {
+            $urgent += ('govulncheck нашёл уязвимости в модулях ядра туннеля — подробности в журнале задачи: ' + $env:RUN_URL)
+            if (-not $title) { $title = 'Уязвимости в модулях ядра' }
+            if (-not $title.StartsWith('СРОЧНО')) { $title = 'СРОЧНО — ' + $title }
+          }
+          if (-not $title) { Write-Host 'Всё актуально.'; exit 0 }
+          $open = gh issue list --state open --search "in:title $title" --json title | ConvertFrom-Json
           if ($open | Where-Object { $_.title -eq $title }) { Write-Host 'Issue уже открыт.'; exit 0 }
-          $body = @(
-            'Вышли новые версии ядер:', '',
-            ('- Xray: ' + $report.Xray + ' — https://github.com/XTLS/Xray-core/releases'),
-            ('- sing-box: ' + $report.SingBox + ' — https://github.com/SagerNet/sing-box/releases'), '',
-            'Обновление: `.\scripts\update-cores.ps1 -Apply`, затем `.\build.ps1`, `.\test.ps1`, стенд скорости и раздел в CHANGELOG.md.',
-            'Если oblachka-core не собрался — поправить core\ под новое API (список изменений — в релизе).'
-          ) -join "`n"
-          gh issue create --title $title --body $body
+          $body = @()
+          if ($urgent.Count) { $body += '**Срочно — выпуск за 1–3 дня:**'; $body += ($urgent | ForEach-Object { '- ' + $_ }); $body += '' }
+          if (@($report.Updates).Count) {
+            $body += 'Вышли новые версии ядер:'
+            $body += ('- Xray: ' + $report.Xray + ' — https://github.com/XTLS/Xray-core/releases')
+            $body += ('- sing-box: ' + $report.SingBox + ' — https://github.com/SagerNet/sing-box/releases')
+            $body += ''
+            $body += 'Обновление: `.\scripts\update-cores.ps1 -Apply`, затем `.\build.ps1`, `.\test.ps1`, стенд скорости и раздел в CHANGELOG.md.'
+            $body += 'Если oblachka-core не собрался — поправить core\ под новое API (список изменений — в релизе).'
+            $body += 'Без срочности обычные релизы Xray копятся до выпуска в конце месяца.'
+            $body += ''
+          }
+          if (@($report.Notes).Count) { $body += '**Ещё:**'; $body += (@($report.Notes) | ForEach-Object { '- ' + $_ }) }
+          gh issue create --title $title --body ($body -join "`n")
