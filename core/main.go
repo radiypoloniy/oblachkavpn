@@ -1,5 +1,5 @@
-// oblachka-core — ядро системного туннеля Облачки: sing-box 1.14.3 и выход "xray"
-// (встроенный Xray для XHTTP и других протоколов, которых sing-box не умеет).
+// oblachka-core — ядро системного туннеля Облачки: sing-box 1.14.3, выход "xray"
+// (встроенный Xray для XHTTP и других протоколов, которых sing-box не умеет) и выход "amneziawg".
 //
 // Командная строка совпадает с той частью sing-box, которой пользуется служба:
 //
@@ -31,7 +31,7 @@ import (
 
 func main() {
 	if len(os.Args) == 2 && os.Args[1] == "version" {
-		fmt.Println("oblachka-core: sing-box " + C.Version + ", xray outbound")
+		fmt.Println("oblachka-core: sing-box " + C.Version + ", xray and amneziawg outbounds")
 		return
 	}
 	if len(os.Args) != 4 || os.Args[2] != "-c" || os.Args[3] != "stdin" || (os.Args[1] != "run" && os.Args[1] != "check") {
@@ -55,6 +55,7 @@ func main() {
 func globalContext() context.Context {
 	outbounds := include.OutboundRegistry()
 	RegisterXrayOutbound(outbounds)
+	RegisterAmneziaWGOutbound(outbounds)
 	ctx := service.ContextWith(context.Background(), deprecated.NewStderrManager(log.StdLogger()))
 	return box.Context(ctx, include.InboundRegistry(), outbounds, include.EndpointRegistry(),
 		include.DNSTransportRegistry(), include.ServiceRegistry(), include.CertificateProviderRegistry())
