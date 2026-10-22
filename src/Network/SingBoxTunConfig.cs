@@ -35,8 +35,12 @@ public static class SingBoxTunConfig
         if (lease.Action != NetworkLeaseAction.Acquire) throw new UserError("TUN требует новую сетевую сессию.");
         // Куда идёт трафик «через VPN»: прямо на сервер через переключатель (одно ядро) или в ядро окна.
         var tunnel = lease.Direct is null ? "local-core" : ServerSelector;
-        var exclusions = new JsonArray(lease.Peers.Select(ip => (JsonNode?)JsonValue.Create(
-            ip + (ip.AddressFamily == AddressFamily.InterNetwork ? "/32" : "/128"))).ToArray());
+        // Мимо туннеля Windows сама шлёт адреса узлов и, с «Локальной сетью напрямую», частные подсети:
+        // принтер и NAS работают без ядра (как у Throne). Защита открывает их программам, кроме DNS
+        // и адресов узлов (WfpProtectionBackend). Подсеть самого туннеля внутри 172.16/12 остаётся
+        // в туннеле: её маршрут — подключённый, он точнее исключения.
+        var exclusions = new JsonArray(lease.Peers.Select(ip => ip + (ip.AddressFamily == AddressFamily.InterNetwork ? "/32" : "/128"))
+            .Concat(lease.LocalNetwork ? LocalSubnets : []).Select(s => (JsonNode?)JsonValue.Create(s)).ToArray());
         var config = new JsonObject
         {
             ["log"] = new JsonObject { ["disabled"] = true },

@@ -24,7 +24,8 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
     public const string ResourceId = "wfp-protection";
     public static readonly Guid ProviderKey = new("6f1a3c52-0b7e-4d0e-9a1d-0b1a5c7e2f01");
     public static readonly Guid SublayerKey = new("6f1a3c52-0b7e-4d0e-9a1d-0b1a5c7e2f02");
-    // Номеров с запасом: фильтр на каждый из 16 адресов узлов плюс общие фильтры обоих семейств.
+    // Номеров с запасом: фильтр на каждый из 16 адресов узлов плюс общие фильтры обоих семейств
+    // (до 10 на семейство с локальной сетью); последние 14 — у WfpReinjection.
     public const int MaxFilters = 64;
     private const ushort SublayerWeight = ushort.MaxValue;
     // Тип интерфейса wintun по IANA: IF_TYPE_PROP_VIRTUAL. Физические адаптеры — другие
@@ -137,6 +138,18 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
                     .Prepend(new WfpCondition(WfpConditionKind.Application, Program: TunCoreProgram)).ToArray());
             Add("DHCP" + family, v6, 12, true, new WfpCondition(WfpConditionKind.Protocol, Number: 17),
                 new WfpCondition(WfpConditionKind.LocalPort, Number: v6 ? 546 : 68), new WfpCondition(WfpConditionKind.RemotePort, Number: v6 ? 547 : 67));
+            // Локальная сеть мимо туннеля (SingBoxTunConfig: частные подсети в route_exclude_address):
+            // программы ходят к принтеру и NAS сами, без ядра. Выше разрешения — два запрета: DNS мимо
+            // туннеля (Windows спрашивает DNS роутера на каждом интерфейсе — это утечка имён) и адреса
+            // узлов для всех, кроме ядер (сервер в локальной сети остаётся только за ядрами).
+            if (local)
+            {
+                Add("DNS мимо туннеля" + family, v6, 12, false, new WfpCondition(WfpConditionKind.RemotePort, Number: 53));
+                var own = peers.Where(p => (p.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) == v6)
+                    .Select(p => new WfpCondition(WfpConditionKind.RemoteAddress, p)).ToArray();
+                if (own.Length > 0) Add("узлы только ядрам" + family, v6, 12, false, own);
+                Add("локальная сеть для программ" + family, v6, 11, true, LocalSubnets(v6).ToArray());
+            }
             Add("запрет мимо туннеля" + family, v6, 0, false);
             // Пакеты уже разрешённых потоков слой соединений не видит. На снятии туннеля
             // соединения, жившие в нём, закрываются, и их FIN уходил на физический адаптер
