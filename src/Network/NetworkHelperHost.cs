@@ -62,9 +62,9 @@ public static class NetworkHelperHost
         catch (Exception write) when (write is IOException or UnauthorizedAccessException) { }
     }
 
-    // Сторож защиты: раз в 5 с сверяет фильтры WFP с журналом и ставит пропавшие заново
+    // Сторож защиты: раз в секунду сверяет фильтры WFP с журналом и ставит пропавшие заново
     // (NetworkSession.Guard), вместе с разрешениями zapret. Окно узнаёт об этом из пульса.
-    internal static readonly TimeSpan GuardInterval = TimeSpan.FromSeconds(5);
+    internal static readonly TimeSpan GuardInterval = TimeSpan.FromSeconds(1);
     internal static void StartGuard(NetworkSession session, CancellationToken token) => new Thread(() =>
     {
         while (!token.WaitHandle.WaitOne(GuardInterval))
