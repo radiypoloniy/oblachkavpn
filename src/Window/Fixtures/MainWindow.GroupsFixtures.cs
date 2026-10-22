@@ -75,6 +75,22 @@ public partial class MainWindow
         if (ProfilesOf(ProfileGroup.ManualId).Count != 1 || importedProfiles.Count != 2)
             throw new InvalidOperationException("Deleting a manual server failed");
         checks.Add("A subscription server hides (and survives saving hidden, returns on demand); a manual server deletes");
+        // «Скрыть лишние»: повтор сервера из подписки выше под другим именем и сервер без ответа.
+        // Повтор под тем же именем не скрывается — вместе с ним скрылся бы оригинал.
+        await Load("https://junk.invalid/s/c", new ImportResult(new[] { Node("Швеция", 3), Node("Швеция", 3) with { Name = "Швеция 2" }, Node("Мёртвый", 8), Node("Живой", 9) }, 0, 0));
+        var junkGroup = groups.Single(g => g.Sources.Contains("https://junk.invalid/s/c")).Id;
+        var dead = ProfilesOf(junkGroup).Single(p => p.Name == "Мёртвый");
+        measurements[Profiles.Fingerprint(dead)] = new(Profiles.Fingerprint(dead), DateTimeOffset.UtcNow, false, 0);
+        RenderSheet();
+        if (!Junk(junkGroup).Select(p => p.Name).Order().SequenceEqual(new[] { "Мёртвый", "Швеция 2" }) || Junk(groups[0].Id).Length != 0 ||
+            Servers.SheetList.Items.OfType<SheetHeader>().FirstOrDefault(h => h.GroupId == junkGroup)?.Junk != 2)
+            throw new InvalidOperationException("«Скрыть лишние» found the wrong servers: " + string.Join(", ", Junk(junkGroup).Select(p => p.Name)));
+        HideJunk(junkGroup);
+        if (HiddenIn(junkGroup) != 2 || Junk(junkGroup).Length != 0 || ProfilesOf(junkGroup).Count(p => !HiddenServer(p)) != 2 || !importedProfiles.Any(p => p.Name == "Швеция"))
+            throw new InvalidOperationException("«Скрыть лишние» did not hide them");
+        measurements.Remove(Profiles.Fingerprint(dead));
+        RemoveGroup(junkGroup);
+        checks.Add("«Скрыть лишние» hides servers without an answer and renamed repeats of a server above; the original stays");
         // Убранная подписка запоминается: ссылка со страницы подписки спросит «Вернуть?», а не «Добавить?».
         var swedenGroup = groups.First(g => g.IsSubscription).Id;
         RemoveGroup(swedenGroup);

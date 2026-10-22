@@ -100,12 +100,15 @@ public sealed class GroupRow
 }
 
 // Заголовок группы в панели «Все серверы»: «Избранное», затем подписки по именам.
-public sealed record SheetHeader(string Title, string? GroupId = null, bool CanRefresh = false, int Hidden = 0)
+public sealed record SheetHeader(string Title, string? GroupId = null, bool CanRefresh = false, int Hidden = 0, int Junk = 0)
 {
     public Visibility ActionsVisibility => GroupId is null ? Visibility.Collapsed : Visibility.Visible;
     public Visibility RefreshVisibility => CanRefresh ? Visibility.Visible : Visibility.Collapsed;
     public Visibility UnhideVisibility => Hidden > 0 ? Visibility.Visible : Visibility.Collapsed;
     public string UnhideText => $"Вернуть скрытые ({Hidden})";
+    // Серверы без ответа на свежей проверке и повторы (MainWindow.Junk).
+    public Visibility JunkVisibility => Junk > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public string JunkText => $"Скрыть лишние ({Junk})";
     public string RemoveName => "Убрать «" + Title + "»";
 }
 
