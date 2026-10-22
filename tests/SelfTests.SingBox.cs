@@ -51,7 +51,7 @@ public static partial class SelfTests
             Assert(engine.State == ConnectionState.Running && engine.CoreLabel == "sing-box 1.14.3");
             engine.Stop();
             await engine.StartAsync(Profiles.Parse(link), cancel.Token);
-            Assert(engine.Port == port && engine.CoreLabel == "Xray 26.10.17");
+            Assert(engine.Port == port && engine.CoreLabel == "Xray 26.10.21");
             engine.Stop();
             var invalid = NativeVless(); invalid["type"] = "unsupported-fixture";
             await ExpectUserErrorAsync(() => engine.StartAsync(new Profile("Invalid", "TCP", invalid, CoreKind.SingBox), cancel.Token));
