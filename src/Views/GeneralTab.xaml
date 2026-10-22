@@ -33,6 +33,14 @@
               <TextBlock Text="VPN продолжает работать, Облачка — у часов" Style="{StaticResource SetSub}"/>
             </StackPanel>
           </DockPanel>
+          <DockPanel Style="{StaticResource SetLine}">
+            <CheckBox x:Name="Hotkey" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" VerticalAlignment="Center" AutomationProperties.Name="Ctrl+Alt+O показывает окно"/>
+            <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcPurple}"><Path Data="{StaticResource IcoBolt}" Style="{StaticResource SetGlyph}"/></Border>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="Ctrl+Alt+O показывает окно" Style="{StaticResource SetTitle}"/>
+              <TextBlock x:Name="HotkeyNote" Text="Из любой программы; нажмите ещё раз — окно уйдёт в трей" Style="{StaticResource SetSub}"/>
+            </StackPanel>
+          </DockPanel>
         </StackPanel>
       </Border>
 
