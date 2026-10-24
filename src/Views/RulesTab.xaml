@@ -14,6 +14,7 @@
           <StackPanel VerticalAlignment="Center">
             <TextBlock x:Name="RuleText" Text="{Binding Text}" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FsLabel}" TextTrimming="CharacterEllipsis"/>
             <TextBlock Text="{Binding Sub}" FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Visibility="{Binding SubVisibility}"/>
+            <TextBlock Text="{Binding Warning}" FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource WF}" TextWrapping="Wrap" Margin="0,2,0,0" Visibility="{Binding WarningVisibility}"/>
           </StackPanel>
         </DockPanel>
       </Border>

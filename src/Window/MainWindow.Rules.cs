@@ -46,7 +46,8 @@ public partial class MainWindow
     private void RefreshRules()
     {
         Routes.RuleList.ItemsSource = siteRules.Select(r => new RuleRow { Rule = r, Text = r.Domain, Action = r.Action }).ToArray();
-        Routes.ProgramList.ItemsSource = programRules.Select(ProgramRow).ToArray();
+        var conflicts = ProgramRuleConflicts.Find(programRules, KnownProgramPaths());
+        Routes.ProgramList.ItemsSource = programRules.Select(r => ProgramRow(r, conflicts)).ToArray();
         if (viewsReady) { UpdateWhere(); RefreshSettingsSummary(); }
     }
 }

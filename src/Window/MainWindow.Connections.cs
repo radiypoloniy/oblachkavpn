@@ -96,6 +96,7 @@ public partial class MainWindow
             // «Весь компьютер»: куда ушло соединение, знает только ядро туннеля — по таблицам Windows
             // любое соединение открыто с адреса туннеля, даже по правилу «напрямую».
             var core = tunnel && systemTunnel?.Stats is { } stats ? await CoreConnections.ReadAsync(stats, CancellationToken.None) : null;
+            if (core is not null) programJournal.Record(core, DateTime.UtcNow);
             var apps = core is not null ? LiveApps.FromCore(core, Own, liveSpeed.Measure(core, DateTime.UtcNow))
                 : await Task.Run(() => LiveApps.Group(ConnectionTable.Read(), tunnel, proxy, LivePath, Own));
             if (closed) return;

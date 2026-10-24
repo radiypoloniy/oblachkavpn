@@ -124,6 +124,9 @@ public sealed class RuleRow
     public bool Plain => Sub is not null;
     public Visibility IconVisibility => Icon is null ? Visibility.Collapsed : Visibility.Visible;
     public Visibility SubVisibility => Sub is null ? Visibility.Collapsed : Visibility.Visible;
+    // Правило спорит с другим (ProgramRuleConflicts): одна программа пойдёт двумя путями.
+    public string? Warning { get; init; }
+    public Visibility WarningVisibility => Warning is null ? Visibility.Collapsed : Visibility.Visible;
     public string ActionText => ActionLabel(Action);
     public static string ActionLabel(SiteAction action) => action switch { SiteAction.Direct => "напрямую", SiteAction.Block => "блок", _ => "через VPN" };
 }

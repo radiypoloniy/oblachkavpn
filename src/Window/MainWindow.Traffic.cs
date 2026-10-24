@@ -12,6 +12,18 @@ public partial class MainWindow
     private long trafficToday;
     private DateTime trafficSavedAt;
 
+    // Журнал программ для отчёта (ProgramJournal): соединения ядра туннеля раз в 5 с, и в трее тоже.
+    private readonly ProgramJournal programJournal = new();
+    private bool journalBusy;
+    private DateTime journalAt;
+
+    private async Task SampleProgramsAsync(CoreStatsEntry stats)
+    {
+        journalBusy = true; journalAt = DateTime.UtcNow;
+        try { if (await CoreConnections.ReadAsync(stats, CancellationToken.None) is { } core) programJournal.Record(core, DateTime.UtcNow); }
+        finally { journalBusy = false; }
+    }
+
     private void RefreshTraffic()
     {
         var stats = systemTunnel?.State == SystemTunnelState.Running ? systemTunnel.Stats : null;
@@ -21,6 +33,7 @@ public partial class MainWindow
             meter = stats is null ? null : new TrafficMeter(stats);
             meterEntry = stats; meterCounted = 0;
         }
+        if (stats is not null && !journalBusy && DateTime.UtcNow - journalAt >= ProgramJournal.Interval) _ = SampleProgramsAsync(stats);
         var today = DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
         if (trafficDay != today) { trafficDay = today; trafficToday = 0; }
         if (meter is not null) { var total = meter.Total; trafficToday += total - meterCounted; meterCounted = total; }
