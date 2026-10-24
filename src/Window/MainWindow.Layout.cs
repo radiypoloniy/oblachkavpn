@@ -20,15 +20,13 @@ public partial class MainWindow
         Shell.SizeChanged += (_, _) => ApplyLayout();
         // Скругление острова — как у неба. Border не обрезает содержимое, а у разделов свой
         // квадратный фон: без обрезки он закрывал углы.
-        IslandHost.SizeChanged += (_, e) => IslandHost.Clip = new RectangleGeometry(new Rect(e.NewSize), 17, 17);
+        IslandHost.SizeChanged += (_, e) => IslandHost.Clip = new RectangleGeometry(new Rect(e.NewSize), 28, 28);
         StateChanged += (_, _) =>
         {
             // Развёрнутое окно без системной рамки уходит краями за экран на толщину рамки.
             Shell.Margin = WindowState == WindowState.Maximized ? new Thickness(7) : new Thickness(0);
             MaximizeButton.SetValue(System.Windows.Automation.AutomationProperties.NameProperty, WindowState == WindowState.Maximized ? "Восстановить" : "Развернуть");
-            Home.Sky.Sync();
         };
-        IsVisibleChanged += (_, _) => Home.Sky.Sync();
         // Любой экран острова открылся или закрылся — пересчитать раскладку и подсветку пункта.
         foreach (var page in new UIElement[] { Live, Servers, RulesPage, Settings, Picker, Doctor, SiteCheck })
             page.IsVisibleChanged += (_, _) => { if (IsLoaded) ApplyLayout(); };
@@ -54,7 +52,7 @@ public partial class MainWindow
         if (!viewsReady) return;
         var wasNarrow = narrow;
         narrow = Shell.ActualWidth > 0 && Shell.ActualWidth < NarrowWidth;
-        SideColumn.Width = narrow ? new GridLength(1, GridUnitType.Star) : new GridLength(276);
+        SideColumn.Width = narrow ? new GridLength(1, GridUnitType.Star) : new GridLength(332);
         IslandColumn.Width = narrow ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
         Grid.SetColumn(Island, narrow ? 0 : 1);
         Grid.SetColumnSpan(Island, narrow ? 2 : 1);
@@ -84,6 +82,8 @@ public partial class MainWindow
         Ui.SetSelected(Home.LiveNav, island && !page && Live.Visibility == Visibility.Visible && !settings && !rules && Servers.Visibility != Visibility.Visible);
         Ui.SetSelected(Home.AllServersButton, island && Servers.Visibility == Visibility.Visible && !settings);
         Ui.SetSelected(Home.RulesNav, rules);
-        Ui.SetSelected(Home.SettingsButton, settings);
+        var help = settings && Settings.CurrentPage == Views.SettingsPanel.HelpPage;
+        Ui.SetSelected(Home.HelpNav, help);
+        Ui.SetSelected(Home.SettingsButton, settings && !help);
     }
 }

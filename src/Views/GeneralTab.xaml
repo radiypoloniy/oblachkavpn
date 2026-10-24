@@ -18,14 +18,6 @@
             <TextBlock Text="Тема" Style="{StaticResource SetTitle}" VerticalAlignment="Center"/>
           </DockPanel>
           <DockPanel Style="{StaticResource SetLine}">
-            <CheckBox x:Name="SkyToggle" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" VerticalAlignment="Center" AutomationProperties.Name="Живое небо"/>
-            <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcBlue}"><Path Data="{StaticResource IcoCloud}" Style="{StaticResource SetGlyph}"/></Border>
-            <StackPanel VerticalAlignment="Center">
-              <TextBlock Text="Живое небо" Style="{StaticResource SetTitle}"/>
-              <TextBlock Text="Облака плывут, звёзды мерцают. Выключите — останется картинка текущего часа" Style="{StaticResource SetSub}"/>
-            </StackPanel>
-          </DockPanel>
-          <DockPanel Style="{StaticResource SetLine}">
             <CheckBox x:Name="StayInTray" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" VerticalAlignment="Center" AutomationProperties.Name="Крестик сворачивает в трей"/>
             <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcGray}"><Path Data="{StaticResource IcoTray}" Style="{StaticResource SetGlyph}"/></Border>
             <StackPanel VerticalAlignment="Center">

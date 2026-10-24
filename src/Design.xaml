@@ -103,10 +103,10 @@
   </Style>
 
   <Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource Plain}">
-    <Setter Property="Height" Value="42"/>
+    <Setter Property="Height" Value="40"/>
     <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusLg}"/>
-    <Setter Property="Background" Value="{DynamicResource Ac}"/>
-    <Setter Property="Foreground" Value="{DynamicResource OnAccent}"/>
+    <Setter Property="Background" Value="{DynamicResource Ink}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OnInk}"/>
     <Setter Property="FontWeight" Value="SemiBold"/>
     <Setter Property="Tag" Value="{DynamicResource OverlayOnAccent}"/>
   </Style>
@@ -147,7 +147,7 @@
     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
   </Style>
 
-  <!-- Переключатель 40×24, ручка 18 px; анимация 200 мс. -->
+  <!-- Переключатель 46×28, ручка 20 px; включённый — чернильная дорожка и ручка-солнце; анимация 200 мс. -->
   <Style x:Key="Toggle" TargetType="CheckBox">
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
@@ -155,22 +155,22 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="CheckBox">
-          <Grid Width="40" Height="24" Background="Transparent">
-            <Border x:Name="Track" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource Ring}"/>
-            <Border x:Name="Focus" CornerRadius="{StaticResource RadiusLg}" BorderBrush="{DynamicResource Ac}" BorderThickness="2" Margin="-3" Visibility="Collapsed"/>
-            <Ellipse x:Name="Dot" Width="18" Height="18" Fill="{DynamicResource Knob}" HorizontalAlignment="Left" Margin="3,0,3,0">
-              <Ellipse.Effect><DropShadowEffect BlurRadius="3" ShadowDepth="1" Opacity="0.25"/></Ellipse.Effect>
+          <Grid Width="46" Height="28" Background="Transparent">
+            <Border x:Name="Track" CornerRadius="{StaticResource RadiusInner}" Background="{DynamicResource Off}"/>
+            <Border x:Name="Focus" CornerRadius="{StaticResource RadiusSm}" BorderBrush="{DynamicResource Ac}" BorderThickness="2" Margin="-3" Visibility="Collapsed"/>
+            <Ellipse x:Name="Dot" Width="20" Height="20" Fill="{DynamicResource Knob}" HorizontalAlignment="Left" Margin="4,0,4,0">
               <Ellipse.RenderTransform><TranslateTransform x:Name="Knob" X="0"/></Ellipse.RenderTransform>
             </Ellipse>
           </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsChecked" Value="True">
-              <Setter TargetName="Track" Property="Background" Value="{DynamicResource Ac}"/>
+              <Setter TargetName="Track" Property="Background" Value="{DynamicResource Ink}"/>
+              <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource Sun}"/>
               <!-- Положение ручки задаёт состояние, анимация только добавляет движение: иначе
                    включённый переключатель, ещё не показанный на экране, выглядел выключенным. -->
               <Setter TargetName="Dot" Property="HorizontalAlignment" Value="Right"/>
-              <Trigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="X" From="-16" To="0" Duration="0:0:0.2" FillBehavior="Stop"/></Storyboard></BeginStoryboard></Trigger.EnterActions>
-              <Trigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="X" From="16" To="0" Duration="0:0:0.2" FillBehavior="Stop"/></Storyboard></BeginStoryboard></Trigger.ExitActions>
+              <Trigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="X" From="-18" To="0" Duration="0:0:0.2" FillBehavior="Stop"/></Storyboard></BeginStoryboard></Trigger.EnterActions>
+              <Trigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="X" From="18" To="0" Duration="0:0:0.2" FillBehavior="Stop"/></Storyboard></BeginStoryboard></Trigger.ExitActions>
             </Trigger>
             <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Focus" Property="Visibility" Value="Visible"/></Trigger>
             <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.55"/></Trigger>
@@ -234,13 +234,13 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ListBoxItem">
-          <Border x:Name="Chip" Height="30" CornerRadius="{StaticResource RadiusXl}" Padding="12,0" Margin="0,0,6,0" Background="{DynamicResource Field}">
-            <TextBlock x:Name="Label" Text="{Binding}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
+          <Border x:Name="Chip" Height="32" CornerRadius="{StaticResource RadiusMd}" Padding="14,0" Margin="0,0,6,0" Background="{DynamicResource Field}">
+            <TextBlock x:Name="Label" Text="{Binding}" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource Tx}" VerticalAlignment="Center"/>
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsSelected" Value="True">
-              <Setter TargetName="Chip" Property="Background" Value="{DynamicResource Ac}"/>
-              <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource OnAccent}"/>
+              <Setter TargetName="Chip" Property="Background" Value="{DynamicResource Ink}"/>
+              <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource OnInk}"/>
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>

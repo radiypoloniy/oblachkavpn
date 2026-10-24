@@ -35,8 +35,12 @@ public partial class MainWindow
         }
         if (stats is not null && !journalBusy && DateTime.UtcNow - journalAt >= ProgramJournal.Interval) _ = SampleProgramsAsync(stats);
         var today = DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
-        if (trafficDay != today) { trafficDay = today; trafficToday = 0; }
-        if (meter is not null) { var total = meter.Total; trafficToday += total - meterCounted; meterCounted = total; }
+        if (trafficDay != today) { trafficDay = today; trafficToday = 0; Array.Clear(trafficHours); }
+        if (meter is not null)
+        {
+            var total = meter.Total; var delta = total - meterCounted;
+            trafficToday += delta; trafficHours[DateTime.Now.Hour] += Math.Max(0, delta); meterCounted = total;
+        }
         // Счётчик дня сохраняется раз в минуту, а не на каждый тик.
         if (trafficToday != trafficSavedBytes && DateTime.UtcNow - trafficSavedAt > TimeSpan.FromMinutes(1))
         {
@@ -44,7 +48,27 @@ public partial class MainWindow
             QueueStateSave();
         }
         Home.StatusSub.ToolTip = trafficToday > 0 ? "Сегодня через ядро туннеля: " + TrafficMeter.Size(trafficToday) : null;
+        RefreshTodayCard();
         CreditObservedSpeed();
+    }
+
+    // Трафик за сегодня по часам (облик 0.20): 12 столбиков по два часа, последний — «сейчас».
+    private readonly long[] trafficHours = new long[24];
+    private string todayShown = "";
+
+    private void RefreshTodayCard()
+    {
+        var text = TrafficMeter.Size(trafficToday);
+        var pairs = Enumerable.Range(0, 12).Select(i => trafficHours[i * 2] + trafficHours[i * 2 + 1]).ToArray();
+        var now = DateTime.Now.Hour / 2;
+        var key = text + "|" + now + "|" + string.Join(',', pairs);
+        if (key == todayShown) return;
+        todayShown = key;
+        Home.TrafficToday.Text = text;
+        // Последние 12 столбиков по два часа, последний — текущий; до полуночи — пусто (счёт с начала суток).
+        var window = Enumerable.Range(now - 11, 12).Select(i => i >= 0 ? pairs[i] : 0L).ToArray();
+        var max = Math.Max(1, window.Max());
+        Home.TrafficBars.Values = window.Select(v => (double)v / max).ToArray();
     }
 
     // Сервер в деле качает быстрее, чем показал замер, — автовыбор узнаёт об этом: замер мог

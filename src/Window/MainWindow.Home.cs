@@ -58,7 +58,7 @@ public partial class MainWindow
         var name = (runningProfile ?? profile)?.DisplayName ?? "";
         var (title, sub, power, dot) =
             systemStopping ? ("Отключаемся…", name, PowerState.Connecting, "MidI")
-            : findingRoute || holding ? ("Восстанавливаем связь", name + " не отвечает", PowerState.Connecting, "MidI")
+            : findingRoute || holding ? ("Ищем сервер", name + " не отвечает", PowerState.Connecting, "MidI")
             : busy && !running ? ("Подключаемся…", profile?.DisplayName ?? "", PowerState.Connecting, "MidI")
             // «Защищено» — только когда через туннель идёт весь компьютер. Прокси защищает не всё.
             // Проверка связи не прошла: не «Защищено», а честно — связь пропала, пока не вернётся
@@ -69,7 +69,9 @@ public partial class MainWindow
             : engine.State == ConnectionState.Failed ? ("Связь прервана", "Включите снова или выберите другой сервер", PowerState.Off, "EI")
             // VPN выключен, но обход работает: YouTube и Discord открываются и так — это стоит сказать.
             : ZapretWorksWithoutVpn ? ("VPN выключен", string.Join(" и ", zapretActiveGroups.Select(ZapretTitle)) + (zapretActiveGroups.Length > 1 ? " работают" : " работает") + " и без него", PowerState.Off, "Ok")
-            : ("Не подключено", "Нажмите кнопку или выберите сервер", PowerState.Off, "Fa");
+            : ("Выключено", "Нажмите, чтобы защитить", PowerState.Off, "Fa");
+        // Закат на карточке статуса: связь пропала или ищем сервер (MainWindow.ApplyStatusLook).
+        statusTrouble = findingRoute || holding || running && health.FailedRounds > 0 || engine.State == ConnectionState.Failed;
         Home.StatusTitle.Text = title;
         Home.StatusSub.Text = sub;
         Home.StatusDot.SetResourceReference(Shape.FillProperty, dot);

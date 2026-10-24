@@ -45,7 +45,7 @@
           </Grid>
         </Button>
         <StackPanel VerticalAlignment="Center">
-          <TextBlock x:Name="StateText" Text="Не подключено" FontSize="{StaticResource FsTitle}" FontWeight="Bold"/>
+          <TextBlock x:Name="StateText" Text="Выключено" FontSize="{StaticResource FsTitle}" FontWeight="Bold"/>
           <TextBlock x:Name="SubText" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
         </StackPanel>
       </DockPanel>

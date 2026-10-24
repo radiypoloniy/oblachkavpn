@@ -83,6 +83,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public string? FreeList { get; init; }
     // Трафик ядра туннеля за день (0.19): дата yyyy-MM-dd и байты в обе стороны.
     public string? TrafficDay { get; init; }
+    // Тот же день по часам (0.20): 24 числа, байты; для столбиков в карточке «сегодня».
+    public long[]? TrafficHours { get; init; }
     public long TrafficBytes { get; init; }
     // Ctrl+Alt+O показывает окно (0.19). По умолчанию включено.
     public bool Hotkey { get; init; } = true;

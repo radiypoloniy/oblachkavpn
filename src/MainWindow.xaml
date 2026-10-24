@@ -18,16 +18,15 @@
   </Window.Resources>
   <Grid x:Name="Shell">
     <Grid.ColumnDefinitions>
-      <ColumnDefinition x:Name="SideColumn" Width="276"/>
+      <ColumnDefinition x:Name="SideColumn" Width="332"/>
       <ColumnDefinition x:Name="IslandColumn" Width="*"/>
     </Grid.ColumnDefinitions>
 
     <views:HomeView x:Name="Home"/>
 
     <!-- Остров: тень — отдельным слоем (эффект на контейнере с текстом размывает текст). -->
-    <Grid x:Name="Island" Grid.Column="1" Margin="0,44,10,10">
-      <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusSky}" Background="{DynamicResource Bg}"/>
-      <Border x:Name="IslandPlate" CornerRadius="{StaticResource RadiusSky}" Background="{DynamicResource Bg}" BorderBrush="{DynamicResource Divider}" BorderThickness="1">
+    <Grid x:Name="Island" Grid.Column="1" Margin="0,44,16,16">
+      <Border x:Name="IslandPlate" CornerRadius="{StaticResource RadiusIsland}" Background="{DynamicResource Bg}">
         <Grid x:Name="IslandHost">
           <views:ConnectionsView x:Name="Live" Visibility="Collapsed"/>
           <views:ServersSheet x:Name="Servers" Visibility="Collapsed"/>
