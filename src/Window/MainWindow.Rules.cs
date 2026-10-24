@@ -49,6 +49,10 @@ public partial class MainWindow
         Routes.RuleList.ItemsSource = siteRules.Select(r => new RuleRow { Rule = r, Text = r.Domain, Action = r.Action }).ToArray();
         var conflicts = ProgramRuleConflicts.Find(programRules, KnownProgramPaths());
         Routes.ProgramList.ItemsSource = programRules.Select(r => ProgramRow(r, conflicts)).ToArray();
+        // Тот же спор — плашкой в «Программах и сайтах»: там его видно раньше, чем в правилах.
+        Live.ConflictBanner.Visibility = conflicts.Count > 0 ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        if (conflicts.Count > 0)
+            Live.ConflictText.Text = ProgramRuleConflicts.Note(conflicts[0].Name, conflicts) + (conflicts.Count > 1 ? " И ещё споров: " + (conflicts.Count - 1) + "." : "");
         if (viewsReady) { UpdateWhere(); RefreshSettingsSummary(); }
     }
 }

@@ -27,9 +27,9 @@
 
   <!-- Куда идёт программа сейчас: «через VPN», «напрямую», «VPN 29 · напрямую 2». -->
   <Style x:Key="RoutePill" TargetType="Border">
-    <Setter Property="Height" Value="24"/>
-    <Setter Property="Padding" Value="10,0"/>
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusXl}"/>
+    <Setter Property="Height" Value="26"/>
+    <Setter Property="Padding" Value="12,0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
     <Setter Property="VerticalAlignment" Value="Center"/>
     <Setter Property="Background" Value="{DynamicResource Field}"/>
   </Style>
@@ -47,33 +47,31 @@
   <!-- Переключатель «VPN · Напрямую · Блок»: три кнопки на общей подложке, выбранная — цветом правила. -->
   <Style x:Key="PickPlate" TargetType="Border">
     <Setter Property="Padding" Value="3"/>
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
-    <Setter Property="Background" Value="{DynamicResource Bg}"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource Divider}"/>
-    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}"/>
+    <Setter Property="Background" Value="{DynamicResource Field}"/>
     <Setter Property="VerticalAlignment" Value="Center"/>
   </Style>
   <Style x:Key="PickButton" TargetType="Button" BasedOn="{StaticResource Plain}">
     <Setter Property="Height" Value="28"/>
-    <Setter Property="Padding" Value="10,0"/>
-    <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusSm}"/>
+    <Setter Property="Padding" Value="12,0"/>
+    <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusInner}"/>
     <Setter Property="FontSize" Value="{StaticResource FsSmall}"/>
     <Setter Property="FontWeight" Value="SemiBold"/>
     <Setter Property="Foreground" Value="{DynamicResource Mu}"/>
   </Style>
   <Style x:Key="PickVpn" TargetType="Button" BasedOn="{StaticResource PickButton}">
     <Style.Triggers>
-      <Trigger Property="o:Ui.Selected" Value="True"><Setter Property="Background" Value="{DynamicResource Ac}"/><Setter Property="Foreground" Value="{DynamicResource OnAccent}"/></Trigger>
+      <Trigger Property="o:Ui.Selected" Value="True"><Setter Property="Background" Value="{DynamicResource RouteVpn}"/><Setter Property="Foreground" Value="{DynamicResource OnAccent}"/></Trigger>
     </Style.Triggers>
   </Style>
   <Style x:Key="PickDirect" TargetType="Button" BasedOn="{StaticResource PickButton}">
     <Style.Triggers>
-      <Trigger Property="o:Ui.Selected" Value="True"><Setter Property="Background" Value="{DynamicResource Ok}"/><Setter Property="Foreground" Value="{DynamicResource OnAccent}"/></Trigger>
+      <Trigger Property="o:Ui.Selected" Value="True"><Setter Property="Background" Value="{DynamicResource RouteDirect}"/><Setter Property="Foreground" Value="{DynamicResource OnAccent}"/></Trigger>
     </Style.Triggers>
   </Style>
   <Style x:Key="PickBlock" TargetType="Button" BasedOn="{StaticResource PickButton}">
     <Style.Triggers>
-      <Trigger Property="o:Ui.Selected" Value="True"><Setter Property="Background" Value="{DynamicResource EI}"/><Setter Property="Foreground" Value="{DynamicResource OnAccent}"/></Trigger>
+      <Trigger Property="o:Ui.Selected" Value="True"><Setter Property="Background" Value="{DynamicResource RouteBlock}"/><Setter Property="Foreground" Value="{DynamicResource OnAccent}"/></Trigger>
     </Style.Triggers>
   </Style>
 

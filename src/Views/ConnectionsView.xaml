@@ -195,6 +195,14 @@
         </ListBox>
       </DockPanel>
       <TextBlock x:Name="Note" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" Margin="2,8,0,0"/>
+      <!-- Спор правил (ProgramRuleConflicts): одна программа пойдёт двумя путями. -->
+      <Border x:Name="ConflictBanner" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource Peach}" Padding="14,12" Margin="0,10,0,0" Visibility="Collapsed">
+        <DockPanel>
+          <Button x:Name="ConflictOpen" DockPanel.Dock="Right" Content="Открыть правила" Style="{StaticResource BtnPrimary}" Height="34" Padding="14,0" Margin="12,0,0,0" VerticalAlignment="Center"/>
+          <v:CloudFace Mood="Worried" Margin="0,0,12,0" VerticalAlignment="Center"/>
+          <TextBlock x:Name="ConflictText" FontSize="{StaticResource FsBody}" Foreground="{DynamicResource WF}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+        </DockPanel>
+      </Border>
     </StackPanel>
 
     <Grid Grid.Row="2">

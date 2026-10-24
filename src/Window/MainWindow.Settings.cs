@@ -15,6 +15,7 @@ public partial class MainWindow
         Live.ModeTun.Click += async (_, _) => await SetModeAsync(tunnel: true);
         Live.ModeProxy.Click += async (_, _) => await SetModeAsync(tunnel: false);
         Live.RulesOpen.Click += (_, _) => ShowRulesSection();
+        Live.ConflictOpen.Click += (_, _) => ShowRulesSection();
         Servers.SubscriptionsButton.Click += (_, _) => OpenSettings(Views.SettingsPanel.SubscriptionPage);
         Settings.General.ThemeSystem.Click += (_, _) => ChooseTheme(ThemeChoice.System);
         Settings.General.ThemeLight.Click += (_, _) => ChooseTheme(ThemeChoice.Light);
