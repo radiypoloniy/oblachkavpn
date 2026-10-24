@@ -23,6 +23,11 @@ public partial class MainWindow
         Home.PlanBars.Visibility = used is null ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;
         Home.PlanBars.Filled = used is { } share ? (int)Math.Round(share * Home.PlanBars.Count) : 0;
         Home.PlanRow.Visibility = Home.PlanText.Text.Length > 0 ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        // Та же подписка полоской в «Серверах».
+        Servers.SubStrip.Visibility = Home.PlanRow.Visibility;
+        Servers.SubStripTitle.Text = Home.PlanText.Text; Servers.SubStripText.Text = Home.PlanSub.Text;
+        Servers.SubStripBars.Visibility = Home.PlanBars.Visibility;
+        Servers.SubStripBars.Filled = used is { } part ? (int)Math.Round(part * Servers.SubStripBars.Count) : 0;
         ApplySubscriptionWarning();
 
         // Объявление панели. Текст чужой, поэтому он уже очищен и обрезан в SubscriptionMetadata,

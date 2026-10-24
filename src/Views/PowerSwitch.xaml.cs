@@ -41,7 +41,7 @@ public partial class PowerSwitch : UserControl
             PowerState.Connecting => (1.0, 0.0, 0.0, "Sun", "IcoPower", "Подключаемся, нажмите, чтобы отменить"),
             PowerState.On => (0.0, 1.0, 0.0, "Sun", "IcoPower", "Выключить VPN"),
             PowerState.Blocked => (0.0, 0.0, 1.0, "RouteBlock", "IcoLock", "Выключить VPN и открыть интернет"),
-            _ => (0.0, 0.0, 0.0, "Ink", "IcoPower", "Включить VPN")
+            _ => (0.0, 0.0, 0.0, "Orb", "IcoPower", "Включить VPN")
         };
         Animate(MidLayer, OpacityProperty, mid, animate);
         Animate(OnLayer, OpacityProperty, on, animate);

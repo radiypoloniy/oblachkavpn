@@ -33,6 +33,8 @@ public partial class MainWindow : Window
         isolatedPersistence = isolatedStore is not null;
         ThemeManager.EnsureLoaded();
         InitializeComponent();
+        // Бывшие настройки «Подключения» живут в разделах острова (Views.SettingsPanel).
+        Settings.LiveView = Live; Settings.ServersView = Servers;
         Height = Math.Min(Height, SystemParameters.WorkArea.Height);
         engine = new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), Path.Combine(AppContext.BaseDirectory, "data", "runtime"));
         engine.Changed += EngineChanged;
@@ -122,7 +124,7 @@ public partial class MainWindow : Window
         ReconnectButton.IsEnabled = profile is not null && operation is null;
         Servers.MeasureButton.IsEnabled = profile is not null && operation is null && importedProfiles.Any(p => p.IsService);
         Servers.BestButton.IsEnabled = Servers.MeasureButton.IsEnabled;
-        Advanced.ValidateRulesButton.IsEnabled = profile is not null && operation is null;
+        Diagnostics.ValidateRulesButton.IsEnabled = profile is not null && operation is null;
         trayConnect.Enabled = ConnectButton.IsEnabled;
         trayStop.Enabled = StopButton.IsEnabled;
         tray.Text = ServiceBrand.Name + " — " + StatusText.Text;

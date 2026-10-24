@@ -79,11 +79,12 @@ public partial class MainWindow
         var page = Picker.Visibility == Visibility.Visible || Doctor.Visibility == Visibility.Visible || SiteCheck.Visibility == Visibility.Visible;
         var settings = island && Settings.Visibility == Visibility.Visible;
         var rules = island && !settings && RulesPage.Visibility == Visibility.Visible;
-        Ui.SetSelected(Home.LiveNav, island && !page && Live.Visibility == Visibility.Visible && !settings && !rules && Servers.Visibility != Visibility.Visible);
-        Ui.SetSelected(Home.AllServersButton, island && Servers.Visibility == Visibility.Visible && !settings);
+        Ui.SetSelected(Home.LiveNav, island && !page && !settings && (rules || Live.Visibility == Visibility.Visible && Servers.Visibility != Visibility.Visible));
+        // Подписки и серверы автовыбора открываются из «Серверов» — подсвечены они; обход блокировок — ничего.
+        var shown = settings ? Settings.CurrentPage : -1;
+        Ui.SetSelected(Home.AllServersButton, island && (Servers.Visibility == Visibility.Visible && !settings || shown is Views.SettingsPanel.SubscriptionPage or Views.SettingsPanel.AutoPoolPage));
         Ui.SetSelected(Home.RulesNav, rules);
-        var help = settings && Settings.CurrentPage == Views.SettingsPanel.HelpPage;
-        Ui.SetSelected(Home.HelpNav, help);
-        Ui.SetSelected(Home.SettingsButton, settings && !help);
+        Ui.SetSelected(Home.HelpNav, shown == Views.SettingsPanel.HelpPage);
+        Ui.SetSelected(Home.SettingsButton, shown is Views.SettingsPanel.AppPage or Views.SettingsPanel.ConnectionPage);
     }
 }

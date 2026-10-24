@@ -104,6 +104,7 @@
   --cloud-white: #FFFFFF;
   --pixel: #D5D9EA;
   --glass-night: rgba(255, 255, 255, 0.122);
+  --orb: #1B1D3A;
   --ui-font: "pack://application:", "", "", "/Assets/Fonts/#Onest", "Segoe UI", system-ui, sans-serif;
   --mono-font: "Cascadia Mono", "Consolas", system-ui, sans-serif;
   --display-font: "pack://application:", "", "", "/Assets/Fonts/#Unbounded", "Segoe UI", system-ui, sans-serif;
@@ -240,6 +241,7 @@
   --cloud-white: #FFFFFF;
   --pixel: #3A3F72;
   --glass-night: rgba(255, 255, 255, 0.122);
+  --orb: #12142A;
   color-scheme: dark; } }
 :root[data-theme="dark"] {
   --page: #0B0C1C;
@@ -346,4 +348,5 @@
   --cloud-white: #FFFFFF;
   --pixel: #3A3F72;
   --glass-night: rgba(255, 255, 255, 0.122);
+  --orb: #12142A;
   color-scheme: dark; }

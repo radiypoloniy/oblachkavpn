@@ -1,0 +1,78 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:o="clr-namespace:Oblachka">
+  <!-- Страницы облика 0.20: заголовки обычными буквами, строки настроек без значков, плашки
+       «симптом — средство», сегментированный выбор с чернильным выбранным. Только токены. -->
+  <Geometry x:Key="IcoUpload">M4,14 L4,20 L20,20 L20,14 M12,14 L12,4 M8,8 L12,4 L16,8</Geometry>
+
+  <Style x:Key="PageHead" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
+    <Setter Property="FontSize" Value="{StaticResource FsHeadline}"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+  </Style>
+  <Style x:Key="SecHead" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource FsLead}"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+    <Setter Property="Margin" Value="0,20,0,8"/>
+  </Style>
+  <!-- Строка настройки: подпись слева, переключатель или кнопка справа, черта снизу. -->
+  <Style x:Key="OptRow" TargetType="Border">
+    <Setter Property="BorderBrush" Value="{DynamicResource Divider}"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1.5"/>
+    <Setter Property="MinHeight" Value="54"/>
+    <Setter Property="Padding" Value="0,8"/>
+  </Style>
+  <Style x:Key="OptTitle" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource FsRowLarge}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+  </Style>
+  <Style x:Key="OptSub" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource FsNote}"/>
+    <Setter Property="Foreground" Value="{DynamicResource Mu2}"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
+    <Setter Property="Margin" Value="0,2,0,0"/>
+  </Style>
+  <!-- Плашка без черты: обновления, перенос настроек, подписка. -->
+  <Style x:Key="Plate" TargetType="Border">
+    <Setter Property="Background" Value="{DynamicResource CardBg}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}"/>
+    <Setter Property="Padding" Value="16,14"/>
+  </Style>
+  <!-- «Что случилось?»: цветная плашка, вопрос сверху, средство снизу. -->
+  <Style x:Key="Symptom" TargetType="Border">
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}"/>
+    <Setter Property="Padding" Value="16,14"/>
+    <Setter Property="Margin" Value="0,0,10,10"/>
+  </Style>
+  <Style x:Key="SymptomQ" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource FsRowLarge}"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
+  </Style>
+  <Style x:Key="SymptomFix" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource FsNote}"/>
+    <Setter Property="Foreground" Value="{DynamicResource Mu}"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <!-- Сегментированный выбор: подложка-пилюля, выбранный сегмент — чернильный (MarkSegment). -->
+  <Style x:Key="SegTrack" TargetType="Border">
+    <Setter Property="Background" Value="{DynamicResource Field}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}"/>
+    <Setter Property="Padding" Value="4"/>
+  </Style>
+  <Style x:Key="SegButton" TargetType="Button" BasedOn="{StaticResource Plain}">
+    <Setter Property="Height" Value="32"/>
+    <Setter Property="Padding" Value="16,0"/>
+    <Setter Property="Margin" Value="0,0,2,0"/>
+    <Setter Property="FontSize" Value="{StaticResource FsBody}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource Mu}"/>
+    <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusMd}"/>
+  </Style>
+  <Style x:Key="BtnSun" TargetType="Button" BasedOn="{StaticResource BtnPrimary}">
+    <Setter Property="Background" Value="{DynamicResource Sun}"/>
+    <Setter Property="Foreground" Value="{DynamicResource Orb}"/>
+    <Setter Property="Tag" Value="{DynamicResource OverlayHover}"/>
+  </Style>
+</ResourceDictionary>

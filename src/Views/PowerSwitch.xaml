@@ -5,15 +5,15 @@
        с солнечным значком — подключено, чернильная с замком — сеть закрыта. Слои меняются
        наплывом. Кольцо — вне круга, у контрола запас 5 px с каждой стороны. -->
   <Grid>
-    <Ellipse x:Name="Ring" Width="57" Height="57" StrokeThickness="2.5" Stroke="{DynamicResource Ink}" StrokeDashArray="9 30" StrokeDashCap="Round" Opacity="0" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
+    <Ellipse x:Name="Ring" Width="57" Height="57" StrokeThickness="2.5" Stroke="{DynamicResource Orb}" StrokeDashArray="9 30" StrokeDashCap="Round" Opacity="0" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
       <Ellipse.RenderTransform><RotateTransform x:Name="Spin"/></Ellipse.RenderTransform>
     </Ellipse>
     <Button x:Name="Surface" Width="48" Height="48" Style="{StaticResource Plain}" o:Ui.CornerRadius="{StaticResource RadiusOrb}" Tag="Transparent" Padding="0" Click="SurfaceClick">
       <Grid Width="48" Height="48">
         <Ellipse Fill="{DynamicResource Sun}"/>
-        <Ellipse x:Name="MidLayer" Fill="{DynamicResource Ink}" Opacity="0"/>
-        <Ellipse x:Name="OnLayer" Fill="{DynamicResource Ink}" Opacity="0"/>
-        <Ellipse x:Name="BlockedLayer" Fill="{DynamicResource Ink}" Opacity="0"/>
+        <Ellipse x:Name="MidLayer" Fill="{DynamicResource Orb}" Opacity="0"/>
+        <Ellipse x:Name="OnLayer" Fill="{DynamicResource Orb}" Opacity="0"/>
+        <Ellipse x:Name="BlockedLayer" Fill="{DynamicResource Orb}" Opacity="0"/>
         <Path x:Name="Glyph" Data="{StaticResource IcoPower}" Width="20" Height="20" Stretch="Uniform" StrokeThickness="2.6"
               StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stroke="{DynamicResource Mu}" RenderTransformOrigin="0.5,0.5">
           <Path.RenderTransform><ScaleTransform x:Name="Pulse" ScaleX="1" ScaleY="1"/></Path.RenderTransform>

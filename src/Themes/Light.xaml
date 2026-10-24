@@ -103,4 +103,5 @@
   <SolidColorBrush x:Key="CloudWhite" Color="#FFFFFF"/>  <!-- облачко днём -->
   <SolidColorBrush x:Key="Pixel" Color="#D5D9EA"/>  <!-- пустой квадрат индикатора -->
   <SolidColorBrush x:Key="GlassNight" Color="#1FFFFFFF"/>  <!-- строка сервера на ночной карточке статуса -->
+  <SolidColorBrush x:Key="Orb" Color="#1B1D3A"/>  <!-- кнопка подключения и текст на солнечной кнопке: тёмные в обеих темах -->
 </ResourceDictionary>

@@ -38,7 +38,7 @@ public static class ThemeManager
         var resources = Application.Current?.Resources;
         if (resources is null || active is not null) return;
         // Токены первыми: на шрифты, размеры и скругления ссылаются все остальные словари.
-        foreach (var name in new[] { "Themes/Tokens.xaml", "Theme.xaml", "Design.xaml", "Sidebar.xaml", "Island.xaml" })
+        foreach (var name in new[] { "Themes/Tokens.xaml", "Theme.xaml", "Design.xaml", "Sidebar.xaml", "Island.xaml", "Pages.xaml" })
             resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/Oblachka;component/" + name, UriKind.Relative) });
         Apply(Choice);
     }

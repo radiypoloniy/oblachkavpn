@@ -64,7 +64,7 @@
         </StackPanel>
       </Border>
 
-      <TextBlock Text="ПОДПИСКИ И ПОДКЛЮЧЕНИЯ" Style="{StaticResource SetCaption}"/>
+      <TextBlock Text="Подписки и подключения" Style="{StaticResource SetCaption}"/>
       <!-- Группы (ProfileGroup): у подписки — «Обновить» и «Убрать», у «Вручную» — только «Убрать». -->
       <ItemsControl x:Name="GroupList" Focusable="False">
         <ItemsControl.ItemTemplate>
@@ -93,7 +93,18 @@
         </StackPanel>
       </Button>
 
-      <TextBlock Text="КЛЮЧ" Style="{StaticResource SetCaption}"/>
+      <!-- Бесплатные серверы «на свой риск» (FreeServers): только здесь, нигде больше не предлагаются. -->
+      <Border Style="{StaticResource SetGroup}" Margin="0,10,0,0">
+        <DockPanel Style="{StaticResource SetLine}">
+          <CheckBox x:Name="FreeServers" DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" AutomationProperties.Name="Бесплатные серверы на свой риск"/>
+          <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+            <TextBlock Text="Бесплатные серверы (на свой риск)" Style="{StaticResource SetTitle}"/>
+            <TextBlock Text="Чужие серверы из открытых списков. Их владельцы видят, какие сайты вы открываете. Не участвуют в автовыборе и сами не включаются" TextWrapping="Wrap" Style="{StaticResource SetSub}"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <TextBlock Text="Ключ" Style="{StaticResource SetCaption}"/>
       <Border Style="{StaticResource SetGroup}">
         <DockPanel Style="{StaticResource SetLine}">
           <CheckBox x:Name="Remember" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" VerticalAlignment="Center" AutomationProperties.Name="Запомнить на этом компьютере"/>

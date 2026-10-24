@@ -8,7 +8,7 @@ public partial class MainWindow
 {
     private void WireSettingsHome()
     {
-        Settings.Advanced.OpenAutoPool.Click += (_, _) => RenderAutoPool();
+        Servers.OpenAutoPool.Click += (_, _) => { RenderAutoPool(); OpenSettings(Views.SettingsPanel.AutoPoolPage); };
         Settings.AutoPool.AutoPoolMeasure.Click += async (_, _) =>
         {
             if (measuring) { measureCancel?.Cancel(); return; }
@@ -21,7 +21,7 @@ public partial class MainWindow
     {
         if (!viewsReady) return;
         var all = importedProfiles.Count;
-        Settings.Advanced.AutoPoolSummary.Text = all == 0 ? "" : importedProfiles.Count(autoPool.Contains) + " из " + all;
+        Servers.AutoPoolSummary.Text = all == 0 ? "" : importedProfiles.Count(autoPool.Contains) + " из " + all;
     }
 
     private bool ZapretWorksWithoutVpn => zapretEnabled && !zapretBusy && zapretActiveGroups.Length > 0;

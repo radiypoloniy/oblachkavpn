@@ -12,8 +12,10 @@ public partial class MainWindow
 {
     private void WireSettings()
     {
-        Settings.Advanced.ModeTun.Click += async (_, _) => await SetModeAsync(tunnel: true);
-        Settings.Advanced.ModeProxy.Click += async (_, _) => await SetModeAsync(tunnel: false);
+        Live.ModeTun.Click += async (_, _) => await SetModeAsync(tunnel: true);
+        Live.ModeProxy.Click += async (_, _) => await SetModeAsync(tunnel: false);
+        Live.RulesOpen.Click += (_, _) => ShowRulesSection();
+        Servers.SubscriptionsButton.Click += (_, _) => OpenSettings(Views.SettingsPanel.SubscriptionPage);
         Settings.General.ThemeSystem.Click += (_, _) => ChooseTheme(ThemeChoice.System);
         Settings.General.ThemeLight.Click += (_, _) => ChooseTheme(ThemeChoice.Light);
         Settings.General.ThemeDark.Click += (_, _) => ChooseTheme(ThemeChoice.Dark);
@@ -25,14 +27,15 @@ public partial class MainWindow
         Settings.Subscription.SupportButton.Click += (_, _) => OpenLink(subscriptionMetadata?.SupportUrl, "страницу поддержки");
         Routes.RuleList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(RuleRowClick));
         Routes.ProgramList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(RuleRowClick));
-        Advanced.WhereInput.TextChanged += (_, _) => UpdateWhere();
+        Diagnostics.WhereInput.TextChanged += (_, _) => UpdateWhere();
     }
 
     // Сегмент переключателя из нескольких кнопок (тема, обход DPI).
     private static void MarkSegment(System.Windows.Controls.Button button, bool on)
     {
-        if (on) button.SetResourceReference(BackgroundProperty, "Seg"); else button.Background = System.Windows.Media.Brushes.Transparent;
-        button.FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal;
+        // Выбранный сегмент — чернильный (облик 0.20).
+        if (on) { button.SetResourceReference(BackgroundProperty, "Ink"); button.SetResourceReference(ForegroundProperty, "OnInk"); }
+        else { button.Background = System.Windows.Media.Brushes.Transparent; button.SetResourceReference(ForegroundProperty, "Mu"); }
     }
 
     private void ChooseTheme(ThemeChoice choice)
@@ -47,11 +50,10 @@ public partial class MainWindow
     {
         if (!viewsReady) return;
         var general = Settings.General;
-        var advanced = Settings.Advanced;
         var tunnel = SystemTunnelWanted;
-        MarkRadio(advanced.ModeTunRadio, tunnel);
-        MarkRadio(advanced.ModeProxyRadio, !tunnel && Settings.SystemProxy.IsChecked == true);
-        advanced.ModeTun.IsEnabled = Settings.SystemTunnel.IsEnabled;
+        MarkSegment(Live.ModeTun, tunnel);
+        MarkSegment(Live.ModeProxy, !tunnel && Settings.SystemProxy.IsChecked == true);
+        Live.ModeTun.IsEnabled = Settings.SystemTunnel.IsEnabled;
         RefreshSettingsSummary();
         foreach (var (button, choice) in new[] { (general.ThemeSystem, ThemeChoice.System), (general.ThemeLight, ThemeChoice.Light), (general.ThemeDark, ThemeChoice.Dark) })
             MarkSegment(button, ThemeManager.Choice == choice);
@@ -124,15 +126,15 @@ public partial class MainWindow
     // «Куда пойдёт сайт?»: самое длинное подходящее правило сайта, иначе — через VPN.
     private void UpdateWhere()
     {
-        var host = Advanced.WhereInput.Text.Trim().TrimEnd('.').ToLowerInvariant();
-        if (host.Length == 0) { Advanced.WhereResult.Text = ""; return; }
+        var host = Diagnostics.WhereInput.Text.Trim().TrimEnd('.').ToLowerInvariant();
+        if (host.Length == 0) { Diagnostics.WhereResult.Text = ""; return; }
         var rule = siteRules.Where(r => host == r.Domain || host.EndsWith("." + r.Domain, StringComparison.Ordinal))
             .OrderByDescending(r => r.Domain.Length).FirstOrDefault();
         // Правило пользователя сильнее списков; списки — сильнее «всё остальное через VPN».
         var listed = rule is null ? whereRouting?.Decide(host) : null;
         var action = rule?.Action ?? listed ?? SiteAction.Tunnel;
-        Advanced.WhereResult.Text = "→ " + RuleRow.ActionLabel(action) + (rule is not null ? " · " + rule.Domain : listed is not null ? " · по спискам" : "");
-        Advanced.WhereResult.SetResourceReference(TextBlock.ForegroundProperty, action switch
+        Diagnostics.WhereResult.Text = "→ " + RuleRow.ActionLabel(action) + (rule is not null ? " · " + rule.Domain : listed is not null ? " · по спискам" : "");
+        Diagnostics.WhereResult.SetResourceReference(TextBlock.ForegroundProperty, action switch
         { SiteAction.Direct => "OkF", SiteAction.Block => "RF", _ => "Ac" });
     }
 }

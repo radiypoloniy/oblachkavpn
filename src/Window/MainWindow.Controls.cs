@@ -22,7 +22,6 @@ public partial class MainWindow
     private Views.RulesTab Routes => RulesPage;
     private Views.BypassPage Bypass => Settings.Bypass;
     private Views.GeneralTab AppTab => Settings.General;
-    private Views.AdvancedPage Advanced => Settings.Advanced;
     private Views.HelpTab Diagnostics => Settings.Help;
     private Button ImportFileButton => Servers.ImportFileButton;
     private Button PasteButton => Servers.PasteButton;
@@ -35,8 +34,8 @@ public partial class MainWindow
     private TextBlock EventText => Diagnostics.EventText;
     private TextBlock DetailText => ShellFeedback;
     private CheckBox AutoRecover => Settings.AutoRecover;
-    private Button CopyEndpointButton => Advanced.CopyEndpointButton;
-    private TextBlock EndpointText => Advanced.EndpointText;
+    private Button CopyEndpointButton => Diagnostics.CopyEndpointButton;
+    private TextBlock EndpointText => Diagnostics.EndpointText;
 
     private void WireViews()
     {

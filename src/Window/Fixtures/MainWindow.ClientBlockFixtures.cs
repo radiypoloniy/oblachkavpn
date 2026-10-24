@@ -13,12 +13,12 @@ public partial class MainWindow
         // Метка действия меняется по кругу: через VPN → напрямую → блок.
         CycleRule(siteRules[0]); CycleRule(siteRules[0]);
         if (siteRules[0].Action != SiteAction.Block) throw new InvalidOperationException("Rule action badge does not cycle");
-        Advanced.WhereInput.Text = "ads.example.com";
-        if (!Advanced.WhereResult.Text.Contains("блок") || !Advanced.WhereResult.Text.Contains("example.com"))
-            throw new InvalidOperationException("«Куда пойдёт сайт?» ignored the matching rule: " + Advanced.WhereResult.Text);
-        Advanced.WhereInput.Text = "example.org";
-        if (!Advanced.WhereResult.Text.Contains("через VPN")) throw new InvalidOperationException("Unmatched site is not shown as tunneled");
-        Advanced.WhereInput.Clear();
+        Diagnostics.WhereInput.Text = "ads.example.com";
+        if (!Diagnostics.WhereResult.Text.Contains("блок") || !Diagnostics.WhereResult.Text.Contains("example.com"))
+            throw new InvalidOperationException("«Куда пойдёт сайт?» ignored the matching rule: " + Diagnostics.WhereResult.Text);
+        Diagnostics.WhereInput.Text = "example.org";
+        if (!Diagnostics.WhereResult.Text.Contains("через VPN")) throw new InvalidOperationException("Unmatched site is not shown as tunneled");
+        Diagnostics.WhereInput.Clear();
         RemoveRule(siteRules[0]);
         if (siteRules.Count != 0) throw new InvalidOperationException("Draft removal failed");
         AddProgramRules([ProgramRoutingPlan.Create("steam.exe", SiteAction.Tunnel)]);
@@ -34,7 +34,7 @@ public partial class MainWindow
         checks.Add("Live view shows a process with an odd file name without rule buttons instead of crashing");
         // Доступность измерений зависит от источника узла и проверяется отдельно
         // в CheckPreviewControls и CheckServiceControls.
-        if (!Advanced.ValidateRulesButton.IsEnabled || backgroundWorkEnabled)
+        if (!Diagnostics.ValidateRulesButton.IsEnabled || backgroundWorkEnabled)
             throw new InvalidOperationException("Client block actions or fixture network isolation incorrect");
         checks.Add("Rule editor normalizes domains, cycles actions, answers «Куда пойдёт сайт?» and removes rules; background requests disabled in fixtures");
     }

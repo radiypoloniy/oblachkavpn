@@ -1,5 +1,5 @@
 <UserControl x:Class="Oblachka.Views.ServersSheet" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:o="clr-namespace:Oblachka" xmlns:sys="clr-namespace:System;assembly=System.Runtime" FontFamily="{StaticResource UiFont}" Foreground="{DynamicResource Tx}" Background="{DynamicResource Bg}">
+             xmlns:o="clr-namespace:Oblachka" xmlns:v="clr-namespace:Oblachka.Views" xmlns:sys="clr-namespace:System;assembly=System.Runtime" FontFamily="{StaticResource UiFont}" Foreground="{DynamicResource Tx}" Background="{DynamicResource Bg}">
   <!-- Панель «Все серверы» (экран 09): выезжает поверх главного окна. Группы: автовыбор, избранное,
        свои узлы, сторонние. Звезда справа переключает избранное, клик по строке — подключение. -->
   <UserControl.Resources>
@@ -13,7 +13,7 @@
           <Button Tag="group-refresh" Content="Обновить" Style="{StaticResource BtnLink}" Height="26" FontSize="{StaticResource FsSmall}" Visibility="{Binding RefreshVisibility}"/>
           <Button Tag="group-remove" Content="Убрать" Style="{StaticResource BtnLink}" Height="26" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" AutomationProperties.Name="{Binding RemoveName}"/>
         </StackPanel>
-        <TextBlock Text="{Binding Title}" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" VerticalAlignment="Center"/>
+        <TextBlock Text="{Binding Title}" FontSize="{StaticResource FsRow}" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
       </DockPanel>
     </DataTemplate>
     <DataTemplate DataType="{x:Type o:ServerRow}">
@@ -116,10 +116,11 @@
       <Button x:Name="BackButton" Style="{StaticResource IconButton}" Foreground="{DynamicResource Tx}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Назад">
         <Path Data="{StaticResource IcoBack}" Style="{StaticResource Icon}" StrokeThickness="2.2"/>
       </Button>
+      <Button x:Name="SubscriptionsButton" DockPanel.Dock="Right" Content="Подписки и ключ" Style="{StaticResource BtnSecondary}" Height="36" Padding="16,0" Margin="6,0,0,0" WindowChrome.IsHitTestVisibleInChrome="True"/>
       <Button x:Name="RefreshButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Обновить подписку" ToolTip="Обновить подписку">
         <Path Data="{StaticResource IcoRefresh}" Style="{StaticResource Icon}" Width="18" Height="18"/>
       </Button>
-      <TextBlock Text="Все серверы" Style="{StaticResource Brand}" Margin="4,0,0,0"/>
+      <TextBlock Text="Серверы" Style="{StaticResource PageHead}" Margin="10,0,0,0" VerticalAlignment="Center"/>
     </DockPanel>
 
     <StackPanel Grid.Row="1" Margin="20,0,20,4">
@@ -147,6 +148,29 @@
         <Path Data="{StaticResource IcoSearch}" Width="16" Height="16" Stretch="Uniform" Stroke="{DynamicResource Fa}" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
               HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0" IsHitTestVisible="False"/>
       </Grid>
+      <!-- Подписка сервиса: срок и остаток квадратами; автовыбор — из каких серверов. -->
+      <Border x:Name="SubStrip" Style="{StaticResource Plate}" Background="{DynamicResource NB}" Margin="0,10,0,0" Padding="16,12" Visibility="Collapsed">
+        <DockPanel>
+          <v:PixelBars x:Name="SubStripBars" DockPanel.Dock="Right" Kind="Segments" Count="10" Width="150" Height="14" VerticalAlignment="Center" Fill="{DynamicResource RouteVpn}" Empty="{DynamicResource Bg}"/>
+          <StackPanel VerticalAlignment="Center" Margin="0,0,14,0">
+            <TextBlock x:Name="SubStripTitle" FontSize="{StaticResource FsRow}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+            <TextBlock x:Name="SubStripText" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource NF}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+      <Button x:Name="OpenAutoPool" Style="{StaticResource Row}" Height="Auto" MinHeight="48" Padding="12,6" Margin="0,8,0,0" BorderBrush="{DynamicResource Divider}" BorderThickness="1.5" AutomationProperties.Name="Серверы автовыбора">
+        <DockPanel>
+          <Path DockPanel.Dock="Right" Data="{StaticResource IcoChevronRight}" Style="{StaticResource Icon}" Width="14" Height="14" StrokeThickness="2.2" Margin="8,0,0,0"/>
+          <TextBlock x:Name="AutoPoolSummary" DockPanel.Dock="Right" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu2}" VerticalAlignment="Center"/>
+          <Border Width="30" Height="30" CornerRadius="{StaticResource RadiusMd}" Background="{DynamicResource Cream}" Margin="0,0,12,0">
+            <Path Data="{StaticResource IcoAuto}" Width="14" Height="14" Stretch="Uniform" Fill="{DynamicResource Orb}"/>
+          </Border>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Серверы автовыбора" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
+            <TextBlock Text="Автовыбор берёт самый быстрый из отмеченных" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}"/>
+          </StackPanel>
+        </DockPanel>
+      </Button>
       <!-- Вкладки подписок, как в Throne: «Все» и по одной на группу. Видны, когда групп больше одной. -->
       <ScrollViewer x:Name="GroupTabsScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,10,0,0" Visibility="Collapsed">
         <ListBox x:Name="GroupTabs" ItemContainerStyle="{StaticResource ChipItem}" Background="Transparent" BorderThickness="0" Padding="0"
@@ -200,15 +224,20 @@
       </StackPanel>
     </ScrollViewer>
 
-    <Border Grid.Row="3" BorderBrush="{DynamicResource Divider}" BorderThickness="0,1,0,0" Padding="14,10">
+    <Border Grid.Row="3" BorderBrush="{DynamicResource Divider}" BorderThickness="0,1.5,0,0" Padding="16,10,16,14">
       <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*"/>
           <ColumnDefinition Width="8"/>
           <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
-        <Button x:Name="MeasureButton" Style="{StaticResource BtnSecondary}" Content="Обновить пинг" ToolTip="Задержка через каждый сервер — работает и при подключении"/>
-        <Button x:Name="BestButton" Grid.Column="2" Style="{StaticResource BtnPrimary}" Content="Подключить лучший"/>
+        <DockPanel Grid.ColumnSpan="3" Margin="4,0,0,10">
+          <CheckBox x:Name="AutoRecover" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Переключать сервер при обрыве"/>
+          <TextBlock Text="Сервер упал — переключить на другой" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+        </DockPanel>
+        <Button x:Name="MeasureButton" Grid.Row="1" Style="{StaticResource BtnSecondary}" Content="Обновить пинг" ToolTip="Задержка через каждый сервер — работает и при подключении"/>
+        <Button x:Name="BestButton" Grid.Row="1" Grid.Column="2" Style="{StaticResource BtnPrimary}" Content="Подключить лучший"/>
       </Grid>
     </Border>
   </Grid>

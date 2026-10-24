@@ -56,7 +56,7 @@
         <Button x:Name="ExitButton" Grid.Column="2" Content="Выйти" Style="{StaticResource BtnSecondary}" Height="38" o:Ui.CornerRadius="{StaticResource RadiusMd}" Padding="18,0" FontSize="{StaticResource FsBody}" Background="{DynamicResource RB}" Foreground="{DynamicResource RF}" Tag="{DynamicResource OverlayDanger}"/>
       </Grid>
       <StackPanel>
-        <TextBlock Text="БЫСТРАЯ СМЕНА" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" Margin="6,20,6,8"/>
+        <TextBlock Text="Быстрая смена" Style="{StaticResource Caption}" FontSize="{StaticResource FsCaption}" Margin="6,20,6,8"/>
         <ItemsControl x:Name="QuickList" Focusable="False"/>
       </StackPanel>
     </DockPanel>

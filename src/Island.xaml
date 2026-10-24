@@ -95,11 +95,12 @@
     <Setter Property="CornerRadius" Value="{StaticResource RadiusXl}"/>
     <Setter Property="Padding" Value="2,4"/>
   </Style>
+  <!-- Заголовок группы — обычными буквами (облик 0.20), как SecHead. -->
   <Style x:Key="SetCaption" TargetType="TextBlock">
-    <Setter Property="FontSize" Value="{StaticResource FsCaption}"/>
-    <Setter Property="FontWeight" Value="SemiBold"/>
-    <Setter Property="Foreground" Value="{DynamicResource Fa}"/>
-    <Setter Property="Margin" Value="8,18,8,6"/>
+    <Setter Property="FontSize" Value="{StaticResource FsLead}"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+    <Setter Property="Foreground" Value="{DynamicResource Tx}"/>
+    <Setter Property="Margin" Value="8,20,8,8"/>
   </Style>
   <Style x:Key="SetLine" TargetType="DockPanel">
     <Setter Property="Margin" Value="12,8,12,8"/>
@@ -112,6 +113,7 @@
     <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusLg}"/>
   </Style>
   <Style x:Key="SetIcon" TargetType="Border">
+    <Setter Property="Visibility" Value="Collapsed"/>
     <Setter Property="Width" Value="28"/>
     <Setter Property="Height" Value="28"/>
     <Setter Property="CornerRadius" Value="{StaticResource RadiusIcon}"/>

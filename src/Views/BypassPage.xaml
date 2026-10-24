@@ -4,7 +4,7 @@
        российские сайты и правила сервиса — напрямую. Свои правила — раздел «Правила» на острове. -->
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="20,0,20,16">
-      <TextBlock Text="YOUTUBE И DISCORD" Style="{StaticResource SetCaption}" Margin="8,4,8,6"/>
+      <TextBlock Text="YouTube и Discord" Style="{StaticResource SetCaption}" Margin="8,4,8,8"/>
       <Border Style="{StaticResource SetGroup}">
         <StackPanel>
           <DockPanel Style="{StaticResource SetLine}">
@@ -47,7 +47,7 @@
         </StackPanel>
       </Border>
 
-      <TextBlock Text="НАПРЯМУЮ" Style="{StaticResource SetCaption}"/>
+      <TextBlock Text="Напрямую" Style="{StaticResource SetCaption}"/>
       <Border Style="{StaticResource SetGroup}">
         <StackPanel>
           <DockPanel Style="{StaticResource SetLine}">
