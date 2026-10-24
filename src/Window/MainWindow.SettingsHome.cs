@@ -21,7 +21,7 @@ public partial class MainWindow
     {
         if (!viewsReady) return;
         var all = importedProfiles.Count;
-        Servers.AutoPoolSummary.Text = all == 0 ? "" : importedProfiles.Count(autoPool.Contains) + " из " + all;
+        Servers.AutoPoolSummary.Text = all == 0 ? "какие" : "какие: " + importedProfiles.Count(autoPool.Contains) + " из " + all;
     }
 
     private bool ZapretWorksWithoutVpn => zapretEnabled && !zapretBusy && zapretActiveGroups.Length > 0;

@@ -23,7 +23,21 @@ public partial class MainWindow
 
     private void WireServerList()
     {
-        Servers.SortOrder.SelectionChanged += (_, _) => FilterProfiles();
+        Servers.SortOrder.SelectionChanged += (_, _) => { Servers.SortText.Text = Servers.SortOrder.SelectedItem as string ?? ""; FilterProfiles(); };
+        // Порядок — меню у «Лучшие сверху ▾»; выбранное значение по-прежнему в SortOrder.
+        Servers.SortButton.Click += (_, _) =>
+        {
+            var menu = new System.Windows.Controls.ContextMenu { PlacementTarget = Servers.SortButton, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+            for (var i = 0; i < Servers.SortOrder.Items.Count; i++)
+            {
+                var index = i;
+                var item = new System.Windows.Controls.MenuItem { Header = Servers.SortOrder.Items[i], IsCheckable = true, IsChecked = Servers.SortOrder.SelectedIndex == i };
+                item.Click += (_, _) => Servers.SortOrder.SelectedIndex = index;
+                menu.Items.Add(item);
+            }
+            menu.IsOpen = true;
+        };
+        Servers.AutoPick.Click += (_, _) => { PickServer(null); Navigate("Connection"); };
         Servers.SheetList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(SheetRowClick));
     }
 
@@ -53,12 +67,9 @@ public partial class MainWindow
         if (!viewsReady) return;
         var shown = ProfilePicker.Items.OfType<Profile>().ToArray();
         var items = new List<object>();
-        if (Servers.SearchBox.Text.Trim().Length == 0)
-            items.Add(new ServerRow
-            {
-                IsAuto = true, Name = "Автовыбор", Selected = autoSelect, IconOnAccent = true, Icon = TryFindResource("IcoAuto") as Geometry,
-                Note = autoSelect && profile is not null ? "сейчас: " + profile.DisplayName : "самый быстрый из пула"
-            });
+        // Автовыбор — закреплённая карточка над списком (AutoCard), выбранный — чернильной рамкой.
+        Servers.AutoCard.BorderThickness = new System.Windows.Thickness(autoSelect ? 2 : 0);
+        Servers.AutoNote.Text = autoSelect && profile is not null ? "сейчас: " + profile.DisplayName : "самый быстрый из отмеченных";
         // Заголовок подписки виден и без строк (всё скрыто, подписка пустая): с него её убирают
         // и возвращают скрытые. Но не при поиске и не на вкладке другой подписки.
         var tab = Servers.GroupTabs.SelectedIndex > 0 && Servers.GroupTabs.Tag is string[] ids && Servers.GroupTabs.SelectedIndex - 1 < ids.Length ? ids[Servers.GroupTabs.SelectedIndex - 1] : null;

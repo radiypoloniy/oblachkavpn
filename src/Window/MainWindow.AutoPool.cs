@@ -31,7 +31,7 @@ public partial class MainWindow
         var throughput = !quiet || (network != throughputNetwork || DateTimeOffset.UtcNow - lastThroughput > TimeSpan.FromHours(3)) && !NetworkCost.Metered();
         if (throughput) { lastThroughput = DateTimeOffset.UtcNow; throughputNetwork = network; }
         measureCancel = new CancellationTokenSource();
-        Servers.MeasureButton.Content = "Остановить замер";
+        Servers.MeasureButton.ToolTip = "Остановить замер"; System.Windows.Automation.AutomationProperties.SetName(Servers.MeasureButton, "Остановить замер");
         var skipped = targets.Count(t => MeasureRoute(t) is null);
         var done = 0;
         try
@@ -61,7 +61,7 @@ public partial class MainWindow
         finally
         {
             measuring = false; measureCancel.Dispose(); measureCancel = null;
-            if (!closed) Servers.MeasureButton.Content = "Обновить пинг";
+            if (!closed) { Servers.MeasureButton.ToolTip = "Обновить пинг"; System.Windows.Automation.AutomationProperties.SetName(Servers.MeasureButton, "Обновить пинг"); }
         }
     }
 

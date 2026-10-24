@@ -4,52 +4,83 @@
        настроек. Всё про сеть — в «Программах и сайтах», «Серверах» и «Помощи». -->
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="24,0,24,20">
-      <TextBlock Text="Запуск" Style="{StaticResource SecHead}" Margin="0,0,0,4"/>
-      <Border Style="{StaticResource OptRow}">
-        <DockPanel>
-          <CheckBox x:Name="StartWithWindows" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Запускать вместе с Windows"/>
-          <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-            <TextBlock Text="Вместе с Windows" Style="{StaticResource OptTitle}"/>
-            <TextBlock Text="В трее, без окна" Style="{StaticResource OptSub}"/>
-          </StackPanel>
-        </DockPanel>
-      </Border>
-      <Border Style="{StaticResource OptRow}">
-        <DockPanel>
-          <CheckBox x:Name="ConnectOnLaunch" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Подключаться при запуске"/>
-          <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-            <TextBlock Text="Сразу подключаться" Style="{StaticResource OptTitle}"/>
-            <TextBlock Text="Если VPN был включён, когда вы выключили компьютер или закрыли Облачку" Style="{StaticResource OptSub}"/>
-          </StackPanel>
-        </DockPanel>
-      </Border>
-      <Border Style="{StaticResource OptRow}">
-        <DockPanel>
-          <CheckBox x:Name="StayInTray" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Крестик сворачивает в трей"/>
-          <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-            <TextBlock Text="Крестик прячет в трей" Style="{StaticResource OptTitle}"/>
-            <TextBlock Text="VPN продолжает работать, Облачка — у часов" Style="{StaticResource OptSub}"/>
-          </StackPanel>
-        </DockPanel>
-      </Border>
-      <Border Style="{StaticResource OptRow}" BorderThickness="0">
-        <DockPanel>
-          <CheckBox x:Name="Hotkey" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Ctrl+Alt+O показывает окно"/>
-          <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-            <TextBlock Text="Ctrl+Alt+O" Style="{StaticResource OptTitle}"/>
-            <TextBlock x:Name="HotkeyNote" Text="Показать окно из любой программы; ещё раз — спрятать в трей" Style="{StaticResource OptSub}"/>
-          </StackPanel>
-        </DockPanel>
-      </Border>
+      <!-- Запуск слева, вид справа; обновления и перенос — на всю ширину (макет «Приложение»). -->
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="28"/>
+          <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel>
+        <TextBlock Text="Запуск" Style="{StaticResource SecHead}" Margin="0,0,0,4"/>
+        <Border Style="{StaticResource OptRow}">
+          <DockPanel>
+            <CheckBox x:Name="StartWithWindows" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Запускать вместе с Windows"/>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+              <TextBlock Text="Вместе с Windows" Style="{StaticResource OptTitle}"/>
+              <TextBlock Text="В трее, без окна" Style="{StaticResource OptSub}"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+        <Border Style="{StaticResource OptRow}">
+          <DockPanel>
+            <CheckBox x:Name="ConnectOnLaunch" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Подключаться при запуске"/>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+              <TextBlock Text="Сразу подключаться" Style="{StaticResource OptTitle}"/>
+              <TextBlock Text="Если VPN был включён, когда вы выключили компьютер или закрыли Облачку" Style="{StaticResource OptSub}"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+        <Border Style="{StaticResource OptRow}">
+          <DockPanel>
+            <CheckBox x:Name="StayInTray" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Крестик сворачивает в трей"/>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+              <TextBlock Text="Крестик прячет в трей" Style="{StaticResource OptTitle}"/>
+              <TextBlock Text="VPN продолжает работать, Облачка — у часов" Style="{StaticResource OptSub}"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+        <Border Style="{StaticResource OptRow}" BorderThickness="0">
+          <DockPanel>
+            <CheckBox x:Name="Hotkey" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Ctrl+Alt+O показывает окно"/>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+              <TextBlock Text="Ctrl+Alt+O" Style="{StaticResource OptTitle}"/>
+              <TextBlock x:Name="HotkeyNote" Text="Показать окно из любой программы; ещё раз — спрятать в трей" Style="{StaticResource OptSub}"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
 
-      <TextBlock Text="Вид" Style="{StaticResource SecHead}"/>
-      <Border Style="{StaticResource SegTrack}" HorizontalAlignment="Left">
-        <StackPanel Orientation="Horizontal">
-          <Button x:Name="ThemeLight" Content="Светлая" Style="{StaticResource SegButton}"/>
-          <Button x:Name="ThemeDark" Content="Тёмная" Style="{StaticResource SegButton}"/>
-          <Button x:Name="ThemeSystem" Content="Как в Windows" Style="{StaticResource SegButton}"/>
         </StackPanel>
-      </Border>
+        <StackPanel Grid.Column="2">
+          <TextBlock Text="Вид" Style="{StaticResource SecHead}" Margin="0,0,0,8"/>
+          <UniformGrid Columns="3">
+            <Button x:Name="ThemeLight" Style="{StaticResource ThemeTile}" AutomationProperties.Name="Светлая тема">
+              <StackPanel>
+                <Border Height="44" CornerRadius="{StaticResource RadiusSm}" Background="{DynamicResource CloudWhite}" Padding="5">
+                  <DockPanel><Border Width="20" CornerRadius="{StaticResource RadiusXs}" Background="{DynamicResource Sun}" Margin="0,0,5,0"/><Border CornerRadius="{StaticResource RadiusXs}" Background="{DynamicResource NightInk}"/></DockPanel>
+                </Border>
+                <TextBlock Text="Светлая" Margin="2,8,0,0"/>
+              </StackPanel>
+            </Button>
+            <Button x:Name="ThemeDark" Style="{StaticResource ThemeTile}" AutomationProperties.Name="Тёмная тема">
+              <StackPanel>
+                <Border Height="44" CornerRadius="{StaticResource RadiusSm}" Background="{DynamicResource Night}" Padding="5">
+                  <DockPanel><Border Width="20" CornerRadius="{StaticResource RadiusXs}" Background="{DynamicResource Sun}" Margin="0,0,5,0"/><Border CornerRadius="{StaticResource RadiusXs}" Background="{DynamicResource NightCloud}"/></DockPanel>
+                </Border>
+                <TextBlock Text="Тёмная" Margin="2,8,0,0"/>
+              </StackPanel>
+            </Button>
+            <Button x:Name="ThemeSystem" Style="{StaticResource ThemeTile}" AutomationProperties.Name="Тема как в Windows">
+              <StackPanel>
+                <Border Height="44" CornerRadius="{StaticResource RadiusSm}" Background="{DynamicResource NightInk}" Padding="5">
+                  <UniformGrid Columns="2"><Border CornerRadius="{StaticResource RadiusXs}" Background="{DynamicResource CloudWhite}" Margin="0,0,3,0"/><Border CornerRadius="{StaticResource RadiusXs}" Background="{DynamicResource Night}" Margin="3,0,0,0"/></UniformGrid>
+                </Border>
+                <TextBlock Text="Системная" Margin="2,8,0,0" TextTrimming="CharacterEllipsis" ToolTip="Как в Windows"/>
+              </StackPanel>
+            </Button>
+          </UniformGrid>
+        </StackPanel>
+      </Grid>
 
       <!-- Обновление без переустановки (AppUpdate): релизы GitHub, установщик по нажатию. -->
       <TextBlock Text="Обновления" Style="{StaticResource SecHead}"/>

@@ -12,7 +12,7 @@ public partial class MainWindow
         var sheet = Servers.SheetList.Items.Cast<object>().ToArray();
         var favoriteHeader = Array.FindIndex(sheet, i => i is SheetHeader { Title: "Избранное" });
         if (favoriteHeader < 0 || sheet[favoriteHeader + 1] is not ServerRow { Favorite: true } starred || starred.Profile != selected ||
-            profile != selected || CaptureState().Favorites.Length != 1 || sheet[0] is not ServerRow { IsAuto: true })
+            profile != selected || CaptureState().Favorites.Length != 1 || sheet[0] is not SheetHeader || Servers.AutoCard.Visibility != System.Windows.Visibility.Visible)
             throw new InvalidOperationException("Favorite star did not move the server into «Избранное» or was not captured for encrypted storage");
         Servers.SearchBox.Text = "no-synthetic-match";
         if (ProfilePicker.Items.Count != 0 || profile != selected || Servers.SheetList.Items.OfType<ServerRow>().Any())

@@ -16,18 +16,15 @@ public partial class MainWindow
         Settings.SubscriptionDetails.Text = string.IsNullOrWhiteSpace(summary) ? "Сервер не передал срок и остаток трафика." : summary;
 
         // Срок и остаток — в карточке «сегодня и подписка» внизу боковой колонки.
-        var shortSummary = subscriptionMetadata?.ShortSummary(now);
-        Home.PlanText.Text = string.IsNullOrWhiteSpace(shortSummary) ? "" : shortSummary;
-        var (left, used) = subscriptionMetadata?.Remaining() ?? (null, null);
-        Home.PlanSub.Text = left ?? (subscriptionMetadata?.Total == 0 ? "трафик без ограничения" : "");
+        // Без срока заголовок — «Подписка без срока», остаток — второй строкой: иначе «Трафик без
+        // ограничения» повторялся дважды (ShortSummary без срока возвращает ту же строку).
+        var meta = subscriptionMetadata;
+        Home.PlanText.Text = meta is null ? "" : meta.Expires is null ? (meta.Total is null ? "" : "Подписка без срока") : meta.ShortSummary(now);
+        var (left, used) = meta?.Remaining() ?? (null, null);
+        Home.PlanSub.Text = left ?? (meta?.Total == 0 ? "трафик без ограничения" : "");
         Home.PlanBars.Visibility = used is null ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;
         Home.PlanBars.Filled = used is { } share ? (int)Math.Round(share * Home.PlanBars.Count) : 0;
         Home.PlanRow.Visibility = Home.PlanText.Text.Length > 0 ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
-        // Та же подписка полоской в «Серверах».
-        Servers.SubStrip.Visibility = Home.PlanRow.Visibility;
-        Servers.SubStripTitle.Text = Home.PlanText.Text; Servers.SubStripText.Text = Home.PlanSub.Text;
-        Servers.SubStripBars.Visibility = Home.PlanBars.Visibility;
-        Servers.SubStripBars.Filled = used is { } part ? (int)Math.Round(part * Servers.SubStripBars.Count) : 0;
         ApplySubscriptionWarning();
 
         // Объявление панели. Текст чужой, поэтому он уже очищен и обрезан в SubscriptionMetadata,
