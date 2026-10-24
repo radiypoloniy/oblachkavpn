@@ -45,10 +45,10 @@ public partial class MainWindow
             try
             {
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-                var probe = await ZapretProbe.RunAsync(ZapretProbeRoute, timeout.Token);
+                var probe = await ZapretProbe.RunAsync(ZapretProbeRoute, timeout.Token, quicViaTunnel: SystemTunnelActive);
                 if (closed || zapretBusy) return;
                 var passing = ZapretPlan.Passing(probe);
-                zapretJournal.Add(ZapretJournalKind.Watch, zapretActiveStrategy, passing, probe, zapretActiveNetwork, ZapretPathNote);
+                zapretJournal.Add(ZapretJournalKind.Watch, zapretActiveStrategy, passing, probe, zapretActiveNetwork, SystemTunnelActive ? "присмотр через ядро туннеля, TCP и QUIC" : ZapretPathNote);
                 var lost = new List<string>();
                 foreach (var group in zapretActiveGroups)
                 {
