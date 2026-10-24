@@ -28,6 +28,35 @@ public static partial class SelfTests
             Assert(ServerMeasurements.Score(new("x", now, true, 100)) is > 100 and < 600);
             Assert(ServerMeasurements.Score(new("x", now, false, 0)) == double.MaxValue && ServerMeasurements.Score(new("x", now, true, 3) { Handshake = true }) == double.MaxValue);
         }));
+        await check("Auto-select measures speed only for the fastest by delay and does not credit unmeasured servers with a default speed", () => Sync(() =>
+        {
+            var now = DateTimeOffset.UtcNow;
+            var nodes = Enumerable.Range(0, 6).Select(i => Node("203.0.113." + (80 + i), name: "N" + i)).ToArray();
+            ServerMeasurement M(Profile p, long ms, long bps = 0, bool ok = true) => new(Profiles.Fingerprint(p), now, ok, ms) { Throughput = bps };
+            var measured = new Dictionary<string, ServerMeasurement>
+            {
+                [Profiles.Fingerprint(nodes[0])] = M(nodes[0], 200), [Profiles.Fingerprint(nodes[1])] = M(nodes[1], 40),
+                [Profiles.Fingerprint(nodes[2])] = M(nodes[2], 90), [Profiles.Fingerprint(nodes[3])] = M(nodes[3], 0, ok: false),
+                [Profiles.Fingerprint(nodes[4])] = M(nodes[4], 60), [Profiles.Fingerprint(nodes[5])] = M(nodes[5], 300)
+            };
+            // Три лучших по задержке среди ответивших, плюс текущий, если он не среди них.
+            Assert(ServerMeasurements.ThroughputTargets(nodes, measured, now).SequenceEqual(new[] { nodes[1], nodes[4], nodes[2] }));
+            Assert(ServerMeasurements.ThroughputTargets(nodes, measured, now, nodes[5]).SequenceEqual(new[] { nodes[1], nodes[4], nodes[2], nodes[5] }));
+            Assert(ServerMeasurements.ThroughputTargets(nodes, measured, now, nodes[3]).Count == 3);
+            // Медленная сеть: измеренные 800 КБ/с. Сервер без замера не получает условные 2,5 МБ/с и не
+            // обгоняет их только за счёт этого — ему приписывается худшая измеренная скорость.
+            measured[Profiles.Fingerprint(nodes[1])] = M(nodes[1], 40, 800_000);
+            measured[Profiles.Fingerprint(nodes[4])] = M(nodes[4], 60, 900_000);
+            measured[Profiles.Fingerprint(nodes[2])] = M(nodes[2], 90, 850_000);
+            Assert(ServerMeasurements.Best(nodes, measured, now) == 4 && ServerMeasurements.Score(measured[Profiles.Fingerprint(nodes[0])]) < ServerMeasurements.Score(measured[Profiles.Fingerprint(nodes[4])]));
+            Assert(ServerMeasurements.FallbackThroughput(measured.Values) == 800_000 && ServerMeasurements.FallbackThroughput([]) == ServerMeasurements.DefaultThroughput);
+            // Прежний короткий замер дал бы TCP-серверу 1 МБ/с в медленном старте, а честный — 12 МБ/с:
+            // Hysteria с меньшей задержкой и 5 МБ/с больше не выигрывает.
+            var hy = Node("203.0.113.90", name: "Hysteria"); var tcp = Node("203.0.113.91", name: "REALITY");
+            var fair = new Dictionary<string, ServerMeasurement> { [Profiles.Fingerprint(hy)] = M(hy, 45, 5_000_000), [Profiles.Fingerprint(tcp)] = M(tcp, 70, 12_000_000) };
+            Assert(ServerMeasurements.Best([hy, tcp], fair, now) == 1);
+            Assert(ServerMeasurements.ThroughputBytes >= 4 * 1024 * 1024 && ServerMeasurements.ThroughputWindow >= TimeSpan.FromSeconds(3) && ServerMeasurements.ThroughputTarget.Query.Contains("8388608"));
+        }));
         await check("Metered networks are recognised by Windows cost flags and the lookup never throws", () => Sync(() =>
         {
             // 0x1 — безлимит; 0x2 фиксированный объём, 0x4 оплата за трафик, 0x40000 роуминг.

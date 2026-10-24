@@ -1,4 +1,4 @@
-namespace Oblachka;
+﻿namespace Oblachka;
 
 // Точка входа тестового исполняемого файла. Поставляемый клиент этих аргументов не знает.
 public static class TestProgram
@@ -180,6 +180,7 @@ public static class TestProgram
         if (args.Length == 3 && args[0] == "--routing-check") return RoutingCheckCommand.Run(args[1], args[2]);
         if (args.Length == 2 && args[0] == "--wfp-local-check") return WfpLocalCheckCommand.Run(args[1]);
         if (args.Length == 3 && args[0] == "--ping-check") return PingCheckCommand.Run(args[1], args[2]);
+        if (args.Length == 3 && args[0] == "--throughput-check" && int.TryParse(args[1], out var socks)) return ThroughputCheckCommand.Run(socks, args[2]);
         if (args.Length >= 3 && args[0] == "--site-check") return SiteCheckCommand.Run(args[1], args.Skip(2));
         if (args.Length == 3 && args[0] == "--subscription-check") return SubscriptionCheckCommand.Run(args[1], args[2]);
         if (args.Length is 3 or 4 && args[0] == "--import-check")

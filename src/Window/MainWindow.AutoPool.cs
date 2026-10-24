@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 
 namespace Oblachka;
@@ -24,10 +24,11 @@ public partial class MainWindow
     {
         if (measuring || closed || targets.Count == 0) return;
         measuring = true; lastMeasure = DateTimeOffset.UtcNow;
-        // Скорость — по кнопке, а в фоне раз в час и сразу в новой сети: 256 КБ на сервер.
+        // Скорость — по кнопке, а в фоне раз в 3 часа и сразу в новой сети: до 4 МБ у трёх лучших
+        // по задержке и у текущего (ServerMeasurements.ThroughputTargets).
         // В лимитной сети (NetworkCost) фоном только задержка — она стоит единицы килобайт.
         var network = NetworkIdentity.Current();
-        var throughput = !quiet || (network != throughputNetwork || DateTimeOffset.UtcNow - lastThroughput > TimeSpan.FromHours(1)) && !NetworkCost.Metered();
+        var throughput = !quiet || (network != throughputNetwork || DateTimeOffset.UtcNow - lastThroughput > TimeSpan.FromHours(3)) && !NetworkCost.Metered();
         if (throughput) { lastThroughput = DateTimeOffset.UtcNow; throughputNetwork = network; }
         measureCancel = new CancellationTokenSource();
         Servers.MeasureButton.Content = "Остановить замер";
@@ -35,16 +36,23 @@ public partial class MainWindow
         var done = 0;
         try
         {
-            await ServerMeasurements.MeasureAsync(targets, MeasureEngine, result =>
+            void Measured(ServerMeasurement result, string progress)
             {
                 // Замер без скорости не стирает прежнюю: она меряется реже задержки.
                 if (result is { Success: true, Throughput: 0 } && measurements.TryGetValue(result.Fingerprint, out var old) && old.Throughput > 0)
                     result = result with { Throughput = old.Throughput };
                 measurements[result.Fingerprint] = result;
                 if (closed) return;
-                if (!quiet) DetailText.Text = $"Пинг: {++done} из {targets.Count - skipped}. Можно остановить.";
+                if (!quiet) DetailText.Text = progress + " Можно остановить.";
                 RenderSheet(); RefreshHome();
-            }, measureCancel.Token, MeasureRoute, throughput);
+            }
+            await ServerMeasurements.MeasureAsync(targets, MeasureEngine, result => Measured(result, $"Пинг: {++done} из {targets.Count - skipped}."), measureCancel.Token, MeasureRoute);
+            if (throughput)
+            {
+                var fastest = ServerMeasurements.ThroughputTargets(targets, measurements, DateTimeOffset.UtcNow, runningProfile ?? profile);
+                var speedDone = 0;
+                await ServerMeasurements.MeasureAsync(fastest, MeasureEngine, result => Measured(result, $"Скорость лучших: {++speedDone} из {fastest.Count}."), measureCancel.Token, MeasureRoute, throughput: true);
+            }
             QueueStateSave();
             if (!quiet && !closed) DetailText.Text = "Пинг обновлён: задержка через каждый сервер." +
                 (skipped > 0 ? $" {skipped} не проверить, пока включён «Весь компьютер»: их адреса закрыты защитой." : "");
