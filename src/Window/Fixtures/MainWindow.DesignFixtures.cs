@@ -57,7 +57,7 @@ public partial class MainWindow
         DesignPreview.Render(this, Path.Combine(AppContext.BaseDirectory, "preview-running.png"));
         StopClick(this, new RoutedEventArgs());
         await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
-        if (Home.Power.State != Views.PowerState.Off || Home.StatusTitle.Text != "Не подключено")
+        if (Home.Power.State != Views.PowerState.Off || Home.StatusTitle.Text != "Выключено")
             throw new InvalidOperationException("Stopped connection retains running presentation");
         checks.Add("Power switch and statistics track the real process; startup never claims a verified tunnel");
         Settings.StayInTray.IsChecked = true;
@@ -71,7 +71,7 @@ public partial class MainWindow
         {
             // Быстрая смена: автовыбор первым, выбранный сервер отмечен.
             var rows = popup.QuickList.Items.OfType<ServerRow>().ToArray();
-            if (!popup.PowerButton.IsEnabled || rows.Length == 0 || !rows[0].IsAuto || !rows.Any(r => r.Selected && r.Profile == profile))
+            if (popup.Power.State == Views.PowerState.Disabled || rows.Length == 0 || !rows[0].IsAuto || !rows.Any(r => r.Selected && r.Profile == profile))
                 throw new InvalidOperationException("Compact tray window does not reflect the selected profile");
         }
         finally { popup.Close(); }
@@ -163,7 +163,9 @@ public partial class MainWindow
             Home.CheckText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "OkF");
             // Снимок делается сразу, анимация ещё не прошла: ставим её итог.
             var power = Home.Power;
-            foreach (var layer in new UIElement[] { power.Glow, power.OnLayer }) { layer.BeginAnimation(OpacityProperty, null); layer.Opacity = 1; }
+            power.State = Views.PowerState.On;
+            foreach (var layer in new UIElement[] { power.OnLayer }) { layer.BeginAnimation(OpacityProperty, null); layer.Opacity = 1; }
+            ApplyStatusLook();
             return; }
         // «Не открывается сайт?» с итогом: напрямую режет DPI, через VPN открывается.
         if (page is "site" or "site-ok") { LoadGroupsPreview(); OpenSiteCheck(); checkedHost = page == "site" ? "rutracker.org" : "www.gosuslugi.ru"; SiteCheck.SiteInput.Text = checkedHost;

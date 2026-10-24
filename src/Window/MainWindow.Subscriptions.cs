@@ -6,7 +6,7 @@ public partial class MainWindow
     private async void PollSubscription()
     {
         if (closed || vmTestActive || !backgroundWorkEnabled || !groups.Any(g => g.IsSubscription) || operation is not null || recoveryWait is not null ||
-            pendingImport is not null || Settings.AutoRefresh.IsChecked != true || !subscriptionSchedule.IsDue(DateTimeOffset.UtcNow)) return;
+            pendingImport is not null || ForeignConnected || Settings.AutoRefresh.IsChecked != true || !subscriptionSchedule.IsDue(DateTimeOffset.UtcNow)) return;
         await RefreshAllAsync();
     }
     private void UpdateSubscriptionSummary()
@@ -15,9 +15,16 @@ public partial class MainWindow
         var summary = subscriptionMetadata?.Summary(now);
         Settings.SubscriptionDetails.Text = string.IsNullOrWhiteSpace(summary) ? "Сервер не передал срок и остаток трафика." : summary;
 
-        // Срок на главном экране: раньше он был виден только в настройках.
-        var shortSummary = subscriptionMetadata?.ShortSummary(now);
-        Home.PlanText.Text = string.IsNullOrWhiteSpace(shortSummary) ? "" : shortSummary;
+        // Срок и остаток — в карточке «сегодня и подписка» внизу боковой колонки.
+        // Без срока заголовок — «Подписка без срока», остаток — второй строкой: иначе «Трафик без
+        // ограничения» повторялся дважды (ShortSummary без срока возвращает ту же строку).
+        var meta = subscriptionMetadata;
+        Home.PlanText.Text = meta is null ? "" : meta.Expires is null ? (meta.Total is null ? "" : "Подписка без срока") : meta.ShortSummary(now);
+        var (left, used) = meta?.Remaining() ?? (null, null);
+        Home.PlanSub.Text = left ?? (meta?.Total == 0 ? "трафик без ограничения" : "");
+        Home.PlanBars.Visibility = used is null ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;
+        Home.PlanBars.Filled = used is { } share ? (int)Math.Round(share * Home.PlanBars.Count) : 0;
+        Home.PlanRow.Visibility = Home.PlanText.Text.Length > 0 ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         ApplySubscriptionWarning();
 
         // Объявление панели. Текст чужой, поэтому он уже очищен и обрезан в SubscriptionMetadata,

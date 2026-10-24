@@ -17,7 +17,7 @@ public partial class MainWindow
     {
         Settings.RussiaDirect.Click += async (_, _) => await RoutingChangedAsync();
         Bypass.ProviderRouting.Click += async (_, _) => { useProviderRouting = Bypass.ProviderRouting.IsChecked == true; await RoutingChangedAsync(); };
-        Advanced.GeoButton.Click += async (_, _) => await DownloadGeoAsync(force: true);
+        Diagnostics.GeoButton.Click += async (_, _) => await DownloadGeoAsync(force: true);
         Home.RoutingOfferAccept.Click += async (_, _) => { useProviderRouting = true; await RoutingChangedAsync(); };
         Home.RoutingOfferDecline.Click += (_, _) => { useProviderRouting = false; RefreshRouting(); QueueStateSave(); };
     }
@@ -137,10 +137,10 @@ public partial class MainWindow
         var site = GeoStore.Default.Info(GeoStore.Kind.Geosite);
         var ip = GeoStore.Default.Info(GeoStore.Kind.Geoip);
         string Line(GeoStore.FileInfo info, string name) => name + " " + (info.Bytes / 1048576.0).ToString("0.#") + " МБ от " + info.Updated.ToLocalTime().ToString("dd.MM");
-        Advanced.GeoStatus.Text = geoProgress ?? (site is null && ip is null ? "Базы адресов не скачаны"
+        Diagnostics.GeoStatus.Text = geoProgress ?? (site is null && ip is null ? "Базы адресов не скачаны"
             : "Базы адресов: " + string.Join(", ", new[] { site is null ? null : Line(site, "сайты"), ip is null ? null : Line(ip, "IP") }.OfType<string>()));
-        Advanced.GeoButton.Content = site is null && ip is null ? "Скачать" : "Обновить";
-        Advanced.GeoButton.IsEnabled = !geoDownloading;
+        Diagnostics.GeoButton.Content = site is null && ip is null ? "Скачать" : "Обновить";
+        Diagnostics.GeoButton.IsEnabled = !geoDownloading;
         Settings.RussiaDirect.IsEnabled = Bypass.ProviderRouting.IsEnabled = !geoDownloading;
 
         var offer = provider is not null && useProviderRouting is null;

@@ -45,3 +45,7 @@
 ## Флаги и названия стран
 
 Справочники названий стран (ru/en) получены с FlagCDN/Flagpedia (https://flagpedia.net/download/api). PNG-флаги встроены в сборку; недостающие загружаются с https://flagcdn.com по коду страны, и в запросе нет ничего, кроме этого кода. Изображения флагов государств — общественное достояние.
+
+## Шрифты Onest и Unbounded
+
+Onest (https://github.com/googlefonts/onest) и Unbounded (https://github.com/googlefonts/unbounded) — SIL Open Font License 1.1, тексты лицензий в `src/Assets/Fonts/OFL-*.txt`. Встроены статические начертания (Onest 400–700, Unbounded 700–800), нарезанные из вариативных файлов google/fonts и урезанные до латиницы, кириллицы и знаков (fontTools); названия шрифтов не изменены.

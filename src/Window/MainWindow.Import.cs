@@ -104,6 +104,9 @@ public partial class MainWindow
         Func<IReadOnlyList<string>, int, CancellationToken, Task<MirrorResult>>? loader = null)
     {
         if (operation is not null) return;
+        // Через бесплатный чужой узел подписка сервиса не ходит (ForeignGuard): обновим после него.
+        if (ForeignConnected && ServiceKey.SourceOf(sources) == ProfileSource.Service)
+        { DetailText.Text = "Подписка сервиса обновится после отключения от бесплатного сервера."; return; }
         manualStop = false;
         operation = new CancellationTokenSource(); engineOperation = false; UpdateControls();
         DetailText.Text = "Загружаем подписку; при отказе проверим резервные адреса…";
@@ -138,6 +141,7 @@ public partial class MainWindow
     }
     private void ImportFileClick(object sender, RoutedEventArgs args)
     {
+        Servers.AddPopup.IsOpen = false;
         var dialog = new OpenFileDialog { Filter = "Профиль (*.json;*.txt;*.conf)|*.json;*.txt;*.conf|Все файлы|*.*", Title = "Открыть клиентский профиль" };
         if (dialog.ShowDialog(this) != true) return;
         try
@@ -147,10 +151,19 @@ public partial class MainWindow
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { DetailText.Text = "Не удалось прочитать файл. Проверьте доступ к нему."; }
     }
-    private void PasteClick(object sender, RoutedEventArgs args)
+    // Поле «Добавить сервер»: ссылка https:// — подписка своей группой, остальное — во «Вручную».
+    private async void AddKeyClick(object sender, RoutedEventArgs args)
     {
-        var text = AppDialog.Ask(this, "Добавить подключение", "Ссылка vless://, vmess://, ss://, trojan://, hy2://, tuic://, anytls://, wireguard://, клиентский JSON Xray / sing-box или текст файла WireGuard.", "vless://…", "Добавить",
-            note: "Добавится во «Вручную»; подписки не изменятся.", multiline: true, maxLength: Profiles.MaxBytes);
-        if (!string.IsNullOrWhiteSpace(text)) Import(text);
+        var text = Servers.Add.KeyInput.Text.Trim();
+        if (text.Length == 0 || operation is not null) return;
+        if (text.Length > Profiles.MaxBytes) { DetailText.Text = "Текст больше 1 МБ. Вставьте профиль одного подключения."; return; }
+        Servers.AddPopup.IsOpen = false;
+        Servers.Add.KeyInput.Clear();
+        if (text.StartsWith("https://", StringComparison.OrdinalIgnoreCase) && !text.Contains('\n'))
+        {
+            try { await LoadSubscriptionAsync(SubscriptionMirrors.ParseSources(text), 0); }
+            catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }
+        }
+        else Import(text);
     }
 }

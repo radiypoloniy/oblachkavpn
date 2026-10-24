@@ -103,6 +103,29 @@ public static partial class SelfTests
             var quic = Probe(true, true, true, false, false, false) with { QuicOnly = new[] { 2 } };
             Assert(ZapretPlan.Passing(quic).SequenceEqual(new[] { "youtube" }) && ZapretPlan.Describe("ALT4", new[] { "youtube" }, quic).Contains("redirector.googlevideo.com — по QUIC"));
         }));
+        await check("zapret: two strategies are stitched — YouTube block from one, the rest from the other — only when their blocks match", () => Sync(() =>
+        {
+            var manifest = ZapretManifest.Embedded();
+            var alt4 = manifest.Strategies.Single(s => s.Name == "ALT4"); var alt9 = manifest.Strategies.Single(s => s.Name == "ALT9");
+            var stitched = manifest.Find("ALT4 + ALT9")!;
+            string[] Block(ZapretStrategy s, int n) => string.Join("\n", s.Args).Split("\n--new\n")[n].Split('\n');
+            Assert(stitched.Name == "ALT4 + ALT9" && stitched.Args.Count(a => a == "--new") == alt9.Args.Count(a => a == "--new") &&
+                stitched.Args.Length == alt9.Args.Length - Block(alt9, 3).Length + Block(alt4, 3).Length);
+            // Блок 3 — YouTube (list-google.txt): из ALT4; Discord и общий список — из ALT9.
+            Assert(Block(stitched, 3).SequenceEqual(Block(alt4, 3)) && Block(stitched, 3).Contains("--hostlist={LISTS}list-google.txt"));
+            Assert(Block(stitched, 4).SequenceEqual(Block(alt9, 4)) && Block(stitched, 2).SequenceEqual(Block(alt9, 2)) && Block(stitched, 0).SequenceEqual(Block(alt9, 0)));
+            ZapretArgs.Validate(stitched);
+            // ALT5 устроена иначе (один блок на весь TCP) — не сшивается; повтор и чужие имена — тоже.
+            Assert(manifest.Find("ALT5 + ALT9") is null && manifest.Find("ALT9 + ALT5") is null && manifest.Find("ALT9 + ALT9") is null);
+            Assert(manifest.Find("ALT4 + evil") is null && manifest.Find("ALT4 + ALT9 + ALT2") is null && manifest.Find("ALT4")!.Name == "ALT4");
+            // Подбор: YouTube открыла ALT4, Discord — ALT9.
+            Assert(ZapretPlan.Stitch(new Dictionary<string, string> { ["youtube"] = "ALT4", ["discord"] = "ALT9" }) == "ALT4 + ALT9");
+            Assert(ZapretPlan.Stitch(new Dictionary<string, string> { ["youtube"] = "ALT4", ["discord"] = "ALT4" }) is null && ZapretPlan.Stitch(new Dictionary<string, string> { ["youtube"] = "ALT4" }) is null);
+            var text = ZapretPlan.Describe("ALT4 + ALT9", new[] { "youtube", "discord" }, null);
+            Assert(text.Contains("YouTube — напрямую через zapret («ALT4»)") && text.Contains("Discord и сайты из общего списка — напрямую через zapret («ALT9»)"));
+            Assert(new ZapretRequest(ZapretAction.Start, "FAKE TLS AUTO ALT3 + FAKE TLS AUTO ALT2").Strategy!.Length < 90);
+            new ZapretRequest(ZapretAction.Start, "FAKE TLS AUTO ALT3 + FAKE TLS AUTO ALT2").Validate();
+        }));
         await check("zapret journal: probe details by target, capacity, survives a restart; report paths hide the user name", () => Sync(() =>
         {
             var path = Path.Combine(Path.GetTempPath(), "oblachka-zapret-journal-" + Guid.NewGuid().ToString("N") + ".json");

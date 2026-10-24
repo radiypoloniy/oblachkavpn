@@ -38,14 +38,13 @@ public partial class PowerSwitch : UserControl
     {
         var (mid, on, blocked, glyph, icon, name) = state switch
         {
-            PowerState.Connecting => (1.0, 0.0, 0.0, "OnAccent", "IcoPower", "Подключаемся, нажмите, чтобы отменить"),
-            PowerState.On => (0.0, 1.0, 0.0, "OnAccent", "IcoPower", "Выключить VPN"),
-            PowerState.Blocked => (0.0, 0.0, 1.0, "OnAccent", "IcoLock", "Выключить VPN и открыть интернет"),
-            _ => (0.0, 0.0, 0.0, "Mu", "IcoPower", "Включить VPN")
+            PowerState.Connecting => (1.0, 0.0, 0.0, "Sun", "IcoPower", "Подключаемся, нажмите, чтобы отменить"),
+            PowerState.On => (0.0, 1.0, 0.0, "Sun", "IcoPower", "Выключить VPN"),
+            PowerState.Blocked => (0.0, 0.0, 1.0, "RouteBlock", "IcoLock", "Выключить VPN и открыть интернет"),
+            _ => (0.0, 0.0, 0.0, "Orb", "IcoPower", "Включить VPN")
         };
         Animate(MidLayer, OpacityProperty, mid, animate);
         Animate(OnLayer, OpacityProperty, on, animate);
-        Animate(Glow, OpacityProperty, on, animate);
         Animate(BlockedLayer, OpacityProperty, blocked, animate);
         Animate(Ring, OpacityProperty, mid, animate);
         Glyph.SetResourceReference(Shape.StrokeProperty, glyph);

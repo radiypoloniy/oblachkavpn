@@ -22,10 +22,12 @@ public sealed class AutoPool
 
     public static string Key(Profile profile) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(profile.Source + ":" + profile.Name)));
 
-    public bool Contains(Profile profile) => overrides.TryGetValue(Key(profile), out var chosen) ? chosen : DefaultIn(profile);
+    // Бесплатные чужие узлы (FreeServers) не входят в пул никогда, и включить их туда нельзя.
+    public bool Contains(Profile profile) => !profile.IsFree && (overrides.TryGetValue(Key(profile), out var chosen) ? chosen : DefaultIn(profile));
 
     public void Set(Profile profile, bool inPool)
     {
+        if (profile.IsFree) return;
         if (inPool == DefaultIn(profile)) overrides.Remove(Key(profile));
         else overrides[Key(profile)] = inPool;
     }
@@ -48,6 +50,6 @@ public sealed class AutoPool
     public Profile[] Members(IReadOnlyList<Profile> all)
     {
         var members = all.Where(Contains).ToArray();
-        return members.Length > 0 ? members : all.ToArray();
+        return members.Length > 0 ? members : all.Where(p => !p.IsFree).ToArray();
     }
 }

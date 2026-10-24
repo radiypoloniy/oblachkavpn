@@ -146,12 +146,26 @@ public partial class MainWindow
             var baseline = await ProbeVariantAsync(ZapretPlan.NoBypass, exclude, token);
             (string Strategy, string[] Groups, ZapretProbeResult? Probe) best = (ZapretPlan.NoBypass, baseline is null ? [] : Passing(baseline), baseline);
             var names = status.Strategies;
+            // Первая стратегия, открывшая каждую группу: если ни одна не открыла всё, их можно сшить.
+            var first = new Dictionary<string, string>(StringComparer.Ordinal);
             for (var i = 0; i < names.Length && best.Groups.Length < candidates.Length; i++)
             {
                 Note($"Подбираем стратегию: {i + 1} из {names.Length}. Сайты пока идут через VPN. Можно остановить.");
                 if (await ProbeVariantAsync(names[i], exclude, token) is not { } probe) continue;
                 var passing = Passing(probe);
+                foreach (var group in passing) first.TryAdd(group, names[i]);
                 if (ZapretPlan.Better(passing, best.Groups) || best.Probe is null) best = (names[i], passing, probe);
+            }
+            if (best.Groups.Length < candidates.Length && ZapretPlan.Stitch(first) is { } stitched)
+            {
+                Note("Сшиваем стратегии: " + ZapretPlan.StitchTitle(stitched) + "…");
+                try
+                {
+                    if (await ProbeVariantAsync(stitched, exclude, token) is { } probe && Passing(probe) is var passing && ZapretPlan.Better(passing, best.Groups))
+                        best = (stitched, passing, probe);
+                }
+                // Устройство блоков у этих стратегий разное — служба их не склеит; остаётся лучшая одиночная.
+                catch (UserError) { zapretJournal.Add(ZapretJournalKind.Variant, stitched, [], network: network, note: "не склеить"); }
             }
             if (best.Groups.Length == 0)
             {

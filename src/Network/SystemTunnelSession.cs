@@ -83,7 +83,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
     // Первый план запускается, остальные только разрешаются: их адреса входят в аренду.
     public async Task StartWithSparesAsync(IReadOnlyList<TunnelEndpointPlan> prepared, CancellationToken token,
         IReadOnlyList<SiteRule>? sites = null, IReadOnlyList<ProgramRule>? programs = null, CoreDirectEntry? coreDirect = null, bool directByDefault = false,
-        RoutingListsEntry? lists = null, bool localNetwork = false, bool quicOverTcp = false)
+        RoutingListsEntry? lists = null, bool localNetwork = false, bool quicOverTcp = false, bool compatibleStack = false, bool foreignNode = false)
     {
         if (prepared.Count == 0) throw new UserError("Нет подготовленного сервера для системного режима.");
         await operations.WaitAsync(token).ConfigureAwait(false);
@@ -111,7 +111,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
                 // Запрос ограничен своим сроком в канале; отмена проверяется после него, и
                 // сессия снимается обычным Release.
                 BlocksBypass = await helper.AcquireAsync(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, leasePort, peers,
-                    sites?.ToArray(), programs?.ToArray(), coreDirect, directByDefault, Stats, direct, lists, localNetwork, quicOverTcp), CancellationToken.None).ConfigureAwait(false);
+                    sites?.ToArray(), programs?.ToArray(), coreDirect, directByDefault, Stats, direct, lists, localNetwork, quicOverTcp, compatibleStack, foreignNode), CancellationToken.None).ConfigureAwait(false);
                 DirectActive = direct?[0] is not null;
                 token.ThrowIfCancellationRequested();
                 Set(SystemTunnelState.Running);

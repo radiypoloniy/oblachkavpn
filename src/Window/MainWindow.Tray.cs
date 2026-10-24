@@ -71,19 +71,21 @@ public partial class MainWindow
         RefreshTrayPopup();
         var area = SystemParameters.WorkArea;
         popup.Left = Math.Max(area.Left, area.Right - popup.Width - 12);
-        popup.Top = Math.Max(area.Top, area.Bottom - popup.Height - 12);
+        // Высота — по содержимому (число серверов разное): угол окна ставится, когда она известна.
+        popup.Top = area.Bottom - 440;
+        popup.Loaded += (_, _) => popup.Top = Math.Max(area.Top, area.Bottom - popup.ActualHeight - 12);
         popup.Show();
     }
 
     // Трей повторяет главный экран: тот же статус и быстрая смена — автовыбор и три сервера.
     private void RefreshTrayPopup() => trayPopup?.Refresh(Home.StatusTitle.Text,
         ConnectionActive ? Home.StatusSub.Text : Home.ModeText.Text,
-        StopButton.IsEnabled, StopButton.IsEnabled || ConnectButton.IsEnabled, QuickRows().Take(4).ToArray());
+        Home.Power.State, Home.StatusCard.Tag as string ?? "Night", Home.Face.Mood, QuickRows().Take(4).ToArray());
 
     internal TrayPopup CreateTrayPreview()
     {
         var popup = new TrayPopup(() => { }, () => { }, () => { });
-        popup.Refresh(Home.StatusTitle.Text, Home.ModeText.Text, false, profile is not null, QuickRows().Take(4).ToArray());
+        popup.Refresh(Home.StatusTitle.Text, Home.ModeText.Text, Home.Power.State, Home.StatusCard.Tag as string ?? "Night", Home.Face.Mood, QuickRows().Take(4).ToArray());
         return popup;
     }
 }

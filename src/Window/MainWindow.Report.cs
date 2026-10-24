@@ -18,7 +18,7 @@ public partial class MainWindow
             Settings = new
             {
                 Mode = SystemTunnelWanted ? "SystemTunnel" : "BrowsersAndPrograms", LocalNetwork = Settings.LocalNetwork.IsChecked == true,
-                QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, RussiaDirect = Settings.RussiaDirect.IsChecked == true,
+                QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, CompatibleStack = Settings.CompatibleStack.IsChecked == true, RussiaDirect = Settings.RussiaDirect.IsChecked == true,
                 AutoSelect = autoSelect, AutoRecover = AutoRecover.IsChecked == true, SelectiveVpn = selectiveVpn,
                 ProgramRules = programRules.Count, SiteRules = siteRules.Count
             },
@@ -73,17 +73,27 @@ public partial class MainWindow
             var tunnel = SystemTunnelActive; var proxy = engine.Port;
             var apps = core is not null ? LiveApps.FromCore(core, Own)
                 : await Task.Run(() => LiveApps.Group(ConnectionTable.Read(), tunnel, proxy, LivePath, Own));
+            if (core is not null) programJournal.Record(core, DateTime.UtcNow);
+            var now = DateTime.UtcNow;
+            string? RuleOf(string path) => ProgramRoutingPlan.Find(programRules, path)?.Action.ToString();
+            string? TargetOf(string path) => ProgramRoutingPlan.Find(programRules, path) is { } rule ? DiagnosticReport.SafePath(rule.TargetKey) : null;
             return new
             {
                 Source = core is not null ? "TunnelCore" : "WindowsTables",
-                Apps = apps.OrderByDescending(a => a.Total + a.Udp).Take(60).Select(a =>
+                Apps = apps.OrderByDescending(a => a.Total + a.Udp).Take(60).Select(a => new
                 {
-                    var rule = ProgramRoutingPlan.Find(programRules, a.Path);
-                    return new
-                    {
-                        File = Path.GetFileName(a.Path), Folder = DiagnosticReport.SafePath(Path.GetDirectoryName(a.Path) ?? ""),
-                        a.Vpn, a.Direct, a.Udp, Rule = rule?.Action.ToString(), RuleTarget = rule is null ? null : DiagnosticReport.SafePath(rule.TargetKey)
-                    };
+                    File = Path.GetFileName(a.Path), Folder = DiagnosticReport.SafePath(Path.GetDirectoryName(a.Path) ?? ""),
+                    a.Vpn, a.Direct, a.Udp, Rule = RuleOf(a.Path), RuleTarget = TargetOf(a.Path)
+                }).ToArray(),
+                // За 10 минут, раз в 5 с: и те, что выходят в сеть ненадолго (античит, лаунчер).
+                Recent = programJournal.Recent(now).Where(e => !Own(e.Path)).Take(60).Select(e => new
+                {
+                    File = Path.GetFileName(e.Path), Folder = DiagnosticReport.SafePath(Path.GetDirectoryName(e.Path) ?? ""),
+                    SecondsAgo = (int)(now - e.LastSeen).TotalSeconds, e.Samples, e.Vpn, e.Direct, e.Udp, Rule = RuleOf(e.Path), RuleTarget = TargetOf(e.Path)
+                }).ToArray(),
+                Conflicts = ProgramRuleConflicts.Find(programRules, KnownProgramPaths()).Select(c => new
+                {
+                    Name = c.Name.Executable, NameAction = c.Name.Action.ToString(), Folder = DiagnosticReport.SafePath(c.Folder.TargetKey), FolderAction = c.Folder.Action.ToString()
                 }).ToArray()
             };
         }

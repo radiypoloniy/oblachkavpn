@@ -27,6 +27,11 @@ public sealed class ServerRow
     public bool Selected { get; init; }
     public bool Favorite { get; init; }
     public bool CanFavorite => !IsAuto;
+    // Протокол словами («XHTTP, REALITY») и ступени пинга 0…3 (облик 0.20: строка в одну линию).
+    public string Protocol { get; init; } = "";
+    public int PingSteps { get; init; }
+    public string Detail => string.IsNullOrEmpty(Note) ? Protocol : Note;
+    public Visibility SelectedVisibility => Selected ? Visibility.Visible : Visibility.Collapsed;
 
     public Visibility FlagVisibility => Flag is null ? Visibility.Collapsed : Visibility.Visible;
     public Visibility IconVisibility => Flag is null ? Visibility.Visible : Visibility.Collapsed;
@@ -85,6 +90,16 @@ public sealed class ServerRow
         return key is null ? null : Application.Current?.TryFindResource(key) as Geometry;
     }
 
+    // Ступени пинга: три — до 160 мс, две — до 250, одна — медленнее, ни одной — не ответил.
+    public static int StepsFor(ServerMeasurement? measured) =>
+        measured is { Success: true } m ? m.Milliseconds < 160 ? 3 : m.Milliseconds < 250 ? 2 : 1 : 0;
+
+    // «XHTTP / REALITY» → «XHTTP, REALITY»; Hysteria2 и TUIC — одним словом.
+    public static string ProtocolFor(Profile profile) =>
+        profile.Transport.StartsWith("HYSTERIA2", StringComparison.OrdinalIgnoreCase) ? "Hysteria2"
+        : profile.Transport.StartsWith("TUIC", StringComparison.OrdinalIgnoreCase) ? "TUIC"
+        : profile.Transport.Replace(" / ", ", ", StringComparison.Ordinal);
+
     public static string? NoteFor(Profile profile) => !profile.IsService ? "сторонняя подписка" : null;
 }
 
@@ -124,6 +139,9 @@ public sealed class RuleRow
     public bool Plain => Sub is not null;
     public Visibility IconVisibility => Icon is null ? Visibility.Collapsed : Visibility.Visible;
     public Visibility SubVisibility => Sub is null ? Visibility.Collapsed : Visibility.Visible;
+    // Правило спорит с другим (ProgramRuleConflicts): одна программа пойдёт двумя путями.
+    public string? Warning { get; init; }
+    public Visibility WarningVisibility => Warning is null ? Visibility.Collapsed : Visibility.Visible;
     public string ActionText => ActionLabel(Action);
     public static string ActionLabel(SiteAction action) => action switch { SiteAction.Direct => "напрямую", SiteAction.Block => "блок", _ => "через VPN" };
 }

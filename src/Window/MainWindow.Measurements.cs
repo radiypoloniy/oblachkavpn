@@ -151,11 +151,11 @@ public partial class MainWindow
         importedProfiles.Select(LatestMeasurement).OfType<ServerMeasurement>()
             .GroupBy(m => m.Fingerprint).ToDictionary(g => g.Key, g => g.First());
 
-    // «3 мин» над списком: давность последнего замера.
+    // «Пинг обновлён 3 мин назад» в подвале «Серверов»: давность последнего замера.
     private void RefreshMeasurement()
     {
         var last = measurements.Values.Concat(pings.Values).Select(m => (DateTimeOffset?)m.Time).Max();
         var age = last is null ? (TimeSpan?)null : DateTimeOffset.UtcNow - last.Value;
-        Servers.MeasuredAgo.Text = age is null ? "" : age < TimeSpan.FromMinutes(1) ? "только что" : age < TimeSpan.FromHours(1) ? (int)age.Value.TotalMinutes + " мин" : last!.Value.ToLocalTime().ToString("HH:mm");
+        Servers.MeasuredAgo.Text = age is null ? "" : "Пинг обновлён " + (age < TimeSpan.FromMinutes(1) ? "только что" : age < TimeSpan.FromHours(1) ? (int)age.Value.TotalMinutes + " мин назад" : "в " + last!.Value.ToLocalTime().ToString("HH:mm"));
     }
 }

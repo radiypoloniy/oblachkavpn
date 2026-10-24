@@ -31,7 +31,7 @@ public partial class MainWindow
         var throughput = !quiet || (network != throughputNetwork || DateTimeOffset.UtcNow - lastThroughput > TimeSpan.FromHours(3)) && !NetworkCost.Metered();
         if (throughput) { lastThroughput = DateTimeOffset.UtcNow; throughputNetwork = network; }
         measureCancel = new CancellationTokenSource();
-        Servers.MeasureButton.Content = "Остановить замер";
+        Servers.MeasureButton.ToolTip = "Остановить замер"; System.Windows.Automation.AutomationProperties.SetName(Servers.MeasureButton, "Остановить замер");
         var skipped = targets.Count(t => MeasureRoute(t) is null);
         var done = 0;
         try
@@ -61,7 +61,7 @@ public partial class MainWindow
         finally
         {
             measuring = false; measureCancel.Dispose(); measureCancel = null;
-            if (!closed) Servers.MeasureButton.Content = "Обновить пинг";
+            if (!closed) { Servers.MeasureButton.ToolTip = "Обновить пинг"; System.Windows.Automation.AutomationProperties.SetName(Servers.MeasureButton, "Обновить пинг"); }
         }
     }
 
@@ -74,7 +74,8 @@ public partial class MainWindow
         var list = Settings.AutoPoolList;
         list.Children.Clear();
         RefreshSettingsSummary();
-        foreach (var item in importedProfiles)
+        // Бесплатные чужие узлы в пул не входят никогда — и в списке пула их нет.
+        foreach (var item in importedProfiles.Where(p => !p.IsFree))
         {
             var toggle = new CheckBox { Style = (Style)FindResource("Toggle"), IsChecked = autoPool.Contains(item), VerticalAlignment = VerticalAlignment.Center };
             System.Windows.Automation.AutomationProperties.SetName(toggle, "«" + item.DisplayName + "» в автовыборе");

@@ -35,11 +35,19 @@ public static class AppDialog
         return value;
     }
 
+    // Согласие: главная кнопка недоступна, пока не отмечена галочка (бесплатные серверы).
+    public static bool Agree(Window? owner, string title, string text, string check, string yes)
+    {
+        var box = new CheckBox { Content = check, Margin = new Thickness(0, 14, 0, 0), FontSize = Tokens.Size("FsLabel") };
+        box.SetResourceReference(Control.ForegroundProperty, "Tx");
+        return Build(owner, title, text, box, yes, "Отмена", false, gate: box).ShowDialog() == true && box.IsChecked == true;
+    }
+
     private static object? Show(Window? owner, string title, string text, UIElement? extra, string yes, string no, bool danger, Control? focus = null) =>
         Build(owner, title, text, extra, yes, no, danger, focus).ShowDialog() == true ? true : null;
 
     // Окно диалога без показа: для превью и проверок.
-    internal static Window Build(Window? owner, string title, string text, UIElement? extra, string yes, string no, bool danger, Control? focus = null)
+    internal static Window Build(Window? owner, string title, string text, UIElement? extra, string yes, string no, bool danger, Control? focus = null, CheckBox? gate = null)
     {
         var dialog = new Window
         {
@@ -66,6 +74,11 @@ public static class AppDialog
         if (danger) { ok.SetResourceReference(Control.BackgroundProperty, "RB"); ok.SetResourceReference(Control.ForegroundProperty, "RF"); }
         Ui.SetCornerRadius(ok, Tokens.Radius("RadiusLg")); Ui.SetCornerRadius(cancel, Tokens.Radius("RadiusLg"));
         ok.Click += (_, _) => dialog.DialogResult = true;
+        if (gate is not null)
+        {
+            ok.IsEnabled = false; ok.IsDefault = false;
+            gate.Checked += (_, _) => ok.IsEnabled = true; gate.Unchecked += (_, _) => ok.IsEnabled = false;
+        }
         buttons.Children.Add(cancel); buttons.Children.Add(ok);
         body.Children.Add(buttons);
 

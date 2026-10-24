@@ -18,7 +18,8 @@ public static class RouteCandidates
     {
         var selected = ProfileSelection.IndexOf(all, current);
         var itself = selected >= 0 ? new[] { selected } : Array.Empty<int>();
-        bool Allowed(int i) => i == selected || pool is null || pool(all[i]);
+        // Бесплатный чужой узел — только выбранный вручную: ни автовыбор, ни подбор на него не переходят.
+        bool Allowed(int i) => i == selected || !all[i].IsFree && (pool is null || pool(all[i]));
         if (anyNode) return Enumerable.Range(0, all.Count).Where(Allowed).ToArray();
         if (!current.IsService) return itself;
         var service = new List<int>();

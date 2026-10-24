@@ -34,21 +34,24 @@ public partial class MainWindow
 
     private ClientSnapshot CaptureState() => new(1,
         // Все серверы групп, со скрытыми: иначе после перезапуска их нечем было бы вернуть.
-        groups.SelectMany(g => ProfilesOf(g.Id)).Select(p => new SavedProfile(p.Name, (System.Text.Json.Nodes.JsonObject)p.Outbound.DeepClone()) { Source = p.Source, Group = p.Group }).ToArray(),
-        profile is null ? null : Profiles.Fingerprint(profile), subscriptionSources.ToArray(), preferredSource,
+        // Бесплатные чужие узлы (FreeServers) не сохраняются: после перезапуска их нет.
+        SavedGroups.SelectMany(g => ProfilesOf(g.Id)).Select(p => new SavedProfile(p.Name, (System.Text.Json.Nodes.JsonObject)p.Outbound.DeepClone()) { Source = p.Source, Group = p.Group }).ToArray(),
+        profile is null || profile.IsFree ? null : Profiles.Fingerprint(profile), subscriptionSources.ToArray(), preferredSource,
         Settings.StayInTray.IsChecked == true, AutoRecover.IsChecked == true)
-        { SelectedName = profile?.Name, ExternalSources = externalSources.ToArray(), AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, CloseToTray = Settings.StayInTray.IsChecked == true, SystemTunnel = Settings.SystemTunnel.IsChecked == true, Theme = ThemeManager.Choice, Metadata = ServiceGroup?.Metadata, Groups = groups.ToArray(), RouteRules = siteRules.ToArray(), ProgramRules = programRules.ToArray(),
+        { SelectedName = profile is { IsFree: false } ? profile.Name : null, ExternalSources = externalSources.ToArray(), AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, CloseToTray = Settings.StayInTray.IsChecked == true, SystemTunnel = Settings.SystemTunnel.IsChecked == true, Theme = ThemeManager.Choice, Metadata = ServiceGroup?.Metadata, Groups = SavedGroups.ToArray(), RouteRules = siteRules.ToArray(), ProgramRules = programRules.ToArray(),
             Favorites = favorites.Where(f => importedProfiles.Any(p => FavoriteKey(p) == f)).Take(Subscriptions.MaxProfiles).ToArray(),
             HiddenServers = hiddenServers.Take(Subscriptions.MaxProfiles).ToArray(), RemovedSubscriptions = removedSubscriptions.ToArray(),
-            Measurements = measurements.Values.Where(m => importedProfiles.Any(p => Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
+            Measurements = measurements.Values.Where(m => importedProfiles.Any(p => !p.IsFree && Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
             ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = Settings.RussiaDirect.IsChecked == true, AutoSelect = autoSelect,
-            UpdateCheck = AppTab.UpdateAuto.IsChecked == true, UpdatePrerelease = AppTab.UpdatePrerelease.IsChecked == true, LiveSky = AppTab.SkyToggle.IsChecked == true, DpiBypass = fragmentMode,
+            UpdateCheck = AppTab.UpdateAuto.IsChecked == true, UpdatePrerelease = AppTab.UpdatePrerelease.IsChecked == true, DpiBypass = fragmentMode,
             ZapretEnabled = zapretEnabled, SelectiveVpn = selectiveVpn, ZapretChoices = new Dictionary<string, string>(zapretChoices), ZapretVpnGroups = zapretVpnGroups.Order(StringComparer.Ordinal).ToArray(),
             AutoPool = autoPool.Snapshot(importedProfiles),
             ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected,
             ServiceHosts = ServiceBrand.LearnedIn(groups.SelectMany(g => g.Sources).Concat(subscriptionSources)), LocalNetwork = Settings.LocalNetwork.IsChecked == true,
-            QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, TrafficDay = trafficDay, TrafficBytes = trafficToday,
-            Hotkey = Settings.Hotkey.IsChecked == true };
+            QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, CompatibleStack = Settings.CompatibleStack.IsChecked == true, TrafficDay = trafficDay, TrafficBytes = trafficToday, TrafficHours = trafficHours.ToArray(),
+            Hotkey = Settings.Hotkey.IsChecked == true, FreeConsent = freeConsent, FreeList = freeList.ToString() };
+
+    private IEnumerable<ProfileGroup> SavedGroups => groups.Where(g => g.Source != ProfileSource.Free);
 
     private void SaveStateClick(object sender, RoutedEventArgs args)
     {
@@ -88,7 +91,10 @@ public partial class MainWindow
         Settings.ConnectOnLaunch.IsChecked = snapshot.ConnectOnLaunch; wasConnected = snapshot.WasConnected;
         Settings.LocalNetwork.IsChecked = snapshot.LocalNetwork;
         Settings.QuicOverTcp.IsChecked = snapshot.QuicOverTcp;
+        Settings.CompatibleStack.IsChecked = snapshot.CompatibleStack;
+        RestoreFree(snapshot);
         trafficDay = snapshot.TrafficDay ?? ""; trafficToday = trafficSavedBytes = snapshot.TrafficBytes;
+        if (snapshot.TrafficHours is { Length: 24 } hours && hours.All(h => h >= 0)) hours.CopyTo(trafficHours, 0);
         Settings.Hotkey.IsChecked = snapshot.Hotkey; ApplyHotkey();
         Settings.AutoRefresh.IsChecked = snapshot.AutoRefresh;
         ThemeManager.Apply(snapshot.Theme ?? ThemeChoice.System);
@@ -109,7 +115,6 @@ public partial class MainWindow
         autoSelect = snapshot.AutoSelect;
         AppTab.UpdateAuto.IsChecked = snapshot.UpdateCheck;
         AppTab.UpdatePrerelease.IsChecked = snapshot.UpdatePrerelease;
-        AppTab.SkyToggle.IsChecked = snapshot.LiveSky; Home.Sky.Animate = snapshot.LiveSky;
         fragmentMode = Enum.IsDefined(snapshot.DpiBypass) ? snapshot.DpiBypass : FragmentMode.Auto;
         zapretEnabled = snapshot.ZapretEnabled;
         selectiveVpn = snapshot.SelectiveVpn; Bypass.SelectiveToggle.IsChecked = selectiveVpn;

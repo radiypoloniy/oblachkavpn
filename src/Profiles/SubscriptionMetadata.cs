@@ -114,6 +114,15 @@ public sealed record SubscriptionMetadata(long? Upload, long? Download, long? To
         return string.Join(" · ", parts);
     }
 
+    // Остаток трафика для карточки подписки: «осталось 62 ГБ из 100» и израсходованная доля 0…1.
+    public (string? Text, double? Used) Remaining()
+    {
+        if (Total is not > 0 || Upload is not >= 0 || Download is not >= 0) return (null, null);
+        var spent = (decimal)Upload.Value + Download.Value;
+        var left = Math.Max(0m, Total.Value - spent);
+        return ($"осталось {left / 1073741824m:0.#} ГБ из {Total.Value / 1073741824m:0.#}", (double)Math.Min(1m, spent / Total.Value));
+    }
+
     // Короткая строка для главного экрана: без неё пользователь узнаёт срок только в настройках.
     public string ShortSummary(DateTimeOffset now)
     {

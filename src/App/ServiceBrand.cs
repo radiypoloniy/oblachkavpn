@@ -12,13 +12,16 @@ public static class ServiceBrand
     // Латинское имя для всего, что уходит в сеть и в имена файлов: значения заголовков
     // HTTP передаются в однобайтовой кодировке, кириллица там не проходит.
     public const string LatinName = "Oblachka";
-    public const string Version = "0.19.0";
+    public const string Version = "0.20.0";
     public const string UserAgent = LatinName + "/" + Version;
     public static string Label => Name + " " + Version;
 
     // Хосты, которые считаются подпиской сервиса. Первый — основной: именно на нём
     // разворачивается короткий ключ. Остальные служат резервными адресами того же сервиса.
     public static readonly string[] SubscriptionHosts = { "sub.oblaconnection.com" };
+
+    // Домены сервиса целиком: подписка, панель, сайт. Через бесплатный чужой узел они закрыты (ForeignGuard).
+    public static readonly string[] ServiceDomains = { "oblaconnection.com" };
 
     // Путь до токена в адресе подписки, между хостом и ключом.
     public const string SubscriptionPath = "/sub/";

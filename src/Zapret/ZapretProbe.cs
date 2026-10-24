@@ -53,7 +53,11 @@ public static class ZapretProbe
     // сайты zapret, — выход ядра на физическую сеть через winws, DNS сети); null — напрямую из окна.
     // Раньше проверка шла через SOCKS ядра окна: с 0.17 у него нет списков (мерила VPN), а при
     // выходе прямо на сервер его нет вовсе (не открывалось ничего).
-    public static async Task<ZapretProbeResult> RunAsync(SocksRoute? via, CancellationToken token, IReadOnlyList<Uri>? targets = null)
+    // quicViaTunnel — под «Весь компьютер», когда сайты группы уже идут напрямую (присмотр): QUIC из окна
+    // уходит в туннель, а ядро отдаёт их сайты прямому выходу через winws — тот же путь, что у браузера.
+    // Без этого видео YouTube по TCP могло не пройти порог, хотя в браузере по QUIC шло, и группа
+    // уходила в VPN с надписью «не работает».
+    public static async Task<ZapretProbeResult> RunAsync(SocksRoute? via, CancellationToken token, IReadOnlyList<Uri>? targets = null, bool quicViaTunnel = false)
     {
         var list = targets ?? Targets;
         var watch = Stopwatch.StartNew();
@@ -69,8 +73,8 @@ public static class ZapretProbe
         var details = await Task.WhenAll(list.Select((t, i) => ReachAsync(client, t, token, targets is null && Heavy.Contains(i)))).ConfigureAwait(false);
         var results = details.Select(d => d.Ok).ToArray();
         var quic = new List<int>();
-        // QUIC — только без VPN: под «Весь компьютер» HTTP/3 из окна ушёл бы в туннель, а не напрямую.
-        if (targets is null && via is null && System.Net.Quic.QuicConnection.IsSupported)
+        // QUIC — без VPN или при присмотре под «Весь компьютер» (quicViaTunnel); при подборе HTTP/3 из окна ушёл бы в VPN.
+        if (targets is null && (via is null || quicViaTunnel) && System.Net.Quic.QuicConnection.IsSupported)
             // Только если остальные адреса группы открылись: иначе группа всё равно не пройдёт,
             // а лишняя попытка удлинила бы каждый шаг подбора.
             foreach (var i in QuicFallback.Where(i => !results[i] && ZapretPlan.Groups.First(g => g.Targets.Contains(i)).Targets.All(j => j == i || results[j])))

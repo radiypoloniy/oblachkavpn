@@ -64,7 +64,8 @@ public partial class MainWindow
         Navigate("Connection");
     }
 
-    private void SettingsClick(object sender, RoutedEventArgs args) => OpenSettings(null);
+    // «Приложение» открывает свою страницу всегда — и поверх «Помощи», которая живёт в той же панели.
+    private void SettingsClick(object sender, RoutedEventArgs args) => OpenSettings(Views.SettingsPanel.AppPage);
 
     private void OpenSettings(int? tab)
     {
@@ -93,6 +94,8 @@ public partial class MainWindow
         Doctor.Visibility = Visibility.Collapsed;
         SiteCheck.Visibility = Visibility.Collapsed;
         if (currentPage is "Routes" or "Diagnostics") currentPage = "Connection";
+        // Подписки и серверы автовыбора открываются из «Серверов» — туда и возвращаемся.
+        if (Settings.CurrentPage is Views.SettingsPanel.SubscriptionPage or Views.SettingsPanel.AutoPoolPage) { Navigate("Servers"); return; }
         ShowDefaultSection();
         Home.SettingsButton.Focus();
     }

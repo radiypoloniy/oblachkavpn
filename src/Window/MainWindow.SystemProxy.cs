@@ -57,6 +57,8 @@ public partial class MainWindow
         Home.ModeText.Text = tunnel ? "Весь компьютер" : proxy ? "Браузеры и программы" : "Только SOCKS";
         MarkRadio(ModeTunRadio, tunnel);
         MarkRadio(ModeProxyRadio, proxy);
+        // Тот же выбор — в шапке «Программ и сайтов».
+        MarkSegment(Live.ModeTun, tunnel); MarkSegment(Live.ModeProxy, proxy);
         ModeTunNote.Text = NetworkHelperConnection.ServiceRunning
             ? "Системный VPN: игры и любые программы."
             : "Системный VPN: игры и любые программы. Windows спросит права администратора.";

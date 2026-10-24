@@ -23,7 +23,28 @@ public partial class MainWindow
 
     private void WireServerList()
     {
-        Servers.SortOrder.SelectionChanged += (_, _) => FilterProfiles();
+        Servers.SortOrder.SelectionChanged += (_, _) => { Servers.SortText.Text = Servers.SortOrder.SelectedItem as string ?? ""; FilterProfiles(); };
+        // Порядок — меню у «Лучшие сверху ▾»; выбранное значение по-прежнему в SortOrder.
+        // Меню в облике приложения (SortPopup), а не системный ContextMenu: выбранный — с галочкой.
+        Servers.SortButton.Click += (_, _) =>
+        {
+            Servers.SortItems.Children.Clear();
+            for (var i = 0; i < Servers.SortOrder.Items.Count; i++)
+            {
+                var index = i;
+                var check = new System.Windows.Shapes.Path { Data = (Geometry)FindResource("IcoCheck"), Style = (Style)FindResource("Icon"), Width = 14, Height = 14, StrokeThickness = 2.4,
+                    Visibility = Servers.SortOrder.SelectedIndex == i ? Visibility.Visible : Visibility.Hidden };
+                System.Windows.Controls.DockPanel.SetDock(check, System.Windows.Controls.Dock.Right);
+                var row = new System.Windows.Controls.DockPanel { Children = { check, new System.Windows.Controls.TextBlock { Text = (string)Servers.SortOrder.Items[i], VerticalAlignment = VerticalAlignment.Center } } };
+                var item = new System.Windows.Controls.Button { Content = row, Style = (Style)FindResource("MenuRow") };
+                if (index == Servers.SortOrder.SelectedIndex) item.FontWeight = FontWeights.SemiBold;
+                item.Click += (_, _) => { Servers.SortOrder.SelectedIndex = index; Servers.SortPopup.IsOpen = false; };
+                Servers.SortItems.Children.Add(item);
+            }
+            Servers.SortPopup.HorizontalOffset = Servers.SortButton.ActualWidth - 254 + 12;
+            Servers.SortPopup.IsOpen = true;
+        };
+        Servers.AutoPick.Click += (_, _) => { PickServer(null); Navigate("Connection"); };
         Servers.SheetList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(SheetRowClick));
     }
 
@@ -53,12 +74,9 @@ public partial class MainWindow
         if (!viewsReady) return;
         var shown = ProfilePicker.Items.OfType<Profile>().ToArray();
         var items = new List<object>();
-        if (Servers.SearchBox.Text.Trim().Length == 0)
-            items.Add(new ServerRow
-            {
-                IsAuto = true, Name = "Автовыбор", Selected = autoSelect, IconOnAccent = true, Icon = TryFindResource("IcoAuto") as Geometry,
-                Note = autoSelect && profile is not null ? "сейчас: " + profile.DisplayName : "самый быстрый из пула"
-            });
+        // Автовыбор — закреплённая карточка над списком (AutoCard), выбранный — чернильной рамкой.
+        Servers.AutoCard.BorderThickness = new System.Windows.Thickness(autoSelect ? 2 : 0);
+        Servers.AutoNote.Text = autoSelect && profile is not null ? "сейчас: " + profile.DisplayName : "самый быстрый из отмеченных";
         // Заголовок подписки виден и без строк (всё скрыто, подписка пустая): с него её убирают
         // и возвращают скрытые. Но не при поиске и не на вкладке другой подписки.
         var tab = Servers.GroupTabs.SelectedIndex > 0 && Servers.GroupTabs.Tag is string[] ids && Servers.GroupTabs.SelectedIndex - 1 < ids.Length ? ids[Servers.GroupTabs.SelectedIndex - 1] : null;
@@ -69,9 +87,9 @@ public partial class MainWindow
             items.Add(header);
             items.AddRange(rows);
         }
-        Group(new SheetHeader("ИЗБРАННОЕ"), shown.Where(p => favorites.Contains(FavoriteKey(p))), note: true);
+        Group(new SheetHeader("Избранное"), shown.Where(p => favorites.Contains(FavoriteKey(p))), note: true);
         foreach (var group in groups)
-            Group(new SheetHeader(group.Name.ToUpperInvariant(), group.Id, group.IsSubscription, HiddenIn(group.Id), group.IsSubscription ? Junk(group.Id).Length : 0),
+            Group(new SheetHeader(group.Name, group.Id, group.IsSubscription, HiddenIn(group.Id), group.IsSubscription ? Junk(group.Id).Length : 0),
                 shown.Where(p => p.Group == group.Id && !favorites.Contains(FavoriteKey(p))));
         Servers.SheetList.ItemsSource = items;
         RefreshMeasurement();

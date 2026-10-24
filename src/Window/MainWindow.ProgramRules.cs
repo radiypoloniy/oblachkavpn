@@ -90,14 +90,21 @@ public partial class MainWindow
     }
 
     // Подпись говорит, что именно берёт правило: всю папку, один файл или любую копию по имени.
-    private RuleRow ProgramRow(ProgramRule rule)
+    private RuleRow ProgramRow(ProgramRule rule, IReadOnlyList<(ProgramRule Name, ProgramRule Folder)> conflicts)
     {
         var app = appCatalog?.FirstOrDefault(a => a.Covers(rule)) ??
             appCatalog?.FirstOrDefault(a => string.Equals(a.App.Executable, rule.Executable, StringComparison.OrdinalIgnoreCase));
         var sub = (rule.Domain is null ? "" : "только " + rule.Domain + " · ") +
             (rule.Folder is null ? rule.Executable + " · в любой папке" : rule.AllInFolder ? "вся папка · " + ShortPath(rule.Folder) : ShortPath(rule.FilePath!));
         var text = app?.Name ?? (rule.AllInFolder ? Path.GetFileName(rule.Folder!) : rule.Executable);
-        return new RuleRow { Rule = rule, Text = text, Sub = sub, Icon = app?.Icon, Action = rule.Action };
+        return new RuleRow { Rule = rule, Text = text, Sub = sub, Icon = app?.Icon, Action = rule.Action, Warning = ProgramRuleConflicts.Note(rule, conflicts) };
+    }
+
+    // Пути программ, которые окно видело: каталог, «Сейчас в сети» и журнал программ за 10 минут.
+    private IEnumerable<string> KnownProgramPaths()
+    {
+        string?[] live; lock (livePaths) live = livePaths.Values.ToArray();
+        return (appCatalog?.Select(a => a.App.Path) ?? []).Concat(live.OfType<string>()).Concat(programJournal.Recent(DateTime.UtcNow).Select(e => e.Path));
     }
 
     // C:\Users\me\AppData\Roaming\Telegram Desktop → C:\…\Roaming\Telegram Desktop: в узкой строке

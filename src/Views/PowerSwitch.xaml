@@ -1,27 +1,20 @@
 ﻿<UserControl x:Class="Oblachka.Views.PowerSwitch" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:o="clr-namespace:Oblachka"
-             Width="68" Height="68">
-  <!-- Круглая кнопка подключения в углу неба (боковая панель): цвет и есть состояние.
-       Белая — выключено, синяя с бегущим кольцом — подключаемся, зелёная — подключено,
-       красная с замком — сеть закрыта. Слои меняются наплывом: переход плавный и при смене темы.
-       Кольцо и свечение — вне круга, у контрола запас 7 px с каждой стороны, чтобы не обрезались. -->
+             Width="58" Height="58">
+  <!-- Круглая кнопка подключения в карточке статуса (облик 0.20): цвет и есть состояние.
+       Солнечная — выключено (нажмите), чернильная с бегущим кольцом — подключаемся, чернильная
+       с солнечным значком — подключено, чернильная с замком — сеть закрыта. Слои меняются
+       наплывом. Кольцо — вне круга, у контрола запас 5 px с каждой стороны. -->
   <Grid>
-    <Ellipse x:Name="Glow" Width="54" Height="54" Fill="{DynamicResource Ok}" Opacity="0" IsHitTestVisible="False">
-      <Ellipse.CacheMode><BitmapCache/></Ellipse.CacheMode>
-      <Ellipse.Effect><DropShadowEffect BlurRadius="18" ShadowDepth="3" Direction="270" Color="{DynamicResource OkGlowColor}" Opacity="0.7"/></Ellipse.Effect>
-    </Ellipse>
-    <Ellipse x:Name="Ring" Width="66" Height="66" StrokeThickness="2.5" Stroke="{DynamicResource OnAccent}" StrokeDashArray="9 30" StrokeDashCap="Round" Opacity="0" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
+    <Ellipse x:Name="Ring" Width="57" Height="57" StrokeThickness="2.5" Stroke="{DynamicResource Orb}" StrokeDashArray="9 30" StrokeDashCap="Round" Opacity="0" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
       <Ellipse.RenderTransform><RotateTransform x:Name="Spin"/></Ellipse.RenderTransform>
     </Ellipse>
-    <Button x:Name="Surface" Width="54" Height="54" Style="{StaticResource Plain}" o:Ui.CornerRadius="{StaticResource RadiusOrb}" Tag="Transparent" Padding="0" Click="SurfaceClick">
-      <Grid Width="54" Height="54">
-        <Ellipse Fill="{DynamicResource Knob}">
-          <Ellipse.CacheMode><BitmapCache/></Ellipse.CacheMode>
-          <Ellipse.Effect><DropShadowEffect BlurRadius="12" ShadowDepth="3" Direction="270" Opacity="0.25"/></Ellipse.Effect>
-        </Ellipse>
-        <Ellipse x:Name="MidLayer" Fill="{DynamicResource Ac}" Opacity="0"/>
-        <Ellipse x:Name="OnLayer" Fill="{DynamicResource Ok}" Opacity="0"/>
-        <Ellipse x:Name="BlockedLayer" Fill="{DynamicResource EI}" Opacity="0"/>
-        <Path x:Name="Glyph" Data="{StaticResource IcoPower}" Width="21" Height="21" Stretch="Uniform" StrokeThickness="2.6"
+    <Button x:Name="Surface" Width="48" Height="48" Style="{StaticResource Plain}" o:Ui.CornerRadius="{StaticResource RadiusOrb}" Tag="Transparent" Padding="0" Click="SurfaceClick">
+      <Grid Width="48" Height="48">
+        <Ellipse Fill="{DynamicResource Sun}"/>
+        <Ellipse x:Name="MidLayer" Fill="{DynamicResource Orb}" Opacity="0"/>
+        <Ellipse x:Name="OnLayer" Fill="{DynamicResource Orb}" Opacity="0"/>
+        <Ellipse x:Name="BlockedLayer" Fill="{DynamicResource Orb}" Opacity="0"/>
+        <Path x:Name="Glyph" Data="{StaticResource IcoPower}" Width="20" Height="20" Stretch="Uniform" StrokeThickness="2.6"
               StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stroke="{DynamicResource Mu}" RenderTransformOrigin="0.5,0.5">
           <Path.RenderTransform><ScaleTransform x:Name="Pulse" ScaleX="1" ScaleY="1"/></Path.RenderTransform>
         </Path>

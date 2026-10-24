@@ -38,9 +38,9 @@ public sealed record ProfileGroup(string Id, string Name, ProfileSource Source, 
 
 public static class ProfileGroups
 {
-    // Порядок вкладок: сервис, сторонние подписки в порядке добавления, «Вручную» последней.
+    // Порядок вкладок: сервис, сторонние подписки в порядке добавления, «Бесплатные», «Вручную» последней.
     public static IReadOnlyList<ProfileGroup> Ordered(IEnumerable<ProfileGroup> groups) =>
-        groups.OrderBy(g => g.Id == ProfileGroup.ServiceId ? 0 : g.IsManual ? 2 : 1).ToArray();
+        groups.OrderBy(g => g.Id == ProfileGroup.ServiceId ? 0 : g.IsManual ? 3 : g.Source == ProfileSource.Free ? 2 : 1).ToArray();
 
     // Ручные подключения добавляются к прежним; одинаковые (имя и конфигурация) не повторяются.
     public static IReadOnlyList<Profile> Append(IReadOnlyList<Profile> existing, IEnumerable<Profile> added)

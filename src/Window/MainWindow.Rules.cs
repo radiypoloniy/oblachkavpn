@@ -8,13 +8,14 @@ public partial class MainWindow
     private void WireRules()
     {
         WireProgramRules();
+        WireFree();
         WireConnections();
         WireSelective();
         WireRouting();
         // Новое правило идёт «через VPN»; действие меняется нажатием на метку в списке.
         Routes.AddRuleButton.Click += (_, _) => AddSiteRule(Routes.RuleDomain.Text, SiteAction.Tunnel);
         Routes.RuleDomain.KeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Enter) AddSiteRule(Routes.RuleDomain.Text, SiteAction.Tunnel); };
-        Advanced.ValidateRulesButton.Click += async (_, _) =>
+        Diagnostics.ValidateRulesButton.Click += async (_, _) =>
         {
             if (operation is not null || profile is null) return;
             operation = new CancellationTokenSource(); UpdateControls();
@@ -46,7 +47,12 @@ public partial class MainWindow
     private void RefreshRules()
     {
         Routes.RuleList.ItemsSource = siteRules.Select(r => new RuleRow { Rule = r, Text = r.Domain, Action = r.Action }).ToArray();
-        Routes.ProgramList.ItemsSource = programRules.Select(ProgramRow).ToArray();
+        var conflicts = ProgramRuleConflicts.Find(programRules, KnownProgramPaths());
+        Routes.ProgramList.ItemsSource = programRules.Select(r => ProgramRow(r, conflicts)).ToArray();
+        // Тот же спор — плашкой в «Программах и сайтах»: там его видно раньше, чем в правилах.
+        Live.ConflictBanner.Visibility = conflicts.Count > 0 ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        if (conflicts.Count > 0)
+            Live.ConflictText.Text = ProgramRuleConflicts.Note(conflicts[0].Name, conflicts) + (conflicts.Count > 1 ? " И ещё споров: " + (conflicts.Count - 1) + "." : "");
         if (viewsReady) { UpdateWhere(); RefreshSettingsSummary(); }
     }
 }

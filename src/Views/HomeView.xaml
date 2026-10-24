@@ -2,9 +2,10 @@
              xmlns:v="clr-namespace:Oblachka.Views" xmlns:o="clr-namespace:Oblachka" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
              FontFamily="{StaticResource UiFont}" Foreground="{DynamicResource Tx}" Background="Transparent">
 
-  <!-- Боковая панель окна (docs: редизайн 0.16): небо с облачком и кнопкой подключения, особые
-       состояния, сервер, обход блокировок, разделы и строка аккаунта. Фон — общий фон окна (Side);
-       содержимое разделов — на острове справа (MainWindow). -->
+  <!-- Боковая колонка окна (облик 0.20, «облачная погода»): карточка статуса — облачко с лицом по
+       состоянию, статус, кнопка подключения и строка сервера; цвет карточки — погода (ночь,
+       ясно, закат). Ниже особые состояния, обход блокировок, разделы и карточка «сегодня и
+       подписка». Содержимое разделов — на острове справа (MainWindow). -->
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="44"/>
@@ -13,39 +14,44 @@
     </Grid.RowDefinitions>
 
     <!-- Строка заголовка: значок и название; за неё окно перетаскивается. -->
-    <StackPanel Orientation="Horizontal" Margin="18,0,0,0" VerticalAlignment="Center">
-      <Path Data="{StaticResource IcoCloud}" Width="20" Height="14" Stretch="Uniform" Fill="{DynamicResource Ac}" Margin="0,0,8,0"/>
-      <TextBlock Text="облачка" FontSize="{StaticResource FsRow}" FontWeight="Bold" VerticalAlignment="Center"/>
+    <StackPanel Orientation="Horizontal" Margin="20,0,0,0" VerticalAlignment="Center">
+      <Path Data="M6,32 C0,32 0,20 8,20 C8,10 20,8 24,14 C28,4 42,6 42,18 C48,18 48,32 42,32 Z" Width="22" Height="15" Stretch="Uniform" Fill="{DynamicResource Ac}" Margin="0,0,8,0"/>
+      <TextBlock Text="облачка" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FsLabel}" FontWeight="Bold" VerticalAlignment="Center"/>
     </StackPanel>
 
-    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="12,0,12,0" Focusable="False">
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16,0,16,0" Focusable="False">
       <StackPanel>
-        <!-- Небо — карточка «сейчас играет»: статус внизу на дымке, кнопка в правом нижнем углу. -->
-        <Grid x:Name="SkyCard">
-          <!-- Тень — картинкой (BitmapCache): небо перерисовывается 8 раз в секунду, и без кэша
-               тень под ним пересчитывалась бы каждый кадр — без видеокарты это десятки процентов процессора. -->
-          <Border CornerRadius="{StaticResource RadiusSky}" Background="{DynamicResource CardBg}">
-            <Border.CacheMode><BitmapCache/></Border.CacheMode>
-            <Border.Effect><DropShadowEffect BlurRadius="14" ShadowDepth="2" Direction="270" Opacity="0.12"/></Border.Effect>
-          </Border>
-          <Border x:Name="SkyClip">
-            <Grid>
-              <v:SkyView x:Name="Sky" Height="236" ShadeRows="16"/>
-              <Border VerticalAlignment="Bottom" Padding="14,36,8,8">
+        <!-- Карточка статуса. Цвет и лицо облачка задаёт MainWindow.ApplyStatusLook. -->
+        <Border x:Name="StatusCard" CornerRadius="{StaticResource RadiusSky}" Background="{DynamicResource Night}" Padding="12">
+          <StackPanel>
+            <DockPanel Margin="4,2,2,0">
+              <v:PowerSwitch x:Name="Power" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+              <v:CloudFace x:Name="Face" Margin="0,0,10,0" VerticalAlignment="Center"/>
+              <StackPanel VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal">
+                  <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{DynamicResource Fa}" VerticalAlignment="Center" Margin="0,2,8,0" Visibility="Collapsed"/>
+                  <TextBlock x:Name="StatusTitle" Text="Выключено" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FsDisplayStatus}" FontWeight="ExtraBold" Foreground="{DynamicResource CloudWhite}" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+                <TextBlock x:Name="StatusSub" Text="Нажмите, чтобы защитить" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource NightMu}" TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/>
+              </StackPanel>
+            </DockPanel>
+            <!-- Строка сервера: нажатие открывает «Серверы». -->
+            <Grid x:Name="ServerSection" Margin="0,10,0,0">
+              <Button x:Name="ServerCard" Style="{StaticResource GlassRow}" AutomationProperties.Name="Сервер">
                 <DockPanel>
-                  <v:PowerSwitch x:Name="Power" DockPanel.Dock="Right" VerticalAlignment="Bottom"/>
-                  <StackPanel VerticalAlignment="Bottom" Margin="0,0,0,7">
-                    <StackPanel Orientation="Horizontal">
-                      <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{DynamicResource Fa}" VerticalAlignment="Center" Margin="0,2,8,0" Visibility="Collapsed"/>
-                      <TextBlock x:Name="StatusTitle" Text="Не подключено" FontSize="{StaticResource FsSubtitle}" FontWeight="Bold" Foreground="{DynamicResource OnAccent}" TextTrimming="CharacterEllipsis"/>
-                    </StackPanel>
-                    <TextBlock x:Name="StatusSub" Text="Нажмите кнопку" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource OnSky}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                  <Path DockPanel.Dock="Right" Data="{StaticResource IcoChevronRight}" Style="{StaticResource Icon}" Width="14" Height="14" StrokeThickness="2.4" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Margin="6,0,0,0"/>
+                  <TextBlock x:Name="ServerPing" DockPanel.Dock="Right" FontSize="{StaticResource FsBody}" FontWeight="Bold" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                  <v:PixelBars x:Name="ServerBars" DockPanel.Dock="Right" Kind="Steps" Width="22" Height="10" VerticalAlignment="Center" Fill="{DynamicResource Tx}" Empty="{DynamicResource Pixel}"/>
+                  <Border Visibility="Collapsed"><Image x:Name="ServerFlag"/></Border>
+                  <StackPanel VerticalAlignment="Center">
+                    <TextBlock x:Name="ServerName" FontSize="{StaticResource FsRowLarge}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="ServerNote" FontSize="{StaticResource FsSmall}" Opacity="0.8" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
                   </StackPanel>
                 </DockPanel>
-              </Border>
+              </Button>
             </Grid>
-          </Border>
-        </Grid>
+          </StackPanel>
+        </Border>
 
         <!-- Проверка связи и «что идёт мимо VPN» показывают карточка сервера и карточка обхода;
              старые чипы остаются для кода состояния, но не видны. -->
@@ -67,6 +73,9 @@
             <Button x:Name="SubWarnRenew" DockPanel.Dock="Right" Content="Продлить" Style="{StaticResource Plain}" Height="30" Padding="10,0" o:Ui.CornerRadius="{StaticResource RadiusSm}" Background="{DynamicResource SBtn}" Foreground="{DynamicResource SBtnText}" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" VerticalAlignment="Center"/>
             <TextBlock x:Name="SubWarnText" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource SF}" VerticalAlignment="Center" TextWrapping="Wrap"/>
           </DockPanel>
+        </Border>
+        <Border x:Name="FreeWarn" Margin="0,10,0,0" Padding="12,10" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource WB}" Visibility="Collapsed">
+          <TextBlock Text="Чужой сервер. Его владелец видит, какие сайты вы открываете." FontSize="{StaticResource FsNote}" Foreground="{DynamicResource WF}" TextWrapping="Wrap"/>
         </Border>
         <Border x:Name="ForeignCard" Margin="0,10,0,0" Padding="14" CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource WB}" Visibility="Collapsed">
           <StackPanel>
@@ -126,50 +135,26 @@
           </StackPanel>
         </Border>
 
-        <!-- Пульты: сервер и обход блокировок — карточки одного вида. -->
-        <Grid x:Name="ServerSection" Margin="0,10,0,0">
-          <Border Style="{StaticResource SideShadow}"/>
-          <Button x:Name="ServerCard" Style="{StaticResource SideCard}" AutomationProperties.Name="Сервер">
-            <DockPanel>
-              <TextBlock x:Name="ServerPing" DockPanel.Dock="Right" FontSize="{StaticResource FsSmall}" FontWeight="SemiBold" Foreground="{DynamicResource OkF}" VerticalAlignment="Center" Margin="8,0,0,0"/>
-              <Image x:Name="ServerFlag" Width="26" Height="18" Margin="0,0,10,0" VerticalAlignment="Center"/>
-              <StackPanel VerticalAlignment="Center">
-                <TextBlock x:Name="ServerName" FontSize="{StaticResource FsLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                <TextBlock x:Name="ServerNote" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis"/>
-              </StackPanel>
-            </DockPanel>
-          </Button>
-        </Grid>
-        <Grid Margin="0,8,0,0">
-        <Border Style="{StaticResource SideShadow}"/>
-        <Border Style="{StaticResource SideCardPlate}">
+        <!-- Обход блокировок: сливочная плашка; нажатие на текст — настройки обхода. -->
+        <Border Margin="0,8,0,0" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource Cream}" Padding="16,0,10,0" MinHeight="54">
           <DockPanel>
             <CheckBox x:Name="BypassToggle" DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" AutomationProperties.Name="Обход блокировок: YouTube и Discord без VPN"/>
-            <Grid Width="26" Height="26" Margin="0,0,10,0" VerticalAlignment="Center">
-              <Border Width="17" Height="17" CornerRadius="{StaticResource RadiusBadge}" Background="{DynamicResource BrandYouTube}" HorizontalAlignment="Left" VerticalAlignment="Top">
-                <Path Data="M7,5.2 L7,11.8 L12.2,8.5 Z" Fill="{DynamicResource OnAccent}" Stretch="Uniform" Width="7" Height="7"/>
-              </Border>
-              <Border Width="17" Height="17" CornerRadius="{StaticResource RadiusBadge}" Background="{DynamicResource BrandDiscord}" HorizontalAlignment="Right" VerticalAlignment="Bottom" BorderBrush="{DynamicResource Bg}" BorderThickness="1.5">
-                <Path Data="{StaticResource IcoGame}" Stroke="{DynamicResource OnAccent}" StrokeThickness="2.4" Stretch="Uniform" Width="9" Height="9"/>
-              </Border>
-            </Grid>
-            <Button x:Name="BypassOpen" Style="{StaticResource Plain}" Tag="Transparent" Padding="0" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Настройки обхода блокировок">
+            <Button x:Name="BypassOpen" Style="{StaticResource Plain}" Tag="Transparent" Padding="0,8" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Настройки обхода блокировок">
               <StackPanel>
-                <TextBlock Text="Обход блокировок" FontSize="{StaticResource FsLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                <TextBlock x:Name="BypassText" Text="YouTube и Discord без VPN" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="Обход блокировок" FontSize="{StaticResource FsRowLarge}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                <TextBlock x:Name="BypassText" Text="без VPN, через обход" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource CreamMu}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
               </StackPanel>
             </Button>
           </DockPanel>
         </Border>
-        </Grid>
 
         <!-- Разделы: открываются на острове справа. -->
         <StackPanel Margin="0,12,0,8">
-          <Button x:Name="LiveNav" Style="{StaticResource SideNav}" AutomationProperties.Name="Сейчас в сети">
+          <Button x:Name="LiveNav" Style="{StaticResource SideNav}" AutomationProperties.Name="Программы и сайты">
             <DockPanel>
               <TextBlock x:Name="LiveCount" DockPanel.Dock="Right" Style="{StaticResource SideCount}"/>
               <Path Data="{StaticResource IcoPulse}" Style="{StaticResource SideIcon}"/>
-              <TextBlock Text="Сейчас в сети" VerticalAlignment="Center"/>
+              <TextBlock Text="Программы и сайты" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
             </DockPanel>
           </Button>
           <Button x:Name="AllServersButton" Style="{StaticResource SideNav}" AutomationProperties.Name="Серверы">
@@ -179,29 +164,45 @@
               <TextBlock Text="Серверы" VerticalAlignment="Center"/>
             </DockPanel>
           </Button>
-          <Button x:Name="RulesNav" Style="{StaticResource SideNav}" AutomationProperties.Name="Правила">
+          <Button x:Name="HelpNav" Style="{StaticResource SideNav}" AutomationProperties.Name="Помощь">
             <DockPanel>
-              <TextBlock x:Name="RulesCount" DockPanel.Dock="Right" Style="{StaticResource SideCount}"/>
-              <Path Data="{StaticResource IcoRules}" Style="{StaticResource SideIcon}"/>
-              <TextBlock Text="Правила" VerticalAlignment="Center"/>
+              <Path Data="{StaticResource IcoKit}" Style="{StaticResource SideIcon}"/>
+              <TextBlock Text="Помощь" VerticalAlignment="Center"/>
             </DockPanel>
           </Button>
+          <Button x:Name="SettingsButton" Style="{StaticResource SideNav}" AutomationProperties.Name="Приложение">
+            <DockPanel>
+              <Path Data="{StaticResource IcoGear}" Style="{StaticResource SideIcon}"/>
+              <TextBlock Text="Приложение" VerticalAlignment="Center"/>
+            </DockPanel>
+          </Button>
+          <!-- Правила переехали в «Программы и сайты»; кнопка осталась для кода раздела. -->
+          <Button x:Name="RulesNav" Visibility="Collapsed"><TextBlock x:Name="RulesCount"/></Button>
         </StackPanel>
       </StackPanel>
     </ScrollViewer>
 
-    <!-- Строка аккаунта: подписка и настройки. У шестерёнки один размер и одно место во всех
-         состояниях; выбранная — только подложкой. -->
-    <Border Grid.Row="2" Margin="12,0,12,10" Padding="6,8,0,0" BorderBrush="{DynamicResource Divider}" BorderThickness="0,1,0,0">
-      <DockPanel>
-        <Button x:Name="SettingsButton" DockPanel.Dock="Right" Style="{StaticResource SideGear}" AutomationProperties.Name="Настройки" ToolTip="Настройки">
-          <Path Data="{StaticResource IcoGear}" Style="{StaticResource Icon}" Width="18" Height="18" StrokeThickness="1.8"/>
-        </Button>
-        <Border Width="30" Height="30" CornerRadius="{StaticResource RadiusAvatar}" Background="{DynamicResource Aci}" Margin="0,0,10,0" VerticalAlignment="Center">
-          <Path Data="{StaticResource IcoCloud}" Width="16" Height="11" Stretch="Uniform" Fill="{DynamicResource Ac}"/>
-        </Border>
-        <TextBlock x:Name="PlanText" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-      </DockPanel>
-    </Border>
+    <!-- Сегодня и подписка: трафик за день по часам и срок с остатком. Нажатие — «Серверы». -->
+    <Button x:Name="TodayCard" Grid.Row="2" Style="{StaticResource Plain}" Background="{DynamicResource Bg}" o:Ui.CornerRadius="{StaticResource RadiusXl}" Padding="16,14" Margin="16,0,16,16" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Трафик и подписка">
+      <StackPanel>
+        <DockPanel x:Name="TrafficRow">
+          <v:PixelBars x:Name="TrafficBars" DockPanel.Dock="Right" Kind="Columns" Width="120" Height="34" VerticalAlignment="Bottom" Fill="{DynamicResource RouteVpn}" Empty="{DynamicResource Field}" Accent="{DynamicResource Sun}"/>
+          <StackPanel VerticalAlignment="Bottom">
+            <TextBlock Text="Сегодня через VPN" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource Mu2}"/>
+            <TextBlock x:Name="TrafficToday" Text="0 Б" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FsDisplayStatus}" FontWeight="ExtraBold" Margin="0,3,0,0"/>
+          </StackPanel>
+        </DockPanel>
+        <StackPanel x:Name="PlanRow">
+          <Border Height="1.5" Background="{DynamicResource Divider}" Margin="0,12"/>
+          <DockPanel>
+            <v:PixelBars x:Name="PlanBars" DockPanel.Dock="Right" Kind="Segments" Count="6" Width="70" Height="12" VerticalAlignment="Center" Fill="{DynamicResource RouteVpn}" Empty="{DynamicResource Lilac}"/>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
+              <TextBlock x:Name="PlanText" FontSize="{StaticResource FsRow}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+              <TextBlock x:Name="PlanSub" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+            </StackPanel>
+          </DockPanel>
+        </StackPanel>
+      </StackPanel>
+    </Button>
   </Grid>
 </UserControl>

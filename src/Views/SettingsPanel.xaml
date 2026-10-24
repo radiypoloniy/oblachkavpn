@@ -1,47 +1,25 @@
 <UserControl x:Class="Oblachka.Views.SettingsPanel" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:v="clr-namespace:Oblachka.Views" xmlns:o="clr-namespace:Oblachka"
              FontFamily="{StaticResource UiFont}" Foreground="{DynamicResource Tx}" Background="{DynamicResource Bg}">
-  <!-- Настройки (редизайн 0.16), как «Параметры» Windows и iOS: слева пять разделов с цветными
-       значками, справа выбранный. В узком острове разделы — отдельная страница, «Назад» к ним. -->
+  <!-- Страницы острова (облик 0.20): «Приложение», «Помощь», «Обход блокировок», «Подписки и
+       ключ», «Серверы автовыбора». Разделы выбираются в боковой колонке, поэтому списка разделов
+       здесь нет: заголовок страницы и «Назад». -->
   <Grid>
     <Grid.RowDefinitions>
-      <RowDefinition Height="64"/>
+      <RowDefinition Height="72"/>
       <RowDefinition Height="*"/>
     </Grid.RowDefinitions>
-    <Grid.ColumnDefinitions>
-      <ColumnDefinition x:Name="ListColumn" Width="220"/>
-      <ColumnDefinition Width="*"/>
-    </Grid.ColumnDefinitions>
-    <DockPanel Grid.ColumnSpan="2" Margin="10,0,20,0">
+    <DockPanel Margin="10,0,24,0">
       <Button x:Name="CloseButton" Style="{StaticResource IconButton}" Foreground="{DynamicResource Tx}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Назад">
         <Path Data="{StaticResource IcoBack}" Style="{StaticResource Icon}" StrokeThickness="2.2"/>
       </Button>
-      <TextBlock x:Name="PageTitle" Text="Настройки" Style="{StaticResource Brand}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+      <TextBlock x:Name="PageTitle" Text="Приложение" Style="{StaticResource PageHead}" Margin="10,0,0,0" VerticalAlignment="Center"/>
     </DockPanel>
 
-    <StackPanel x:Name="Categories" Grid.Row="1" Margin="12,0,6,16">
-      <Button x:Name="CatConnection" Style="{StaticResource SetCategory}" AutomationProperties.Name="Подключение">
-        <DockPanel><Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcBlue}"><Path Data="{StaticResource IcoBolt}" Style="{StaticResource SetGlyph}"/></Border><TextBlock Text="Подключение" VerticalAlignment="Center"/></DockPanel>
-      </Button>
-      <Button x:Name="CatBypass" Style="{StaticResource SetCategory}" AutomationProperties.Name="Обход блокировок">
-        <DockPanel><Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcGreen}"><Path Data="{StaticResource IcoShield}" Style="{StaticResource SetGlyph}"/></Border><TextBlock Text="Обход блокировок" VerticalAlignment="Center"/></DockPanel>
-      </Button>
-      <Button x:Name="CatSubscription" Style="{StaticResource SetCategory}" AutomationProperties.Name="Подписка">
-        <DockPanel><Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcOrange}"><Path Data="{StaticResource IcoCard}" Style="{StaticResource SetGlyph}"/></Border><TextBlock Text="Подписка" VerticalAlignment="Center"/></DockPanel>
-      </Button>
-      <Button x:Name="CatApp" Style="{StaticResource SetCategory}" AutomationProperties.Name="Приложение">
-        <DockPanel><Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcPurple}"><Path Data="{StaticResource IcoApp}" Style="{StaticResource SetGlyph}"/></Border><TextBlock Text="Приложение" VerticalAlignment="Center"/></DockPanel>
-      </Button>
-      <Button x:Name="CatHelp" Style="{StaticResource SetCategory}" AutomationProperties.Name="Помощь">
-        <DockPanel><Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcGray}"><Path Data="{StaticResource IcoHelp}" Style="{StaticResource SetGlyph}"/></Border><TextBlock Text="Помощь" VerticalAlignment="Center"/></DockPanel>
-      </Button>
-    </StackPanel>
-
-    <Grid Grid.Row="1" Grid.Column="1" x:Name="Pages">
-      <v:AdvancedPage x:Name="Advanced"/>
+    <Grid Grid.Row="1" x:Name="Pages">
+      <v:GeneralTab x:Name="General"/>
       <v:BypassPage x:Name="Bypass" Visibility="Collapsed"/>
       <v:SubscriptionTab x:Name="Subscription" Visibility="Collapsed"/>
-      <v:GeneralTab x:Name="General" Visibility="Collapsed"/>
       <v:HelpTab x:Name="Help" Visibility="Collapsed"/>
       <v:AutoPoolPage x:Name="AutoPool" Visibility="Collapsed"/>
     </Grid>

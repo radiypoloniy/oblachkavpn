@@ -33,6 +33,8 @@ public partial class MainWindow : Window
         isolatedPersistence = isolatedStore is not null;
         ThemeManager.EnsureLoaded();
         InitializeComponent();
+        // Бывшие настройки «Подключения» живут в разделах острова (Views.SettingsPanel).
+        Settings.LiveView = Live; Settings.ServersView = Servers;
         Height = Math.Min(Height, SystemParameters.WorkArea.Height);
         engine = new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), Path.Combine(AppContext.BaseDirectory, "data", "runtime"));
         engine.Changed += EngineChanged;
@@ -106,9 +108,10 @@ public partial class MainWindow : Window
         ConnectButton.IsEnabled = profile is not null && !active && operation is null;
         // Пока системный режим снимается, повторное нажатие ничего не ускорит.
         StopButton.IsEnabled = (active || operation is not null) && !systemStopping;
-        ImportFileButton.IsEnabled = !active && operation is null;
-        PasteButton.IsEnabled = !active && operation is null;
-        SubscriptionButton.IsEnabled = !active && operation is null;
+        // Добавлять можно и при подключении: подписка применится после остановки (pendingImport),
+        // ключ попадёт во «Вручную» и сразу выбран — как и после QR-кода.
+        ImportFileButton.IsEnabled = Servers.Add.AddKeyButton.IsEnabled = operation is null;
+        Servers.Add.AddKeyButton.IsEnabled &= Servers.Add.KeyInput.Text.Trim().Length > 0;
         RefreshButton.IsEnabled = (groups.Any(g => g.IsSubscription) || pendingImport is not null) && operation is null;
         // Подбор переключает узел, поэтому доступен только внутри своего сервиса.
         FindRouteButton.IsEnabled = profile is { IsService: true } && operation is null;
@@ -122,7 +125,7 @@ public partial class MainWindow : Window
         ReconnectButton.IsEnabled = profile is not null && operation is null;
         Servers.MeasureButton.IsEnabled = profile is not null && operation is null && importedProfiles.Any(p => p.IsService);
         Servers.BestButton.IsEnabled = Servers.MeasureButton.IsEnabled;
-        Advanced.ValidateRulesButton.IsEnabled = profile is not null && operation is null;
+        Diagnostics.ValidateRulesButton.IsEnabled = profile is not null && operation is null;
         trayConnect.Enabled = ConnectButton.IsEnabled;
         trayStop.Enabled = StopButton.IsEnabled;
         tray.Text = ServiceBrand.Name + " — " + StatusText.Text;

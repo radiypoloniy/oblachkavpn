@@ -118,16 +118,20 @@ public partial class MainWindow
         systemTunnel = session;
         // Правила сайтов и программ исполняет ядро туннеля у помощника; ядро окна в этом
         // режиме правил не несёт (Engine.SiteRules пуст), иначе «напрямую» шло бы из него.
+        foreignSession = profile.IsFree;
         RememberTunnelDirect(); sentRules = new(LeasePrograms().ToArray(), LeaseSites());
         var lists = await SendTunnelListsAsync(helperLifetime.Client).ConfigureAwait(true);
         await session.StartWithSparesAsync(plans, token, LeaseSites(), LeasePrograms(), (engine as Engine)?.DirectEntry, selectiveVpn, lists, Settings.LocalNetwork.IsChecked == true,
-            Settings.QuicOverTcp.IsChecked == true).ConfigureAwait(true);
+            Settings.QuicOverTcp.IsChecked == true, Settings.CompatibleStack.IsChecked == true, foreignSession).ConfigureAwait(true);
     }
 
     // Выбранный узел первым, затем запасные в том порядке, в каком их переберёт подбор.
     private Profile[] SystemCandidates(Profile selected)
     {
-        var profiles = importedProfiles.ToArray();
+        // Бесплатный чужой узел — без запасных: смена сервера ставит сессию заново, и заслоны
+        // ForeignGuard (порт 80, домены сервиса) не переходят с одного узла на другой.
+        if (selected.IsFree) return [selected];
+        var profiles = importedProfiles.Where(p => !p.IsFree).ToArray();
         // «Автовыбор»: запасные — пул автовыбора от быстрых к медленным; в лимит адресов защиты
         // попадают лучшие, и подбор под блокировкой сможет на них перейти. Затем остальные
         // серверы: на них переключаются вручную, и их можно замерить под защитой.

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net;
 using System.Text.RegularExpressions;
 
@@ -16,7 +16,7 @@ public sealed record ZapretRequest(ZapretAction Action, string? Strategy = null,
     public void Validate()
     {
         if (!Enum.IsDefined(Action)) throw new UserError("zapret: неизвестная команда.");
-        if (Action == ZapretAction.Start && (Strategy is null || Strategy.Length is 0 or > 40)) throw new UserError("zapret: не указана стратегия.");
+        if (Action == ZapretAction.Start && (Strategy is null || Strategy.Length is 0 or > 90)) throw new UserError("zapret: не указана стратегия.");
         if (Action != ZapretAction.Start && (Strategy ?? (object?)ExcludeAddresses ?? Domains) is not null) throw new UserError("zapret: лишние поля команды.");
         if (ExcludeAddresses is { } ips && (ips.Length > 32 || ips.Any(ip => !IPAddress.TryParse(ip, out _)))) throw new UserError("zapret: неверные адреса исключений.");
         if (Domains is { } domains && (domains.Length > 200 || domains.Any(d => !Domain.IsMatch(d)))) throw new UserError("zapret: неверный список сайтов.");
@@ -86,7 +86,7 @@ public static class ZapretRunner
     {
         lock (Gate)
         {
-            var strategy = (manifest ??= Installed())?.Strategies.FirstOrDefault(s => s.Name == name);
+            var strategy = (manifest ??= Installed())?.Find(name);
             return strategy is null ? null : WfpReinjection.Ports(strategy.Args);
         }
     }
@@ -94,7 +94,7 @@ public static class ZapretRunner
     private static void Start(ZapretRequest request)
     {
         var current = (manifest ??= Installed()) ?? throw new UserError("zapret: набор ещё не подготовлен.");
-        var strategy = current.Strategies.FirstOrDefault(s => s.Name == request.Strategy) ?? throw new UserError("zapret: такой стратегии нет в наборе.");
+        var strategy = current.Find(request.Strategy) ?? throw new UserError("zapret: такой стратегии нет в наборе.");
         if (ZapretInstaller.Damaged(current) is { Length: > 0 })
             throw new UserError("Файлы zapret повреждены или удалены — чаще всего это делает антивирус. Добавьте папку " + ZapretInstaller.Folder(current) + " в исключения и подготовьте набор заново.");
         if (ForeignBypass() is { } foreign) throw new UserError("Уже работает другой обход блокировок (" + foreign + "). Остановите его — например, через «Помощь → Сеть Windows».");
