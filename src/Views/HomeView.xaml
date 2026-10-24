@@ -40,7 +40,7 @@
               <Button x:Name="ServerCard" Style="{StaticResource GlassRow}" AutomationProperties.Name="Сервер">
                 <DockPanel>
                   <Path DockPanel.Dock="Right" Data="{StaticResource IcoChevronRight}" Style="{StaticResource Icon}" Width="14" Height="14" StrokeThickness="2.4" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Margin="6,0,0,0"/>
-                  <TextBlock x:Name="ServerPing" DockPanel.Dock="Right" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FsNote}" FontWeight="Bold" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                  <TextBlock x:Name="ServerPing" DockPanel.Dock="Right" FontSize="{StaticResource FsBody}" FontWeight="Bold" VerticalAlignment="Center" Margin="6,0,0,0"/>
                   <v:PixelBars x:Name="ServerBars" DockPanel.Dock="Right" Kind="Steps" Width="22" Height="10" VerticalAlignment="Center" Fill="{DynamicResource Ink}" Empty="{DynamicResource Pixel}"/>
                   <Border Visibility="Collapsed"><Image x:Name="ServerFlag"/></Border>
                   <StackPanel VerticalAlignment="Center">
