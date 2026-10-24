@@ -15,7 +15,7 @@ public static partial class SelfTests
             var free = FreeServers.Prepare(parsed);
             Assert(free.Count == 2 && free.All(p => p.IsFree && p.Group == FreeServers.GroupId && p.Name.StartsWith("Бесплатный · ")));
             Assert(!free.Any(p => p.Name.Contains("t.me") || p.Name.Contains("ad")));
-            Assert(free[0].Name.Contains("Финляндия") && free[0].Name.EndsWith(" · 1"));
+            Assert(free[0].Name == "Бесплатный · Финляндия · 1" && free[0].Country.Code == "FI");
             Assert(FreeServers.Urls("igareck/vpn-configs-for-russia/main/BLACK_VLESS_RUS.txt")[1] == "https://cdn.jsdelivr.net/gh/igareck/vpn-configs-for-russia@main/BLACK_VLESS_RUS.txt");
             var long_ = string.Join('\n', Enumerable.Range(0, 260).Select(i => Vless + "#n" + i));
             Assert(Subscriptions.Parse(FreeServers.Trim(long_)).Profiles.Count == Subscriptions.MaxProfiles);

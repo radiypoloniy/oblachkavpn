@@ -75,7 +75,8 @@ public static class FreeServers
 
     // Повторы — один сервер (адрес и порт) под разными подписями: остаётся первый. Подписи из
     // списков (эмодзи, реклама, ссылки на каналы) не показываются и не хранятся — только своя:
-    // «Бесплатный · 🇫🇮 Финляндия · 3». Флаг в имени нужен CountryCatalog, чтобы страна определялась.
+    // «Бесплатный · Финляндия · 3». Флага в имени нет: WPF в Windows флаги-эмодзи не рисует, а страну
+    // CountryCatalog находит и по русскому названию.
     public static IReadOnlyList<Profile> Prepare(IEnumerable<Profile> parsed)
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -89,7 +90,7 @@ public static class FreeServers
         return unique.Select(profile =>
         {
             var country = profile.Country;
-            var where = country.Code is { Length: 2 } code ? Flag(code) + " " + country.Name : "страна неизвестна";
+            var where = country.Code is { Length: 2 } ? country.Name : "страна неизвестна";
             numbers[where] = numbers.GetValueOrDefault(where) + 1;
             return profile with { Name = "Бесплатный · " + where + " · " + numbers[where], Source = ProfileSource.Free, Group = GroupId };
         }).ToArray();
@@ -99,6 +100,4 @@ public static class FreeServers
     public static IReadOnlyList<Profile> Best(IReadOnlyList<Profile> candidates, Func<Profile, long?> latency) =>
         candidates.Where(p => latency(p) is not null).OrderBy(p => latency(p)).Take(Shown).ToArray();
 
-    private static string Flag(string code) =>
-        string.Concat(code.ToUpperInvariant().Select(c => char.ConvertFromUtf32(0x1F1E6 + c - 'A')));
 }
