@@ -40,8 +40,21 @@ public static class DeviceIdentity
     internal static bool IsHeaderSafe(string value) =>
         value.Length is > 0 and <= 128 && value.All(c => c is >= ' ' and <= '~');
 
+    // Remnawave (с 3.0) берёт x-hwid только по шаблону ^[a-zA-Z0-9=-]{10,64}$, а неподходящий
+    // молча игнорирует — и при включённом лимите устройств отвечает 404, список серверов пуст.
+    // Ранние идентификаторы были base64url и примерно в 40% установок содержали «_»: такой
+    // считается негодным и один раз заменяется (панель его не принимала — места в лимите он не занимал).
     internal static bool IsValid(string? value) =>
-        value is { Length: Length } && value.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
+        value is { Length: Length } && value.All(c => char.IsAsciiLetterOrDigit(c) || c == '-');
+
+    // Для сторонней подписки — свой идентификатор на каждый хост: HMAC от нашего по имени хоста.
+    // Панель с лимитом устройств его принимает и узнаёт при повторных запросах, но два разных
+    // сервиса не могут понять, что это одно устройство.
+    public static string ForHost(string host)
+    {
+        var mac = HMACSHA256.HashData(System.Text.Encoding.ASCII.GetBytes(Current), System.Text.Encoding.UTF8.GetBytes(host.ToLowerInvariant()));
+        return Convert.ToHexStringLower(mac)[..Length];
+    }
 
     private static string LoadOrCreate()
     {
@@ -70,6 +83,5 @@ public static class DeviceIdentity
         return created;
     }
 
-    private static string Generate() =>
-        Convert.ToBase64String(RandomNumberGenerator.GetBytes(24)).Replace('+', '-').Replace('/', '_').TrimEnd('=')[..Length];
+    private static string Generate() => Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(Length / 2));
 }
