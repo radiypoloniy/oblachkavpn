@@ -201,7 +201,7 @@ public sealed class ClientStateStore(string path)
             throw new UserError("Сохранённый выбор сервера повреждён.");
         // Тексты и ссылки пришли от сервера: в снимке они не должны вырасти, принести
         // управляющие символы или сменить HTTPS на что-то другое. У групп — так же.
-        if (snapshot.ZapretChoices is { } choices && (choices.Count > 64 || choices.Any(c => c.Key.Length is 0 or > 32 || c.Value.Length is 0 or > 40 ||
+        if (snapshot.ZapretChoices is { } choices && (choices.Count > 64 || choices.Any(c => c.Key.Length is 0 or > 32 || c.Value.Length is 0 or > 120 ||
             c.Key.Any(char.IsControl) || c.Value.Any(char.IsControl)))) throw new UserError("Сохранённые настройки zapret повреждены.");
         if (snapshot.ZapretVpnGroups is { } vpnGroups && (vpnGroups.Length > ZapretPlan.Groups.Length || vpnGroups.Any(g => !ZapretPlan.Groups.Any(z => z.Key == g))))
             throw new UserError("Сохранённые настройки zapret повреждены.");

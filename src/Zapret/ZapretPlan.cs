@@ -1,4 +1,4 @@
-namespace Oblachka;
+﻿namespace Oblachka;
 
 // Какие сайты zapret идут напрямую. Группы решаются отдельно: стратегия может открыть
 // YouTube, но не Discord (его в РФ режут ещё и по адресам). Раньше засчитывалась только
@@ -32,6 +32,18 @@ public static class ZapretPlan
         return (choice[..bar], keys);
     }
 
+    // Сшивка: YouTube открыла одна стратегия, Discord — другая → «A + B» (ZapretStrategy.Combine).
+    // first — первая стратегия, открывшая каждую группу.
+    public static string? Stitch(IReadOnlyDictionary<string, string> first) =>
+        first.TryGetValue("youtube", out var youtube) && first.TryGetValue("discord", out var rest) && youtube != rest ? youtube + ZapretStrategy.Joiner + rest : null;
+
+    public static string StitchTitle(string strategy) =>
+        strategy.Split(ZapretStrategy.Joiner) is [var youtube, var rest] ? $"YouTube — из «{youtube}», Discord — из «{rest}»" : $"«{strategy}»";
+
+    // Какая стратегия обходит группу: у сшитой YouTube — из первой части, остальное — из второй.
+    public static string StrategyFor(string strategy, string group) =>
+        strategy.Split(ZapretStrategy.Joiner) is [var youtube, var rest] ? (group == "youtube" ? youtube : rest) : strategy;
+
     // Лучший вариант — тот, при котором напрямую открывается больше групп; при равенстве —
     // без обхода (winws не нужен), затем более ранний в списке.
     public static bool Better(string[] candidate, string[] current) => candidate.Length > current.Length;
@@ -47,7 +59,7 @@ public static class ZapretPlan
             else if (direct.Contains(group.Key))
             {
                 var quic = lastProbe is null ? [] : group.Targets.Where(i => lastProbe.QuicOnly.Contains(i)).Select(i => ZapretProbe.Targets[i].Host).ToArray();
-                parts.Add(group.Title + " — напрямую" + (strategy == NoBypass ? ", обход не нужен" : $" через zapret («{strategy}»)") +
+                parts.Add(group.Title + " — напрямую" + (strategy == NoBypass ? ", обход не нужен" : $" через zapret («{StrategyFor(strategy, group.Key)}»)") +
                     (quic.Length > 0 ? " (" + string.Join(", ", quic) + " — по QUIC, как в браузере)." : "."));
             }
             else

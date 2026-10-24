@@ -1,4 +1,4 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -53,6 +53,16 @@ public sealed record ZapretManifest(
             ZapretArgs.Validate(strategy);
             if (ZapretArgs.Files(strategy).Any(f => !Files.ContainsKey(f) && !Generated.Contains(f))) throw new UserError("zapret: стратегия ссылается на файл не из набора.");
         }
+    }
+
+    // Стратегия по имени: из набора или сшитая «A + B» из двух его стратегий (ZapretStrategy.Combine).
+    public ZapretStrategy? Find(string? name)
+    {
+        if (name is null) return null;
+        var parts = name.Split(ZapretStrategy.Joiner);
+        if (parts.Length == 1) return Strategies.FirstOrDefault(s => s.Name == name);
+        return parts.Length == 2 && Strategies.FirstOrDefault(s => s.Name == parts[0]) is { } youtube &&
+            Strategies.FirstOrDefault(s => s.Name == parts[1]) is { } rest ? ZapretStrategy.Combine(youtube, rest) : null;
     }
 
     // Порядок подбора: general, ALT, ALT2 … ALT13, затем FAKE TLS AUTO…, SIMPLE FAKE…, EXP и прочие.
