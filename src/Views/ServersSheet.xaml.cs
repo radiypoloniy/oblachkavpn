@@ -13,6 +13,10 @@ public partial class ServersSheet : UserControl
         AddButton.Click += (_, _) => ShowAdd(AddButton);
         SubscriptionsButton.Click += (_, _) => ShowAdd(SubscriptionsButton);
         // Поле ввода — сразу в фокусе: можно вставить ссылку, не целясь мышью.
+        // Всплывающие окна не переживают уход со страницы и не лежат друг на друге.
+        IsVisibleChanged += (_, _) => { if (!IsVisible) AddPopup.IsOpen = SortPopup.IsOpen = false; };
+        SortPopup.Opened += (_, _) => AddPopup.IsOpen = false;
+        AddPopup.Opened += (_, _) => SortPopup.IsOpen = false;
         AddPopup.Opened += (_, _) => Dispatcher.BeginInvoke(() => Add.KeyInput.Focus(), System.Windows.Threading.DispatcherPriority.Input);
         RenderTransform = new TranslateTransform();
     }
