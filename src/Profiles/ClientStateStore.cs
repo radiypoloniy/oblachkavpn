@@ -76,6 +76,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public bool LocalNetwork { get; init; } = true;
     // «QUIC через TCP» в «Весь компьютер» (0.19). По умолчанию выключен.
     public bool QuicOverTcp { get; init; }
+    // «Совместимость с играми» — стек туннеля mixed/1500 (0.19). По умолчанию выключена.
+    public bool CompatibleStack { get; init; }
     // Трафик ядра туннеля за день (0.19): дата yyyy-MM-dd и байты в обе стороны.
     public string? TrafficDay { get; init; }
     public long TrafficBytes { get; init; }

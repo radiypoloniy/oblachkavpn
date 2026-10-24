@@ -26,5 +26,17 @@ public static partial class SelfTests
             // Отклонение не открывает прямой выход: защита та же.
             Assert(!lease.DirectExit);
         }));
+        await check("Game compatibility switches the tunnel to mixed/1500 and travels the lease; sing-box accepts it", async () =>
+        {
+            var request = NetworkAcquire() with { CompatibleStack = true };
+            await CoreConfigurationCheck.ValidateTunAsync(request, CancellationToken.None);
+            var tun = SingBoxTunConfig.Create(request)["inbounds"]![0]!;
+            Assert((string?)tun["stack"] == "mixed" && (int?)tun["mtu"] == 1500);
+            var fast = SingBoxTunConfig.Create(NetworkAcquire())["inbounds"]![0]!;
+            Assert((string?)fast["stack"] == "gvisor" && (int?)fast["mtu"] == 9000);
+            var lease = NetworkHelperContracts.Validate(request);
+            Assert(lease.CompatibleStack && SingBoxTunnelProcess.RequestFor(lease).CompatibleStack);
+            ExpectUserError(() => NetworkHelperContracts.Validate(new(1, Guid.NewGuid(), NetworkLeaseAction.Release, 0, Array.Empty<string>(), CompatibleStack: true)));
+        });
     }
 }

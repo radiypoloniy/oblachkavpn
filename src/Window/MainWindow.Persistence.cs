@@ -47,7 +47,7 @@ public partial class MainWindow
             AutoPool = autoPool.Snapshot(importedProfiles),
             ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected,
             ServiceHosts = ServiceBrand.LearnedIn(groups.SelectMany(g => g.Sources).Concat(subscriptionSources)), LocalNetwork = Settings.LocalNetwork.IsChecked == true,
-            QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, TrafficDay = trafficDay, TrafficBytes = trafficToday,
+            QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, CompatibleStack = Settings.CompatibleStack.IsChecked == true, TrafficDay = trafficDay, TrafficBytes = trafficToday,
             Hotkey = Settings.Hotkey.IsChecked == true };
 
     private void SaveStateClick(object sender, RoutedEventArgs args)
@@ -88,6 +88,7 @@ public partial class MainWindow
         Settings.ConnectOnLaunch.IsChecked = snapshot.ConnectOnLaunch; wasConnected = snapshot.WasConnected;
         Settings.LocalNetwork.IsChecked = snapshot.LocalNetwork;
         Settings.QuicOverTcp.IsChecked = snapshot.QuicOverTcp;
+        Settings.CompatibleStack.IsChecked = snapshot.CompatibleStack;
         trafficDay = snapshot.TrafficDay ?? ""; trafficToday = trafficSavedBytes = snapshot.TrafficBytes;
         Settings.Hotkey.IsChecked = snapshot.Hotkey; ApplyHotkey();
         Settings.AutoRefresh.IsChecked = snapshot.AutoRefresh;

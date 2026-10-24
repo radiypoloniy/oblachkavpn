@@ -67,7 +67,9 @@ public static class SingBoxTunConfig
                 // gvisor с MTU 9000: на стенде скорости (VM, 17.10.2026) против mixed/1500 скачивание
                 // в полтора раза быстрее, задержка под нагрузкой на треть ниже, процессора вдвое меньше.
                 // TCP завершается в стеке туннеля, наружу ядро ходит с MTU физической сети.
-                ["mtu"] = 9000, ["stack"] = "gvisor", ["auto_route"] = true, ["strict_route"] = true,
+                // «Совместимость с играми» — mixed/1500, как у Throne: у игры в «напрямую» через
+                // gvisor раз в минуту пропадала связь на полсекунды (AION2, 24.10.2026).
+                ["mtu"] = lease.CompatibleStack ? 1500 : 9000, ["stack"] = lease.CompatibleStack ? "mixed" : "gvisor", ["auto_route"] = true, ["strict_route"] = true,
                 ["dns_mode"] = "hijack", ["route_exclude_address"] = exclusions
             }),
             ["outbounds"] = new JsonArray(new JsonObject

@@ -18,7 +18,7 @@ public partial class MainWindow
             Settings = new
             {
                 Mode = SystemTunnelWanted ? "SystemTunnel" : "BrowsersAndPrograms", LocalNetwork = Settings.LocalNetwork.IsChecked == true,
-                QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, RussiaDirect = Settings.RussiaDirect.IsChecked == true,
+                QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, CompatibleStack = Settings.CompatibleStack.IsChecked == true, RussiaDirect = Settings.RussiaDirect.IsChecked == true,
                 AutoSelect = autoSelect, AutoRecover = AutoRecover.IsChecked == true, SelectiveVpn = selectiveVpn,
                 ProgramRules = programRules.Count, SiteRules = siteRules.Count
             },

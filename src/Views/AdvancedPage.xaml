@@ -49,6 +49,16 @@
           </StackPanel>
         </DockPanel>
       </Border>
+      <Border Style="{StaticResource SetGroup}" Margin="0,8,0,0">
+        <DockPanel Style="{StaticResource SetLine}">
+          <CheckBox x:Name="CompatibleStack" DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" AutomationProperties.Name="Совместимость с играми"/>
+          <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcPurple}"><Path Data="{StaticResource IcoGame}" Style="{StaticResource SetGlyph}"/></Border>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Совместимость с играми" Style="{StaticResource SetTitle}"/>
+            <TextBlock Text="Если игра раз в минуту теряет связь с сервером: туннель работает как в Throne — ровнее, но на быстрых каналах медленнее. В «Весь компьютер», со следующего подключения" TextWrapping="Wrap" Style="{StaticResource SetSub}"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
       <TextBlock x:Name="SystemTunnelNote" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="10,6,10,0"/>
       <Button x:Name="RestoreNetwork" Content="Восстановить сеть" Style="{StaticResource BtnOutline}" Height="34" o:Ui.CornerRadius="{StaticResource RadiusSeg}" Padding="14,0" HorizontalAlignment="Left" Margin="10,8,0,0" Visibility="Collapsed"/>
 
