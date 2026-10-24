@@ -43,6 +43,8 @@ public partial class MainWindow
         freeList = freeConsent == FreeConsentVersion && Enum.TryParse<FreeList>(snapshot.FreeList, out var list) && Enum.IsDefined(list) ? list : null;
         Settings.FreeServers.IsChecked = freeList is not null;
         if (freeList is { } chosen) Servers.FreeKind.SelectedIndex = (int)chosen;
+        // Узлы на диске не хранятся: без загрузки после запуска не было бы и вкладки «Бесплатные».
+        if (freeList is not null) Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, async () => await LoadFreeAsync(force: true));
     }
 
     private async Task ToggleFreeAsync(bool on)
