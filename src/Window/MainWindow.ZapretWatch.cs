@@ -1,4 +1,4 @@
-namespace Oblachka;
+﻿namespace Oblachka;
 
 // Присмотр за группами zapret, которые идут напрямую. Подбор — разовая проверка, а фильтр
 // провайдера меняется: вечером стратегия может перестать работать, и человек, который не
@@ -12,6 +12,7 @@ public partial class MainWindow
     private readonly Dictionary<string, int> zapretMisses = new(StringComparer.Ordinal);
     private DateTimeOffset zapretNextWatch = DateTimeOffset.MaxValue, zapretRepickAt = DateTimeOffset.MaxValue;
     private bool zapretWatching;
+    private readonly ZapretJournal zapretJournal = new(ZapretJournal.DefaultPath);
     // Группы, которые присмотр вернул в VPN, пока новый подбор их не вернул: жёлтая плашка на главном.
     private string[] zapretDemoted = [];
     private static readonly TimeSpan ZapretWatchEvery = TimeSpan.FromMinutes(5), ZapretRecheck = TimeSpan.FromSeconds(30);
@@ -47,6 +48,7 @@ public partial class MainWindow
                 var probe = await ZapretProbe.RunAsync(ZapretProbeRoute, timeout.Token);
                 if (closed || zapretBusy) return;
                 var passing = ZapretPlan.Passing(probe);
+                zapretJournal.Add(ZapretJournalKind.Watch, zapretActiveStrategy, passing, probe, zapretActiveNetwork, ZapretPathNote);
                 var lost = new List<string>();
                 foreach (var group in zapretActiveGroups)
                 {
@@ -72,6 +74,7 @@ public partial class MainWindow
         zapretActiveGroups = groups;
         zapretDomains = ZapretSites.Read(zapretTag, ZapretPlan.Groups.Where(g => groups.Contains(g.Key)).Select(g => g.List));
         if (groups.Length == 0 && zapretBypassing) await ZapretCallAsync(new(ZapretAction.Stop));
+        zapretJournal.Add(ZapretJournalKind.Demote, zapretActiveStrategy, groups, network: zapretActiveNetwork, note: "в VPN: " + string.Join(",", lost));
         var titles = ZapretPlan.Groups.Where(g => lost.Contains(g.Key)).Select(g => g.Title);
         Note(string.Join(", ", titles) + " перестал открываться напрямую — вернули в VPN, подбираем заново. " +
             ZapretPlan.Describe(zapretActiveStrategy, groups, probe, zapretVpnGroups));

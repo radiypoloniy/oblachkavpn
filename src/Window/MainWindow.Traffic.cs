@@ -31,7 +31,24 @@ public partial class MainWindow
             QueueStateSave();
         }
         Home.StatusSub.ToolTip = trafficToday > 0 ? "Сегодня через ядро туннеля: " + TrafficMeter.Size(trafficToday) : null;
+        CreditObservedSpeed();
     }
+
+    // Сервер в деле качает быстрее, чем показал замер, — автовыбор узнаёт об этом: замер мог
+    // попасть на загруженную минуту. Только вверх и только когда напрямую ничего не идёт: иначе в
+    // счётчик ядра попали бы сайты «напрямую», а не сервер. Время замера не продлевается.
+    private void CreditObservedSpeed()
+    {
+        if (meter is not { Fresh: true } m || m.Down < 1_000_000 || !AllThroughServer || runningProfile is not { } running) return;
+        var key = Profiles.Fingerprint(running);
+        if (measurements.TryGetValue(key, out var known) && known is { Success: true, Handshake: false } && m.Down > known.Throughput)
+            measurements[key] = known with { Throughput = m.Down };
+    }
+
+    // Весь трафик ядра туннеля идёт через сервер: нет входа прямого трафика (российские сайты, списки,
+    // zapret), правил «напрямую» и «Через VPN — только выбранное».
+    private bool AllThroughServer => (engine as Engine)?.DirectEntry is null && !selectiveVpn &&
+        programRules.All(r => r.Action != SiteAction.Direct) && siteRules.All(r => r.Action != SiteAction.Direct);
 
     // Строка под статусом: имя сервера и так в карточке ниже, а скорость с ним в боковую панель не влезала.
     private string? TrafficText => meter is { Fresh: true } m ? "↓ " + TrafficMeter.Rate(m.Down) + " · ↑ " + TrafficMeter.Rate(m.Up) : null;

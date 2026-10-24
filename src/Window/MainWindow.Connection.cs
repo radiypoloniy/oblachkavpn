@@ -71,6 +71,9 @@ public partial class MainWindow
         }
         catch (OperationCanceledException) { if (!closed) DetailText.Text = "Запуск отменён или истёк срок ожидания. Можно попробовать снова."; }
         catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }
+        // Служба оборвала канал посреди запуска (на стенде — первое подключение сразу после установки):
+        // сессию уже свернул StartWithSparesAsync, окно не должно падать.
+        catch (IOException) { if (!closed) DetailText.Text = "Служба Облачки оборвала связь при запуске. Попробуйте подключиться ещё раз."; }
         finally { if (manualStop) engine.Stop(); operation.Dispose(); operation = null; engineOperation = false; if (!closed) { UpdateControls(); if (engine.State == ConnectionState.Failed) ScheduleRecovery(); else QueueServerSwitch(); } }
     }
     private void StopClick(object sender, RoutedEventArgs args)

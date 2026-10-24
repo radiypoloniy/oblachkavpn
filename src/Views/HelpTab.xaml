@@ -62,8 +62,8 @@
             <DockPanel>
               <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcGray}"><Path Data="{StaticResource IcoFile}" Style="{StaticResource SetGlyph}"/></Border>
               <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="Отчёт для поддержки" Style="{StaticResource SetTitle}"/>
-                <TextBlock Text="Без ключей, адресов серверов и истории сайтов" Style="{StaticResource SetSub}"/>
+                <TextBlock Text="Сообщить о проблеме" Style="{StaticResource SetTitle}"/>
+                <TextBlock Text="Отчёт для поддержки: настройки, программы в сети и проверки обхода. Без ключей, адресов серверов и истории сайтов" Style="{StaticResource SetSub}" TextWrapping="Wrap"/>
               </StackPanel>
             </DockPanel>
             <Grid Margin="40,8,0,0">
