@@ -138,7 +138,7 @@ public partial class MainWindow
         Import("{\"type\":\"vless\",\"server\":\"example.invalid\",\"server_port\":443,\"uuid\":\"11111111-1111-4111-8111-111111111111\",\"tls\":{\"enabled\":true}}");
         await ConnectCoreAsync();
         await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
-        if (engine.CoreLabel != "sing-box 1.14.3" || engine.State != ConnectionState.Running || !TransportText.Text.Contains("SingBox"))
+        if (engine.CoreLabel != "sing-box 1.14.4" || engine.State != ConnectionState.Running || !TransportText.Text.Contains("SingBox"))
             throw new InvalidOperationException("Native import did not select sing-box in the UI");
         StopClick(this, new RoutedEventArgs());
         await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);

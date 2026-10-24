@@ -11,7 +11,7 @@ public sealed record CoreAdapter(CoreKind Kind, string Executable)
     public static string FileFor(Profile profile) =>
         profile.Core == CoreKind.Xray ? "xray.exe" : ProfileServer.IsAmnezia(profile) ? TunCore.FileName : "sing-box.exe";
 
-    public string Label => Kind == CoreKind.Xray ? "Xray 26.10.21" : "sing-box 1.14.3";
+    public string Label => Kind == CoreKind.Xray ? "Xray 26.10.21" : "sing-box 1.14.4";
     public string[] ValidationArguments => Kind == CoreKind.Xray
         ? ["run", "-test", "-c", "stdin:", "-format", "json"] : ["check", "-c", "stdin"];
     public string[] RunArguments => Kind == CoreKind.Xray

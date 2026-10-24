@@ -48,7 +48,7 @@ public static partial class SelfTests
             using var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             await engine.StartAsync(Profiles.Parse(NativeVless().ToJsonString()), cancel.Token);
             var port = engine.Port;
-            Assert(engine.State == ConnectionState.Running && engine.CoreLabel == "sing-box 1.14.3");
+            Assert(engine.State == ConnectionState.Running && engine.CoreLabel == "sing-box 1.14.4");
             engine.Stop();
             await engine.StartAsync(Profiles.Parse(link), cancel.Token);
             Assert(engine.Port == port && engine.CoreLabel == "Xray 26.10.21");

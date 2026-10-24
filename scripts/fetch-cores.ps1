@@ -18,15 +18,15 @@ $pins = @(
         Folder = ''
     },
     @{
-        Name = 'sing-box 1.14.3'
-        Url = 'https://github.com/SagerNet/sing-box/releases/download/v1.14.3/sing-box-1.14.3-windows-amd64.zip'
-        Archive = 'sing-box-1.14.3-windows-amd64.zip'
-        ArchiveSha256 = 'D8B86EF58936DBA9230EC6A57FFA4243933F3C14EF4809828B6C553440ED1518'
+        Name = 'sing-box 1.14.4'
+        Url = 'https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-windows-amd64.zip'
+        Archive = 'sing-box-1.14.4-windows-amd64.zip'
+        ArchiveSha256 = '99185D75D314A07DBBA4A130C8AD986CBEB629A07927975636B341CA61F991DF'
         Files = @{
-            'sing-box.exe' = '5C19BB3F8C12D4E85B3D47FE63123A7624B314B58DD7A8E32F51004F1C4D2FAF'
+            'sing-box.exe' = '8F30682EE198855440D2A7FE070D5D3653793B2D01BB8C85EEA88F93BBE7C8B9'
             'libcronet.dll' = '3217C6260FBCA5F16072E0B79735742F40109A63BB0FF88FD6B96DD6B54A2928'
         }
-        Folder = 'sing-box-1.14.3-windows-amd64'
+        Folder = 'sing-box-1.14.4-windows-amd64'
     }
 )
 
