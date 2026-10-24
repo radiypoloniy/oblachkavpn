@@ -4,6 +4,32 @@
   <Geometry x:Key="IcoKey">M12,15 A4,4 0 1 1 4,15 A4,4 0 1 1 12,15 M11,12 L20,3 M17,6 L20,9 M15,8 L17,10</Geometry>
   <Geometry x:Key="IcoUpload">M4,14 L4,20 L20,20 L20,14 M12,14 L12,4 M8,8 L12,4 L16,8</Geometry>
 
+  <!-- Рамка фокуса с клавиатуры: тонкая, чернильная, чуть шире кнопки. После щелчка мышью
+       WPF её не показывает — раньше синяя рамка оставалась вокруг нажатой кнопки. -->
+  <Style x:Key="FocusRing">
+    <Setter Property="Control.Template">
+      <Setter.Value>
+        <ControlTemplate><Border BorderBrush="{DynamicResource Ink}" BorderThickness="1.5" CornerRadius="{StaticResource RadiusMd}" Margin="-3" Opacity="0.6"/></ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Всплывающие меню приложения (вместо системного ContextMenu): карточка и строка-кнопка. -->
+  <Style x:Key="MenuCard" TargetType="Border">
+    <Setter Property="Background" Value="{DynamicResource Pop}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource Divider}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusSheet}"/>
+  </Style>
+  <Style x:Key="MenuRow" TargetType="Button" BasedOn="{StaticResource Plain}">
+    <Setter Property="Height" Value="40"/>
+    <Setter Property="Margin" Value="-8,0"/>
+    <Setter Property="Padding" Value="10,0"/>
+    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="FontSize" Value="{StaticResource FsLabel}"/>
+  </Style>
+
   <Style x:Key="PageHead" TargetType="TextBlock">
     <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
     <Setter Property="FontSize" Value="{StaticResource FsHeadline}"/>

@@ -39,7 +39,7 @@
   <SolidColorBrush x:Key="Off" Color="#3A3F72"/>  <!-- дорожка тумблера «выкл» -->
   <SolidColorBrush x:Key="Mid" Color="#5C64C8"/>  <!-- тумблер «подключаемся» -->
   <SolidColorBrush x:Key="MidI" Color="#7C86FF"/>  <!-- значок тумблера «подключаемся» -->
-  <SolidColorBrush x:Key="Knob" Color="#ECEEFF"/>  <!-- ручка тумблера -->
+  <SolidColorBrush x:Key="Knob" Color="#C9CDEB"/>  <!-- ручка тумблера -->
   <SolidColorBrush x:Key="Pop" Color="#23264A"/>  <!-- всплывающие окна и меню -->
   <SolidColorBrush x:Key="B2" Color="#242853"/>  <!-- кнопка-обводка на карточке — фон -->
   <SolidColorBrush x:Key="BL" Color="#3A3F72"/>  <!-- кнопка-обводка на карточке — обводка -->
@@ -84,14 +84,14 @@
   <SolidColorBrush x:Key="Sunset" Color="#5A2A1A"/>  <!-- нет связи: закат — фон карточки статуса -->
   <SolidColorBrush x:Key="SunsetCloud" Color="#FF6A3D"/>  <!-- нет связи: облачко -->
   <SolidColorBrush x:Key="SunsetMu" Color="#FFC9AE"/>  <!-- нет связи: вторичный текст -->
-  <SolidColorBrush x:Key="Ink" Color="#ECEEFF"/>  <!-- чернила: главная кнопка, выбранный пункт меню -->
-  <SolidColorBrush x:Key="OnInk" Color="#1B1D3A"/>  <!-- текст на чернилах -->
+  <SolidColorBrush x:Key="Ink" Color="#4A51C9"/>  <!-- чернила: главная кнопка, выбранный пункт меню -->
+  <SolidColorBrush x:Key="OnInk" Color="#FFFFFF"/>  <!-- текст на чернилах -->
   <SolidColorBrush x:Key="Sun" Color="#FFC83D"/>  <!-- солнце: ручка включённого тумблера, кнопка «подключить» ночью -->
-  <SolidColorBrush x:Key="Lilac" Color="#2E2A5E"/>  <!-- плашка: сирень -->
-  <SolidColorBrush x:Key="Cream" Color="#3F3414"/>  <!-- плашка: сливки — обход блокировок -->
-  <SolidColorBrush x:Key="CreamMu" Color="#E8D28A"/>  <!-- текст на сливках -->
+  <SolidColorBrush x:Key="Lilac" Color="#2C2F66"/>  <!-- плашка: сирень -->
+  <SolidColorBrush x:Key="Cream" Color="#2D2B45"/>  <!-- плашка: сливки — обход блокировок -->
+  <SolidColorBrush x:Key="CreamMu" Color="#D8C48A"/>  <!-- текст на сливках -->
   <SolidColorBrush x:Key="Mint" Color="#173A2A"/>  <!-- плашка: мята -->
-  <SolidColorBrush x:Key="Peach" Color="#47261A"/>  <!-- плашка: персик — споры и предупреждения -->
+  <SolidColorBrush x:Key="Peach" Color="#3A2533"/>  <!-- плашка: персик — споры и предупреждения -->
   <SolidColorBrush x:Key="SkyTint" Color="#1E3352"/>  <!-- плашка: голубая -->
   <SolidColorBrush x:Key="RouteVpn" Color="#6E78FF"/>  <!-- путь программы: через VPN -->
   <SolidColorBrush x:Key="RouteDirect" Color="#2F9A63"/>  <!-- путь программы: напрямую -->

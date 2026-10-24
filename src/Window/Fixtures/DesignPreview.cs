@@ -19,7 +19,13 @@ public static class DesignPreview
             if (compact) { main.Width = 960; main.Height = 660; }
             main.PrepareDesignPreview(page);
             Window target = main;
-            if (page == "tray") { popup = main.CreateTrayPreview(); target = popup; }
+            if (page == "tray") { popup = main.CreateTrayPreview(); popup.Height = 420; target = popup; }
+            if (page == "add")
+            {
+                popup = new Window { Width = 384, Height = 380, Content = new Views.AddMenu() };
+                popup.SetResourceReference(System.Windows.Controls.Control.BackgroundProperty, "Page");
+                target = popup;
+            }
             if (page == "dialog")
             {
                 var field = new System.Windows.Controls.TextBox { Text = "https://sub.example.com/s/abc" + Environment.NewLine + "https://mirror.example.net/s/abc", Height = 90, Margin = new Thickness(0, 14, 0, 0) };

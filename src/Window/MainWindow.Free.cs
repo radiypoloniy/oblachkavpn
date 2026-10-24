@@ -34,7 +34,11 @@ public partial class MainWindow
             freeList = (FreeList)Servers.FreeKind.SelectedIndex; QueueStateSave();
             await LoadFreeAsync(force: true);
         };
-        Servers.GroupTabs.SelectionChanged += async (_, _) => { RefreshFreePanel(); if (FreeTabSelected) await LoadFreeAsync(force: false); };
+        Servers.GroupTabs.SelectionChanged += async (_, _) =>
+        {
+            RefreshFreePanel();
+            if (FreeTabSelected) await LoadFreeAsync(force: groups.All(g => g.Id != FreeServers.GroupId));
+        };
     }
 
     private void RestoreFree(ClientSnapshot snapshot)
@@ -53,6 +57,7 @@ public partial class MainWindow
         {
             freeList = null; QueueStateSave();
             if (groups.Any(g => g.Id == FreeServers.GroupId)) RemoveGroup(FreeServers.GroupId);
+            RefreshGroups();
             return;
         }
         if (freeConsent != FreeConsentVersion)
@@ -63,7 +68,7 @@ public partial class MainWindow
         }
         freeList ??= FreeList.Regular;
         Servers.FreeKind.SelectedIndex = (int)freeList;
-        QueueStateSave();
+        QueueStateSave(); RefreshGroups();
         await LoadFreeAsync(force: true);
     }
 
@@ -75,6 +80,7 @@ public partial class MainWindow
         if (!force && DateTimeOffset.UtcNow - freeLoadedAt < FreeServers.MaxAge) return;
         if (ConnectionActive && runningProfile?.IsFree == true) return;
         freeLoading = true;
+        FreeStatus("Загружаем список и проверяем, какие серверы отвечают…");
         DetailText.Text = "Загружаем бесплатные серверы («" + FreeServers.Label(list) + "») и проверяем, какие отвечают…";
         try
         {
@@ -86,20 +92,28 @@ public partial class MainWindow
             await ServerPing.PingAllAsync(candidates, (p, ms) => { if (ms is { } value) latency[p] = value; }, timeout.Token);
             if (closed || freeList != list) return;
             var best = FreeServers.Best(candidates, p => latency.TryGetValue(p, out var ms) ? ms : null);
-            if (best.Count == 0) { DetailText.Text = "Бесплатных серверов, которые отвечают, сейчас нет. Попробуйте другой список или позже."; return; }
+            if (best.Count == 0) { FreeStatus(DetailText.Text = "Бесплатных серверов, которые отвечают, сейчас нет. Попробуйте другой список или позже."); return; }
             try { SetGroup(new(FreeServers.GroupId, FreeServers.GroupName, ProfileSource.Free, []) { Updated = DateTimeOffset.UtcNow }, best); }
-            catch (UserError ex) { DetailText.Text = ex.Message; return; }
+            catch (UserError ex) { FreeStatus(DetailText.Text = ex.Message); return; }
+            FreeStatus("");
             foreach (var p in best) MarkMeasured(ProfilesOf(FreeServers.GroupId).First(f => f.Name == p.Name), latency[p]);
             freeLoadedAt = DateTimeOffset.UtcNow;
             ApplyProfiles(preserveSelection: true);
             DetailText.Text = $"Бесплатных серверов: {best.Count} — лучшие по отклику из {candidates.Count}. Чужие серверы: их владельцы видят, какие сайты вы открываете.";
         }
-        catch (OperationCanceledException) { if (!closed) DetailText.Text = "Бесплатные серверы не загрузились за минуту. Попробуйте позже."; }
+        catch (OperationCanceledException) { if (!closed) FreeStatus(DetailText.Text = "Бесплатные серверы не загрузились за минуту. Откройте вкладку снова, чтобы повторить."); }
         finally { freeLoading = false; UpdateControls(); }
     }
 
     private bool FreeTabSelected => Servers.GroupTabs.Tag is string[] ids && Servers.GroupTabs.SelectedIndex > 0 &&
         Servers.GroupTabs.SelectedIndex - 1 < ids.Length && ids[Servers.GroupTabs.SelectedIndex - 1] == FreeServers.GroupId;
+
+    // Строка состояния во вкладке «Бесплатные»: DetailText в облике 0.20 на экране не виден.
+    private void FreeStatus(string text)
+    {
+        Servers.FreeStatus.Text = text;
+        Servers.FreeStatus.Visibility = text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+    }
 
     private void RefreshFreePanel() =>
         Servers.FreePanel.Visibility = FreeTabSelected && freeList is not null ? Visibility.Visible : Visibility.Collapsed;

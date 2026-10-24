@@ -91,7 +91,7 @@ public partial class MainWindow
         Home.StatusSub.SetResourceReference(TextBlock.ForegroundProperty, sub);
         Home.ServerCard.SetResourceReference(Control.ForegroundProperty, off ? "CloudWhite" : "Tx");
         Home.ServerCard.SetResourceReference(Control.BackgroundProperty, off ? "GlassNight" : "Glass");
-        Home.ServerBars.SetResourceReference(PixelBars.FillProperty, off ? "CloudWhite" : "Ink");
+        Home.ServerBars.SetResourceReference(PixelBars.FillProperty, off ? "CloudWhite" : "Tx");
         Home.ServerBars.SetResourceReference(PixelBars.EmptyProperty, off ? "NightCloud" : "Pixel");
     }
 

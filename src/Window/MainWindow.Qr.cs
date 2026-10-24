@@ -11,7 +11,7 @@ public partial class MainWindow
     private void WireQr()
     {
         Onboarding.ScanButton.Click += async (_, _) => await ScanAndAddAsync();
-        Servers.ScanButton.Click += async (_, _) => await ScanAndAddAsync();
+        Servers.Add.ScanButton.Click += async (_, _) => { Servers.AddPopup.IsOpen = false; await ScanAndAddAsync(); };
         CommandManager.AddPreviewExecutedHandler(Onboarding.KeyInput, PasteImage);
     }
 

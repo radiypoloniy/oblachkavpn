@@ -25,17 +25,24 @@ public partial class MainWindow
     {
         Servers.SortOrder.SelectionChanged += (_, _) => { Servers.SortText.Text = Servers.SortOrder.SelectedItem as string ?? ""; FilterProfiles(); };
         // Порядок — меню у «Лучшие сверху ▾»; выбранное значение по-прежнему в SortOrder.
+        // Меню в облике приложения (SortPopup), а не системный ContextMenu: выбранный — с галочкой.
         Servers.SortButton.Click += (_, _) =>
         {
-            var menu = new System.Windows.Controls.ContextMenu { PlacementTarget = Servers.SortButton, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+            Servers.SortItems.Children.Clear();
             for (var i = 0; i < Servers.SortOrder.Items.Count; i++)
             {
                 var index = i;
-                var item = new System.Windows.Controls.MenuItem { Header = Servers.SortOrder.Items[i], IsCheckable = true, IsChecked = Servers.SortOrder.SelectedIndex == i };
-                item.Click += (_, _) => Servers.SortOrder.SelectedIndex = index;
-                menu.Items.Add(item);
+                var check = new System.Windows.Shapes.Path { Data = (Geometry)FindResource("IcoCheck"), Style = (Style)FindResource("Icon"), Width = 14, Height = 14, StrokeThickness = 2.4,
+                    Visibility = Servers.SortOrder.SelectedIndex == i ? Visibility.Visible : Visibility.Hidden };
+                System.Windows.Controls.DockPanel.SetDock(check, System.Windows.Controls.Dock.Right);
+                var row = new System.Windows.Controls.DockPanel { Children = { check, new System.Windows.Controls.TextBlock { Text = (string)Servers.SortOrder.Items[i], VerticalAlignment = VerticalAlignment.Center } } };
+                var item = new System.Windows.Controls.Button { Content = row, Style = (Style)FindResource("MenuRow") };
+                if (index == Servers.SortOrder.SelectedIndex) item.FontWeight = FontWeights.SemiBold;
+                item.Click += (_, _) => { Servers.SortOrder.SelectedIndex = index; Servers.SortPopup.IsOpen = false; };
+                Servers.SortItems.Children.Add(item);
             }
-            menu.IsOpen = true;
+            Servers.SortPopup.HorizontalOffset = Servers.SortButton.ActualWidth - 254 + 12;
+            Servers.SortPopup.IsOpen = true;
         };
         Servers.AutoPick.Click += (_, _) => { PickServer(null); Navigate("Connection"); };
         Servers.SheetList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(SheetRowClick));

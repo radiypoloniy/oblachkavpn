@@ -22,13 +22,17 @@ public partial class MainWindow
         // Вкладки: «Все» и группы; выбранная вкладка сохраняется по идентификатору группы.
         var tabs = Servers.GroupTabs;
         var selectedId = tabs.SelectedIndex > 0 && tabs.SelectedIndex <= tabs.Items.Count - 1 && tabs.Tag is string[] ids && tabs.SelectedIndex - 1 < ids.Length ? ids[tabs.SelectedIndex - 1] : null;
-        tabs.Tag = groups.Select(g => g.Id).ToArray();
+        // Включённые бесплатные — вкладка всегда, даже пока список не загрузился или не загрузился
+        // вовсе: иначе они пропадали без следа. Пустая вкладка загружает список заново.
+        var freePending = freeList is not null && groups.All(g => g.Id != FreeServers.GroupId);
+        var tabIds = groups.Select(g => g.Id).Concat(freePending ? [FreeServers.GroupId] : []).ToList();
+        tabs.Tag = tabIds.ToArray();
         // Вкладки со счётчиками: «Облачка 12». Выбор по-прежнему по номеру вкладки.
         int Count(ProfileGroup g) => ProfilesOf(g.Id).Count(p => !HiddenServer(p));
-        tabs.ItemsSource = new[] { "Все " + groups.Sum(Count) }.Concat(groups.Select(g => g.Name + " " + Count(g))).ToArray();
-        var index = selectedId is null ? 0 : groups.FindIndex(g => g.Id == selectedId) + 1;
+        tabs.ItemsSource = new[] { "Все " + groups.Sum(Count) }.Concat(groups.Select(g => g.Name + " " + Count(g))).Concat(freePending ? [FreeServers.GroupName] : []).ToArray();
+        var index = selectedId is null ? 0 : tabIds.IndexOf(selectedId) + 1;
         tabs.SelectedIndex = Math.Max(0, index);
-        Servers.GroupTabsScroll.Visibility = groups.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        Servers.GroupTabsScroll.Visibility = tabIds.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
         RefreshFreePanel();
     }
 

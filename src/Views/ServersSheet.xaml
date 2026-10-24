@@ -118,7 +118,7 @@
               <Border x:Name="Plate" CornerRadius="{StaticResource RadiusLg}" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Ac}" BorderThickness="0">
                 <Grid>
                   <TextBlock x:Name="Hint" Text="Страна или название" Foreground="{DynamicResource Fa}" Margin="36,0,12,0" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed"/>
-                  <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                  <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"/>
                 </Grid>
               </Border>
               <ControlTemplate.Triggers>
@@ -167,6 +167,7 @@
           <sys:String>Мобильный</sys:String>
           <sys:String>Белые списки</sys:String>
         </ListBox>
+        <TextBlock x:Name="FreeStatus" Style="{StaticResource Small}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="2,8,0,0" Visibility="Collapsed"/>
         <TextBlock Text="Чужие серверы: их владельцы видят, какие сайты вы открываете. Не входите через них в банк, почту и Госуслуги." FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource WF}" TextWrapping="Wrap" Margin="2,8,0,0"/>
       </StackPanel>
       <!-- Автовыбор — закреплённая первая строка: выбрать, какие серверы в пуле, переключение при обрыве. -->
@@ -199,18 +200,12 @@
     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,6,0,0" Padding="14,0">
       <StackPanel>
         <ItemsControl x:Name="SheetList" Focusable="False"/>
-        <Button x:Name="AddButton" Style="{StaticResource Row}" Height="40" Margin="0,6,0,0" Foreground="{DynamicResource Ac}" AutomationProperties.Name="Добавить ключ, ссылку или файл">
+        <Button x:Name="AddButton" Style="{StaticResource Row}" Height="40" Margin="0,6,0,8" Foreground="{DynamicResource Ac}" AutomationProperties.Name="Добавить ключ, ссылку или файл">
           <StackPanel Orientation="Horizontal">
             <Path Data="{StaticResource IcoPlus}" Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource Ac}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Margin="4,0,0,0"/>
             <TextBlock Text="Добавить ключ, ссылку или файл" FontSize="{StaticResource FsLabel}" Margin="12,0,0,0" VerticalAlignment="Center"/>
           </StackPanel>
         </Button>
-        <StackPanel x:Name="AddPanel" Margin="36,0,0,8" Visibility="Collapsed">
-          <Button x:Name="PasteButton" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Content="Вставить из буфера обмена"/>
-          <Button x:Name="ImportFileButton" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Content="Открыть файл профиля (JSON, txt)"/>
-          <Button x:Name="ScanButton" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Content="QR-код на экране"/>
-          <Button x:Name="SubscriptionButton" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Content="Адреса подписки…"/>
-        </StackPanel>
       </StackPanel>
     </ScrollViewer>
 
@@ -221,5 +216,16 @@
         <TextBlock x:Name="MeasuredAgo" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Fa}" VerticalAlignment="Center"/>
       </DockPanel>
     </Border>
+
+    <!-- Всплывающие окна в облике приложения: «Добавить сервер» и порядок списка. -->
+    <Popup x:Name="AddPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade">
+      <v:AddMenu x:Name="Add"/>
+    </Popup>
+    <Popup x:Name="SortPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=SortButton}">
+      <Grid Width="230" Margin="12,4,12,18">
+        <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusSheet}"/>
+        <Border Style="{StaticResource MenuCard}" Padding="14,6"><StackPanel x:Name="SortItems"/></Border>
+      </Grid>
+    </Popup>
   </Grid>
 </UserControl>

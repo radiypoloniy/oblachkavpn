@@ -71,7 +71,7 @@ public partial class MainWindow
         {
             // Быстрая смена: автовыбор первым, выбранный сервер отмечен.
             var rows = popup.QuickList.Items.OfType<ServerRow>().ToArray();
-            if (!popup.PowerButton.IsEnabled || rows.Length == 0 || !rows[0].IsAuto || !rows.Any(r => r.Selected && r.Profile == profile))
+            if (popup.Power.State == Views.PowerState.Disabled || rows.Length == 0 || !rows[0].IsAuto || !rows.Any(r => r.Selected && r.Profile == profile))
                 throw new InvalidOperationException("Compact tray window does not reflect the selected profile");
         }
         finally { popup.Close(); }

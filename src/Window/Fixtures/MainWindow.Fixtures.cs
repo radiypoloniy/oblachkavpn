@@ -98,7 +98,7 @@ public partial class MainWindow
         {
             await ConnectCoreAsync();
             await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
-            if (engine.State != ConnectionState.Running || engine.ProcessId is null || ConnectButton.IsEnabled || !StopButton.IsEnabled || !ProbeButton.IsEnabled || ImportFileButton.IsEnabled || !trayStop.Enabled)
+            if (engine.State != ConnectionState.Running || engine.ProcessId is null || ConnectButton.IsEnabled || !StopButton.IsEnabled || !ProbeButton.IsEnabled || !ImportFileButton.IsEnabled || !trayStop.Enabled)
                 throw new InvalidOperationException("Running UI controls have incorrect state");
             if (i == 0)
             {

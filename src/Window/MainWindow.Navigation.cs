@@ -64,7 +64,8 @@ public partial class MainWindow
         Navigate("Connection");
     }
 
-    private void SettingsClick(object sender, RoutedEventArgs args) => OpenSettings(null);
+    // «Приложение» открывает свою страницу всегда — и поверх «Помощи», которая живёт в той же панели.
+    private void SettingsClick(object sender, RoutedEventArgs args) => OpenSettings(Views.SettingsPanel.AppPage);
 
     private void OpenSettings(int? tab)
     {

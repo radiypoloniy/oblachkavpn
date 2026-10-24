@@ -57,7 +57,8 @@
     <Setter Property="Height" Value="20"/>
   </Style>
 
-  <!-- Основа всех кнопок: подложка со скруглением, затемнение при наведении, рамка фокуса. -->
+  <!-- Основа всех кнопок: подложка со скруглением, затемнение при наведении. Рамка фокуса —
+       FocusRing (Pages.xaml): WPF рисует её только при переходе клавишей Tab, не после щелчка. -->
   <Style x:Key="Plain" TargetType="Button">
     <Setter Property="Background" Value="Transparent"/>
     <Setter Property="Foreground" Value="{DynamicResource Tx}"/>
@@ -66,7 +67,7 @@
     <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
     <Setter Property="FontSize" Value="{StaticResource FsLabel}"/>
     <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusRing}"/>
     <Setter Property="HorizontalContentAlignment" Value="Center"/>
     <Setter Property="VerticalContentAlignment" Value="Center"/>
     <Setter Property="Tag" Value="{DynamicResource Hov}"/>
@@ -76,12 +77,10 @@
           <Grid>
             <Border x:Name="Plate" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding o:Ui.CornerRadius}"/>
             <Border x:Name="Hover" Background="{TemplateBinding Tag}" CornerRadius="{TemplateBinding o:Ui.CornerRadius}" Opacity="0"/>
-            <Border x:Name="Focus" BorderBrush="{DynamicResource Ac}" BorderThickness="2" CornerRadius="{TemplateBinding o:Ui.CornerRadius}" Visibility="Collapsed"/>
             <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
           </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Hover" Property="Opacity" Value="1"/></Trigger>
-            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Focus" Property="Visibility" Value="Visible"/></Trigger>
             <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -150,14 +149,13 @@
   <!-- Переключатель 46×28, ручка 20 px; включённый — чернильная дорожка и ручка-солнце; анимация 200 мс. -->
   <Style x:Key="Toggle" TargetType="CheckBox">
     <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusRing}"/>
     <Setter Property="VerticalAlignment" Value="Center"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="CheckBox">
           <Grid Width="46" Height="28" Background="Transparent">
             <Border x:Name="Track" CornerRadius="{StaticResource RadiusInner}" Background="{DynamicResource Off}"/>
-            <Border x:Name="Focus" CornerRadius="{StaticResource RadiusSm}" BorderBrush="{DynamicResource Ac}" BorderThickness="2" Margin="-3" Visibility="Collapsed"/>
             <Ellipse x:Name="Dot" Width="20" Height="20" Fill="{DynamicResource Knob}" HorizontalAlignment="Left" Margin="4,0,4,0">
               <Ellipse.RenderTransform><TranslateTransform x:Name="Knob" X="0"/></Ellipse.RenderTransform>
             </Ellipse>
@@ -172,7 +170,6 @@
               <Trigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="X" From="-18" To="0" Duration="0:0:0.2" FillBehavior="Stop"/></Storyboard></BeginStoryboard></Trigger.EnterActions>
               <Trigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="X" From="18" To="0" Duration="0:0:0.2" FillBehavior="Stop"/></Storyboard></BeginStoryboard></Trigger.ExitActions>
             </Trigger>
-            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Focus" Property="Visibility" Value="Visible"/></Trigger>
             <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.55"/></Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>

@@ -23,9 +23,9 @@ public partial class MainWindow
     private Views.BypassPage Bypass => Settings.Bypass;
     private Views.GeneralTab AppTab => Settings.General;
     private Views.HelpTab Diagnostics => Settings.Help;
-    private Button ImportFileButton => Servers.ImportFileButton;
-    private Button PasteButton => Servers.PasteButton;
-    private Button SubscriptionButton => Servers.SubscriptionButton;
+    private Button ImportFileButton => Servers.Add.ImportFileButton;
+    private Button PasteButton => Servers.Add.PasteButton;
+    private Button SubscriptionButton => Servers.Add.SubscriptionButton;
     private Button RefreshButton => Servers.RefreshButton;
     private Button ProbeButton => Diagnostics.ProbeButton;
     private Button FindRouteButton => Diagnostics.FindRouteButton;
@@ -47,8 +47,8 @@ public partial class MainWindow
         StopButton.Click += StopClick;
         ProfilePicker.SelectionChanged += ProfileSelectionChanged;
         ImportFileButton.Click += ImportFileClick;
-        PasteButton.Click += PasteClick;
-        SubscriptionButton.Click += SubscriptionClick;
+        Servers.Add.AddKeyButton.Click += AddKeyClick;
+        SubscriptionButton.Click += (_, _) => { Servers.AddPopup.IsOpen = false; OpenSettings(Views.SettingsPanel.SubscriptionPage); };
         RefreshButton.Click += RefreshClick;
         ProbeButton.Click += ProbeClick;
         FindRouteButton.Click += FindRouteClick;

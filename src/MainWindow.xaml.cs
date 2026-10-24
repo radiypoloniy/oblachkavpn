@@ -108,9 +108,10 @@ public partial class MainWindow : Window
         ConnectButton.IsEnabled = profile is not null && !active && operation is null;
         // Пока системный режим снимается, повторное нажатие ничего не ускорит.
         StopButton.IsEnabled = (active || operation is not null) && !systemStopping;
-        ImportFileButton.IsEnabled = !active && operation is null;
-        PasteButton.IsEnabled = !active && operation is null;
-        SubscriptionButton.IsEnabled = !active && operation is null;
+        // Добавлять можно и при подключении: подписка применится после остановки (pendingImport),
+        // ключ попадёт во «Вручную» и сразу выбран — как и после QR-кода.
+        ImportFileButton.IsEnabled = Servers.Add.AddKeyButton.IsEnabled = operation is null;
+        Servers.Add.AddKeyButton.IsEnabled &= Servers.Add.KeyInput.Text.Trim().Length > 0;
         RefreshButton.IsEnabled = (groups.Any(g => g.IsSubscription) || pendingImport is not null) && operation is null;
         // Подбор переключает узел, поэтому доступен только внутри своего сервиса.
         FindRouteButton.IsEnabled = profile is { IsService: true } && operation is null;
