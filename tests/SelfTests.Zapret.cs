@@ -103,6 +103,30 @@ public static partial class SelfTests
             var quic = Probe(true, true, true, false, false, false) with { QuicOnly = new[] { 2 } };
             Assert(ZapretPlan.Passing(quic).SequenceEqual(new[] { "youtube" }) && ZapretPlan.Describe("ALT4", new[] { "youtube" }, quic).Contains("redirector.googlevideo.com — по QUIC"));
         }));
+        await check("zapret journal: probe details by target, capacity, survives a restart; report paths hide the user name", () => Sync(() =>
+        {
+            var path = Path.Combine(Path.GetTempPath(), "oblachka-zapret-journal-" + Guid.NewGuid().ToString("N") + ".json");
+            try
+            {
+                var details = Enumerable.Range(0, 6).Select(i => new ZapretTargetResult(i != 2, i == 2 ? 70_000 : 30_000, 120, i == 2 ? ZapretFailure.Slow : ZapretFailure.None)).ToArray();
+                var probe = new ZapretProbeResult(5, 6, 900) { Ok = details.Select(d => d.Ok).ToArray(), Details = details };
+                var journal = new ZapretJournal(path);
+                journal.Add(ZapretJournalKind.Watch, "ALT4", ZapretPlan.Passing(probe), probe, "ABCDEF0123456789", "проверка");
+                var entry = journal.Entries.Single();
+                Assert(entry.Network == "ABCDEF" && entry.Targets.Length == 6 && entry.Targets[2] is { Host: "redirector.googlevideo.com", Ok: false, Failure: "Slow", Bytes: 70_000 });
+                Assert(entry.Groups.SequenceEqual(new[] { "discord" }));
+                for (var i = 0; i < ZapretJournal.Capacity + 5; i++) journal.Add(ZapretJournalKind.Variant, "s" + i, []);
+                var reloaded = new ZapretJournal(path);
+                Assert(reloaded.Entries.Count == ZapretJournal.Capacity && reloaded.Entries[^1].Strategy == "s" + (ZapretJournal.Capacity + 4));
+            }
+            finally { File.Delete(path); }
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            Assert(DiagnosticReport.SafePath(Path.Combine(home, "Games", "aion.exe")) == "%USERPROFILE%\\Games\\aion.exe");
+            Assert(DiagnosticReport.SafePath("C:\\Users\\Someone\\AppData\\x.exe") == "C:\\Users\\*\\AppData\\x.exe");
+            Assert(DiagnosticReport.SafePath("D:\\SteamLibrary\\steamapps\\common\\Aion\\bin64\\aion.bin") == "D:\\SteamLibrary\\steamapps\\common\\Aion\\bin64\\aion.bin");
+            using var report = System.Text.Json.JsonDocument.Parse(DiagnosticReport.Create(ConnectionState.Running, 1, 1, [], [], details: new { Programs = new { Apps = new[] { new { File = "aion.bin" } } } }));
+            Assert(report.RootElement.GetProperty("Details").GetProperty("Programs").GetProperty("Apps")[0].GetProperty("File").GetString() == "aion.bin");
+        }));
         await check("zapret: a group left in VPN by hand is described so, survives a restart, and foreign keys are refused", () => Sync(() =>
         {
             var text = ZapretPlan.Describe("general", new[] { "discord" }, null, new[] { "youtube" });

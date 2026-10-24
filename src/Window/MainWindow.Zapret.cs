@@ -133,6 +133,7 @@ public partial class MainWindow
                 if (!reconnected || ZapretProbeRoute is null) throw new UserError("Под «Весь компьютер» не удалось открыть прямой путь для проверки.");
             }
             var exclude = await VpnAddressesAsync(token);
+            zapretJournal.Add(ZapretJournalKind.Pick, ZapretPlan.NoBypass, candidates, network: network, note: force ? "подбор заново" : "подбор, сначала запомненный выбор");
             if (!force && zapretChoices.GetValueOrDefault(network) is { } saved)
             {
                 var (strategy, groups) = ZapretPlan.Decode(saved);
@@ -157,6 +158,7 @@ public partial class MainWindow
                 await ZapretCallAsync(new(ZapretAction.Stop));
                 zapretDomains = Array.Empty<string>();
                 Note("Рабочую стратегию не нашли — эти сайты идут через VPN. " + ZapretPlan.Describe(best.Strategy, [], best.Probe, zapretVpnGroups));
+                zapretJournal.Add(ZapretJournalKind.Chosen, ZapretPlan.NoBypass, [], best.Probe, network, "рабочей стратегии нет");
                 return;
             }
             // Подбор мог уйти дальше лучшего варианта: возвращаемся к нему.
@@ -165,10 +167,10 @@ public partial class MainWindow
                 throw new UserError("Служба не запустила zapret.");
             Done(best.Strategy, best.Groups, best.Probe, network);
         }
-        catch (OperationCanceledException) { await ZapretCallAsync(new(ZapretAction.Stop)); zapretDomains = Array.Empty<string>(); Note("Подбор остановлен — эти сайты идут через VPN."); }
+        catch (OperationCanceledException) { await ZapretCallAsync(new(ZapretAction.Stop)); zapretDomains = Array.Empty<string>(); Note("Подбор остановлен — эти сайты идут через VPN."); zapretJournal.Add(ZapretJournalKind.Stop, ZapretPlan.NoBypass, [], note: "подбор остановлен"); }
         // Служба не запустила winws (антивирус, драйвер, ответ службы) — дело не в стратегии,
         // перебирать остальные бессмысленно: раньше это давало «ничего не работает» за секунду.
-        catch (UserError ex) { await ZapretCallAsync(new(ZapretAction.Stop)); zapretDomains = Array.Empty<string>(); Note(ex.Message + " Эти сайты идут через VPN."); }
+        catch (UserError ex) { await ZapretCallAsync(new(ZapretAction.Stop)); zapretDomains = Array.Empty<string>(); Note(ex.Message + " Эти сайты идут через VPN."); zapretJournal.Add(ZapretJournalKind.Stop, ZapretPlan.NoBypass, [], note: "ошибка службы или подготовки"); }
         finally
         {
             zapretBusy = false; zapretTried = true;
@@ -185,26 +187,9 @@ public partial class MainWindow
             WatchZapret(strategy, groups, network);
             zapretDomains = ZapretSites.Read(zapretTag, ZapretPlan.Groups.Where(g => groups.Contains(g.Key)).Select(g => g.List));
             Note(ZapretPlan.Describe(strategy, groups, probe, zapretVpnGroups));
+            zapretJournal.Add(ZapretJournalKind.Chosen, strategy, groups, probe, network, ZapretPathNote);
         }
     }
-
-    // Один вариант: без обхода (winws остановлен) или стратегия. null — служба не ответила.
-    private async Task<ZapretProbeResult?> ProbeVariantAsync(string strategy, string[] exclude, CancellationToken token)
-    {
-        if (strategy == ZapretPlan.NoBypass) { await ZapretCallAsync(new(ZapretAction.Stop)); return await ZapretProbe.RunAsync(ZapretProbeRoute, token); }
-        var started = await ZapretCallAsync(new(ZapretAction.Start, strategy, exclude));
-        if (started is not { Running: true }) throw new UserError(started?.Error ?? "Служба не запустила zapret.");
-        await Task.Delay(800, token);
-        return await ZapretProbe.RunAsync(ZapretProbeRoute, token);
-    }
-
-    // Путь проверки — тот, которым пойдут сайты zapret: без VPN — прямо из окна, под «Весь компьютер» —
-    // вход прямого трафика ядра туннеля (выход на физическую сеть через winws, DNS сети). null под
-    // «Весь компьютер» — входа нет, проверять нечем.
-    private SocksRoute? ZapretProbeRoute => !SystemTunnelActive ? null
-        : (engine as Engine)?.DirectEntry is { } entry ? new SocksRoute(entry.Port, entry.User, entry.Password) : null;
-
-    private bool ZapretProbeReady => !SystemTunnelActive || ZapretProbeRoute is not null;
 
     private void Note(string text) { zapretNote = text; if (!closed) RefreshZapret(); }
 

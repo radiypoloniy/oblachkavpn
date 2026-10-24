@@ -1,4 +1,4 @@
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -30,27 +30,23 @@ public partial class MainWindow
             if (!closed && !manualStop && engine.State == ConnectionState.Failed) ScheduleRecovery();
         }
     }
-    private void ExportReportClick(object sender, RoutedEventArgs args)
+    private async void ExportReportClick(object sender, RoutedEventArgs args)
     {
         var dialog = new SaveFileDialog { Filter = "Диагностика (*.json)|*.json", FileName = "oblachka-report-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".json", Title = "Сохранить обезличенный отчёт" };
         if (dialog.ShowDialog(this) != true) return;
+        var report = await CreateSupportReportAsync();
         try
         {
-            File.WriteAllText(dialog.FileName, CreateSupportReport());
-            DetailText.Text = "Отчёт сохранён. Профили, UUID и адреса подписок в него не включены.";
+            File.WriteAllText(dialog.FileName, report);
+            DetailText.Text = "Отчёт сохранён. Ключей, адресов серверов и истории сайтов в нём нет — его можно отправить в поддержку.";
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { DetailText.Text = "Не удалось сохранить отчёт. Выберите доступную папку."; }
     }
 
-    private string CreateSupportReport() => DiagnosticReport.Create(engine.State, importedProfiles.Count,
-        groups.Sum(g => g.Sources.Length), events, routeAttempts,
-        SystemTunnelActive ? DiagnosticMode.SystemTunnel : systemProxyPort != 0
-            ? DiagnosticMode.WindowsProxy : DiagnosticMode.LocalProxy, systemTunnel?.BlocksBypass == true,
-        lastDiagnosis?.Kind, fragmentMode.ToString(), (engine as Engine)?.FragmentActive == true);
-
-    private void CopyReportClick(object sender, RoutedEventArgs args)
+    private async void CopyReportClick(object sender, RoutedEventArgs args)
     {
-        try { Clipboard.SetText(CreateSupportReport()); DetailText.Text = "Обезличенный отчёт скопирован. Его можно отправить в поддержку."; }
+        var report = await CreateSupportReportAsync();
+        try { Clipboard.SetText(report); DetailText.Text = "Отчёт скопирован — вставьте его в чат поддержки и опишите, что случилось. Лучше сразу, пока программа, с которой проблема, ещё запущена."; }
         catch (System.Runtime.InteropServices.COMException) { DetailText.Text = "Буфер обмена занят. Попробуйте снова или сохраните отчёт в файл."; }
     }
 }

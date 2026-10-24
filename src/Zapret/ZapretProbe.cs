@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 
@@ -11,9 +11,18 @@ public sealed record ZapretProbeResult(int Passed, int Total, long Milliseconds)
 {
     // Открылся ли каждый адрес из Targets — по ним решаются группы (ZapretPlan).
     public IReadOnlyList<bool> Ok { get; init; } = Array.Empty<bool>();
+    // Подробности по каждому адресу — для журнала zapret (ZapretJournal) и отчёта поддержке.
+    public IReadOnlyList<ZapretTargetResult> Details { get; init; } = Array.Empty<ZapretTargetResult>();
     // Адреса, открывшиеся только по QUIC (как у браузера), а по TCP — нет.
     public IReadOnlyList<int> QuicOnly { get; init; } = Array.Empty<int>();
     public bool All => Passed == Total;
+}
+
+// Что случилось с одним адресом проверки: сколько пришло, за сколько и почему не открылся.
+public enum ZapretFailure { None, Timeout, Slow, Refused, Tls }
+public sealed record ZapretTargetResult(bool Ok, long Bytes, long Milliseconds, ZapretFailure Failure)
+{
+    public bool Quic { get; init; }
 }
 
 public static class ZapretProbe
@@ -57,19 +66,20 @@ public static class ZapretProbe
         };
         using var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
         client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36");
-        var results = await Task.WhenAll(list.Select((t, i) => ReachAsync(client, t, token, targets is null && Heavy.Contains(i)))).ConfigureAwait(false);
+        var details = await Task.WhenAll(list.Select((t, i) => ReachAsync(client, t, token, targets is null && Heavy.Contains(i)))).ConfigureAwait(false);
+        var results = details.Select(d => d.Ok).ToArray();
         var quic = new List<int>();
         // QUIC — только без VPN: под «Весь компьютер» HTTP/3 из окна ушёл бы в туннель, а не напрямую.
         if (targets is null && via is null && System.Net.Quic.QuicConnection.IsSupported)
             // Только если остальные адреса группы открылись: иначе группа всё равно не пройдёт,
             // а лишняя попытка удлинила бы каждый шаг подбора.
             foreach (var i in QuicFallback.Where(i => !results[i] && ZapretPlan.Groups.First(g => g.Targets.Contains(i)).Targets.All(j => j == i || results[j])))
-                if (await ReachQuicAsync(list[i], token, Heavy.Contains(i)).ConfigureAwait(false)) { results[i] = true; quic.Add(i); }
-        return new(results.Count(r => r), list.Count, watch.ElapsedMilliseconds) { Ok = results, QuicOnly = quic };
+                if (await ReachQuicAsync(list[i], token, Heavy.Contains(i)).ConfigureAwait(false) is { Ok: true } viaQuic) { results[i] = true; details[i] = viaQuic with { Quic = true }; quic.Add(i); }
+        return new(results.Count(r => r), list.Count, watch.ElapsedMilliseconds) { Ok = results, QuicOnly = quic, Details = details };
     }
 
     // HTTP/3 без прокси — по маршрутам Windows, как у браузера (только без VPN).
-    private static async Task<bool> ReachQuicAsync(Uri target, CancellationToken token, bool heavy)
+    private static async Task<ZapretTargetResult> ReachQuicAsync(Uri target, CancellationToken token, bool heavy)
     {
         using var handler = new SocketsHttpHandler { UseProxy = false, AllowAutoRedirect = false, UseCookies = false, ConnectTimeout = TimeSpan.FromSeconds(5) };
         using var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan, DefaultRequestVersion = HttpVersion.Version30, DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact };
@@ -78,13 +88,15 @@ public static class ZapretProbe
     }
 
     // heavy — адрес видео: нужен объём и скорость (HeavyBytes, HeavyBytesPerSecond), а не просто ответ.
-    private static async Task<bool> ReachAsync(HttpClient client, Uri target, CancellationToken token, bool heavy = false)
+    private static async Task<ZapretTargetResult> ReachAsync(HttpClient client, Uri target, CancellationToken token, bool heavy = false)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
         timeout.CancelAfter(TimeSpan.FromSeconds(heavy ? 8 : 7));
         var total = 0;
         var limit = heavy ? HeavyLimit : Limit;
         var clock = Stopwatch.StartNew();
+        var started = Stopwatch.StartNew();
+        ZapretTargetResult Result(bool ok, ZapretFailure failure) => new(ok, total, started.ElapsedMilliseconds, ok ? ZapretFailure.None : failure);
         try
         {
             using var response = await client.GetAsync(target, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
@@ -93,11 +105,13 @@ public static class ZapretProbe
             int read;
             clock.Restart();
             while (total < limit && (read = await body.ReadAsync(buffer, timeout.Token).ConfigureAwait(false)) > 0) total += read;
-            return !heavy || FastEnough(total, clock.Elapsed);
+            return Result(!heavy || FastEnough(total, clock.Elapsed), ZapretFailure.Slow);
         }
         // Замерло: доступен, только если успели прийти больше ~16 КБ, на которых режут фильтры.
-        catch (OperationCanceledException) when (!token.IsCancellationRequested) { return heavy ? FastEnough(total, clock.Elapsed) : total >= Enough; }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or System.Security.Authentication.AuthenticationException) { return false; }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested)
+        { return Result(heavy ? FastEnough(total, clock.Elapsed) : total >= Enough, total > 0 ? ZapretFailure.Slow : ZapretFailure.Timeout); }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or System.Security.Authentication.AuthenticationException)
+        { return Result(false, ex is System.Security.Authentication.AuthenticationException || ex.InnerException is System.Security.Authentication.AuthenticationException ? ZapretFailure.Tls : ZapretFailure.Refused); }
     }
 
     // Видео играет: пришло не меньше полмегабайта и не медленнее порога.
