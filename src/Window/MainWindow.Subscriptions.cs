@@ -6,7 +6,7 @@ public partial class MainWindow
     private async void PollSubscription()
     {
         if (closed || vmTestActive || !backgroundWorkEnabled || !groups.Any(g => g.IsSubscription) || operation is not null || recoveryWait is not null ||
-            pendingImport is not null || Settings.AutoRefresh.IsChecked != true || !subscriptionSchedule.IsDue(DateTimeOffset.UtcNow)) return;
+            pendingImport is not null || ForeignConnected || Settings.AutoRefresh.IsChecked != true || !subscriptionSchedule.IsDue(DateTimeOffset.UtcNow)) return;
         await RefreshAllAsync();
     }
     private void UpdateSubscriptionSummary()

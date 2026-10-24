@@ -27,6 +27,7 @@ public partial class MainWindow
         var index = selectedId is null ? 0 : groups.FindIndex(g => g.Id == selectedId) + 1;
         tabs.SelectedIndex = Math.Max(0, index);
         Servers.GroupTabsScroll.Visibility = groups.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        RefreshFreePanel();
     }
 
     private static string ServerCount(int count) =>
@@ -35,6 +36,13 @@ public partial class MainWindow
     private async void GroupRowClick(object sender, RoutedEventArgs args)
     {
         if (args.OriginalSource is not Button { DataContext: GroupRow row } button || operation is not null) return;
+        // Бесплатные: «обновить» — загрузить списки заново, «убрать» — выключить их.
+        if (row.Group.Id == FreeServers.GroupId)
+        {
+            if (Equals(button.Tag, "refresh")) await LoadFreeAsync(force: true);
+            else if (Equals(button.Tag, "remove")) { Settings.FreeServers.IsChecked = false; await ToggleFreeAsync(false); }
+            return;
+        }
         if (Equals(button.Tag, "refresh")) { await LoadSubscriptionAsync(row.Group.Sources, row.Group.PreferredSource); return; }
         if (!Equals(button.Tag, "remove")) return;
         if (!ConfirmRemoveGroup(row.Group)) return;

@@ -104,6 +104,9 @@ public partial class MainWindow
         Func<IReadOnlyList<string>, int, CancellationToken, Task<MirrorResult>>? loader = null)
     {
         if (operation is not null) return;
+        // Через бесплатный чужой узел подписка сервиса не ходит (ForeignGuard): обновим после него.
+        if (ForeignConnected && ServiceKey.SourceOf(sources) == ProfileSource.Service)
+        { DetailText.Text = "Подписка сервиса обновится после отключения от бесплатного сервера."; return; }
         manualStop = false;
         operation = new CancellationTokenSource(); engineOperation = false; UpdateControls();
         DetailText.Text = "Загружаем подписку; при отказе проверим резервные адреса…";

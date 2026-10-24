@@ -74,7 +74,8 @@ public partial class MainWindow
         var list = Settings.AutoPoolList;
         list.Children.Clear();
         RefreshSettingsSummary();
-        foreach (var item in importedProfiles)
+        // Бесплатные чужие узлы в пул не входят никогда — и в списке пула их нет.
+        foreach (var item in importedProfiles.Where(p => !p.IsFree))
         {
             var toggle = new CheckBox { Style = (Style)FindResource("Toggle"), IsChecked = autoPool.Contains(item), VerticalAlignment = VerticalAlignment.Center };
             System.Windows.Automation.AutomationProperties.SetName(toggle, "«" + item.DisplayName + "» в автовыборе");

@@ -6,7 +6,8 @@ namespace Oblachka;
 // Откуда взялось подключение. Узлы сервиса — основной путь: для них работают подбор,
 // измерения и восстановление. Сторонние остаются доступными, но только вручную:
 // их конфигурации мы не контролируем и отвечать за них не можем.
-public enum ProfileSource { Service, External }
+// Free — бесплатный чужой узел из открытых списков (FreeServers): только в памяти, вне автовыбора.
+public enum ProfileSource { Service, External, Free }
 
 public sealed record Profile(string Name, string Transport, JsonObject Outbound, CoreKind Core = CoreKind.Xray) : System.ComponentModel.INotifyPropertyChanged
 {
@@ -37,6 +38,7 @@ public sealed record Profile(string Name, string Transport, JsonObject Outbound,
     public ServerCountry Country => CountryCatalog.Resolve(Name);
     public string DisplayName => ServerLabels.DisplayName(Name);
     public bool IsService => Source == ProfileSource.Service;
+    public bool IsFree => Source == ProfileSource.Free;
     // Для шаблона списка: WPF проще отдать готовую видимость, чем заводить конвертер.
     public System.Windows.Visibility ExternalBadgeVisibility =>
         IsService ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;

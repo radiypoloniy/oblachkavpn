@@ -48,6 +48,7 @@ public partial class MainWindow
     {
         if (!viewsReady) return;
         RefreshDirectChip();
+        RefreshFreeWarning();
         // В системном режиме ядро окна поднимается раньше туннеля: «Защищено» — только когда
         // служба подтвердила туннель, до этого идёт подключение.
         var tunnelStarting = systemTunnel?.State == SystemTunnelState.Starting;

@@ -59,6 +59,8 @@ public static class RoutingPlan
     {
         Validate(rules);
         if (profile.Core != adapter.Kind) throw new UserError("Ядро не соответствует профилю.");
+        // Бесплатный чужой узел: заслоны ForeignGuard впереди правил человека.
+        if (profile.IsFree) rules = ForeignGuard.With(rules, 100);
         var config = adapter.RuntimeConfig(profile.Outbound, port);
         var outbounds = (JsonArray)config["outbounds"]!;
         var xray = adapter.Kind == CoreKind.Xray;
@@ -87,6 +89,7 @@ public static class RoutingPlan
                     ? new JsonObject { ["domain_suffix"] = new JsonArray(rule.Domain), ["action"] = "reject" }
                     : new JsonObject { ["domain_suffix"] = new JsonArray(rule.Domain), ["outbound"] = destination });
         }
+        if (profile.IsFree) compiled.Insert(0, xray ? ForeignGuard.XrayHttpRule("user-block") : ForeignGuard.SingBoxHttpRule());
         if (routing is not null)
             foreach (var node in xray ? routing.XrayRules(tunnelTag, "user-direct", "user-block") : routing.SingBoxRules(tunnelTag, "user-direct"))
                 compiled.Add(node!.DeepClone());

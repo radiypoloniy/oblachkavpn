@@ -204,6 +204,8 @@ public static class SingBoxTunConfig
         // «QUIC через TCP» — после локальной сети и раньше правил: отказ сразу (ICMP), браузер
         // без ожидания переходит на HTTP/2. Касается всех сайтов, и прямых тоже.
         if (lease.QuicOverTcp) rules.Add(new JsonObject { ["network"] = "udp", ["port"] = 443, ["action"] = "reject" });
+        // Бесплатный чужой узел: незашифрованный HTTP закрыт для всего (ForeignGuard), прямые сайты тоже — так проще и строже.
+        if (lease.ForeignNode) rules.Add(ForeignGuard.SingBoxHttpRule());
         // Имя сайта ядро узнаёт из TLS/QUIC. С файлами правил сайт может появиться в правилах на ходу,
         // поэтому имя нужно всегда, а не только когда правила сайтов были при подключении.
         if (lease.SiteRules.Count > 0 || lease.Lists is not null || programSets is not null) rules.Add(new JsonObject { ["action"] = "sniff" });

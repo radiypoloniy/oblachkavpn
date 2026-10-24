@@ -31,7 +31,13 @@ public partial class MainWindow
 
     // Правила, с которыми ставится сессия «Весь компьютер»: свои и, в выборочном режиме, списки
     // YouTube и Discord. Своё правило на тот же сайт или программу сильнее списка.
-    private SiteRule[] LeaseSites() => !selectiveVpn ? siteRules.ToArray()
+    // Сессия через бесплатный чужой узел: домены сервиса закрыты правилами сайтов впереди своих (ForeignGuard).
+    private bool foreignSession;
+    // В «Браузеры и программы» подписка грузится напрямую, мимо узла; в «Весь компьютер» — через туннель.
+    private bool ForeignConnected => SystemTunnelActive && foreignSession;
+    private SiteRule[] LeaseSites() => foreignSession ? ForeignGuard.With(OwnLeaseSites(), 100) : OwnLeaseSites();
+
+    private SiteRule[] OwnLeaseSites() => !selectiveVpn ? siteRules.ToArray()
         : siteRules.Concat(SelectiveDomains.Where(d => !siteRules.Any(r => r.Domain == d)).Select(d => RoutingPlan.Create(d, SiteAction.Tunnel))).Take(100).ToArray();
 
     private ProgramRule[] LeasePrograms() => !selectiveVpn ? programRules.ToArray()

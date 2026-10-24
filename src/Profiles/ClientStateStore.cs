@@ -78,6 +78,9 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public bool QuicOverTcp { get; init; }
     // «Совместимость с играми» — стек туннеля mixed/1500 (0.19). По умолчанию выключена.
     public bool CompatibleStack { get; init; }
+    // Бесплатные серверы (0.19): версия принятого текста согласия (0 — не принят) и выбранный список.
+    public int FreeConsent { get; init; }
+    public string? FreeList { get; init; }
     // Трафик ядра туннеля за день (0.19): дата yyyy-MM-dd и байты в обе стороны.
     public string? TrafficDay { get; init; }
     public long TrafficBytes { get; init; }

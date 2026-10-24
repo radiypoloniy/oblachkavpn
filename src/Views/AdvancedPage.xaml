@@ -59,6 +59,16 @@
           </StackPanel>
         </DockPanel>
       </Border>
+      <Border Style="{StaticResource SetGroup}" Margin="0,8,0,0">
+        <DockPanel Style="{StaticResource SetLine}">
+          <CheckBox x:Name="FreeServers" DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" AutomationProperties.Name="Бесплатные серверы на свой риск"/>
+          <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcOrange}"><Path Data="{StaticResource IcoWarn}" Style="{StaticResource SetGlyph}"/></Border>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Бесплатные серверы (на свой риск)" Style="{StaticResource SetTitle}"/>
+            <TextBlock Text="Чужие серверы из открытых списков. Их владельцы видят, какие сайты вы открываете. Не участвуют в автовыборе и сами не включаются" TextWrapping="Wrap" Style="{StaticResource SetSub}"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
       <TextBlock x:Name="SystemTunnelNote" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="10,6,10,0"/>
       <Button x:Name="RestoreNetwork" Content="Восстановить сеть" Style="{StaticResource BtnOutline}" Height="34" o:Ui.CornerRadius="{StaticResource RadiusSeg}" Padding="14,0" HorizontalAlignment="Left" Margin="10,8,0,0" Visibility="Collapsed"/>
 

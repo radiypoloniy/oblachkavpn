@@ -155,6 +155,18 @@
           <ListBox.Template><ControlTemplate TargetType="ListBox"><ItemsPresenter/></ControlTemplate></ListBox.Template>
         </ListBox>
       </ScrollViewer>
+      <!-- Вкладка «Бесплатные»: какой список загрузить, и напоминание, что серверы чужие. -->
+      <StackPanel x:Name="FreePanel" Margin="0,10,0,0" Visibility="Collapsed">
+        <ListBox x:Name="FreeKind" ItemContainerStyle="{StaticResource ChipItem}" Background="Transparent" BorderThickness="0" Padding="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Список бесплатных серверов" SelectedIndex="0">
+          <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ListBox.ItemsPanel>
+          <ListBox.Template><ControlTemplate TargetType="ListBox"><ItemsPresenter/></ControlTemplate></ListBox.Template>
+          <sys:String>Обычный</sys:String>
+          <sys:String>Мобильный</sys:String>
+          <sys:String>Белые списки</sys:String>
+        </ListBox>
+        <TextBlock Text="Чужие серверы: их владельцы видят, какие сайты вы открываете. Не входите через них в банк, почту и Госуслуги." FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource WF}" TextWrapping="Wrap" Margin="2,8,0,0"/>
+      </StackPanel>
       <DockPanel Margin="0,10,0,0">
         <TextBlock x:Name="MeasuredAgo" DockPanel.Dock="Right" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Fa}" VerticalAlignment="Center"/>
         <ListBox x:Name="SortOrder" ItemContainerStyle="{StaticResource ChipItem}" Background="Transparent" BorderThickness="0" Padding="0"

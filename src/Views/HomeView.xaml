@@ -68,6 +68,9 @@
             <TextBlock x:Name="SubWarnText" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource SF}" VerticalAlignment="Center" TextWrapping="Wrap"/>
           </DockPanel>
         </Border>
+        <Border x:Name="FreeWarn" Margin="0,10,0,0" Padding="12,10" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource WB}" Visibility="Collapsed">
+          <TextBlock Text="Чужой сервер. Его владелец видит, какие сайты вы открываете." FontSize="{StaticResource FsNote}" Foreground="{DynamicResource WF}" TextWrapping="Wrap"/>
+        </Border>
         <Border x:Name="ForeignCard" Margin="0,10,0,0" Padding="14" CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource WB}" Visibility="Collapsed">
           <StackPanel>
             <TextBlock x:Name="ForeignTitle" FontSize="{StaticResource FsLabel}" FontWeight="SemiBold" Foreground="{DynamicResource Tx}" TextWrapping="Wrap"/>

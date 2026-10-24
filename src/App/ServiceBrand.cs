@@ -20,6 +20,9 @@ public static class ServiceBrand
     // разворачивается короткий ключ. Остальные служат резервными адресами того же сервиса.
     public static readonly string[] SubscriptionHosts = { "sub.oblaconnection.com" };
 
+    // Домены сервиса целиком: подписка, панель, сайт. Через бесплатный чужой узел они закрыты (ForeignGuard).
+    public static readonly string[] ServiceDomains = { "oblaconnection.com" };
+
     // Путь до токена в адресе подписки, между хостом и ключом.
     public const string SubscriptionPath = "/sub/";
 

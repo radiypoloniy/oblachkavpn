@@ -68,6 +68,7 @@ public static partial class SelfTests
         await LocalNetworkChecksAsync(CheckAsync);
         await QuicOverTcpChecksAsync(CheckAsync);
         await ProgramConflictChecksAsync(CheckAsync);
+        await FreeServerChecksAsync(CheckAsync);
         await TrafficChecksAsync(CheckAsync);
         await AuditFixChecksAsync(CheckAsync);
         await LiveSiteRuleChecksAsync(CheckAsync);

@@ -51,6 +51,7 @@ public partial class SettingsPanel : UserControl
     public CheckBox LocalNetwork => Advanced.LocalNetwork;
     public CheckBox QuicOverTcp => Advanced.QuicOverTcp;
     public CheckBox CompatibleStack => Advanced.CompatibleStack;
+    public CheckBox FreeServers => Advanced.FreeServers;
     public CheckBox StayInTray => General.StayInTray;
     public CheckBox Hotkey => General.Hotkey;
     public TextBlock HotkeyNote => General.HotkeyNote;
