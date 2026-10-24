@@ -38,6 +38,15 @@ jobs:
         shell: powershell
         run: .\test.ps1
 
+      # Тесты ядра туннеля: AmneziaWG — клиент и сервер в памяти, запрос через туннель.
+      - name: Тесты ядра
+        shell: pwsh
+        working-directory: core
+        run: |
+          $tags = (Get-Content ../scripts/build-core.ps1 | Where-Object { $_ -like '$tags = *' } | Select-Object -First 1).Split("'")[1]
+          go test -tags $tags -ldflags=-checklinkname=0 -count=1 ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       # Версии инструментов закреплены; go install сверяет модули с sum.golang.org.
       - name: Уязвимости зависимостей ядра
         shell: pwsh

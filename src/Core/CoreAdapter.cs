@@ -7,7 +7,11 @@ public enum CoreKind { Xray, SingBox }
 // Only core-specific syntax lives here. Engine owns the shared process lifecycle.
 public sealed record CoreAdapter(CoreKind Kind, string Executable)
 {
-    public string Label => Kind == CoreKind.Xray ? "Xray 26.10.21" : "sing-box 1.14.3";
+    // Файл ядра для профиля: Xray, sing-box или своё ядро туннеля — у него есть AmneziaWG.
+    public static string FileFor(Profile profile) =>
+        profile.Core == CoreKind.Xray ? "xray.exe" : ProfileServer.IsAmnezia(profile) ? TunCore.FileName : "sing-box.exe";
+
+    public string Label => Kind == CoreKind.Xray ? "Xray 26.10.21" : "sing-box 1.14.4";
     public string[] ValidationArguments => Kind == CoreKind.Xray
         ? ["run", "-test", "-c", "stdin:", "-format", "json"] : ["check", "-c", "stdin"];
     public string[] RunArguments => Kind == CoreKind.Xray

@@ -10,20 +10,20 @@
 - SHA256 архива `Xray-windows-64.zip`: `FC58C39EE2F2717B4C54D28D374362389E5319B20AE44AEA76EA45A5243EC827`. Совпадает с файлом `.dgst` релиза.
 - SHA256 `xray.exe`: `C77A00EB84FB93AE044C2D771A1CABCC033B81E487253FBC35B12DF6879C1E15`
 
-## sing-box 1.14.3
+## sing-box 1.14.4
 
-- Релиз: https://github.com/SagerNet/sing-box/releases/tag/v1.14.3
-- Исходники: https://github.com/SagerNet/sing-box/tree/v1.14.3
-- Лицензия: GPL-3.0-or-later с условием об имени проекта (`vendor/sing-box-1.14.3/LICENSE-sing-box` и `COPYING-GPL-3.0`)
-- SHA256 архива `sing-box-1.14.3-windows-amd64.zip`: `D8B86EF58936DBA9230EC6A57FFA4243933F3C14EF4809828B6C553440ED1518`. Совпадает с `digest` GitHub Release API.
-- SHA256 `sing-box.exe`: `5C19BB3F8C12D4E85B3D47FE63123A7624B314B58DD7A8E32F51004F1C4D2FAF`
+- Релиз: https://github.com/SagerNet/sing-box/releases/tag/v1.14.4
+- Исходники: https://github.com/SagerNet/sing-box/tree/v1.14.4
+- Лицензия: GPL-3.0-or-later с условием об имени проекта (`vendor/sing-box-1.14.4/LICENSE-sing-box` и `COPYING-GPL-3.0`)
+- SHA256 архива `sing-box-1.14.4-windows-amd64.zip`: `99185D75D314A07DBBA4A130C8AD986CBEB629A07927975636B341CA61F991DF`. Совпадает с `digest` GitHub Release API.
+- SHA256 `sing-box.exe`: `8F30682EE198855440D2A7FE070D5D3653793B2D01BB8C85EEA88F93BBE7C8B9`
 - SHA256 `libcronet.dll`: `3217C6260FBCA5F16072E0B79735742F40109A63BB0FF88FD6B96DD6B54A2928`. Файл из того же официального комплекта, без изменений.
 
-Запись происхождения: `vendor/sing-box-1.14.3/provenance.json`.
+Запись происхождения: `vendor/sing-box-1.14.4/provenance.json`.
 
 ## oblachka-core (ядро системного туннеля)
 
-Собирается из исходников в `core/` (`scripts/build-core.ps1`): sing-box 1.14.3 и Xray-core 26.10.21 как библиотеки Go (версии закреплены в `core/go.mod` и `core/go.sum`) плюс выход `xray`, который передаёт соединения встроенному Xray внутри процесса. Код sing-box и Xray не изменяется. Сборка воспроизводимая (`-trimpath`, без `buildid` и cgo), SHA256 файла закреплён в `src/Network/TunCore.cs`. Лицензия — GPL-3.0-or-later, как у sing-box и всего клиента. Название своё: условие sing-box запрещает производным работам называться sing-box.
+Собирается из исходников в `core/` (`scripts/build-core.ps1`): sing-box 1.14.4 и Xray-core 26.10.21 как библиотеки Go (версии закреплены в `core/go.mod` и `core/go.sum`) плюс выход `xray`, который передаёт соединения встроенному Xray внутри процесса. Код sing-box и Xray не изменяется. Сборка воспроизводимая (`-trimpath`, без `buildid` и cgo), SHA256 файла закреплён в `src/Network/TunCore.cs`. Лицензия — GPL-3.0-or-later, как у sing-box и всего клиента. Название своё: условие sing-box запрещает производным работам называться sing-box.
 
 ## zapret и набор Flowseal
 

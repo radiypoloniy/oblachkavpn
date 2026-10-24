@@ -58,7 +58,7 @@ public partial class MainWindow
         {
             var row = Row(shown, note: false);
             Home.ServerName.Text = row.Name;
-            Home.ServerNote.Text = autoSelect ? "Автовыбор · самый быстрый" : GroupNote(shown) ?? "выбран вручную";
+            Home.ServerNote.Text = ExitNote(shown) ?? (autoSelect ? "Автовыбор · самый быстрый" : GroupNote(shown) ?? "выбран вручную");
             // Картинку — только если сменилась: переназначение каждую секунду перерисовывало карточку.
             if (!ReferenceEquals(Home.ServerFlag.Source, row.Flag)) Home.ServerFlag.Source = row.Flag;
             Home.ServerFlag.Visibility = row.Flag is null ? Visibility.Collapsed : Visibility.Visible;

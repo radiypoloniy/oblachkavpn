@@ -22,7 +22,7 @@ public sealed record ImportResult(IReadOnlyList<Profile> Profiles, int Unsupport
 public static class Subscriptions
 {
     public const int MaxProfiles = 200;
-    public const string SupportedList = "VLESS, Trojan, VMess, Shadowsocks, Hysteria2, TUIC, AnyTLS, WireGuard";
+    public const string SupportedList = "VLESS, Trojan, VMess, Shadowsocks, Hysteria2, TUIC, AnyTLS, WireGuard, AmneziaWG";
     public static ImportResult Parse(string input)
     {
         if (Encoding.UTF8.GetByteCount(input) > Profiles.MaxBytes) throw new UserError("Подписка больше 1 МБ. Используйте отдельную группу подключений.");

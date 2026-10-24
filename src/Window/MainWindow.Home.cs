@@ -64,7 +64,7 @@ public partial class MainWindow
             // или подбор не найдёт рабочий сервер.
             : running && health.FailedRounds > 0 ? ("Связь пропала", name + " не отвечает · проверяем ещё раз", PowerState.On, "WI")
             // Выборочный режим не защищает весь компьютер: большая часть трафика идёт напрямую.
-            : running ? (SystemTunnelActive && !selectiveVpn ? "Защищено" : "Подключено", name + " · " + SessionDuration, PowerState.On, "Ok")
+            : running ? (SystemTunnelActive && !selectiveVpn ? "Защищено" : "Подключено", TrafficText ?? name + " · " + SessionDuration, PowerState.On, "Ok")
             : engine.State == ConnectionState.Failed ? ("Связь прервана", "Включите снова или выберите другой сервер", PowerState.Off, "EI")
             // VPN выключен, но обход работает: YouTube и Discord открываются и так — это стоит сказать.
             : ZapretWorksWithoutVpn ? ("VPN выключен", string.Join(" и ", zapretActiveGroups.Select(ZapretTitle)) + (zapretActiveGroups.Length > 1 ? " работают" : " работает") + " и без него", PowerState.Off, "Ok")
@@ -79,6 +79,7 @@ public partial class MainWindow
             : running && lastProbe is { Success: false } ? "Проверка связи не прошла"
             : running ? "Проверяем связь…"
             : busy ? "Запускаем ядро и проверяем связь" : "Туннель выключен";
+        RefreshExit(checkedOk);
         Home.CheckChip.SetResourceReference(Border.BackgroundProperty, checkedOk ? "OkB" : "Field");
         Home.CheckText.SetResourceReference(TextBlock.ForegroundProperty, checkedOk ? "OkF" : "Mu2");
         Home.CheckIcon.Visibility = checkedOk ? Visibility.Visible : Visibility.Collapsed;

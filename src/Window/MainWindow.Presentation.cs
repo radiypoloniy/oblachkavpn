@@ -25,6 +25,7 @@ public partial class MainWindow
             // Новое ядро — сразу перепроверяем, иначе чип «Проверяем связь…» ждал бы плановые 45 с.
             if (pid is not null) nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
         }
+        RefreshTraffic();
         RefreshHome();
         Servers.SearchBox.IsEnabled = ProfilePicker.IsEnabled;
         RefreshServerListControls();

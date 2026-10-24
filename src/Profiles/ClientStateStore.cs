@@ -76,6 +76,11 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public bool LocalNetwork { get; init; } = true;
     // «QUIC через TCP» в «Весь компьютер» (0.19). По умолчанию выключен.
     public bool QuicOverTcp { get; init; }
+    // Трафик ядра туннеля за день (0.19): дата yyyy-MM-dd и байты в обе стороны.
+    public string? TrafficDay { get; init; }
+    public long TrafficBytes { get; init; }
+    // Ctrl+Alt+O показывает окно (0.19). По умолчанию включено.
+    public bool Hotkey { get; init; } = true;
 }
 
 // The OS binds the encrypted file to the current Windows user. Never stage plaintext on disk.

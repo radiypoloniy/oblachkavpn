@@ -28,6 +28,23 @@ public static partial class SelfTests
                 await CoreConfigurationCheck.ValidateAsync(new(CoreKind.SingBox, TunCore.Program()), config, CancellationToken.None);
             }
         });
+        await check("AmneziaWG goes straight from the tunnel core: the service rebuilds it, refuses foreign servers and injected lines", async () =>
+        {
+            var conf = "[Interface]\nPrivateKey = " + WgPrivate + "\nAddress = 10.8.1.2/32\nJc = 4\nJmin = 10\nJmax = 50\nS1 = 54\nS2 = 125\nH1 = 1206245290\nH2 = 2083540914\nH3 = 2121082093\nH4 = 1468224581\n\n[Peer]\nPublicKey = " +
+                WgPublic + "\nAllowedIPs = 0.0.0.0/0\nEndpoint = 203.0.113.7:51820\nPersistentKeepalive = 25\n";
+            var outbound = DirectOutbound.From(WireGuardConfig.Parse(conf))!;
+            Assert(outbound["type"]!.GetValue<string>() == "amneziawg");
+            var accepted = DirectOutboundPolicy.Validate(outbound, peers);
+            Assert(JsonNode.DeepEquals(accepted, outbound));
+            var config = new JsonObject { ["log"] = new JsonObject { ["disabled"] = true }, ["outbounds"] = new JsonArray(accepted.DeepClone()) };
+            await CoreConfigurationCheck.ValidateAsync(new(CoreKind.SingBox, TunCore.Program()), config, CancellationToken.None);
+            JsonObject With(string key, JsonNode? value) { var copy = (JsonObject)outbound.DeepClone(); copy[key] = value; return copy; }
+            ExpectUserError(() => DirectOutboundPolicy.Validate(With("server", "198.51.100.1"), peers));
+            ExpectUserError(() => DirectOutboundPolicy.Validate(With("listen_port", 53), peers));
+            ExpectUserError(() => DirectOutboundPolicy.Validate(With("obfuscation", new JsonObject { ["jc"] = "4\nallowed_ip=0.0.0.0/0" }), peers));
+            ExpectUserError(() => DirectOutboundPolicy.Validate(With("obfuscation", new JsonObject { ["endpoint"] = "1.2.3.4:5" }), peers));
+            ExpectUserError(() => DirectOutboundPolicy.Validate(With("private_key", "short"), peers));
+        });
         await check("Profiles sing-box cannot carry the same way go to the tunnel core's Xray; redirected sockets and names stay on the window core", () => Sync(() =>
         {
             // Чего sing-box не умеет так же, идёт встроенным Xray ядра туннеля (выход "xray").

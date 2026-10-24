@@ -1,4 +1,4 @@
-﻿# Собирает ядро системного туннеля oblachka-core.exe из core\ (sing-box 1.14.3 и выход
+﻿# Собирает ядро системного туннеля oblachka-core.exe из core\ (sing-box 1.14.4 и выход
 # Xray для XHTTP) и сверяет SHA256 с закреплённым в TunCore.cs. Сборка воспроизводимая
 # (-trimpath, без buildid, без cgo): тот же Go и те же модули дают тот же файл.
 # Готовый файл с верным хешем не пересобирается. Изменили core\ — обновите хеш в TunCore.cs.
@@ -15,7 +15,7 @@ if (-not $go) { throw 'Для ядра oblachka-core нужен Go (версия
 New-Item -ItemType Directory -Force (Split-Path -Parent $target) | Out-Null
 $env:CGO_ENABLED = '0'; $env:GOOS = 'windows'; $env:GOARCH = 'amd64'; $env:GOAMD64 = 'v1'; $env:GOFLAGS = '-mod=readonly'
 $tags = 'with_gvisor,with_quic,with_utls,with_clash_api,badlinkname,tfogo_checklinkname0'
-$ldflags = "-X 'github.com/sagernet/sing-box/constant.Version=1.14.3' -X runtime.godebugDefault=multipathtcp=0,tlssha1=1 -checklinkname=0 -s -w -buildid="
+$ldflags = "-X 'github.com/sagernet/sing-box/constant.Version=1.14.4' -X runtime.godebugDefault=multipathtcp=0,tlssha1=1 -checklinkname=0 -s -w -buildid="
 Push-Location (Join-Path $root 'core')
 try {
     & $go build -trimpath -buildvcs=false -tags $tags -ldflags $ldflags -o $target .

@@ -8,19 +8,21 @@ namespace Oblachka;
 //   vless, trojan, tuic, anytls, hysteria2 — TLS обязателен (сами не шифруют или работают поверх QUIC/TLS);
 //   vmess — шифрует сам (security не none/zero), TLS по желанию;
 //   shadowsocks — шифрует сам (AEAD или 2022), TLS не бывает;
-//   wireguard — endpoint, а не outbound: шифрует сам, свои ключи.
+//   wireguard — endpoint, а не outbound: шифрует сам, свои ключи;
+//   amneziawg — выход ядра туннеля oblachka-core (core/amneziawg.go): WireGuard с обфускацией.
 public static class SingBoxProfiles
 {
-    private static readonly string[] Types = { "vless", "hysteria2", "trojan", "vmess", "shadowsocks", "tuic", "anytls", "wireguard" };
+    private static readonly string[] Types = { "vless", "hysteria2", "trojan", "vmess", "shadowsocks", "tuic", "anytls", "wireguard", "amneziawg" };
 
     public static bool IsSupported(JsonObject outbound) =>
         outbound["type"] is JsonValue value && value.TryGetValue<string>(out var type) && Types.Contains(type);
 
     public static Profile Parse(JsonObject outbound, string name)
     {
-        if (!IsSupported(outbound)) throw new UserError("sing-box: поддерживаются VLESS, Trojan, VMess, Shadowsocks, Hysteria2, TUIC, AnyTLS и WireGuard.");
+        if (!IsSupported(outbound)) throw new UserError("sing-box: поддерживаются VLESS, Trojan, VMess, Shadowsocks, Hysteria2, TUIC, AnyTLS, WireGuard и AmneziaWG.");
         var type = outbound["type"]!.GetValue<string>();
         if (type == "wireguard") return Finish(outbound, name, SingBoxProtocols.WireGuard(outbound));
+        if (type == "amneziawg") return Finish(outbound, name, SingBoxProtocols.AmneziaWG(outbound));
         var common = new[] { "type", "tag", "server", "server_port", "tls", "network" };
         AllowOnly(outbound, common.Concat(SingBoxProtocols.Fields(type)).ToArray());
         var server = outbound["server"]?.GetValue<string>();
