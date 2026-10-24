@@ -20,6 +20,11 @@ public static partial class SelfTests
             var long_ = string.Join('\n', Enumerable.Range(0, 260).Select(i => Vless + "#n" + i));
             Assert(Subscriptions.Parse(FreeServers.Trim(long_)).Profiles.Count == Subscriptions.MaxProfiles);
             Assert(FreeServers.Best(free, p => p == free[1] ? 40 : null).SequenceEqual([free[1]]));
+            // extra=null у XHTTP (так их выкладывает zieng2) — как без extra; объект по-прежнему читается.
+            const string Xhttp = "vless://6f1c2e0a-5b7d-4c3e-9a1f-0b2c3d4e5f60@203.0.113.7:443?security=reality&sni=www.example.com&pbk=SbVKOEMjK0sIlbwg4akyBg5mL5KZwwB-ed4eEE7YnRc&type=xhttp&path=%2Fx&encryption=none";
+            Assert(Profiles.Parse(Xhttp + "&extra=null#N").Outbound.ToJsonString().Contains("xhttpSettings") && !Profiles.Parse(Xhttp + "&extra=null#N").Outbound.ToJsonString().Contains("\"extra\""));
+            Assert(Profiles.Parse(Xhttp + "&extra=%7B%22xPaddingBytes%22%3A%22100-1000%22%7D#E").Outbound.ToJsonString().Contains("xPaddingBytes"));
+            ExpectUserError(() => Profiles.Parse(Xhttp + "&extra=%5B1%5D#A"));
         }));
         await check("Free nodes never join auto-select, spares or recovery unless chosen by hand", () => Sync(() =>
         {

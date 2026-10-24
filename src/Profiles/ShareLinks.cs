@@ -116,9 +116,10 @@ public static partial class ShareLinks
         {
             case "xhttp":
                 var xhttp = new JsonObject { ["path"] = Get(q, "path", "/"), ["host"] = Get(q, "host"), ["mode"] = Get(q, "mode", "auto") };
-                if (q.ContainsKey("extra"))
+                // extra=null и пустое значение — то же, что без extra: так их выкладывают открытые списки (zieng2).
+                if (Get(q, "extra").Trim() is { Length: > 0 } extra && extra != "null")
                 {
-                    try { xhttp["extra"] = JsonNode.Parse(Get(q, "extra")) as JsonObject ?? throw new UserError("extra должен быть JSON-объектом."); }
+                    try { xhttp["extra"] = JsonNode.Parse(extra) as JsonObject ?? throw new UserError("extra должен быть JSON-объектом."); }
                     catch (JsonException) { throw new UserError("Не удалось прочитать XHTTP extra. Импортируйте Xray JSON."); }
                 }
                 stream["xhttpSettings"] = xhttp;

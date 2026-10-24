@@ -36,7 +36,9 @@ public partial class MainWindow
     }
     // Переключать сервер при обрыве: по настройке или потому что выбран «Автовыбор» —
     // выбрав его, человек сам попросил, чтобы сервер подбирался без него.
-    private bool AutoSwitching => autoSelect || AutoRecover.IsChecked == true;
+    // Бесплатный чужой узел не восстанавливается сам ни повтором, ни сменой сервера (решение владельца
+    // 24.10.2026): упал — человек сам выбирает, к чему подключаться дальше.
+    private bool AutoSwitching => (autoSelect || AutoRecover.IsChecked == true) && (runningProfile ?? profile)?.IsFree != true;
 
     // Проверка связи идёт всегда: без неё чип под тумблером не узнает, что туннель работает.
     // Автовосстановление — отдельное решение: по настройке или при «Автовыборе».
@@ -83,6 +85,8 @@ public partial class MainWindow
         }
         // Путь программ чинится и без автовосстановления: иначе интернет закрыт молча.
         if (!closed && !vmTestActive && !manualStop && pathFailure is not null) { await RepairSystemPathAsync(pathFailure); return; }
+        if (!closed && !manualStop && shouldRecover && (runningProfile ?? profile)?.IsFree == true)
+            DetailText.Text = "Бесплатный сервер не отвечает. Выберите другой и подключитесь заново — сам он не переключается.";
         if (closed || vmTestActive || manualStop || !AutoSwitching) return;
         if (shouldRecover) await RecoverUnreachableAsync();
         else if (engine.State == ConnectionState.Failed) ScheduleRecovery();
