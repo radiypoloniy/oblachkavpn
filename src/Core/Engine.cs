@@ -61,6 +61,9 @@ public sealed partial class Engine : ITunnelController
         // Поправка «Подобрать лучшее»: пробная (Trial) или сохранённая для этого сервера.
         var tweak = Trial ?? ServerTweak.Lookup(profile);
         if (tweak is not null) profile = tweak.Apply(profile);
+        // Отпечаток по умолчанию («Для продвинутых») — и без правил: тогда конфигурация собирается
+        // мимо RoutingPlan, где он подставлялся раньше.
+        profile = Utls.For(profile);
         FragmentActive = (Fragment || tweak?.Fragment == true) && TlsFragment.Applies(profile);
         var fragment = FragmentActive; var shape = FragmentShape;
         return StartCoreAsync(port =>
