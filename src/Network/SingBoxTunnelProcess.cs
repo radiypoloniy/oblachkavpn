@@ -43,6 +43,8 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         var ipv6 = PhysicalNetwork.HasGlobalIpv6();
         // DNS по пути трафика: прямые сайты — через резолвер физической сети (DirectDns).
         DirectDns.EnsureFile();
+        // Журнал ядра — одной сессии: прежний, с адресами сайтов, не копится.
+        try { File.Delete(TunnelTuning.LogPath); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         var localDns = DirectDns.PhysicalResolver();
         // Правила программ — в файлах, которые окно меняет на ходу (ProgramRuleSets); при запуске — из аренды.
         ProgramRuleSets.Write(ProgramRuleSets.Folder, lease.ProgramRules);

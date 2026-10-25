@@ -7,6 +7,8 @@ namespace Oblachka;
 // ровно ту конфигурацию, что и до него. Значения проверяются здесь и ещё раз службой (TunnelTuning),
 // потому что часть их уходит в ядро туннеля, работающее с правами системы.
 public enum TunnelStack { Auto, Gvisor, Mixed, System }
+// Журнал ядра туннеля: нет, только ошибки и предупреждения, подробно (с адресами сайтов).
+public enum CoreLogLevel { Off, Warn, Debug }
 
 public sealed record AdvancedOptions
 {
@@ -29,11 +31,12 @@ public sealed record AdvancedOptions
     public string? ProbeUrl { get; init; }
     // Постоянный порт локального прокси для программ; null — свободный, какой найдётся.
     public int? ProxyPort { get; init; }
+    public CoreLogLevel CoreLog { get; init; }
 
     public const int MinMtu = 1280, MaxMtu = 9000, MaxSubnets = 32;
 
     public bool IsDefault => Stack == TunnelStack.Auto && Mtu is null && TunnelDns is null && BypassSubnets.Length == 0 &&
-        FragmentPackets is null && FragmentLength is null && FragmentInterval is null && SubscriptionUserAgent is null && ProbeUrl is null && ProxyPort is null;
+        FragmentPackets is null && FragmentLength is null && FragmentInterval is null && SubscriptionUserAgent is null && ProbeUrl is null && ProxyPort is null && CoreLog == CoreLogLevel.Off;
 
     // Ошибка — человеческим текстом для поля; null — всё верно.
     public static string? CheckMtu(int? mtu) => mtu is null or (>= MinMtu and <= MaxMtu) ? null : $"MTU — от {MinMtu} до {MaxMtu}.";
@@ -91,7 +94,7 @@ public sealed record AdvancedOptions
     {
         (Stack != TunnelStack.Auto, "Stack:" + Stack), (Mtu is not null, "Mtu:" + Mtu), (TunnelDns is not null, "TunnelDns:" + (TunnelDns is { } d ? new Uri(d).Scheme : "")),
         (BypassSubnets.Length > 0, "BypassSubnets:" + BypassSubnets.Length), ((FragmentPackets ?? FragmentLength ?? FragmentInterval) is not null, "Fragment"),
-        (SubscriptionUserAgent is not null, "SubscriptionUserAgent"), (ProbeUrl is not null, "ProbeUrl"), (ProxyPort is not null, "ProxyPort")
+        (SubscriptionUserAgent is not null, "SubscriptionUserAgent"), (ProbeUrl is not null, "ProbeUrl"), (ProxyPort is not null, "ProxyPort"), (CoreLog != CoreLogLevel.Off, "CoreLog:" + CoreLog)
     }.Where(c => c.On).Select(c => c.Name).ToArray();
 
     // Своя форма фрагментации поверх провайдерской: незаданное — из неё же или по умолчанию.

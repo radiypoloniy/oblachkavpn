@@ -6,17 +6,21 @@ namespace Oblachka;
 // Настройки туннеля из «Для продвинутых» (AdvancedOptions), которые уходят в службу: стек и MTU,
 // свой DNS через VPN, подсети мимо туннеля. Служба проверяет их заново — окно могло прислать что
 // угодно, а ядро туннеля работает с правами системы. null у поля — как без настройки.
-public sealed record TunnelTuning(TunnelStack Stack = TunnelStack.Auto, int? Mtu = null, string? Dns = null, string[]? Bypass = null)
+public sealed record TunnelTuning(TunnelStack Stack = TunnelStack.Auto, int? Mtu = null, string? Dns = null, string[]? Bypass = null, CoreLogLevel Log = CoreLogLevel.Off)
 {
     public static TunnelTuning? From(AdvancedOptions options) =>
-        options.Stack == TunnelStack.Auto && options.Mtu is null && options.TunnelDns is null && options.BypassSubnets.Length == 0 ? null
-            : new(options.Stack, options.Mtu, options.TunnelDns, options.BypassSubnets.Length == 0 ? null : options.BypassSubnets);
+        options.Stack == TunnelStack.Auto && options.Mtu is null && options.TunnelDns is null && options.BypassSubnets.Length == 0 && options.CoreLog == CoreLogLevel.Off ? null
+            : new(options.Stack, options.Mtu, options.TunnelDns, options.BypassSubnets.Length == 0 ? null : options.BypassSubnets, options.CoreLog);
+
+    // Журнал ядра — в общей папке службы, где и журнал сессии: окно открывает его без прав
+    // администратора. Путь задаёт служба, не окно: писать с правами системы туда, куда прислали, нельзя.
+    public static string LogPath => Path.Combine(NetworkService.DataRoot, "core.log");
 
     public IReadOnlyList<string> Subnets => Bypass ?? [];
 
     public void Validate()
     {
-        if (!Enum.IsDefined(Stack)) throw new UserError("Неизвестный стек туннеля.");
+        if (!Enum.IsDefined(Stack) || !Enum.IsDefined(Log)) throw new UserError("Неизвестный стек туннеля или уровень журнала.");
         if ((AdvancedOptions.CheckMtu(Mtu) ?? AdvancedOptions.CheckDns(Dns) ?? AdvancedOptions.CheckSubnets(Subnets)) is { } problem)
             throw new UserError(problem);
     }
@@ -36,6 +40,8 @@ public sealed record TunnelTuning(TunnelStack Stack = TunnelStack.Auto, int? Mtu
             foreach (var subnet in tuning.Subnets) exclusions.Add(Normalize(subnet));
         }
         if (tuning.Dns is { } dns) ReplaceDns(config, dns, tunnel);
+        if (tuning.Log != CoreLogLevel.Off)
+            config["log"] = new JsonObject { ["level"] = tuning.Log == CoreLogLevel.Debug ? "debug" : "warn", ["output"] = LogPath, ["timestamp"] = true };
     }
 
     // «10.20.1.5/16» → «10.20.0.0/16»: ядро принимает только адрес сети.

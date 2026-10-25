@@ -126,7 +126,7 @@
           <Button x:Name="AdvancedOpen" DockPanel.Dock="Right" Content="Открыть" Style="{StaticResource BtnOutline}" Height="36" Padding="16,0" Margin="8,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="Открыть настройки для продвинутых"/>
           <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
             <TextBlock x:Name="AdvancedTitle" Text="Тонкая настройка" Style="{StaticResource OptTitle}"/>
-            <TextBlock x:Name="AdvancedNote" Text="Стек и MTU туннеля, свой DNS, подсети мимо VPN, фрагментация, порт прокси" Style="{StaticResource OptSub}"/>
+            <TextBlock x:Name="AdvancedNote" Text="Стек и MTU туннеля, свой DNS, подсети мимо VPN, фрагментация, порт прокси, журнал ядра" Style="{StaticResource OptSub}"/>
           </StackPanel>
         </DockPanel>
       </Border>

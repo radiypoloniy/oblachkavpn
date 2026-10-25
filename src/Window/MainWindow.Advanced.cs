@@ -39,6 +39,16 @@ public partial class MainWindow
         Field(Advanced.ProbeInput, Advanced.ProbeError, text => AdvancedOptions.CheckProbe(Empty(text)) ?? Keep(advanced with { ProbeUrl = Empty(text) }));
         Field(Advanced.PortInput, Advanced.PortError, text => Number(text, out var port) is { } bad ? bad
             : AdvancedOptions.CheckPort(port) ?? Keep(advanced with { ProxyPort = port }));
+        Advanced.LogOff.Click += (_, _) => SetAdvanced(advanced with { CoreLog = CoreLogLevel.Off });
+        Advanced.LogWarn.Click += (_, _) => SetAdvanced(advanced with { CoreLog = CoreLogLevel.Warn });
+        Advanced.LogDebug.Click += (_, _) => SetAdvanced(advanced with { CoreLog = CoreLogLevel.Debug });
+        Advanced.OpenLogButton.Click += (_, _) =>
+        {
+            // Есть файл — показать его в папке; нет — открыть саму папку (журнала ещё не было).
+            var arguments = File.Exists(TunnelTuning.LogPath) ? "/select,\"" + TunnelTuning.LogPath + "\"" : "\"" + NetworkService.DataRoot + "\"";
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", arguments) { UseShellExecute = true }); }
+            catch (System.ComponentModel.Win32Exception) { DetailText.Text = "Не удалось открыть папку журнала: " + NetworkService.DataRoot; }
+        };
         Advanced.ResetButton.Click += (_, _) => { SetAdvanced(AdvancedOptions.Default); FillAdvanced(); };
         Advanced.UserAgentInput.Tag = ServiceBrand.UserAgent;
     }
@@ -98,6 +108,9 @@ public partial class MainWindow
         MarkSegment(Advanced.StackGvisor, advanced.Stack == TunnelStack.Gvisor);
         MarkSegment(Advanced.StackMixed, advanced.Stack == TunnelStack.Mixed);
         MarkSegment(Advanced.StackSystem, advanced.Stack == TunnelStack.System);
+        MarkSegment(Advanced.LogOff, advanced.CoreLog == CoreLogLevel.Off);
+        MarkSegment(Advanced.LogWarn, advanced.CoreLog == CoreLogLevel.Warn);
+        MarkSegment(Advanced.LogDebug, advanced.CoreLog == CoreLogLevel.Debug);
     }
 
     private void FillAdvanced()

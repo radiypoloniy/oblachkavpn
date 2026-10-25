@@ -110,6 +110,23 @@
         </StackPanel>
       </Border>
 
+      <TextBlock Text="Журнал ядра туннеля" Style="{StaticResource SecHead}"/>
+      <Border Style="{StaticResource OptRow}" BorderThickness="0">
+        <StackPanel>
+          <TextBlock Text="Подробный журнал — с адресами сайтов. Он стирается при каждом подключении и виден другим учётным записям этого компьютера" Style="{StaticResource OptSub}"/>
+          <DockPanel Margin="0,8,0,0">
+            <Button x:Name="OpenLogButton" DockPanel.Dock="Right" Content="Открыть папку" Style="{StaticResource BtnOutline}" Height="36" Padding="16,0" Margin="12,0,0,0" VerticalAlignment="Center"/>
+            <Border Style="{StaticResource SegTrack}" HorizontalAlignment="Left">
+              <StackPanel Orientation="Horizontal">
+                <Button x:Name="LogOff" Content="Выкл" Style="{StaticResource SegButton}" AutomationProperties.Name="Журнал ядра: выключен"/>
+                <Button x:Name="LogWarn" Content="Ошибки" Style="{StaticResource SegButton}" AutomationProperties.Name="Журнал ядра: ошибки"/>
+                <Button x:Name="LogDebug" Content="Подробно" Style="{StaticResource SegButton}" AutomationProperties.Name="Журнал ядра: подробно"/>
+              </StackPanel>
+            </Border>
+          </DockPanel>
+        </StackPanel>
+      </Border>
+
       <Button x:Name="ResetButton" Content="Вернуть всё как было" Style="{StaticResource BtnOutline}" Height="36" Padding="16,0" HorizontalAlignment="Left" Margin="0,20,0,0"/>
     </StackPanel>
   </ScrollViewer>
