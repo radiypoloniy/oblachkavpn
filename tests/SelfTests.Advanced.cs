@@ -88,6 +88,14 @@ public static partial class SelfTests
             // Подмена строки журнала на «весь интернет» не проходит.
             var forged = change with { After = change.After.Replace("10.20.1.0/24", "0.0.0.0/0") };
             Assert(Throws<UserError>(() => backend.Apply(Guid.NewGuid(), forged)));
+            // До ядра настройки доходят: служба пересобирает запрос по аренде, бэкенд переносит аренду
+            // в ядро — оба места раньше теряли новые поля.
+            var tuned = NetworkHelperContracts.Validate(Lease(new(TunnelStack.Mixed, 1400, "tls://9.9.9.9", ["10.20.0.0/16"])));
+            Assert(SingBoxTunnelProcess.RequestFor(tuned).Tuning is { Mtu: 1400, Stack: TunnelStack.Mixed });
+            ValidatedNetworkLease? started = null; var up = false;
+            using (var tunnel = new WindowsTunnelBackend((l, _) => { started = l; up = true; return new FakeTunnelProcess(); }, _ => up, delay: static (_, _) => Task.CompletedTask))
+                tunnel.Apply(tuned.LeaseId, tunnel.Prepare(tuned).Single());
+            Assert(started?.Tuning is { Dns: "tls://9.9.9.9" } carried && carried.Subnets.Single() == "10.20.0.0/16");
             foreach (var bad in new TunnelTuning[] { new(Mtu: 100), new(Dns: "http://dns.example/"), new(Bypass: ["0.0.0.0/1"]), new((TunnelStack)9) })
                 Assert(Throws<UserError>(() => NetworkHelperContracts.Validate(Lease(bad))));
             Assert(Throws<UserError>(() => NetworkHelperContracts.Validate(new NetworkLeaseRequest(1, Guid.NewGuid(), NetworkLeaseAction.Release, 0, [], Tuning: new(Mtu: 1500)))));
