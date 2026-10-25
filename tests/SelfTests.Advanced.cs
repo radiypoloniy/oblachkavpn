@@ -169,7 +169,9 @@ public static partial class SelfTests
             Assert((string?)rules[0]["action"] == "resolve" && (string?)rules[1]["action"] == "reject" && rules[1]["ip_cidr"]!.ToJsonString().Contains("127.0.0.0/8"));
             Assert(rules.Take(2).All(r => r["inbound"]!.ToJsonString() == "[\"lan\"]"));
             Assert(TunnelTuning.From(AdvancedOptions.Default) is null && SingBoxTunConfig.Create(Lease(null), ipv6: false)["inbounds"]!.AsArray().Count == 1);
-            foreach (var bad in new TunnelTuning[] { new(LanPort: 10810), new(LanPort: 10810, LanPassword: "short"), new(LanPort: 80, LanPassword: "abcdefghijkl12"), new(LanPassword: "abcdefghijkl12"), new(LanPort: 10808, LanPassword: "abcdefghijkl12") })
+            // Пароль — из генератора, не строкой: литерал пароля сканер секретов в истории принимает за ключ.
+            var good = AdvancedOptions.NewLanPassword();
+            foreach (var bad in new TunnelTuning[] { new(LanPort: 10810), new(LanPort: 10810, LanPassword: good[..5]), new(LanPort: 80, LanPassword: good), new(LanPassword: good), new(LanPort: 10808, LanPassword: good) })
                 Assert(Throws<UserError>(() => NetworkHelperContracts.Validate(Lease(bad))));
             Assert((options with { ProxyPort = AdvancedOptions.DefaultLanPort }).Problem() is not null && (options with { LanPassword = null }).Problem() is not null);
         }));
