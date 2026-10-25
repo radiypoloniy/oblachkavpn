@@ -134,7 +134,7 @@ public partial class MainWindow
             Profile = item, Name = item.DisplayName, Note = note ? GroupNote(item) : null,
             Flag = icon is null ? FlagImages.Local(item.Country.Code) : null, Icon = icon, IconMuted = !item.IsService,
             Latency = latency, LatencyDot = dot, LatencyHint = hint, Speed = ServerRow.SpeedText(measured, now),
-            Protocol = ServerRow.ProtocolFor(item), PingSteps = ServerRow.StepsFor(measured),
+            Protocol = ServerRow.ProtocolFor(item) + (serverTweaks.ContainsKey(ServerTweak.Key(item)) ? " · подстроен" : ""), PingSteps = ServerRow.StepsFor(measured),
             Selected = !autoSelect && profile is not null && ProfileSelection.Identity(item) == ProfileSelection.Identity(profile),
             Favorite = favorites.Contains(FavoriteKey(item))
         };

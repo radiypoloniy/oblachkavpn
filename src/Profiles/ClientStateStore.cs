@@ -80,6 +80,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public bool CompatibleStack { get; init; }
     // «Для продвинутых» (0.20). null — как без настройки.
     public AdvancedOptions? Advanced { get; init; }
+    // Поправки «Подобрать лучшее» по серверам (ServerTweak.Key).
+    public Dictionary<string, ServerTweak>? ServerTweaks { get; init; }
     // Наборы правил (0.20): все, кроме текущего, — его правила в RouteRules и ProgramRules.
     public RuleSet[]? RuleSets { get; init; }
     public string? RuleSetName { get; init; }

@@ -11,8 +11,8 @@ public partial class MainWindow
             if (measuring) { measureCancel?.Cancel(); return; }
             await MeasureServersAsync(importedProfiles.ToArray(), quiet: false);
         };
-        // «Подключить лучший» — то же, что «Автовыбор»: лучший по свежим замерам и сразу подключение.
-        Servers.BestButton.Click += (_, _) => { if (operation is null) { PickServer(null); Navigate("Connection"); } };
+        // «Подобрать лучшее» — MainWindow.Tune; «Автовыбор» подключает по готовым замерам.
+        WireTune();
         System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged += (_, _) => addressChanged = DateTimeOffset.UtcNow.Ticks;
     }
 
@@ -116,7 +116,7 @@ public partial class MainWindow
             Interlocked.CompareExchange(ref addressChanged, 0, changed);
             if (throughputNetwork is not null && NetworkIdentity.Current() is { } now && now != throughputNetwork) lastMeasure = DateTimeOffset.MinValue;
         }
-        if (!measuring && operation is null && importedProfiles.Count > 0 && stateStore is not null && !isolatedPersistence &&
+        if (!measuring && tuning is null && operation is null && importedProfiles.Count > 0 && stateStore is not null && !isolatedPersistence &&
             DateTimeOffset.UtcNow - lastMeasure > TimeSpan.FromMinutes(10))
             _ = MeasureServersAsync(autoPool.Members(importedProfiles.ToArray()), quiet: true);
     }

@@ -25,7 +25,10 @@ public static class DirectOutbound
         // отклонила бы, не должен сорвать подключение — профиль просто идёт прежним путём.
         try
         {
-            pinned = Utls.For(pinned);
+            // Нарезку рукопожатия ядро туннеля не делает: такой сервер идёт через ядро окна.
+            var tweak = ServerTweak.Lookup(pinned);
+            if (tweak?.Fragment == true) return null;
+            pinned = Utls.For(tweak?.Apply(pinned) ?? pinned);
             var outbound = Translate(pinned) ?? Bridge(pinned);
             var server = outbound?["type"]?.GetValue<string>() == "xray" ? ProfileServer.Of(pinned.Outbound, pinned.Core).Host : outbound?["server"]?.GetValue<string>();
             return outbound is not null && System.Net.IPAddress.TryParse(server, out var ip)

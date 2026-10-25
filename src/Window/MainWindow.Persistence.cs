@@ -48,7 +48,7 @@ public partial class MainWindow
             AutoPool = autoPool.Snapshot(importedProfiles),
             ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected,
             ServiceHosts = ServiceBrand.LearnedIn(groups.SelectMany(g => g.Sources).Concat(subscriptionSources)), LocalNetwork = Settings.LocalNetwork.IsChecked == true,
-            QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, CompatibleStack = Settings.CompatibleStack.IsChecked == true, Advanced = advanced.IsDefault ? null : advanced,
+            QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, CompatibleStack = Settings.CompatibleStack.IsChecked == true, Advanced = advanced.IsDefault ? null : advanced, ServerTweaks = serverTweaks.Count == 0 ? null : new(serverTweaks),
             RuleSets = ruleSets.Count == 0 ? null : SavedRuleSets().Where(s => s.Name != ruleSetName).ToArray(), RuleSetName = ruleSets.Count == 0 && ruleSetName == MainRuleSet ? null : ruleSetName, TrafficDay = trafficDay, TrafficBytes = trafficToday, TrafficHours = trafficHours.ToArray(),
             Hotkey = Settings.Hotkey.IsChecked == true, FreeConsent = freeConsent, FreeList = freeList.ToString() };
 
@@ -94,6 +94,7 @@ public partial class MainWindow
         Settings.QuicOverTcp.IsChecked = snapshot.QuicOverTcp;
         Settings.CompatibleStack.IsChecked = snapshot.CompatibleStack;
         RestoreAdvanced(snapshot.Advanced);
+        RestoreTweaks(snapshot.ServerTweaks);
         RestoreFree(snapshot);
         trafficDay = snapshot.TrafficDay ?? ""; trafficToday = trafficSavedBytes = snapshot.TrafficBytes;
         if (snapshot.TrafficHours is { Length: 24 } hours && hours.All(h => h >= 0)) hours.CopyTo(trafficHours, 0);
