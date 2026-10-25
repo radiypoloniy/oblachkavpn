@@ -19,7 +19,7 @@ public partial class MainWindow
         if (bypassHotkey) UnregisterHotKey(handle, BypassHotkeyId);
         vpnHotkey = advanced.VpnHotkey && RegisterHotKey(handle, VpnHotkeyId, ModControl | ModAlt | ModNoRepeat, KeyV);
         bypassHotkey = advanced.BypassHotkey && RegisterHotKey(handle, BypassHotkeyId, ModControl | ModAlt | ModNoRepeat, KeyB);
-        Advanced.HotkeyNote.Text = advanced.VpnHotkey && !vpnHotkey || advanced.BypassHotkey && !bypassHotkey
+        Advanced.Extras.HotkeyNote.Text = advanced.VpnHotkey && !vpnHotkey || advanced.BypassHotkey && !bypassHotkey
             ? "Одно из сочетаний занято другой программой — Облачка его не берёт"
             : "Действуют из любой программы, даже когда окно спрятано в трей";
     }

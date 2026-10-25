@@ -154,6 +154,38 @@ public static partial class SelfTests
             Assert(Throws<UserError>(() => NetworkHelperContracts.Validate(new NetworkLeaseRequest(1, Guid.NewGuid(), NetworkLeaseAction.Release, 0, [], Tuning: new(Mtu: 1500)))));
         }));
 
+        await check("LAN proxy: a password-only inbound on all addresses, the computer itself unreachable, service re-checks", () => Sync(() =>
+        {
+            var options = AdvancedOptions.Default with { LanProxy = true, LanPassword = AdvancedOptions.NewLanPassword() };
+            Assert(options.Problem() is null && !options.IsDefault && AdvancedOptions.CheckLanPassword(options.LanPassword) is null);
+            var tuning = TunnelTuning.From(options)!;
+            Assert(tuning.LanPort == AdvancedOptions.DefaultLanPort && tuning.LanPassword == options.LanPassword);
+            // Выключенный прокси пароль хранит, но в туннель не уходит.
+            Assert(TunnelTuning.From(options with { LanProxy = false }) is null);
+            var config = SingBoxTunConfig.Create(SingBoxTunnelProcess.RequestFor(NetworkHelperContracts.Validate(Lease(tuning))), ipv6: false);
+            var lan = ((JsonArray)config["inbounds"]!).OfType<JsonObject>().Single(i => (string?)i["tag"] == TunnelTuning.LanInbound);
+            Assert((string?)lan["listen"] == "0.0.0.0" && (int?)lan["listen_port"] == AdvancedOptions.DefaultLanPort && (string?)lan["users"]![0]!["password"] == options.LanPassword);
+            var rules = ((JsonArray)config["route"]!["rules"]!).OfType<JsonObject>().ToArray();
+            Assert((string?)rules[0]["action"] == "resolve" && (string?)rules[1]["action"] == "reject" && rules[1]["ip_cidr"]!.ToJsonString().Contains("127.0.0.0/8"));
+            Assert(rules.Take(2).All(r => r["inbound"]!.ToJsonString() == "[\"lan\"]"));
+            Assert(TunnelTuning.From(AdvancedOptions.Default) is null && SingBoxTunConfig.Create(Lease(null), ipv6: false)["inbounds"]!.AsArray().Count == 1);
+            foreach (var bad in new TunnelTuning[] { new(LanPort: 10810), new(LanPort: 10810, LanPassword: "short"), new(LanPort: 80, LanPassword: "abcdefghijkl12"), new(LanPassword: "abcdefghijkl12"), new(LanPort: 10808, LanPassword: "abcdefghijkl12") })
+                Assert(Throws<UserError>(() => NetworkHelperContracts.Validate(Lease(bad))));
+            Assert((options with { ProxyPort = AdvancedOptions.DefaultLanPort }).Problem() is not null && (options with { LanPassword = null }).Problem() is not null);
+        }));
+
+        await check("Own geosite and geoip lists: addresses and geoip go to IP lists, junk is refused", () => Sync(() =>
+        {
+            var custom = RoutingProfile.Custom(["geoip:RU", "geosite:category-ru", "10.1.0.0/16"], ["geosite:youtube", "domain:Example.com"], ["geosite:category-ads-all@cn"])!;
+            Assert(custom.DirectSites.SequenceEqual(["geosite:category-ru"]) && custom.DirectIp.SequenceEqual(["geoip:ru", "10.1.0.0/16"]));
+            Assert(custom.ProxySites.SequenceEqual(["geosite:youtube", "domain:example.com"]) && custom.BlockSites.SequenceEqual(["geosite:category-ads-all"]));
+            Assert(custom.GeositeTags.Count() == 3 && custom.GeoipTags.Single() == "ru" && RoutingProfile.Custom([], [], []) is null);
+            Assert(AdvancedOptions.CheckGeo(["geosite:netflix", "geoip:private", "full:a.example", "1.2.3.4"]) is null);
+            Assert(AdvancedOptions.CheckGeo(["geosite:"]) is not null && AdvancedOptions.CheckGeo(["ftp:x"]) is not null && AdvancedOptions.CheckGeo(Enumerable.Repeat("geoip:ru", 101).ToArray()) is not null);
+            var options = AdvancedOptions.Default with { GeoBlock = ["geosite:category-ads-all"] };
+            Assert(!options.IsDefault && options.Problem() is null && options.Changed().Contains("GeoLists:1") && (options with { GeoProxy = ["bad:entry"] }).Problem() is not null);
+        }));
+
         await check("Editing an own server goes through the import checks and keeps its name and group", () => Sync(() =>
         {
             var own = Profiles.Parse("vless://6f1c2e0a-5b7d-4c3e-9a1f-0b2c3d4e5f60@203.0.113.7:443?security=tls&sni=example.com&type=tcp&encryption=none#Дом") with { Group = ProfileGroup.ManualId };

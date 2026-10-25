@@ -74,6 +74,8 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
             .Where(k => k.StartsWith("SING_", StringComparison.OrdinalIgnoreCase)).ToArray())
             start.Environment.Remove(key);
 
+        // Прокси для устройств локальной сети: порт в брандмауэре открыт, пока работает туннель.
+        if (lease.Tuning?.LanPort is { } lanPort) LanFirewall.Open(executable, lanPort); else LanFirewall.Close();
         var process = new Process { StartInfo = start };
         var job = new ProcessJob();
         try
@@ -91,6 +93,7 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
             try { if (!process.HasExited) process.Kill(true); } catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { }
             job.Dispose();
             process.Dispose();
+            LanFirewall.Close();
             throw;
         }
         return new SingBoxTunnelProcess(process, job);
@@ -110,6 +113,7 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         try { process.WaitForExit(5000); } catch (InvalidOperationException) { }
         job.Dispose();   // Закрытие задания добивает всё, что ядро могло породить.
         process.Dispose();
+        LanFirewall.Close();
     }
 }
 

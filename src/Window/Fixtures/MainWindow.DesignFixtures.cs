@@ -188,7 +188,7 @@ public partial class MainWindow
         if (page == "advanced")
         {
             RestoreAdvanced(AdvancedOptions.Default with { Stack = TunnelStack.Mixed, Mtu = 1400, BypassSubnets = ["10.20.0.0/16", "192.168.77.0/24"], TunnelDns = "https://dns.adguard-dns.com/dns-query" });
-            Settings.Advanced.PortInput.Text = "80"; Settings.Advanced.PortError.Text = "Порт — от 1024 до 65535."; Settings.Advanced.PortError.Visibility = Visibility.Visible;
+            Settings.Advanced.Extras.PortInput.Text = "80"; Settings.Advanced.Extras.PortError.Text = "Порт — от 1024 до 65535."; Settings.Advanced.Extras.PortError.Visibility = Visibility.Visible;
         }
         if (page == "autopool") RenderAutoPool();
     }

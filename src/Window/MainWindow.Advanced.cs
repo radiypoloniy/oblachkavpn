@@ -37,8 +37,8 @@ public partial class MainWindow
             });
         Field(Advanced.UserAgentInput, Advanced.UserAgentError, text => AdvancedOptions.CheckUserAgent(Empty(text)) ?? Keep(advanced with { SubscriptionUserAgent = Empty(text) }));
         Field(Advanced.ProbeInput, Advanced.ProbeError, text => AdvancedOptions.CheckProbe(Empty(text)) ?? Keep(advanced with { ProbeUrl = Empty(text) }));
-        Field(Advanced.PortInput, Advanced.PortError, text => Number(text, out var port) is { } bad ? bad
-            : AdvancedOptions.CheckPort(port) ?? Keep(advanced with { ProxyPort = port }));
+        Field(Advanced.Extras.PortInput, Advanced.Extras.PortError, text => Number(text, out var port) is { } bad ? bad
+            : AdvancedOptions.CheckPort(port) ?? (advanced.LanProxy && port == advanced.LanListenPort ? "Этот порт уже у прокси для устройств сети." : null) ?? Keep(advanced with { ProxyPort = port }));
         Advanced.Ipv6Auto.Click += (_, _) => SetAdvanced(advanced with { NoIpv6 = false });
         Advanced.Ipv6Off.Click += (_, _) => SetAdvanced(advanced with { NoIpv6 = true });
         Field(Advanced.UdpInput, Advanced.UdpError, text => Number(text, out var minutes) is { } bad ? bad
@@ -53,8 +53,8 @@ public partial class MainWindow
         Advanced.ExternalHwid.Click += (_, _) => SetAdvanced(advanced with { NoExternalHwid = Advanced.ExternalHwid.IsChecked != true });
         Field(Advanced.MarginInput, Advanced.MarginError, text => Number(text, out var percent) is { } bad ? bad
             : AdvancedOptions.CheckMargin(percent) ?? Keep(advanced with { SwitchMargin = percent }));
-        Advanced.VpnHotkey.Click += (_, _) => { SetAdvanced(advanced with { VpnHotkey = Advanced.VpnHotkey.IsChecked == true }); ApplyExtraHotkeys(); };
-        Advanced.BypassHotkey.Click += (_, _) => { SetAdvanced(advanced with { BypassHotkey = Advanced.BypassHotkey.IsChecked == true }); ApplyExtraHotkeys(); };
+        Advanced.Extras.VpnHotkey.Click += (_, _) => { SetAdvanced(advanced with { VpnHotkey = Advanced.Extras.VpnHotkey.IsChecked == true }); ApplyExtraHotkeys(); };
+        Advanced.Extras.BypassHotkey.Click += (_, _) => { SetAdvanced(advanced with { BypassHotkey = Advanced.Extras.BypassHotkey.IsChecked == true }); ApplyExtraHotkeys(); };
         Advanced.LogOff.Click += (_, _) => SetAdvanced(advanced with { CoreLog = CoreLogLevel.Off });
         Advanced.LogWarn.Click += (_, _) => SetAdvanced(advanced with { CoreLog = CoreLogLevel.Warn });
         Advanced.LogDebug.Click += (_, _) => SetAdvanced(advanced with { CoreLog = CoreLogLevel.Debug });
@@ -65,8 +65,26 @@ public partial class MainWindow
             try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", arguments) { UseShellExecute = true }); }
             catch (System.ComponentModel.Win32Exception) { DetailText.Text = "Не удалось открыть папку журнала: " + NetworkService.DataRoot; }
         };
-        Advanced.ResetButton.Click += (_, _) => { SetAdvanced(AdvancedOptions.Default); FillAdvanced(); };
+        Advanced.ResetButton.Click += (_, _) =>
+        {
+            var lists = advanced.GeoDirect.Length + advanced.GeoProxy.Length + advanced.GeoBlock.Length > 0;
+            SetAdvanced(AdvancedOptions.Default); FillAdvanced();
+            if (lists) _ = RoutingChangedAsync();
+        };
         Advanced.UserAgentInput.Tag = ServiceBrand.UserAgent;
+        WireLan();
+        foreach (var box in new[] { Advanced.GeoDirectInput, Advanced.GeoProxyInput, Advanced.GeoBlockInput })
+            Field(box, Advanced.GeoError, text =>
+            {
+                static string[] Lines(TextBox input) => input.Text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct().ToArray();
+                string[] direct = Lines(Advanced.GeoDirectInput), proxy = Lines(Advanced.GeoProxyInput), block = Lines(Advanced.GeoBlockInput);
+                if ((AdvancedOptions.CheckGeo(direct) ?? AdvancedOptions.CheckGeo(proxy) ?? AdvancedOptions.CheckGeo(block)) is { } problem) return problem;
+                if (direct.SequenceEqual(advanced.GeoDirect) && proxy.SequenceEqual(advanced.GeoProxy) && block.SequenceEqual(advanced.GeoBlock)) return null;
+                SetAdvanced(advanced with { GeoDirect = direct, GeoProxy = proxy, GeoBlock = block });
+                // Списки применяются, как наборы сервиса: базы скачиваются, ядро получает новые правила.
+                _ = RoutingChangedAsync();
+                return null;
+            });
     }
 
     private static string? Empty(string text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
@@ -105,7 +123,7 @@ public partial class MainWindow
     {
         // Испорченный снимок — как без настройки: лучше прежнее поведение, чем отказ запуска. DNS, который
         // больше не поддерживается (tls://, quic:// пробной сборки), отбрасывается один, без остального.
-        saved = saved is null ? null : saved with { BypassSubnets = saved.BypassSubnets ?? [], TunnelDns = AdvancedOptions.CheckDns(saved.TunnelDns) is null ? saved.TunnelDns : null };
+        saved = saved is null ? null : saved with { BypassSubnets = saved.BypassSubnets ?? [], GeoDirect = saved.GeoDirect ?? [], GeoProxy = saved.GeoProxy ?? [], GeoBlock = saved.GeoBlock ?? [], TunnelDns = AdvancedOptions.CheckDns(saved.TunnelDns) is null ? saved.TunnelDns : null };
         advanced = saved is not null && saved.Problem() is null ? saved : AdvancedOptions.Default;
         ApplyAdvanced();
         FillAdvanced();
@@ -143,7 +161,7 @@ public partial class MainWindow
         Advanced.UtlsChoice.SelectedIndex = advanced.Utls is { } fp ? Array.IndexOf(Utls.Names, fp) + 1 : 0;
         fillingAdvanced = false;
         Advanced.ExternalHwid.IsChecked = !advanced.NoExternalHwid;
-        Advanced.VpnHotkey.IsChecked = advanced.VpnHotkey; Advanced.BypassHotkey.IsChecked = advanced.BypassHotkey;
+        Advanced.Extras.VpnHotkey.IsChecked = advanced.VpnHotkey; Advanced.Extras.BypassHotkey.IsChecked = advanced.BypassHotkey;
         ApplyExtraHotkeys();
         Advanced.MarginInput.Text = advanced.SwitchMargin?.ToString() ?? "";
         Advanced.MtuInput.Text = advanced.Mtu?.ToString() ?? "";
@@ -153,10 +171,15 @@ public partial class MainWindow
         Advanced.FragmentInterval.Text = advanced.FragmentInterval ?? "";
         Advanced.UserAgentInput.Text = advanced.SubscriptionUserAgent ?? "";
         Advanced.ProbeInput.Text = advanced.ProbeUrl ?? "";
-        Advanced.PortInput.Text = advanced.ProxyPort?.ToString() ?? "";
+        Advanced.Extras.PortInput.Text = advanced.ProxyPort?.ToString() ?? "";
         Advanced.UdpInput.Text = advanced.UdpTimeout?.ToString() ?? "";
         Advanced.DirectDnsInput.Text = advanced.DirectDns ?? "";
-        foreach (var error in new[] { Advanced.MtuError, Advanced.BypassError, Advanced.DnsError, Advanced.FragmentError, Advanced.UserAgentError, Advanced.ProbeError, Advanced.PortError, Advanced.UdpError, Advanced.DirectDnsError, Advanced.MarginError })
+        FillLan();
+        Advanced.GeoDirectInput.Text = string.Join(Environment.NewLine, advanced.GeoDirect);
+        Advanced.GeoProxyInput.Text = string.Join(Environment.NewLine, advanced.GeoProxy);
+        Advanced.GeoBlockInput.Text = string.Join(Environment.NewLine, advanced.GeoBlock);
+        Advanced.GeoError.Visibility = Visibility.Collapsed;
+        foreach (var error in new[] { Advanced.MtuError, Advanced.BypassError, Advanced.DnsError, Advanced.FragmentError, Advanced.UserAgentError, Advanced.ProbeError, Advanced.Extras.PortError, Advanced.UdpError, Advanced.DirectDnsError, Advanced.MarginError })
             error.Visibility = Visibility.Collapsed;
     }
 }

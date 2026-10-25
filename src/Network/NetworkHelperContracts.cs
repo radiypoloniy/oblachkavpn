@@ -162,6 +162,9 @@ public static class NetworkHelperContracts
         }
         request.Lists?.Validate();
         request.Tuning?.Validate();
+        // Порт прокси для локальной сети на всех адресах занял бы локальные порты ядер.
+        if (request.Tuning?.LanPort is { } lan && (lan == request.LoopbackPort || lan == request.Stats?.Port || lan == request.CoreDirect?.Port))
+            throw new UserError("Порт прокси для локальной сети занят ядром.");
         return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs, request.CoreDirect, request.DirectByDefault, request.Stats, direct, request.Lists, request.LocalNetwork, request.QuicOverTcp, request.CompatibleStack, request.ForeignNode, request.Tuning);
     }
 }

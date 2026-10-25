@@ -1,5 +1,5 @@
-<UserControl x:Class="Oblachka.Views.AdvancedPage" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:o="clr-namespace:Oblachka">
+﻿<UserControl x:Class="Oblachka.Views.AdvancedPage" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="clr-namespace:Oblachka" xmlns:v="clr-namespace:Oblachka.Views">
   <!-- «Для продвинутых» (AdvancedOptions): тонкая настройка в облике остальных страниц — строки
        «подпись слева, значение справа», поле под подписью, где значение длинное. Пустое поле —
        как без настройки. Значение сохраняется при уходе из поля или по Enter (MainWindow.Advanced). -->
@@ -93,6 +93,33 @@
         </StackPanel>
       </Border>
 
+      <!-- Свои списки маршрутизации (RoutingProfile.Custom): категории из баз geosite.dat и geoip.dat. -->
+      <TextBlock Text="Списки geosite и geoip" Style="{StaticResource SecHead}"/>
+      <Border Style="{StaticResource OptRow}" BorderThickness="0">
+        <StackPanel>
+          <TextBlock Text="По одной записи в строке: geosite:category-ads-all, geoip:ru, domain:example.com, 10.0.0.0/8. Базы скачаются сами. При совпадении порядок такой: блок, напрямую, через VPN" Style="{StaticResource OptSub}"/>
+          <Grid Margin="0,8,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions>
+            <StackPanel>
+              <TextBlock Text="Напрямую" Style="{StaticResource OptTitle}"/>
+              <TextBox x:Name="GeoDirectInput" Style="{StaticResource FieldBox}" Height="92" Padding="12,8" Margin="0,6,0,0" VerticalContentAlignment="Top" AcceptsReturn="True" TextWrapping="NoWrap"
+                       VerticalScrollBarVisibility="Auto" FontFamily="{StaticResource MonoFont}" Tag="geoip:ru" AutomationProperties.Name="Напрямую"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="Через VPN" Style="{StaticResource OptTitle}"/>
+              <TextBox x:Name="GeoProxyInput" Style="{StaticResource FieldBox}" Height="92" Padding="12,8" Margin="0,6,0,0" VerticalContentAlignment="Top" AcceptsReturn="True" TextWrapping="NoWrap"
+                       VerticalScrollBarVisibility="Auto" FontFamily="{StaticResource MonoFont}" Tag="geosite:youtube" AutomationProperties.Name="Через VPN"/>
+            </StackPanel>
+            <StackPanel Grid.Column="4">
+              <TextBlock Text="Блокировать" Style="{StaticResource OptTitle}"/>
+              <TextBox x:Name="GeoBlockInput" Style="{StaticResource FieldBox}" Height="92" Padding="12,8" Margin="0,6,0,0" VerticalContentAlignment="Top" AcceptsReturn="True" TextWrapping="NoWrap"
+                       VerticalScrollBarVisibility="Auto" FontFamily="{StaticResource MonoFont}" Tag="geosite:category-ads-all" AutomationProperties.Name="Блокировать"/>
+            </StackPanel>
+          </Grid>
+          <TextBlock x:Name="GeoError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
+        </StackPanel>
+      </Border>
+
       <TextBlock Text="Соединение с сервером" Style="{StaticResource SecHead}"/>
       <Border Style="{StaticResource OptRow}">
         <DockPanel>
@@ -166,36 +193,8 @@
         </StackPanel>
       </Border>
 
-      <TextBlock Text="Прокси для программ" Style="{StaticResource SecHead}"/>
-      <Border Style="{StaticResource OptRow}" BorderThickness="0">
-        <StackPanel>
-          <DockPanel>
-            <TextBox x:Name="PortInput" DockPanel.Dock="Right" Style="{StaticResource FieldBox}" Width="110" Height="36" Tag="любой" Margin="12,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="Постоянный порт прокси"/>
-            <StackPanel VerticalAlignment="Center">
-              <TextBlock Text="Постоянный порт" Style="{StaticResource OptTitle}"/>
-              <TextBlock Text="SOCKS и HTTP на 127.0.0.1 — чтобы не перенастраивать программы после перезапуска" Style="{StaticResource OptSub}"/>
-            </StackPanel>
-          </DockPanel>
-          <TextBlock x:Name="PortError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
-        </StackPanel>
-      </Border>
-
-      <TextBlock Text="Горячие клавиши" Style="{StaticResource SecHead}"/>
-      <Border Style="{StaticResource OptRow}">
-        <DockPanel>
-          <CheckBox x:Name="VpnHotkey" DockPanel.Dock="Right" Style="{StaticResource Toggle}" Margin="12,0,0,0" AutomationProperties.Name="Ctrl+Alt+V — включить или выключить VPN"/>
-          <StackPanel VerticalAlignment="Center">
-            <TextBlock Text="Ctrl+Alt+V — включить или выключить VPN" Style="{StaticResource OptTitle}"/>
-            <TextBlock x:Name="HotkeyNote" Text="Действуют из любой программы, даже когда окно спрятано в трей" Style="{StaticResource OptSub}"/>
-          </StackPanel>
-        </DockPanel>
-      </Border>
-      <Border Style="{StaticResource OptRow}" BorderThickness="0">
-        <DockPanel>
-          <CheckBox x:Name="BypassHotkey" DockPanel.Dock="Right" Style="{StaticResource Toggle}" Margin="12,0,0,0" AutomationProperties.Name="Ctrl+Alt+B — обход блокировок"/>
-          <TextBlock Text="Ctrl+Alt+B — обход блокировок" Style="{StaticResource OptTitle}" VerticalAlignment="Center"/>
-        </DockPanel>
-      </Border>
+      <!-- Прокси и горячие клавиши — отдельным элементом (AdvancedExtras): страница иначе длиннее лимита. -->
+      <v:AdvancedExtras x:Name="Extras"/>
 
       <TextBlock Text="Журнал ядра туннеля" Style="{StaticResource SecHead}"/>
       <Border Style="{StaticResource OptRow}" BorderThickness="0">

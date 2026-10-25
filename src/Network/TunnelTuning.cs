@@ -7,13 +7,15 @@ namespace Oblachka;
 // свой DNS через VPN, подсети мимо туннеля. Служба проверяет их заново — окно могло прислать что
 // угодно, а ядро туннеля работает с правами системы. null у поля — как без настройки.
 public sealed record TunnelTuning(TunnelStack Stack = TunnelStack.Auto, int? Mtu = null, string? Dns = null, string[]? Bypass = null, CoreLogLevel Log = CoreLogLevel.Off,
-    string? DirectDns = null, bool NoIpv6 = false, int? UdpTimeout = null)
+    string? DirectDns = null, bool NoIpv6 = false, int? UdpTimeout = null, int? LanPort = null, string? LanPassword = null)
 {
+    public const string LanInbound = "lan";
+
     public static TunnelTuning? From(AdvancedOptions options) =>
         options.Stack == TunnelStack.Auto && options.Mtu is null && options.TunnelDns is null && options.BypassSubnets.Length == 0 && options.CoreLog == CoreLogLevel.Off &&
-        options.DirectDns is null && !options.NoIpv6 && options.UdpTimeout is null ? null
+        options.DirectDns is null && !options.NoIpv6 && options.UdpTimeout is null && !options.LanProxy ? null
             : new(options.Stack, options.Mtu, options.TunnelDns, options.BypassSubnets.Length == 0 ? null : options.BypassSubnets, options.CoreLog,
-                options.DirectDns, options.NoIpv6, options.UdpTimeout);
+                options.DirectDns, options.NoIpv6, options.UdpTimeout, options.LanProxy ? options.LanListenPort : null, options.LanProxy ? options.LanPassword : null);
 
     // DNS для прямых сайтов: свой адрес или резолвер физической сети (DirectDns).
     public IPAddress? DirectResolver(Func<IPAddress?> physical) => DirectDns is { } own ? IPAddress.Parse(own) : physical();
@@ -28,7 +30,8 @@ public sealed record TunnelTuning(TunnelStack Stack = TunnelStack.Auto, int? Mtu
     {
         if (!Enum.IsDefined(Stack) || !Enum.IsDefined(Log)) throw new UserError("Неизвестный стек туннеля или уровень журнала.");
         if ((AdvancedOptions.CheckMtu(Mtu) ?? AdvancedOptions.CheckDns(Dns) ?? AdvancedOptions.CheckSubnets(Subnets) ?? AdvancedOptions.CheckDirectDns(DirectDns) ??
-            AdvancedOptions.CheckUdpTimeout(UdpTimeout)) is { } problem)
+            AdvancedOptions.CheckUdpTimeout(UdpTimeout) ?? AdvancedOptions.CheckPort(LanPort) ?? AdvancedOptions.CheckLanPassword(LanPassword) ??
+            (LanPort is null != LanPassword is null ? "Прокси для локальной сети — нужны и порт, и пароль." : null)) is { } problem)
             throw new UserError(problem);
     }
 
@@ -48,8 +51,25 @@ public sealed record TunnelTuning(TunnelStack Stack = TunnelStack.Auto, int? Mtu
             foreach (var subnet in tuning.Subnets) exclusions.Add(Normalize(subnet));
         }
         if (tuning.Dns is { } dns) ReplaceDns(config, dns, tunnel);
+        if (tuning.LanPort is { } lanPort) AddLan(config, lanPort, tuning.LanPassword!);
         if (tuning.Log != CoreLogLevel.Off)
             config["log"] = new JsonObject { ["level"] = tuning.Log == CoreLogLevel.Debug ? "debug" : "warn", ["output"] = LogPath, ["timestamp"] = true };
+    }
+
+    // Прокси для устройств локальной сети: SOCKS5 и HTTP на всех адресах IPv4, только с паролем.
+    // Сам компьютер через него недоступен: имя сначала разрешается («localhost», «127.0.0.1.nip.io»
+    // ушли бы прямым выходом на петлю), затем адреса петли отклоняются. Порт открывает в
+    // брандмауэре служба только для локальной подсети (LanFirewall).
+    private static void AddLan(JsonObject config, int port, string password)
+    {
+        ((JsonArray)config["inbounds"]!).Add(new JsonObject
+        {
+            ["type"] = "mixed", ["tag"] = LanInbound, ["listen"] = "0.0.0.0", ["listen_port"] = port,
+            ["users"] = new JsonArray(new JsonObject { ["username"] = AdvancedOptions.LanUser, ["password"] = password })
+        });
+        var rules = (JsonArray)config["route"]!["rules"]!;
+        rules.Insert(0, new JsonObject { ["inbound"] = new JsonArray(LanInbound), ["action"] = "resolve" });
+        rules.Insert(1, new JsonObject { ["inbound"] = new JsonArray(LanInbound), ["ip_cidr"] = new JsonArray("127.0.0.0/8", "0.0.0.0/8", "::1/128", "::/128"), ["action"] = "reject" });
     }
 
     // «10.20.1.5/16» → «10.20.0.0/16»: ядро принимает только адрес сети.

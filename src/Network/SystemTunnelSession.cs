@@ -107,7 +107,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
                 await core.StartAsync(current.PinnedProfile, token).ConfigureAwait(false);
                 leasePort = core.Port;
                 // Порт ядра закреплён, но в режиме туннеля не занят: совпадение с портом статистики — новый порт.
-                while (leasePort == Stats.Port) Stats = CoreStatsEntry.Create(Engine.FreePort());
+                while (leasePort == Stats.Port || Stats.Port == Tuning?.LanPort) Stats = CoreStatsEntry.Create(Engine.FreePort());
                 // Запрос к помощнику не прерывается отменой: отмена посреди него закрывает канал,
                 // служба считает окно погибшим и держит сеть закрытой, а Release уже не дойдёт.
                 // Запрос ограничен своим сроком в канале; отмена проверяется после него, и

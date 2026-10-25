@@ -1,0 +1,63 @@
+﻿<UserControl x:Class="Oblachka.Views.AdvancedExtras" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- «Для продвинутых»: прокси для программ и устройств сети, горячие клавиши (MainWindow.Advanced, MainWindow.LanProxy). -->
+  <StackPanel>
+  <TextBlock Text="Прокси" Style="{StaticResource SecHead}"/>
+  <Border Style="{StaticResource OptRow}">
+    <StackPanel>
+      <DockPanel>
+        <TextBox x:Name="PortInput" DockPanel.Dock="Right" Style="{StaticResource FieldBox}" Width="110" Height="36" Tag="любой" Margin="12,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="Постоянный порт прокси"/>
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Text="Постоянный порт" Style="{StaticResource OptTitle}"/>
+          <TextBlock Text="SOCKS и HTTP на 127.0.0.1 — чтобы не перенастраивать программы после перезапуска" Style="{StaticResource OptSub}"/>
+        </StackPanel>
+      </DockPanel>
+      <TextBlock x:Name="PortError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
+    </StackPanel>
+  </Border>
+  <!-- Прокси для устройств локальной сети (MainWindow.LanProxy): вход ядра туннеля с паролем. -->
+  <Border Style="{StaticResource OptRow}" BorderThickness="0">
+    <StackPanel>
+      <DockPanel>
+        <CheckBox x:Name="LanProxy" DockPanel.Dock="Right" Style="{StaticResource Toggle}" Margin="12,0,0,0" AutomationProperties.Name="Прокси для устройств локальной сети"/>
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Text="Для устройств локальной сети" Style="{StaticResource OptTitle}"/>
+          <TextBlock Text="Телефон или приставка в той же сети выходят через VPN этого компьютера — по логину и паролю. Работает в режиме «Весь компьютер», со следующего подключения" Style="{StaticResource OptSub}"/>
+        </StackPanel>
+      </DockPanel>
+      <StackPanel x:Name="LanDetails" Visibility="Collapsed" Margin="0,12,0,0">
+        <DockPanel>
+          <TextBox x:Name="LanPortInput" DockPanel.Dock="Right" Style="{StaticResource FieldBox}" Width="110" Height="36" Tag="10810" Margin="12,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="Порт для устройств сети"/>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock x:Name="LanAddress" Style="{StaticResource OptTitle}" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap"/>
+            <TextBlock Text="SOCKS5 и HTTP на одном порту" Style="{StaticResource OptSub}"/>
+          </StackPanel>
+        </DockPanel>
+        <TextBlock x:Name="LanPortError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
+        <DockPanel Margin="0,10,0,0">
+          <Button x:Name="LanNewPassword" DockPanel.Dock="Right" Content="Новый пароль" Style="{StaticResource BtnOutline}" Height="36" Padding="16,0" Margin="8,0,0,0" VerticalAlignment="Center"/>
+          <Button x:Name="LanCopy" DockPanel.Dock="Right" Content="Скопировать" Style="{StaticResource BtnOutline}" Height="36" Padding="16,0" Margin="12,0,0,0" VerticalAlignment="Center"
+                  ToolTip="Ссылка socks5:// с логином и паролем"/>
+          <TextBlock x:Name="LanCredentials" Style="{StaticResource OptSub}" FontFamily="{StaticResource MonoFont}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        </DockPanel>
+      </StackPanel>
+    </StackPanel>
+  </Border>
+
+  <TextBlock Text="Горячие клавиши" Style="{StaticResource SecHead}"/>
+  <Border Style="{StaticResource OptRow}">
+    <DockPanel>
+      <CheckBox x:Name="VpnHotkey" DockPanel.Dock="Right" Style="{StaticResource Toggle}" Margin="12,0,0,0" AutomationProperties.Name="Ctrl+Alt+V — включить или выключить VPN"/>
+      <StackPanel VerticalAlignment="Center">
+        <TextBlock Text="Ctrl+Alt+V — включить или выключить VPN" Style="{StaticResource OptTitle}"/>
+        <TextBlock x:Name="HotkeyNote" Text="Действуют из любой программы, даже когда окно спрятано в трей" Style="{StaticResource OptSub}"/>
+      </StackPanel>
+    </DockPanel>
+  </Border>
+  <Border Style="{StaticResource OptRow}" BorderThickness="0">
+    <DockPanel>
+      <CheckBox x:Name="BypassHotkey" DockPanel.Dock="Right" Style="{StaticResource Toggle}" Margin="12,0,0,0" AutomationProperties.Name="Ctrl+Alt+B — обход блокировок"/>
+      <TextBlock Text="Ctrl+Alt+B — обход блокировок" Style="{StaticResource OptTitle}" VerticalAlignment="Center"/>
+    </DockPanel>
+  </Border>
+  </StackPanel>
+</UserControl>

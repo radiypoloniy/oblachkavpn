@@ -47,12 +47,25 @@ public sealed record AdvancedOptions
     // Горячие клавиши: Ctrl+Alt+V — VPN, Ctrl+Alt+B — обход блокировок.
     public bool VpnHotkey { get; init; }
     public bool BypassHotkey { get; init; }
+    // Прокси для устройств локальной сети (только «Весь компьютер»): вход ядра туннеля на всех
+    // адресах с логином и паролем. Пароль хранится и выключенным — телефон не перенастраивать.
+    public bool LanProxy { get; init; }
+    // Свои списки маршрутизации: geosite:категория, geoip:страна, domain:…, подсети (RoutingProfile.Custom).
+    public string[] GeoDirect { get; init; } = [];
+    public string[] GeoProxy { get; init; } = [];
+    public string[] GeoBlock { get; init; } = [];
+    public const int MaxGeoEntries = 100;
+    public int? LanPort { get; init; }
+    public string? LanPassword { get; init; }
+    public const int DefaultLanPort = 10810;
+    public const string LanUser = "oblachka";
 
     public const int MinMtu = 1280, MaxMtu = 9000, MaxSubnets = 32;
 
     public bool IsDefault => Stack == TunnelStack.Auto && Mtu is null && TunnelDns is null && BypassSubnets.Length == 0 &&
         FragmentPackets is null && FragmentLength is null && FragmentInterval is null && SubscriptionUserAgent is null && ProbeUrl is null && ProxyPort is null && CoreLog == CoreLogLevel.Off &&
-        DirectDns is null && !NoIpv6 && UdpTimeout is null && Utls is null && !NoExternalHwid && SwitchMargin is null && !VpnHotkey && !BypassHotkey;
+        DirectDns is null && !NoIpv6 && UdpTimeout is null && Utls is null && !NoExternalHwid && SwitchMargin is null && !VpnHotkey && !BypassHotkey &&
+        !LanProxy && LanPort is null && GeoDirect.Length + GeoProxy.Length + GeoBlock.Length == 0;
 
     // Ошибка — человеческим текстом для поля; null — всё верно.
     public static string? CheckMtu(int? mtu) => mtu is null or (>= MinMtu and <= MaxMtu) ? null : $"MTU — от {MinMtu} до {MaxMtu}.";
@@ -110,10 +123,27 @@ public sealed record AdvancedOptions
 
     public static string? CheckPort(int? port) => port is null or (>= 1024 and <= 65535) ? null : "Порт — от 1024 до 65535.";
 
+    public static string? CheckGeo(IReadOnlyList<string> entries)
+    {
+        if (entries.Count > MaxGeoEntries) return $"Не больше {MaxGeoEntries} записей.";
+        foreach (var entry in entries)
+            if (RoutingProfile.NormalizeIp(entry) is null && RoutingProfile.NormalizeSite(entry) is null)
+                return $"«{entry}» не разобрана. Примеры: geosite:category-ads-all, geoip:ru, domain:example.com, 10.0.0.0/8.";
+        return null;
+    }
+
+    // Пароль прокси локальной сети: его создаёт приложение — латиница и цифры, не короче 12.
+    public static string? CheckLanPassword(string? password) =>
+        password is null || password.Length is >= 12 and <= 64 && password.All(char.IsAsciiLetterOrDigit) ? null : "Пароль — латиница и цифры, от 12 символов.";
+    public static string NewLanPassword() => System.Security.Cryptography.RandomNumberGenerator.GetString("abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789", 16);
+    public int LanListenPort => LanPort ?? DefaultLanPort;
+
     // Весь набор: так снимок проверяется при чтении (испорченное значение — как без настройки).
     public string? Problem() => CheckMtu(Mtu) ?? CheckDns(TunnelDns) ?? CheckSubnets(BypassSubnets) ?? CheckFragment(FragmentPackets, FragmentLength, FragmentInterval) ??
         CheckUserAgent(SubscriptionUserAgent) ?? CheckProbe(ProbeUrl) ?? CheckPort(ProxyPort) ??
-        CheckDirectDns(DirectDns) ?? CheckUdpTimeout(UdpTimeout) ?? CheckMargin(SwitchMargin) ?? (Oblachka.Utls.Valid(Utls) ? null : "Неизвестный отпечаток TLS.");
+        CheckDirectDns(DirectDns) ?? CheckUdpTimeout(UdpTimeout) ?? CheckMargin(SwitchMargin) ?? (Oblachka.Utls.Valid(Utls) ? null : "Неизвестный отпечаток TLS.") ??
+        CheckPort(LanPort) ?? CheckLanPassword(LanPassword) ?? CheckGeo(GeoDirect) ?? CheckGeo(GeoProxy) ?? CheckGeo(GeoBlock) ?? (LanProxy && LanPassword is null ? "Нет пароля прокси." : null) ??
+        (ProxyPort is not null && ProxyPort == LanListenPort ? "Порт для устройств сети совпадает с портом для программ." : null);
 
     // Названия изменённых настроек — для отчёта поддержке; значения туда не идут.
     public string[] Changed() => new (bool On, string Name)[]
@@ -122,7 +152,8 @@ public sealed record AdvancedOptions
         (BypassSubnets.Length > 0, "BypassSubnets:" + BypassSubnets.Length), ((FragmentPackets ?? FragmentLength ?? FragmentInterval) is not null, "Fragment"),
         (SubscriptionUserAgent is not null, "SubscriptionUserAgent"), (ProbeUrl is not null, "ProbeUrl"), (ProxyPort is not null, "ProxyPort"), (CoreLog != CoreLogLevel.Off, "CoreLog:" + CoreLog),
         (DirectDns is not null, "DirectDns"), (NoIpv6, "NoIpv6"), (UdpTimeout is not null, "UdpTimeout:" + UdpTimeout), (Utls is not null, "Utls:" + Utls),
-        (NoExternalHwid, "NoExternalHwid"), (SwitchMargin is not null, "SwitchMargin:" + SwitchMargin), (VpnHotkey, "VpnHotkey"), (BypassHotkey, "BypassHotkey")
+        (NoExternalHwid, "NoExternalHwid"), (SwitchMargin is not null, "SwitchMargin:" + SwitchMargin), (VpnHotkey, "VpnHotkey"), (BypassHotkey, "BypassHotkey"), (LanProxy, "LanProxy"),
+        (GeoDirect.Length + GeoProxy.Length + GeoBlock.Length > 0, "GeoLists:" + (GeoDirect.Length + GeoProxy.Length + GeoBlock.Length))
     }.Where(c => c.On).Select(c => c.Name).ToArray();
 
     // Своя форма фрагментации поверх провайдерской: незаданное — из неё же или по умолчанию.
