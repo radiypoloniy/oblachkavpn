@@ -28,10 +28,12 @@
               <v:PowerSwitch x:Name="Power" DockPanel.Dock="Right" VerticalAlignment="Center"/>
               <v:CloudFace x:Name="Face" Margin="0,0,10,0" VerticalAlignment="Center"/>
               <StackPanel VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal">
+                <!-- DockPanel, а не StackPanel: в горизонтальном StackPanel заголовок не обрезался
+                     и уезжал под кнопку включения («VPN выключен»). -->
+                <DockPanel>
                   <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{DynamicResource Fa}" VerticalAlignment="Center" Margin="0,2,8,0" Visibility="Collapsed"/>
                   <TextBlock x:Name="StatusTitle" Text="Выключено" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FsDisplayStatus}" FontWeight="ExtraBold" Foreground="{DynamicResource CloudWhite}" TextTrimming="CharacterEllipsis"/>
-                </StackPanel>
+                </DockPanel>
                 <TextBlock x:Name="StatusSub" Text="Нажмите, чтобы защитить" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource NightMu}" TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/>
               </StackPanel>
             </DockPanel>
@@ -40,7 +42,7 @@
               <Button x:Name="ServerCard" Style="{StaticResource GlassRow}" AutomationProperties.Name="Сервер">
                 <DockPanel>
                   <Path DockPanel.Dock="Right" Data="{StaticResource IcoChevronRight}" Style="{StaticResource Icon}" Width="14" Height="14" StrokeThickness="2.4" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Margin="6,0,0,0"/>
-                  <TextBlock x:Name="ServerPing" DockPanel.Dock="Right" FontSize="{StaticResource FsBody}" FontWeight="Bold" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                  <TextBlock x:Name="ServerPing" DockPanel.Dock="Right" FontSize="{StaticResource FsBody}" FontWeight="Bold" VerticalAlignment="Center" Margin="8,0,0,0"/>
                   <v:PixelBars x:Name="ServerBars" DockPanel.Dock="Right" Kind="Steps" Width="22" Height="10" VerticalAlignment="Center" Fill="{DynamicResource Tx}" Empty="{DynamicResource Pixel}"/>
                   <Border Visibility="Collapsed"><Image x:Name="ServerFlag"/></Border>
                   <StackPanel VerticalAlignment="Center">

@@ -86,7 +86,8 @@ public static class Profiles
             return outbound["type"] is not null ? SingBoxProfiles.Parse(outbound, "Импортированный профиль") : FromOutbound(outbound, "Импортированный профиль");
         }
         catch (UserError) { throw; }
-        catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
+        // ArgumentException — повтор ключа: JsonNode замечает его только при обходе объекта.
+        catch (Exception ex) when (ex is JsonException or ArgumentException or InvalidOperationException or FormatException)
         { throw new UserError("Не удалось прочитать JSON. Нужен клиентский outbound Xray или sing-box."); }
     }
 

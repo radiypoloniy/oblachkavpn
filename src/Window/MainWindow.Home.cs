@@ -68,7 +68,7 @@ public partial class MainWindow
             : running ? (SystemTunnelActive && !selectiveVpn ? "Защищено" : "Подключено", TrafficText ?? name + " · " + SessionDuration, PowerState.On, "Ok")
             : engine.State == ConnectionState.Failed ? ("Связь прервана", "Включите снова или выберите другой сервер", PowerState.Off, "EI")
             // VPN выключен, но обход работает: YouTube и Discord открываются и так — это стоит сказать.
-            : ZapretWorksWithoutVpn ? ("VPN выключен", string.Join(" и ", zapretActiveGroups.Select(ZapretTitle)) + (zapretActiveGroups.Length > 1 ? " работают" : " работает") + " и без него", PowerState.Off, "Ok")
+            : ZapretWorksWithoutVpn ? ("Без VPN", string.Join(" и ", zapretActiveGroups.Select(ZapretTitle)) + (zapretActiveGroups.Length > 1 ? " работают" : " работает") + " и без него", PowerState.Off, "Ok")
             : ("Выключено", "Нажмите, чтобы защитить", PowerState.Off, "Fa");
         // Закат на карточке статуса: связь пропала или ищем сервер (MainWindow.ApplyStatusLook).
         statusTrouble = findingRoute || holding || running && health.FailedRounds > 0 || engine.State == ConnectionState.Failed;

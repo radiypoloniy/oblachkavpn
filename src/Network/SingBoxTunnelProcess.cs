@@ -33,17 +33,21 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
     // и сайты из списков «напрямую» не открывались.
     internal static NetworkLeaseRequest RequestFor(ValidatedNetworkLease lease) =>
         new(1, lease.LeaseId, NetworkLeaseAction.Acquire, lease.LoopbackPort, lease.Peers.Select(p => p.ToString()).ToArray(),
-            lease.SiteRules.ToArray(), lease.ProgramRules.ToArray(), lease.CoreDirect, lease.DirectByDefault, lease.Stats, lease.Direct?.ToArray(), lease.Lists, lease.LocalNetwork, lease.QuicOverTcp, lease.CompatibleStack, lease.ForeignNode);
+            lease.SiteRules.ToArray(), lease.ProgramRules.ToArray(), lease.CoreDirect, lease.DirectByDefault, lease.Stats, lease.Direct?.ToArray(), lease.Lists, lease.LocalNetwork, lease.QuicOverTcp, lease.CompatibleStack, lease.ForeignNode, lease.Tuning);
 
     internal static ITunnelProcess Start(ValidatedNetworkLease lease, string executable, CancellationToken token)
     {
         var request = RequestFor(lease);
         var adapter = new CoreAdapter(CoreKind.SingBox, executable);
         // Конфигурацию проверяет само ядро до запуска: отказ виден до изменения сети.
-        var ipv6 = PhysicalNetwork.HasGlobalIpv6();
+        // IPv6 в туннеле можно выключить («Для продвинутых»): тогда программы уходят на IPv4,
+        // а IPv6 мимо туннеля по-прежнему закрыт защитой.
+        var ipv6 = lease.Tuning?.NoIpv6 != true && PhysicalNetwork.HasGlobalIpv6();
         // DNS по пути трафика: прямые сайты — через резолвер физической сети (DirectDns).
         DirectDns.EnsureFile();
-        var localDns = DirectDns.PhysicalResolver();
+        // Журнал ядра — одной сессии: прежний, с адресами сайтов, не копится.
+        try { File.Delete(TunnelTuning.LogPath); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        var localDns = lease.Tuning is { } tuning ? tuning.DirectResolver(DirectDns.PhysicalResolver) : DirectDns.PhysicalResolver();
         // Правила программ — в файлах, которые окно меняет на ходу (ProgramRuleSets); при запуске — из аренды.
         ProgramRuleSets.Write(ProgramRuleSets.Folder, lease.ProgramRules);
         SiteRuleSets.Write(SiteRuleSets.NextTo(ProgramRuleSets.Folder), lease.SiteRules);
@@ -70,6 +74,8 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
             .Where(k => k.StartsWith("SING_", StringComparison.OrdinalIgnoreCase)).ToArray())
             start.Environment.Remove(key);
 
+        // Прокси для устройств локальной сети: порт в брандмауэре открыт, пока работает туннель.
+        if (lease.Tuning?.LanPort is { } lanPort) LanFirewall.Open(executable, lanPort); else LanFirewall.Close();
         var process = new Process { StartInfo = start };
         var job = new ProcessJob();
         try
@@ -87,6 +93,7 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
             try { if (!process.HasExited) process.Kill(true); } catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { }
             job.Dispose();
             process.Dispose();
+            LanFirewall.Close();
             throw;
         }
         return new SingBoxTunnelProcess(process, job);
@@ -106,6 +113,7 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         try { process.WaitForExit(5000); } catch (InvalidOperationException) { }
         job.Dispose();   // Закрытие задания добивает всё, что ядро могло породить.
         process.Dispose();
+        LanFirewall.Close();
     }
 }
 

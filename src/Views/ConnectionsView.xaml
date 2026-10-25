@@ -169,7 +169,9 @@
 
     <DockPanel Margin="10,0,24,0">
       <!-- Режим работы: весь компьютер (системный туннель) или только браузеры (прокси Windows). -->
-      <Border DockPanel.Dock="Right" Style="{StaticResource SegTrack}" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True">
+      <!-- В узком окне переключатель переезжает строкой ниже (NarrowModeSlot), иначе закрывал заголовок. -->
+      <Grid x:Name="HeaderModeSlot" DockPanel.Dock="Right" VerticalAlignment="Center">
+      <Border x:Name="ModeTrack" Style="{StaticResource SegTrack}" VerticalAlignment="Center" HorizontalAlignment="Left" WindowChrome.IsHitTestVisibleInChrome="True">
         <StackPanel Orientation="Horizontal">
           <Button x:Name="ModeTun" Content="Весь компьютер" Style="{StaticResource SegButton}" AutomationProperties.Name="Весь компьютер">
             <Button.ToolTip><TextBlock x:Name="SystemTunnelHint" Text="Игры, мессенджеры и любые программы. Без VPN — без интернета." MaxWidth="320" TextWrapping="Wrap"/></Button.ToolTip>
@@ -178,6 +180,7 @@
                   ToolTip="Прокси Windows: без прав администратора, но не для всех приложений. Браузер может показать сайтам настоящий IP через WebRTC"/>
         </StackPanel>
       </Border>
+      </Grid>
       <Button x:Name="BackButton" Style="{StaticResource IconButton}" Foreground="{DynamicResource Tx}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Назад">
         <Path Data="{StaticResource IcoBack}" Style="{StaticResource Icon}" StrokeThickness="2.2"/>
       </Button>
@@ -186,6 +189,7 @@
     </DockPanel>
 
     <StackPanel Grid.Row="1" Margin="24,0,24,6">
+      <Grid x:Name="NarrowModeSlot" Margin="0,0,0,10" Visibility="Collapsed"/>
       <DockPanel>
         <TextBox x:Name="SearchBox" DockPanel.Dock="Right" Style="{StaticResource FieldBox}" Width="200" Height="36" Margin="12,0,0,0" VerticalAlignment="Center"
                  Tag="Найти программу" FontSize="{StaticResource FsNote}" AutomationProperties.Name="Найти программу"/>

@@ -96,6 +96,8 @@ public partial class MainWindow
         if (currentPage is "Routes" or "Diagnostics") currentPage = "Connection";
         // Подписки и серверы автовыбора открываются из «Серверов» — туда и возвращаемся.
         if (Settings.CurrentPage is Views.SettingsPanel.SubscriptionPage or Views.SettingsPanel.AutoPoolPage) { Navigate("Servers"); return; }
+        // «Для продвинутых» открывается из «Приложения» — туда и «Назад».
+        if (Settings.CurrentPage == Views.SettingsPanel.AdvancedPage) { OpenSettings(Views.SettingsPanel.AppPage); return; }
         ShowDefaultSection();
         Home.SettingsButton.Focus();
     }

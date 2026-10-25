@@ -19,6 +19,13 @@ public partial class ServersSheet : UserControl
         AddPopup.Opened += (_, _) => SortPopup.IsOpen = false;
         AddPopup.Opened += (_, _) => Dispatcher.BeginInvoke(() => Add.KeyInput.Focus(), System.Windows.Threading.DispatcherPriority.Input);
         RenderTransform = new TranslateTransform();
+        SizeChanged += (_, args) =>
+        {
+            var narrow = args.NewSize.Width < 600;
+            var host = narrow ? NarrowSearchSlot : HeaderSearchSlot;
+            if (SearchField.Parent is Panel from && from != host) { from.Children.Remove(SearchField); host.Children.Add(SearchField); }
+            NarrowSearchSlot.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
+        };
     }
 
     // Ключ в шапке — окно под ним справа; «Добавить» под списком — над строкой, без прокрутки.

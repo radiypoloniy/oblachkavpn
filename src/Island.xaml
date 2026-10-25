@@ -14,7 +14,7 @@
             <TextBlock x:Name="Label" Text="{Binding}" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource Mu2}" VerticalAlignment="Center"/>
           </Border>
           <ControlTemplate.Triggers>
-            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chip" Property="Background" Value="{DynamicResource Hov}"/></Trigger>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chip" Property="Background" Value="{DynamicResource HoverTint}"/></Trigger>
             <Trigger Property="IsSelected" Value="True">
               <Setter TargetName="Chip" Property="Background" Value="{DynamicResource Aci}"/>
               <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Ac}"/>

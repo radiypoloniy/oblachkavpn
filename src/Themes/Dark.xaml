@@ -15,6 +15,7 @@
   <SolidColorBrush x:Key="Acs" Color="#2C3170"/>  <!-- фон выбранной строки -->
   <SolidColorBrush x:Key="Aci" Color="#2C3170"/>  <!-- фон иконок-кружков -->
   <SolidColorBrush x:Key="Hov" Color="#262A55"/>  <!-- наведение -->
+  <SolidColorBrush x:Key="HoverTint" Color="#1AFFFFFF"/>  <!-- наведение поверх кнопки: полупрозрачный оттенок, цвет кнопки и текста сохраняется -->
   <SolidColorBrush x:Key="Hovs" Color="#30357A"/>  <!-- наведение на выбранную строку -->
   <SolidColorBrush x:Key="Ring" Color="#4A4F84"/>  <!-- контуры радио и чекбоксов -->
   <SolidColorBrush x:Key="OkB" Color="#173A2A"/>  <!-- плашка «связь проверена» — фон -->

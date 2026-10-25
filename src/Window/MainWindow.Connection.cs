@@ -25,7 +25,7 @@ public partial class MainWindow
         if (engine is Engine core)
         {
             core.SiteRules = SystemTunnelWanted ? Array.Empty<SiteRule>() : siteRules.ToArray();
-            core.Fragment = FragmentWanted; core.FragmentShape = ProviderFragment is { Enabled: true } shape ? shape : null;
+            core.Fragment = FragmentWanted; core.FragmentShape = advanced.Fragment(ProviderFragment is { Enabled: true } shape ? shape : null);
             // Списки у ядра туннеля (TunnelLists) — ядру окна под той же сессией они не нужны.
             core.Routing = TunnelListsActive ? null : CurrentRouting();
             coreZapretKey = DesiredZapretKey; appliedZapretDomains = ZapretRouting ? zapretDomains : [];
@@ -59,6 +59,7 @@ public partial class MainWindow
                 nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
                 runningProfile = target;
                 if (!closed) DetailText.Text = "Системный режим запущен: весь трафик идёт через туннель.";
+                _ = WarnEarlyGamesAsync();
             }
             else
             {

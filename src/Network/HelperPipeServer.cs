@@ -76,7 +76,7 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                             throw new UserError("Сначала требуется восстановить сетевую сессию.");
                         var record = session.Acquire(request.Lease!, deadline.Token);
                         // winws уже работал (режим «Браузеры»): его пакетам под защитой нужны разрешения.
-                        if (record.State == NetworkSessionState.Applied) SyncReinjection();
+                        if (record.State == NetworkSessionState.Applied) { SyncReinjection(); SyncDirectApps(force: true); }
                         state = record.State;
                         blocking = SystemNetworkBackend.Blocks(record);
                         activeLease = request.Lease!.LeaseId;
@@ -85,7 +85,7 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                     {
                         if (request.Lease!.LeaseId != activeLease) throw new UserError("Сессия принадлежит другому владельцу.");
                         state = session.Release(activeLease.Value).State;
-                        if (state == NetworkSessionState.Released) WfpReinjection.Forget();
+                        if (state == NetworkSessionState.Released) { WfpReinjection.Forget(); WfpDirectApps.Forget(); }
                         if (state == NetworkSessionState.Released) activeLease = null;
                     }
                     else if (request.Operation == HelperOperation.Repair)
@@ -104,7 +104,7 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                         if (state == NetworkSessionState.Applied) SyncReinjection();
                     }
                     else if (request.Operation == HelperOperation.DirectDns) DirectDns.Accept(request.DirectDns!);
-                    else if (request.Operation == HelperOperation.ProgramRules) ProgramRuleSets.Accept(request.Programs!);
+                    else if (request.Operation == HelperOperation.ProgramRules) { ProgramRuleSets.Accept(request.Programs!); SyncDirectApps(); }
                     else if (request.Operation == HelperOperation.RoutingLists) RoutingLists.Accept(request.Lists!);
                     else if (request.Operation == HelperOperation.Recover)
                     {
@@ -143,6 +143,14 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
     {
         if (ZapretRunner.CapturedPorts is { Count: > 0 } ports) WfpReinjection.Allow(ReinjectionEngine, ports);
         else WfpReinjection.Revoke(ReinjectionEngine);
+    }
+
+    // Разрешения программам «напрямую» (WfpDirectApps). Сбой не мешает самой команде: сторож
+    // службы повторит через две секунды.
+    internal static void SyncDirectApps(bool force = false)
+    {
+        try { WfpDirectApps.Tick(ReinjectionEngine, force); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or UserError) { NetworkHelperHost.RecordFailure(ex); }
     }
 
     private static async Task WatchOwnerAsync(Process owner, CancellationTokenSource lifetime)

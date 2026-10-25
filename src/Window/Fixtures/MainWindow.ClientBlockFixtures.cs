@@ -13,12 +13,10 @@ public partial class MainWindow
         // Метка действия меняется по кругу: через VPN → напрямую → блок.
         CycleRule(siteRules[0]); CycleRule(siteRules[0]);
         if (siteRules[0].Action != SiteAction.Block) throw new InvalidOperationException("Rule action badge does not cycle");
-        Diagnostics.WhereInput.Text = "ads.example.com";
-        if (!Diagnostics.WhereResult.Text.Contains("блок") || !Diagnostics.WhereResult.Text.Contains("example.com"))
-            throw new InvalidOperationException("«Куда пойдёт сайт?» ignored the matching rule: " + Diagnostics.WhereResult.Text);
-        Diagnostics.WhereInput.Text = "example.org";
-        if (!Diagnostics.WhereResult.Text.Contains("через VPN")) throw new InvalidOperationException("Unmatched site is not shown as tunneled");
-        Diagnostics.WhereInput.Clear();
+        // Путь сайта по правилам — тот, что показывает «Проверить сайт».
+        if (SiteRouteByRules("ads.example.com") is not (SiteRoute.Block, var why) || !why.Contains("правило"))
+            throw new InvalidOperationException("Site route ignored the matching rule: " + SiteRouteByRules("ads.example.com").Why);
+        if (SiteRouteByRules("example.org").Route != SiteRoute.Tunnel) throw new InvalidOperationException("Unmatched site is not shown as tunneled");
         RemoveRule(siteRules[0]);
         if (siteRules.Count != 0) throw new InvalidOperationException("Draft removal failed");
         AddProgramRules([ProgramRoutingPlan.Create("steam.exe", SiteAction.Tunnel)]);

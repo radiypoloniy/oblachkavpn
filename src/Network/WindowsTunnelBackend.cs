@@ -79,9 +79,10 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
         var lease = Describe(leaseId, change);
         // Правила и вход прямого трафика ядра — из проверенной аренды этой сессии: в журнал они не
         // пишутся (в описании входа — пароль). Потерянный здесь вход (0.10) оставлял «Российские
-        // сайты напрямую» без выхода: ядро слало их на порт, где никого не было.
+        // сайты напрямую» без выхода: ядро слало их на порт, где никого не было. Аренда берётся целиком,
+        // а из журнала — только порт и адреса: перенос по полю терял новые поля (Tuning, 0.20).
         if (prepared is { } rules && rules.LeaseId == leaseId)
-            lease = lease with { Sites = rules.SiteRules, Programs = rules.ProgramRules, CoreDirect = rules.CoreDirect, DirectByDefault = rules.DirectByDefault, Stats = rules.Stats, Direct = rules.Direct, Lists = rules.Lists, LocalNetwork = rules.LocalNetwork, QuicOverTcp = rules.QuicOverTcp, CompatibleStack = rules.CompatibleStack, ForeignNode = rules.ForeignNode };
+            lease = rules with { LoopbackPort = lease.LoopbackPort, Peers = lease.Peers };
         var started = startCore(lease, CancellationToken.None);
         try
         {

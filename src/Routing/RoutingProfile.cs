@@ -32,6 +32,15 @@ public sealed record RoutingProfile(string Name,
         ["domain:ru", "domain:xn--p1ai", "domain:su", "geosite:category-ru"], [], [], [], [], [])
     { GeositeUrl = DefaultGeosite };
 
+    // Свои списки из «Для продвинутых»: записи того же вида, что у сервиса; адреса и geoip —
+    // в списки адресов, остальное — в списки сайтов. Порядок общий для всех наборов: блок, напрямую, VPN.
+    public static RoutingProfile? Custom(string[] direct, string[] proxy, string[] block)
+    {
+        static bool Ip(string entry) => NormalizeIp(entry) is not null;
+        return new RoutingProfile("Свои списки", direct.Where(e => !Ip(e)).ToArray(), proxy.Where(e => !Ip(e)).ToArray(), block.Where(e => !Ip(e)).ToArray(),
+            direct.Where(Ip).ToArray(), proxy.Where(Ip).ToArray(), block.Where(Ip).ToArray()).Normalized();
+    }
+
     public IEnumerable<string> GeositeTags => DirectSites.Concat(ProxySites).Concat(BlockSites)
         .Where(e => e.StartsWith("geosite:", StringComparison.OrdinalIgnoreCase)).Select(e => Tag(e[8..])).Where(t => t.Length > 0).Distinct();
     public IEnumerable<string> GeoipTags => DirectIp.Concat(ProxyIp).Concat(BlockIp)

@@ -140,6 +140,9 @@ public static class Subscriptions
             with { Title = title, Announce = announce, UpdateInterval = interval, Routing = routing, SupportUrl = support, WebPageUrl = page, Provider = provider };
     }
 
+    public static string? ExternalUserAgent { get; set; }
+    public static bool ExternalHwid { get; set; } = true;
+
     public static async Task<ImportResult> FetchAsync(string url, CancellationToken token, int? socksPort = null)
     {
         using var handler = new SocketsHttpHandler
@@ -152,6 +155,9 @@ public static class Subscriptions
         using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(25) };
         return await FetchWithClientAsync(client, url, token);
     }
+    private static bool Flag(HttpResponseMessage response, string name) =>
+        response.Headers.TryGetValues(name, out var values) && values.Any(v => v.Trim().Equals("true", StringComparison.OrdinalIgnoreCase));
+
     internal static async Task<ImportResult> FetchWithClientAsync(HttpClient client, string url, CancellationToken token)
     {
         if (!Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) || uri.Scheme != "https" || uri.UserInfo.Length > 0 || uri.Fragment.Length > 0)
@@ -159,18 +165,28 @@ public static class Subscriptions
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.UserAgent.ParseAdd(ServiceBrand.UserAgent);
+            // Сторонней подписке — свой User-Agent из «Для продвинутых», если задан: некоторые панели
+            // отдают список только «своим» клиентам. Сервис всегда видит Облачку.
+            request.Headers.TryAddWithoutValidation("User-Agent", ExternalUserAgent is { } agent && !ServiceBrand.IsServiceHost(uri.Host) ? agent : ServiceBrand.UserAgent);
             request.Headers.Accept.ParseAdd("text/plain, application/json");
-            // Идентификатор установки для лимита устройств. Уходит только на хосты сервиса:
-            // сторонней подписке знать про наше устройство незачем.
-            if (ServiceBrand.IsServiceHost(uri.Host))
+            // Заголовки лимита устройств (HWID в Remnawave): без x-hwid панель с включённым лимитом
+            // отдаёт 404. Сервису — идентификатор установки, сторонней подписке — свой для её хоста
+            // (DeviceIdentity.ForHost): связать устройство между сервисами по нему нельзя.
+            // Сторонним подпискам — если не выключено в «Для продвинутых».
+            if (ServiceBrand.IsServiceHost(uri.Host) || ExternalHwid)
             {
-                request.Headers.Add("x-hwid", DeviceIdentity.Current);
+                request.Headers.Add("x-hwid", ServiceBrand.IsServiceHost(uri.Host) ? DeviceIdentity.Current : DeviceIdentity.ForHost(uri.Host));
                 request.Headers.Add("x-device-os", DeviceIdentity.OperatingSystem);
                 request.Headers.Add("x-ver-os", DeviceIdentity.OperatingSystemVersion);
                 request.Headers.Add("x-device-model", DeviceIdentity.DeviceModel);
             }
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+            // Ответ панели о лимите устройств — понятным текстом, а не «HTTP 404». Список не трогаем.
+            // x-hwid-limit панель ставит при любом отказе, поэтому «не принят» проверяется первым.
+            if (Flag(response, "x-hwid-not-supported"))
+                throw new UserError("Панель подписки не приняла идентификатор устройства. Сообщите в поддержку сервиса. Сохранённые подключения остаются в списке.");
+            if (Flag(response, "x-hwid-max-devices-reached") || Flag(response, "x-hwid-limit"))
+                throw new UserError("В подписке занято наибольшее число устройств. Отвяжите старое устройство в личном кабинете или у поддержки сервиса и нажмите «Обновить». Сохранённые подключения остаются в списке.");
             if ((int)response.StatusCode is >= 300 and < 400) throw new UserError("Подписка перенаправляет запрос. Вставьте конечную HTTPS-ссылку из панели.");
             if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
                 throw new SubscriptionAccessDenied();

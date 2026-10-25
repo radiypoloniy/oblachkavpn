@@ -15,6 +15,8 @@ public static class FreeServers
     public const string GroupName = "Бесплатные";
     // Показываются лучшие по задержке из ответивших.
     public const int Shown = 15;
+    // Столько серверов проверяется настоящим запросом через них: ~4 одновременно, по нескольку секунд каждый.
+    public const int Checked = 40;
     public static readonly TimeSpan MaxAge = TimeSpan.FromHours(1);
 
     private const string Igareck = "igareck/vpn-configs-for-russia/main/";
@@ -96,8 +98,5 @@ public static class FreeServers
         }).ToArray();
     }
 
-    // Лучшие по задержке из ответивших; без ответа не показываются вовсе.
-    public static IReadOnlyList<Profile> Best(IReadOnlyList<Profile> candidates, Func<Profile, long?> latency) =>
-        candidates.Where(p => latency(p) is not null).OrderBy(p => latency(p)).Take(Shown).ToArray();
 
 }

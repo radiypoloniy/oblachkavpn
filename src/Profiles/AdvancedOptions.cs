@@ -1,0 +1,166 @@
+using System.Net;
+
+namespace Oblachka;
+
+// «Для продвинутых»: тонкая настройка для тех, кто пришёл из Throne, v2rayN или Happ. Значение по
+// умолчанию у каждого поля — «как без настройки» (null, пусто, Auto): незаполненный раздел даёт
+// ровно ту конфигурацию, что и до него. Значения проверяются здесь и ещё раз службой (TunnelTuning),
+// потому что часть их уходит в ядро туннеля, работающее с правами системы.
+public enum TunnelStack { Auto, Gvisor, Mixed, System }
+// Журнал ядра туннеля: нет, только ошибки и предупреждения, подробно (с адресами сайтов).
+public enum CoreLogLevel { Off, Warn, Debug }
+
+public sealed record AdvancedOptions
+{
+    public static readonly AdvancedOptions Default = new();
+
+    // Туннель: стек и MTU; Auto — как сейчас (gvisor/9000, с «Совместимостью с играми» — mixed/1500).
+    public TunnelStack Stack { get; init; }
+    public int? Mtu { get; init; }
+    // DNS через VPN вместо встроенного DoH Cloudflare: только DoH, https://…/dns-query (TunnelTuning).
+    public string? TunnelDns { get; init; }
+    // Подсети мимо туннеля, CIDR по одной: рабочая сеть, VPN работодателя.
+    public string[] BypassSubnets { get; init; } = [];
+    // Обход DPI «Всегда»: своя форма фрагментации вместо заданной провайдером или по умолчанию.
+    public string? FragmentPackets { get; init; }
+    public string? FragmentLength { get; init; }
+    public string? FragmentInterval { get; init; }
+    // User-Agent для сторонних подписок: некоторые панели отдают список только «своим» клиентам.
+    public string? SubscriptionUserAgent { get; init; }
+    // Адрес проверки связи вместо microsoft.com и cloudflare.com.
+    public string? ProbeUrl { get; init; }
+    // Постоянный порт локального прокси для программ; null — свободный, какой найдётся.
+    public int? ProxyPort { get; init; }
+    public CoreLogLevel CoreLog { get; init; }
+    // DNS для сайтов «напрямую»: свой адрес вместо DNS роутера (Яндекс, корпоративный). Только IP.
+    public string? DirectDns { get; init; }
+    // IPv6 в туннеле: false — сам (если у сети есть IPv6), true — выключен.
+    public bool NoIpv6 { get; init; }
+    // Сколько минут живёт UDP-связка без пакетов (игры с редкими пакетами); null — 5 минут ядра.
+    public int? UdpTimeout { get; init; }
+    // Отпечаток TLS (uTLS) для сторонних ссылок без своего «fp»; null — как в ссылке.
+    public string? Utls { get; init; }
+    // Не отправлять идентификатор устройства (HWID) сторонним подпискам.
+    public bool NoExternalHwid { get; init; }
+    // Порог автовыбора: другой сервер должен быть лучше на столько процентов; null — 20.
+    public int? SwitchMargin { get; init; }
+    // Горячие клавиши: Ctrl+Alt+V — VPN, Ctrl+Alt+B — обход блокировок.
+    public bool VpnHotkey { get; init; }
+    public bool BypassHotkey { get; init; }
+    // Прокси для устройств локальной сети (только «Весь компьютер»): вход ядра туннеля на всех
+    // адресах с логином и паролем. Пароль хранится и выключенным — телефон не перенастраивать.
+    public bool LanProxy { get; init; }
+    // Свои списки маршрутизации: geosite:категория, geoip:страна, domain:…, подсети (RoutingProfile.Custom).
+    public string[] GeoDirect { get; init; } = [];
+    public string[] GeoProxy { get; init; } = [];
+    public string[] GeoBlock { get; init; } = [];
+    public const int MaxGeoEntries = 100;
+    public int? LanPort { get; init; }
+    public string? LanPassword { get; init; }
+    public const int DefaultLanPort = 10810;
+    public const string LanUser = "oblachka";
+
+    public const int MinMtu = 1280, MaxMtu = 9000, MaxSubnets = 32;
+
+    public bool IsDefault => Stack == TunnelStack.Auto && Mtu is null && TunnelDns is null && BypassSubnets.Length == 0 &&
+        FragmentPackets is null && FragmentLength is null && FragmentInterval is null && SubscriptionUserAgent is null && ProbeUrl is null && ProxyPort is null && CoreLog == CoreLogLevel.Off &&
+        DirectDns is null && !NoIpv6 && UdpTimeout is null && Utls is null && !NoExternalHwid && SwitchMargin is null && !VpnHotkey && !BypassHotkey &&
+        !LanProxy && LanPort is null && GeoDirect.Length + GeoProxy.Length + GeoBlock.Length == 0;
+
+    // Ошибка — человеческим текстом для поля; null — всё верно.
+    public static string? CheckMtu(int? mtu) => mtu is null or (>= MinMtu and <= MaxMtu) ? null : $"MTU — от {MinMtu} до {MaxMtu}.";
+
+    public static string? CheckDns(string? dns)
+    {
+        if (dns is null) return null;
+        if (!Uri.TryCreate(dns, UriKind.Absolute, out var uri) || uri.Scheme != "https" || uri.Host.Length == 0 || uri.UserInfo.Length > 0 || uri.Query.Length > 0)
+            return "Нужен адрес DoH вида https://dns.example/dns-query. DoT и DoQ через VPN работают ненадёжно и не поддерживаются.";
+        return null;
+    }
+
+    public static string? CheckSubnets(IReadOnlyList<string> subnets)
+    {
+        if (subnets.Count > MaxSubnets) return $"Не больше {MaxSubnets} подсетей.";
+        foreach (var subnet in subnets)
+        {
+            if (!TryParseSubnet(subnet, out var address, out var prefix)) return $"«{subnet}» — не подсеть. Пример: 10.20.0.0/16.";
+            // Подсеть шире /8 уводит мимо VPN почти весь интернет — это уже не «рабочая сеть».
+            var min = address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 8 : 16;
+            if (prefix < min) return $"«{subnet}» слишком широкая: мимо VPN ушла бы большая часть интернета.";
+        }
+        return null;
+    }
+
+    public static bool TryParseSubnet(string text, out IPAddress address, out int prefix)
+    {
+        address = IPAddress.None; prefix = 0;
+        var parts = text.Trim().Split('/');
+        if (parts.Length != 2 || !IPAddress.TryParse(parts[0], out var parsed) || !int.TryParse(parts[1], out prefix)) return false;
+        address = parsed;
+        return prefix >= 0 && prefix <= (parsed.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128);
+    }
+
+    public static string? CheckFragment(string? packets, string? length, string? interval) =>
+        packets is not null && !ProviderOptions.IsPackets(packets) ? "Куски: tlshello или диапазон 1-3." :
+        length is not null && !ProviderOptions.IsLength(length) ? "Длина: диапазон байт, например 50-100." :
+        interval is not null && !ProviderOptions.IsInterval(interval) ? "Пауза: миллисекунды, например 5-10." : null;
+
+    // Только печатные ASCII: иначе HttpClient не отправит заголовок.
+    public static string? CheckUserAgent(string? agent) =>
+        agent is null || agent.Length <= 200 && agent.All(c => c is >= ' ' and <= '~') ? null : "User-Agent — латиница, цифры и знаки, до 200 символов.";
+
+    public static string? CheckProbe(string? url) =>
+        url is null || Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == "https" && uri.UserInfo.Length == 0 ? null : "Нужен адрес https://…";
+
+    // Адрес DNS для прямых сайтов: обычный внешний или частный адрес, не служебный.
+    public static string? CheckDirectDns(string? dns) =>
+        dns is null || IPAddress.TryParse(dns, out var ip) && !IPAddress.IsLoopback(ip) && !ip.Equals(IPAddress.Any) && !ip.Equals(IPAddress.IPv6Any) && !ip.IsIPv6Multicast
+            && !(ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && ip.GetAddressBytes()[0] is 0 or >= 224) ? null : "Нужен IP-адрес DNS-сервера, например 77.88.8.8.";
+
+    public static string? CheckUdpTimeout(int? minutes) => minutes is null or (>= 1 and <= 60) ? null : "От 1 до 60 минут.";
+
+    public static string? CheckMargin(int? percent) => percent is null or (>= 5 and <= 200) ? null : "От 5 до 200 %.";
+
+    public static string? CheckPort(int? port) => port is null or (>= 1024 and <= 65535) ? null : "Порт — от 1024 до 65535.";
+
+    public static string? CheckGeo(IReadOnlyList<string> entries)
+    {
+        if (entries.Count > MaxGeoEntries) return $"Не больше {MaxGeoEntries} записей.";
+        foreach (var entry in entries)
+            if (RoutingProfile.NormalizeIp(entry) is null && RoutingProfile.NormalizeSite(entry) is null)
+                return $"«{entry}» не разобрана. Примеры: geosite:category-ads-all, geoip:ru, domain:example.com, 10.0.0.0/8.";
+        return null;
+    }
+
+    // Пароль прокси локальной сети: его создаёт приложение — латиница и цифры, не короче 12.
+    public static string? CheckLanPassword(string? password) =>
+        password is null || password.Length is >= 12 and <= 64 && password.All(char.IsAsciiLetterOrDigit) ? null : "Пароль — латиница и цифры, от 12 символов.";
+    public static string NewLanPassword() => System.Security.Cryptography.RandomNumberGenerator.GetString("abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789", 16);
+    public int LanListenPort => LanPort ?? DefaultLanPort;
+
+    // Весь набор: так снимок проверяется при чтении (испорченное значение — как без настройки).
+    public string? Problem() => CheckMtu(Mtu) ?? CheckDns(TunnelDns) ?? CheckSubnets(BypassSubnets) ?? CheckFragment(FragmentPackets, FragmentLength, FragmentInterval) ??
+        CheckUserAgent(SubscriptionUserAgent) ?? CheckProbe(ProbeUrl) ?? CheckPort(ProxyPort) ??
+        CheckDirectDns(DirectDns) ?? CheckUdpTimeout(UdpTimeout) ?? CheckMargin(SwitchMargin) ?? (Oblachka.Utls.Valid(Utls) ? null : "Неизвестный отпечаток TLS.") ??
+        CheckPort(LanPort) ?? CheckLanPassword(LanPassword) ?? CheckGeo(GeoDirect) ?? CheckGeo(GeoProxy) ?? CheckGeo(GeoBlock) ?? (LanProxy && LanPassword is null ? "Нет пароля прокси." : null) ??
+        (ProxyPort is not null && ProxyPort == LanListenPort ? "Порт для устройств сети совпадает с портом для программ." : null);
+
+    // Названия изменённых настроек — для отчёта поддержке; значения туда не идут.
+    public string[] Changed() => new (bool On, string Name)[]
+    {
+        (Stack != TunnelStack.Auto, "Stack:" + Stack), (Mtu is not null, "Mtu:" + Mtu), (TunnelDns is not null, "TunnelDns"),
+        (BypassSubnets.Length > 0, "BypassSubnets:" + BypassSubnets.Length), ((FragmentPackets ?? FragmentLength ?? FragmentInterval) is not null, "Fragment"),
+        (SubscriptionUserAgent is not null, "SubscriptionUserAgent"), (ProbeUrl is not null, "ProbeUrl"), (ProxyPort is not null, "ProxyPort"), (CoreLog != CoreLogLevel.Off, "CoreLog:" + CoreLog),
+        (DirectDns is not null, "DirectDns"), (NoIpv6, "NoIpv6"), (UdpTimeout is not null, "UdpTimeout:" + UdpTimeout), (Utls is not null, "Utls:" + Utls),
+        (NoExternalHwid, "NoExternalHwid"), (SwitchMargin is not null, "SwitchMargin:" + SwitchMargin), (VpnHotkey, "VpnHotkey"), (BypassHotkey, "BypassHotkey"), (LanProxy, "LanProxy"),
+        (GeoDirect.Length + GeoProxy.Length + GeoBlock.Length > 0, "GeoLists:" + (GeoDirect.Length + GeoProxy.Length + GeoBlock.Length))
+    }.Where(c => c.On).Select(c => c.Name).ToArray();
+
+    // Своя форма фрагментации поверх провайдерской: незаданное — из неё же или по умолчанию.
+    public ProviderFragment? Fragment(ProviderFragment? provider)
+    {
+        if (FragmentPackets is null && FragmentLength is null && FragmentInterval is null) return provider;
+        var basis = provider ?? ProviderFragment.Default;
+        return basis with { Enabled = true, Packets = FragmentPackets ?? basis.Packets, Length = FragmentLength ?? basis.Length, Interval = FragmentInterval ?? basis.Interval };
+    }
+}

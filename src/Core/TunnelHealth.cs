@@ -7,7 +7,12 @@ public sealed class TunnelHealth
 {
     private int failedRounds;
     public int FailedRounds => failedRounds;
-    public static readonly Uri[] Targets = [new("https://www.microsoft.com/"), new("https://www.cloudflare.com/")];
+    public static readonly Uri[] Defaults = [new("https://www.microsoft.com/"), new("https://www.cloudflare.com/")];
+    // Свой адрес проверки («Для продвинутых») — первым; второй встроенный остаётся: проверке нужны
+    // два независимых сайта, иначе отказ одного сайта выглядел бы как обрыв туннеля.
+    public static Uri? Custom { get; set; }
+    public static Uri[] Targets => Custom is not { } custom ? Defaults
+        : [custom, Defaults.First(d => !string.Equals(d.Host, custom.Host, StringComparison.OrdinalIgnoreCase))];
 
     public async Task<HealthRound> CheckAsync(Func<Uri, CancellationToken, Task<ProbeResult>> probe,
         IReadOnlyList<Uri> targets, CancellationToken token)

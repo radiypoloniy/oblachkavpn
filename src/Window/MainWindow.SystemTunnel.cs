@@ -113,6 +113,7 @@ public partial class MainWindow
             DirectAllowed = () => engine is Engine core && (core.DirectEntry is null || tunnelLists is not null) && !core.Fragment
         };
         session.Changed += OnSystemTunnelChanged;
+        session.Tuning = TunnelTuning.From(advanced);
         session.ProtectionRepaired += () => Dispatcher.BeginInvoke(() =>
             DetailText.Text = "Защиту от утечек кто-то снял (перезапуск службы фильтрации Windows или другая программа) — Облачка поставила её заново.");
         systemTunnel = session;

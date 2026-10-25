@@ -36,6 +36,7 @@ public partial class MainWindow
         // Сайты zapret — первыми: напрямую через обход, даже если набор сервиса шлёт их в VPN.
         foreach (var zapret in ZapretRoutingProfiles()) yield return zapret;
         if (SelectiveProfile() is { } selective) yield return selective;
+        if (RoutingProfile.Custom(advanced.GeoDirect, advanced.GeoProxy, advanced.GeoBlock) is { } custom) yield return custom;
         if (useProviderRouting == true && providerRouting is not null) yield return providerRouting;
         if (Settings.RussiaDirect.IsChecked == true) yield return RoutingProfile.RussiaDirect;
     }
@@ -153,7 +154,6 @@ public partial class MainWindow
                 (size.Length > 0 ? " Для этого скачаем базы адресов (" + size + ")." : "");
         }
         whereRouting = CurrentRouting();
-        UpdateWhere();
     }
 
     // Развёрнутые списки для «Куда пойдёт сайт?»: собираются при смене настроек, не на каждую букву.

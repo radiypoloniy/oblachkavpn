@@ -9,6 +9,7 @@ public partial class MainWindow
     {
         WireProgramRules();
         WireFree();
+        WireAdvanced(); RestoreAdvanced(null); WireRulesFile(); WireRuleSets();
         WireConnections();
         WireSelective();
         WireRouting();
@@ -53,6 +54,6 @@ public partial class MainWindow
         Live.ConflictBanner.Visibility = conflicts.Count > 0 ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         if (conflicts.Count > 0)
             Live.ConflictText.Text = ProgramRuleConflicts.Note(conflicts[0].Name, conflicts) + (conflicts.Count > 1 ? " И ещё споров: " + (conflicts.Count - 1) + "." : "");
-        if (viewsReady) { UpdateWhere(); RefreshSettingsSummary(); }
+        if (viewsReady) RefreshSettingsSummary();
     }
 }

@@ -93,7 +93,7 @@
         </StackPanel>
       </Button>
 
-      <!-- Бесплатные серверы «на свой риск» (FreeServers): только здесь, нигде больше не предлагаются. -->
+      <!-- Бесплатные серверы «на свой риск» (FreeServers): здесь и в меню «Добавить сервер» в «Серверах». -->
       <Border Style="{StaticResource SetGroup}" Margin="0,10,0,0">
         <DockPanel Style="{StaticResource SetLine}">
           <CheckBox x:Name="FreeServers" DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" AutomationProperties.Name="Бесплатные серверы на свой риск"/>

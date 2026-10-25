@@ -19,7 +19,8 @@ public static partial class SelfTests
             Assert(FreeServers.Urls("igareck/vpn-configs-for-russia/main/BLACK_VLESS_RUS.txt")[1] == "https://cdn.jsdelivr.net/gh/igareck/vpn-configs-for-russia@main/BLACK_VLESS_RUS.txt");
             var long_ = string.Join('\n', Enumerable.Range(0, 260).Select(i => Vless + "#n" + i));
             Assert(Subscriptions.Parse(FreeServers.Trim(long_)).Profiles.Count == Subscriptions.MaxProfiles);
-            Assert(FreeServers.Best(free, p => p == free[1] ? 40 : null).SequenceEqual([free[1]]));
+            // Настоящей проверкой через сервер проверяется больше, чем показывается: отбор — из работающих.
+            Assert(FreeServers.Checked > FreeServers.Shown);
             // extra=null у XHTTP (так их выкладывает zieng2) — как без extra; объект по-прежнему читается.
             const string Xhttp = "vless://6f1c2e0a-5b7d-4c3e-9a1f-0b2c3d4e5f60@203.0.113.7:443?security=reality&sni=www.example.com&pbk=SbVKOEMjK0sIlbwg4akyBg5mL5KZwwB-ed4eEE7YnRc&type=xhttp&path=%2Fx&encryption=none";
             Assert(Profiles.Parse(Xhttp + "&extra=null#N").Outbound.ToJsonString().Contains("xhttpSettings") && !Profiles.Parse(Xhttp + "&extra=null#N").Outbound.ToJsonString().Contains("\"extra\""));

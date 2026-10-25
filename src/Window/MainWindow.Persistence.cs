@@ -48,7 +48,8 @@ public partial class MainWindow
             AutoPool = autoPool.Snapshot(importedProfiles),
             ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected,
             ServiceHosts = ServiceBrand.LearnedIn(groups.SelectMany(g => g.Sources).Concat(subscriptionSources)), LocalNetwork = Settings.LocalNetwork.IsChecked == true,
-            QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, CompatibleStack = Settings.CompatibleStack.IsChecked == true, TrafficDay = trafficDay, TrafficBytes = trafficToday, TrafficHours = trafficHours.ToArray(),
+            QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, CompatibleStack = Settings.CompatibleStack.IsChecked == true, Advanced = advanced.IsDefault ? null : advanced,
+            RuleSets = ruleSets.Count == 0 ? null : SavedRuleSets().Where(s => s.Name != ruleSetName).ToArray(), RuleSetName = ruleSets.Count == 0 && ruleSetName == MainRuleSet ? null : ruleSetName, TrafficDay = trafficDay, TrafficBytes = trafficToday, TrafficHours = trafficHours.ToArray(),
             Hotkey = Settings.Hotkey.IsChecked == true, FreeConsent = freeConsent, FreeList = freeList.ToString() };
 
     private IEnumerable<ProfileGroup> SavedGroups => groups.Where(g => g.Source != ProfileSource.Free);
@@ -92,6 +93,7 @@ public partial class MainWindow
         Settings.LocalNetwork.IsChecked = snapshot.LocalNetwork;
         Settings.QuicOverTcp.IsChecked = snapshot.QuicOverTcp;
         Settings.CompatibleStack.IsChecked = snapshot.CompatibleStack;
+        RestoreAdvanced(snapshot.Advanced);
         RestoreFree(snapshot);
         trafficDay = snapshot.TrafficDay ?? ""; trafficToday = trafficSavedBytes = snapshot.TrafficBytes;
         if (snapshot.TrafficHours is { Length: 24 } hours && hours.All(h => h >= 0)) hours.CopyTo(trafficHours, 0);
@@ -104,6 +106,7 @@ public partial class MainWindow
         UpdateModeText();
         siteRules.Clear(); siteRules.AddRange(snapshot.RouteRules); RefreshRules();
         programRules.Clear(); programRules.AddRange(snapshot.ProgramRules); RefreshRules();
+        RestoreRuleSets(snapshot.RuleSets, snapshot.RuleSetName);
         measurements.Clear(); foreach (var measurement in snapshot.Measurements) measurements[measurement.Fingerprint] = measurement;
         favorites.Clear(); foreach (var favorite in snapshot.Favorites) favorites.Add(favorite);
         hiddenServers.Clear(); foreach (var hidden in snapshot.HiddenServers) hiddenServers.Add(hidden);

@@ -2,7 +2,7 @@
              xmlns:o="clr-namespace:Oblachka" xmlns:v="clr-namespace:Oblachka.Views">
   <!-- «Помощь» (облик 0.20): сначала беда, потом лекарство. Сверху — проверка сети Windows
        целиком; ниже симптомы, у каждого своё средство (QUIC через TCP, совместимость с играми,
-       обход DPI, проверка сайта, локальный прокси, отчёт). Затем связь сейчас, «Для знающих»
+       обход DPI, проверка сайта, локальный прокси, отчёт). Затем связь сейчас
        и события сессии. -->
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="24,0,24,20">
@@ -20,7 +20,9 @@
       <Button x:Name="RestoreNetwork" Content="Восстановить сеть" Style="{StaticResource BtnOutline}" Height="36" Padding="16,0" HorizontalAlignment="Left" Margin="0,8,0,0" Visibility="Collapsed"/>
 
       <TextBlock Text="Что случилось?" Style="{StaticResource SecHead}"/>
-      <UniformGrid Columns="2" Margin="0,4,-10,0">
+      <!-- Сетка, а не UniformGrid: тот тянул все карточки по самой высокой, и в узком окне они
+           раздувались. Раскладку (две колонки или одна) задаёт HelpTab.Arrange. -->
+      <Grid x:Name="SymptomGrid" Margin="0,4,-10,0">
         <Border Style="{StaticResource Symptom}" Background="{DynamicResource SkyTint}">
           <DockPanel>
             <TextBlock DockPanel.Dock="Top" Text="Видео через VPN тормозит или рвётся" Style="{StaticResource SymptomQ}"/>
@@ -87,7 +89,7 @@
             </StackPanel>
           </DockPanel>
         </Border>
-      </UniformGrid>
+      </Grid>
 
       <TextBlock Text="Связь сейчас" Style="{StaticResource SecHead}" Margin="0,8,0,4"/>
       <Border Style="{StaticResource OptRow}">
@@ -115,21 +117,13 @@
       <TextBlock x:Name="NetworkNote" Visibility="Collapsed"/>
       <TextBlock x:Name="Heading" Visibility="Collapsed"/>
 
-      <Expander Margin="0,16,0,0" Foreground="{DynamicResource Mu}" FontSize="{StaticResource FsLabel}" Header="Для знающих" AutomationProperties.Name="Для знающих">
-        <StackPanel Margin="0,8,0,0">
-          <TextBlock Text="Куда пойдёт сайт?" Style="{StaticResource OptTitle}"/>
-          <DockPanel Margin="0,6,0,0">
-            <TextBlock x:Name="WhereResult" DockPanel.Dock="Right" FontSize="{StaticResource FsBody}" VerticalAlignment="Center" Margin="10,0,0,0"/>
-            <TextBox x:Name="WhereInput" Style="{StaticResource FieldBox}" Height="34" Tag="music.youtube.com" FontSize="{StaticResource FsBody}" FontFamily="{StaticResource MonoFont}" AutomationProperties.Name="Проверить, куда пойдёт сайт"/>
-          </DockPanel>
-          <!-- Базы адресов скачиваются сами, проверка правил — для разработки: на экране их нет. -->
-          <StackPanel Visibility="Collapsed">
-            <Button x:Name="GeoButton" Content="Скачать"/>
-            <TextBlock x:Name="GeoStatus"/>
-            <Button x:Name="ValidateRulesButton" Content="Проверить правила"/>
-          </StackPanel>
-        </StackPanel>
-      </Expander>
+      <!-- «Куда пойдёт сайт?» убран: путь сайта показывает «Проверить сайт», и вместе с настоящей проверкой.
+           Базы адресов скачиваются сами, проверка правил — для разработки: на экране их нет. -->
+      <StackPanel Visibility="Collapsed">
+        <Button x:Name="GeoButton" Content="Скачать"/>
+        <TextBlock x:Name="GeoStatus"/>
+        <Button x:Name="ValidateRulesButton" Content="Проверить правила"/>
+      </StackPanel>
       <Button x:Name="VmTunButton" Content="Проверить TUN в виртуалке" Style="{StaticResource BtnGhost}" HorizontalAlignment="Center" Visibility="Collapsed" Margin="0,6,0,0"/>
       <TextBlock x:Name="VmTunNote" Visibility="Collapsed"/>
 

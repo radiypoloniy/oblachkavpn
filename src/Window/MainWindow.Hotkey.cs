@@ -18,10 +18,10 @@ public partial class MainWindow
         SourceInitialized += (_, _) =>
         {
             HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(HotkeyHook);
-            ApplyHotkey();
+            ApplyHotkey(); ApplyExtraHotkeys();
         };
         Settings.Hotkey.Click += (_, _) => { ApplyHotkey(); QueueStateSave(); };
-        Closed += (_, _) => { if (hotkeyRegistered) UnregisterHotKey(new WindowInteropHelper(this).Handle, HotkeyId); };
+        Closed += (_, _) => { if (hotkeyRegistered) UnregisterHotKey(new WindowInteropHelper(this).Handle, HotkeyId); ReleaseExtraHotkeys(); };
     }
 
     private void ApplyHotkey()
@@ -38,7 +38,9 @@ public partial class MainWindow
 
     private IntPtr HotkeyHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg != WmHotkey || wParam.ToInt32() != HotkeyId) return IntPtr.Zero;
+        if (msg != WmHotkey) return IntPtr.Zero;
+        if (ExtraHotkey(wParam.ToInt32())) { handled = true; return IntPtr.Zero; }
+        if (wParam.ToInt32() != HotkeyId) return IntPtr.Zero;
         handled = true;
         if (IsVisible && IsActive && WindowState != WindowState.Minimized) HideToTray();
         else ShowWindow();

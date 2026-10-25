@@ -30,12 +30,13 @@ public static class SiteRuleSets
             for (var level = 0; level < Levels; level++)
                 foreach (var action in Actions)
                 {
-                    var domains = placed.Where(p => p.Level == level && p.Rule.Action == action).Select(p => (JsonNode)JsonValue.Create(p.Rule.Domain)!).ToArray();
-                    var json = new JsonObject
-                    {
-                        ["version"] = 2,
-                        ["rules"] = new JsonArray(new JsonObject { ["domain_suffix"] = domains.Length > 0 ? new JsonArray(domains) : new JsonArray("oblachka-none.invalid") })
-                    }.ToJsonString();
+                    // Домены — одним правилом; подсети и порты — каждым своим (SiteTarget): правила файла
+                    // объединяются через «или».
+                    var here = placed.Where(p => p.Level == level && p.Rule.Action == action).Select(p => p.Rule.Domain).ToArray();
+                    var domains = here.Where(t => SiteTarget.Kind(t) == SiteTargetKind.Domain).Select(d => (JsonNode)JsonValue.Create(d)!).ToArray();
+                    var matches = new JsonArray(new JsonObject { ["domain_suffix"] = domains.Length > 0 ? new JsonArray(domains) : new JsonArray("oblachka-none.invalid") });
+                    foreach (var other in here.Where(t => SiteTarget.Kind(t) != SiteTargetKind.Domain)) matches.Add(SiteTarget.SingBox(other));
+                    var json = new JsonObject { ["version"] = 2, ["rules"] = matches }.ToJsonString();
                     var path = Path.Combine(folder, Tag(level, action) + ".json");
                     // Без лишней записи: ядро перечитывает файл по изменению.
                     if (File.Exists(path) && File.ReadAllText(path) == json) continue;

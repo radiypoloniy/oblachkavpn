@@ -78,6 +78,12 @@ public partial class MainWindow
         checks.Add("Compact tray window reflects the selected profile without inventing connection metrics");
     }
 
+    // Превью в узком окне: открытый раздел — островом поверх панели, как после щелчка по пункту.
+    internal void NarrowPreview(double width)
+    {
+        Width = width; UpdateLayout(); narrowOpen = true; ApplyLayout(); UpdateLayout();
+    }
+
     internal void PrepareDesignPreview(string page)
     {
         if (page == "welcome") return;
@@ -175,9 +181,15 @@ public partial class MainWindow
         Navigate(page switch { "servers" => "Servers", "routes" => "Routes", "diagnostics" => "Diagnostics", _ => "Connection" });
         if (page == "rules") ShowRulesSection();
         if (page is "settings" or "bypass" or "storage" or "app" or "help" or "autopool" or "advanced") SettingsClick(this, new RoutedEventArgs());
-        if (page is "bypass" or "storage" or "app" or "help" or "autopool")
+        if (page is "bypass" or "storage" or "app" or "help" or "autopool" or "advanced")
             Settings.ShowTab(page switch { "bypass" => Views.SettingsPanel.BypassPage, "storage" => Views.SettingsPanel.SubscriptionPage, "app" => Views.SettingsPanel.AppPage,
-                "autopool" => Views.SettingsPanel.AutoPoolPage, _ => Views.SettingsPanel.HelpPage });
+                "autopool" => Views.SettingsPanel.AutoPoolPage, "advanced" => Views.SettingsPanel.AdvancedPage, _ => Views.SettingsPanel.HelpPage });
+        // Заполненный раздел: видно и значения, и подпись ошибки под полем.
+        if (page == "advanced")
+        {
+            RestoreAdvanced(AdvancedOptions.Default with { Stack = TunnelStack.Mixed, Mtu = 1400, BypassSubnets = ["10.20.0.0/16", "192.168.77.0/24"], TunnelDns = "https://dns.adguard-dns.com/dns-query" });
+            Settings.Advanced.Extras.PortInput.Text = "80"; Settings.Advanced.Extras.PortError.Text = "Порт — от 1024 до 65535."; Settings.Advanced.Extras.PortError.Visibility = Visibility.Visible;
+        }
         if (page == "autopool") RenderAutoPool();
     }
 

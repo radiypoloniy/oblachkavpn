@@ -67,6 +67,8 @@ public partial class MainWindow
             Home.ServerPing.Text = row.Latency;
             // Ступени пинга: три — до 160 мс, две — до 250, одна — медленнее, ни одной — не ответил.
             Home.ServerBars.Filled = LatestMeasurement(shown) is { Success: true } m ? m.Milliseconds < 160 ? 3 : m.Milliseconds < 250 ? 2 : 1 : 0;
+            // Ступени — только рядом с числом: у «нет ответа» и «давно» пустые ступени лишь теснили слова.
+            Home.ServerBars.Visibility = row.Latency.EndsWith(" мс", StringComparison.Ordinal) ? Visibility.Visible : Visibility.Collapsed;
         }
         var rules = siteRules.Count + programRules.Count;
         Home.RulesCount.Text = rules > 0 ? rules.ToString() : "";

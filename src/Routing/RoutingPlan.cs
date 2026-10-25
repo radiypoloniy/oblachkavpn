@@ -33,14 +33,17 @@ public static class RoutingPlan
                 ["version"] = "5", ["username"] = entry.User, ["password"] = entry.Password
             };
 
+    // Цель — домен, подсеть или порт (SiteTarget).
     public static SiteRule Create(string domain, SiteAction action)
     {
+        if (!Enum.IsDefined(action)) throw new UserError("Неизвестное действие правила.");
+        if (SiteTarget.TryNormalize(domain) is { } target) return new(target, action);
         domain = domain.Trim().TrimEnd('.');
         try { domain = new IdnMapping().GetAscii(domain).ToLowerInvariant(); }
         catch (ArgumentException) { throw new UserError("Укажите домен сайта, например example.com."); }
         if (!Enum.IsDefined(action) || domain.Length is < 3 or > 253 || !domain.Contains('.') ||
             System.Net.IPAddress.TryParse(domain, out _) || domain.Split('.').Any(p => p.Length is < 1 or > 63 || p.StartsWith('-') || p.EndsWith('-') || p.Any(c => !(char.IsAsciiLetterOrDigit(c) || c == '-'))))
-            throw new UserError("Нужен домен без https://, пути, порта и звёздочек.");
+            throw new UserError("Нужен домен (example.com), подсеть (10.20.0.0/16) или порт (port:25) — без https://, пути и звёздочек.");
         return new(domain, action);
     }
     public static void Validate(IReadOnlyList<SiteRule>? rules)
@@ -61,7 +64,7 @@ public static class RoutingPlan
         if (profile.Core != adapter.Kind) throw new UserError("Ядро не соответствует профилю.");
         // Бесплатный чужой узел: заслоны ForeignGuard впереди правил человека.
         if (profile.IsFree) rules = ForeignGuard.With(rules, 100);
-        var config = adapter.RuntimeConfig(profile.Outbound, port);
+        var config = adapter.RuntimeConfig(Utls.For(profile).Outbound, port);
         var outbounds = (JsonArray)config["outbounds"]!;
         var xray = adapter.Kind == CoreKind.Xray;
         // Метка туннеля одна у всех ядер (CoreAdapter); у WireGuard он в endpoints, а не первым в outbounds.
@@ -80,14 +83,14 @@ public static class RoutingPlan
             else ((JsonArray)config["route"]!["rules"]!).Insert(0, new JsonObject { ["action"] = "sniff" });
         }
         var compiled = new JsonArray();
-        foreach (var rule in rules.OrderByDescending(r => r.Domain.Count(c => c == '.')))
+        foreach (var rule in rules.OrderByDescending(r => SiteTarget.Order(r.Domain)))
         {
             var destination = rule.Action == SiteAction.Direct ? "user-direct" : rule.Action == SiteAction.Block ? "user-block" : tunnelTag;
-            compiled.Add(xray
-                ? new JsonObject { ["type"] = "field", ["domain"] = new JsonArray("domain:" + rule.Domain), ["outboundTag"] = destination }
-                : rule.Action == SiteAction.Block
-                    ? new JsonObject { ["domain_suffix"] = new JsonArray(rule.Domain), ["action"] = "reject" }
-                    : new JsonObject { ["domain_suffix"] = new JsonArray(rule.Domain), ["outbound"] = destination });
+            var match = xray ? SiteTarget.Xray(rule.Domain) : SiteTarget.SingBox(rule.Domain);
+            if (xray) { match["type"] = "field"; match["outboundTag"] = destination; }
+            else if (rule.Action == SiteAction.Block) match["action"] = "reject";
+            else match["outbound"] = destination;
+            compiled.Add(match);
         }
         if (profile.IsFree) compiled.Insert(0, xray ? ForeignGuard.XrayHttpRule("user-block") : ForeignGuard.SingBoxHttpRule());
         if (routing is not null)
