@@ -11,8 +11,8 @@ public sealed record ServerTweak(string? Fingerprint = null, bool Fragment = fal
     // Отпечатки для подбора: самые распространённые браузеры и случайный.
     public static readonly string[] TriedFingerprints = ["chrome", "firefox", "safari", "random"];
 
-    public bool IsEmpty => Fingerprint is null && !Fragment && !Bbr;
-    public bool Valid => Fingerprint is null || Utls.Names.Contains(Fingerprint);
+    [System.Text.Json.Serialization.JsonIgnore] public bool IsEmpty => Fingerprint is null && !Fragment && !Bbr;
+    [System.Text.Json.Serialization.JsonIgnore] public bool Valid => Fingerprint is null || Utls.Names.Contains(Fingerprint);
 
     public static string Key(Profile profile) => profile.Source + ":" + profile.Name;
 
