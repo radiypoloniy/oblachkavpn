@@ -96,6 +96,8 @@ public partial class MainWindow
             case "group-refresh": await LoadSubscriptionAsync(group.Sources, group.PreferredSource); break;
             case "group-unhide": UnhideServers(group.Id); break;
             case "group-hide-junk": HideJunk(group.Id); break;
+            // «Убрать» у бесплатных — выключить их: иначе включённая настройка тут же загружала список снова.
+            case "group-remove" when group.Id == FreeServers.GroupId: await TurnFreeOffAsync(); break;
             case "group-remove":
                 if (!ConfirmRemoveGroup(group)) return;
                 RemoveGroup(group.Id);

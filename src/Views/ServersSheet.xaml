@@ -181,6 +181,7 @@
           <sys:String>Мобильный</sys:String>
           <sys:String>Белые списки</sys:String>
         </ListBox>
+        <Button x:Name="FreeOff" Content="Выключить бесплатные" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Padding="0" Margin="2,6,0,0"/>
         <TextBlock x:Name="FreeStatus" Style="{StaticResource Small}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="2,8,0,0" Visibility="Collapsed"/>
         <TextBlock Text="Чужие серверы: их владельцы видят, какие сайты вы открываете. Не входите через них в банк, почту и Госуслуги." FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource WF}" TextWrapping="Wrap" Margin="2,8,0,0"/>
       </StackPanel>

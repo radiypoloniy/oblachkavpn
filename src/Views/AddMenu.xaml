@@ -28,6 +28,14 @@
             <TextBlock Text="Найти QR-код на экране" Margin="12,0,0,0" VerticalAlignment="Center"/>
           </StackPanel>
         </Button>
+        <!-- Бесплатные чужие серверы: включаются с предупреждением (MainWindow.Free), здесь же выключаются. -->
+        <Button x:Name="FreeButton" Style="{StaticResource MenuRow}" AutomationProperties.Name="Бесплатные серверы">
+          <StackPanel Orientation="Horizontal">
+            <Path Data="{StaticResource IcoGlobe}" Style="{StaticResource Icon}" Width="16" Height="16" StrokeThickness="2"/>
+            <TextBlock Text="Бесплатные серверы" Margin="12,0,0,0" VerticalAlignment="Center"/>
+            <TextBlock x:Name="FreeSub" Text="на свой риск" Style="{StaticResource Small}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
         <Button x:Name="SubscriptionButton" Style="{StaticResource MenuRow}" AutomationProperties.Name="Подписки и ключ">
           <StackPanel Orientation="Horizontal">
             <Path Data="{StaticResource IcoKey}" Style="{StaticResource Icon}" Width="16" Height="16" StrokeThickness="2"/>

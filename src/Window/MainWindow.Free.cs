@@ -3,8 +3,8 @@ using System.Windows;
 namespace Oblachka;
 
 // Бесплатные серверы «на свой риск» (FreeServers): согласие, загрузка списков, вкладка «Бесплатные»
-// с выбором списка и плашка на главном экране, пока трафик идёт через чужой узел. Включаются только
-// в «Настройки → Подключение» и больше нигде не предлагаются.
+// с выбором списка и плашка на главном экране, пока трафик идёт через чужой узел. Включаются в меню
+// «Добавить сервер» и в «Подписки и ключ» — с согласием; выключаются там же, во вкладке и «Убрать».
 public partial class MainWindow
 {
     // Версия текста согласия: новый текст — спросить заново (ClientSnapshot.FreeConsent).
@@ -34,11 +34,36 @@ public partial class MainWindow
             freeList = (FreeList)Servers.FreeKind.SelectedIndex; QueueStateSave();
             await LoadFreeAsync(force: true);
         };
+        Servers.FreeOff.Click += async (_, _) => await TurnFreeOffAsync();
+        Servers.Add.FreeButton.Click += async (_, _) =>
+        {
+            if (freeList is not null) { await TurnFreeOffAsync(); return; }
+            Servers.AddPopup.IsOpen = false;
+            Settings.FreeServers.IsChecked = true;
+            await ToggleFreeAsync(true);
+        };
         Servers.GroupTabs.SelectionChanged += async (_, _) =>
         {
             RefreshFreePanel();
             if (FreeTabSelected) await LoadFreeAsync(force: groups.All(g => g.Id != FreeServers.GroupId));
         };
+    }
+
+    // Выключить бесплатные из «Серверов» (вкладка, «Убрать» у группы, меню «Добавить сервер»).
+    private async Task TurnFreeOffAsync()
+    {
+        if (!AppDialog.Confirm(this, "Выключить бесплатные серверы?", "Список бесплатных серверов уберётся и больше не будет загружаться. Включить снова — в меню «Добавить сервер».", "Выключить")) return;
+        Settings.FreeServers.IsChecked = false;
+        await ToggleFreeAsync(false);
+        Servers.AddPopup.IsOpen = false;
+        DetailText.Text = "Бесплатные серверы выключены.";
+    }
+
+    // Строка в меню «Добавить сервер»: включить (с прежним согласием) или выключить.
+    private void RefreshFreeEntry()
+    {
+        var on = freeList is not null;
+        Servers.Add.FreeSub.Text = on ? "включены — выключить" : "на свой риск";
     }
 
     private void RestoreFree(ClientSnapshot snapshot)
@@ -137,7 +162,13 @@ public partial class MainWindow
         Servers.FreeStatus.Visibility = text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
     }
 
-    private void RefreshFreePanel() =>
+    private void RefreshFreePanel()
+    {
+        RefreshFreeEntry();
+        ShowFreePanel();
+    }
+
+    private void ShowFreePanel() =>
         Servers.FreePanel.Visibility = FreeTabSelected && freeList is not null ? Visibility.Visible : Visibility.Collapsed;
 
     // Плашка, пока трафик идёт через бесплатный чужой узел.

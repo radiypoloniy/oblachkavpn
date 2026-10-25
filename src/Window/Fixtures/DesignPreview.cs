@@ -26,7 +26,7 @@ public static class DesignPreview
             if (page == "tray") { popup = main.CreateTrayPreview(); popup.Height = 420; target = popup; }
             if (page == "add")
             {
-                popup = new Window { Width = 384, Height = 380, Content = new Views.AddMenu() };
+                popup = new Window { Width = 384, Height = 430, Content = new Views.AddMenu() };
                 popup.SetResourceReference(System.Windows.Controls.Control.BackgroundProperty, "Page");
                 target = popup;
             }
