@@ -15,6 +15,7 @@
   --acs: #E3E6FF;
   --aci: #DFE2FF;
   --hov: #F1F2F8;
+  --hover-tint: rgba(27, 29, 58, 0.063);
   --hovs: #E6E9FF;
   --ring: #C9CDE3;
   --ok-b: #CFF0DC;
@@ -152,6 +153,7 @@
   --acs: #2C3170;
   --aci: #2C3170;
   --hov: #262A55;
+  --hover-tint: rgba(255, 255, 255, 0.102);
   --hovs: #30357A;
   --ring: #4A4F84;
   --ok-b: #173A2A;
@@ -259,6 +261,7 @@
   --acs: #2C3170;
   --aci: #2C3170;
   --hov: #262A55;
+  --hover-tint: rgba(255, 255, 255, 0.102);
   --hovs: #30357A;
   --ring: #4A4F84;
   --ok-b: #173A2A;

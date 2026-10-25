@@ -70,7 +70,7 @@
     <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusRing}"/>
     <Setter Property="HorizontalContentAlignment" Value="Center"/>
     <Setter Property="VerticalContentAlignment" Value="Center"/>
-    <Setter Property="Tag" Value="{DynamicResource Hov}"/>
+    <Setter Property="Tag" Value="{DynamicResource HoverTint}"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">

@@ -78,6 +78,12 @@ public partial class MainWindow
         checks.Add("Compact tray window reflects the selected profile without inventing connection metrics");
     }
 
+    // Превью в узком окне: открытый раздел — островом поверх панели, как после щелчка по пункту.
+    internal void NarrowPreview(double width)
+    {
+        Width = width; UpdateLayout(); narrowOpen = true; ApplyLayout(); UpdateLayout();
+    }
+
     internal void PrepareDesignPreview(string page)
     {
         if (page == "welcome") return;

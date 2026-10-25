@@ -85,10 +85,12 @@ public partial class MainWindow
         finally { core.Stop(); }
     }
 
-    // Куда сайт идёт сейчас — так же, как «Куда пойдёт сайт?»: правило сильнее zapret, zapret — списков.
-    private (SiteRoute Route, string Why) CurrentSiteRoute(string host)
+    // Куда сайт идёт сейчас: правило сильнее zapret, zapret — списков.
+    private (SiteRoute Route, string Why) CurrentSiteRoute(string host) =>
+        ConnectionActive ? SiteRouteByRules(host) : (SiteRoute.Off, "VPN выключен");
+
+    internal (SiteRoute Route, string Why) SiteRouteByRules(string host)
     {
-        if (!ConnectionActive) return (SiteRoute.Off, "VPN выключен");
         static bool Covers(string domain, string host) => host == domain || host.EndsWith("." + domain, StringComparison.Ordinal);
         static SiteRoute Of(SiteAction action) => action switch { SiteAction.Direct => SiteRoute.Direct, SiteAction.Block => SiteRoute.Block, _ => SiteRoute.Tunnel };
         if (siteRules.Where(r => Covers(r.Domain, host)).OrderByDescending(r => r.Domain.Length).FirstOrDefault() is { } rule)

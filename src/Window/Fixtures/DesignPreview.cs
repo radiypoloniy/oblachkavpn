@@ -11,6 +11,9 @@ public static class DesignPreview
         FlagImages.AllowNetwork = false;
         var app = new Application();
         var main = new MainWindow(persistenceEnabled: false);
+        // «app@420» — та же страница в окне шириной 420: узкие раскладки.
+        double? width = null;
+        if (page.LastIndexOf('@') is var at and > 0 && double.TryParse(page[(at + 1)..], out var w)) { width = w; page = page[..at]; }
         if (page.EndsWith("-dark", StringComparison.Ordinal)) { ThemeManager.Apply(ThemeChoice.Dark); page = page[..^5]; }
         else ThemeManager.Apply(ThemeChoice.Light);
         Window? popup = null;
@@ -18,6 +21,7 @@ public static class DesignPreview
         {
             if (compact) { main.Width = 960; main.Height = 660; }
             main.PrepareDesignPreview(page);
+            if (width is { } narrow) main.NarrowPreview(narrow);
             Window target = main;
             if (page == "tray") { popup = main.CreateTrayPreview(); popup.Height = 420; target = popup; }
             if (page == "add")

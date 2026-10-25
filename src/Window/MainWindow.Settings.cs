@@ -27,7 +27,6 @@ public partial class MainWindow
         Settings.Subscription.SupportButton.Click += (_, _) => OpenLink(subscriptionMetadata?.SupportUrl, "страницу поддержки");
         Routes.RuleList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(RuleRowClick));
         Routes.ProgramList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(RuleRowClick));
-        Diagnostics.WhereInput.TextChanged += (_, _) => UpdateWhere();
     }
 
     // Сегмент переключателя из нескольких кнопок (тема, обход DPI).
@@ -76,7 +75,6 @@ public partial class MainWindow
 
         MarkCheck(Diagnostics.CoreOk, engine.ProcessId is not null);
         MarkCheck(Diagnostics.ProbeOk, lastProbe is { Success: true });
-        UpdateWhere();
     }
 
 
@@ -123,18 +121,4 @@ public partial class MainWindow
         ProgramRulesChanged();
     }
 
-    // «Куда пойдёт сайт?»: самое длинное подходящее правило сайта, иначе — через VPN.
-    private void UpdateWhere()
-    {
-        var host = Diagnostics.WhereInput.Text.Trim().TrimEnd('.').ToLowerInvariant();
-        if (host.Length == 0) { Diagnostics.WhereResult.Text = ""; return; }
-        var rule = siteRules.Where(r => host == r.Domain || host.EndsWith("." + r.Domain, StringComparison.Ordinal))
-            .OrderByDescending(r => r.Domain.Length).FirstOrDefault();
-        // Правило пользователя сильнее списков; списки — сильнее «всё остальное через VPN».
-        var listed = rule is null ? whereRouting?.Decide(host) : null;
-        var action = rule?.Action ?? listed ?? SiteAction.Tunnel;
-        Diagnostics.WhereResult.Text = "→ " + RuleRow.ActionLabel(action) + (rule is not null ? " · " + rule.Domain : listed is not null ? " · по спискам" : "");
-        Diagnostics.WhereResult.SetResourceReference(TextBlock.ForegroundProperty, action switch
-        { SiteAction.Direct => "OkF", SiteAction.Block => "RF", _ => "Ac" });
-    }
 }

@@ -1,4 +1,4 @@
-<UserControl x:Class="Oblachka.Views.ServersSheet" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+﻿<UserControl x:Class="Oblachka.Views.ServersSheet" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:o="clr-namespace:Oblachka" xmlns:v="clr-namespace:Oblachka.Views" xmlns:sys="clr-namespace:System;assembly=System.Runtime" FontFamily="{StaticResource UiFont}" Foreground="{DynamicResource Tx}" Background="{DynamicResource Bg}">
   <!-- «Серверы» (облик 0.20, v2): список во всю высоту. Шапка — заголовок, поиск, пинг, подписки;
        ниже вкладки подписок и порядок одной строкой; закреплённая карточка автовыбора (пул и
@@ -32,7 +32,19 @@
             <DockPanel>
               <TextBlock DockPanel.Dock="Right" Text="{Binding Latency}" FontSize="{StaticResource FsBody}" FontWeight="Bold" MinWidth="56" TextAlignment="Right" VerticalAlignment="Center" ToolTip="{Binding LatencyHint}"/>
               <v:PixelBars DockPanel.Dock="Right" Kind="Steps" Width="22" Height="10" Margin="10,0,0,0" VerticalAlignment="Center" Filled="{Binding PingSteps}" Fill="{Binding LatencyDot}" Empty="{DynamicResource Pixel}" Visibility="{Binding LatencyVisibility}"/>
-              <TextBlock DockPanel.Dock="Right" Text="{Binding Speed}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu2}" MinWidth="64" TextAlignment="Right" VerticalAlignment="Center"/>
+              <!-- Скорость и на её месте при наведении — «проверить» и «убрать»: кнопки не держат
+                   пустые 64 пикселя у звезды. Для экранного диктора они есть всегда. -->
+              <Grid DockPanel.Dock="Right" MinWidth="64">
+                <TextBlock x:Name="SpeedText" Text="{Binding Speed}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu2}" TextAlignment="Right" VerticalAlignment="Center"/>
+                <StackPanel x:Name="RowTools" Orientation="Horizontal" HorizontalAlignment="Right" Opacity="0" IsHitTestVisible="False">
+                  <Button x:Name="CheckButton" Tag="check" Style="{StaticResource IconButton}" Width="32" Height="32" AutomationProperties.Name="Проверить этот сервер" ToolTip="Проверить этот сервер">
+              <Path Data="{StaticResource IcoRefresh}" Width="15" Height="15" Stretch="Uniform" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Mu2}"/>
+            </Button>
+                  <Button x:Name="RemoveButton" Tag="remove" Style="{StaticResource IconButton}" Width="32" Height="32" AutomationProperties.Name="Убрать сервер" ToolTip="Убрать сервер">
+              <Path Data="{StaticResource IcoClose}" Width="11" Height="11" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stroke="{DynamicResource Mu2}"/>
+            </Button>
+                </StackPanel>
+              </Grid>
               <Grid Width="22" Height="22" Margin="0,0,12,0" VerticalAlignment="Center">
                 <Ellipse Visibility="{Binding FlagVisibility}" Stroke="{DynamicResource FlagRing}" StrokeThickness="1">
                   <Ellipse.Fill><ImageBrush ImageSource="{Binding Flag}" Stretch="UniformToFill"/></Ellipse.Fill>
@@ -41,19 +53,14 @@
                   <Path x:Name="IconGlyph" Data="{Binding Icon}" Width="12" Height="12" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Ac}"/>
                 </Border>
               </Grid>
-              <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsRowLarge}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="240"/>
-                <TextBlock Text="{Binding Detail}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Fa}" Margin="8,1,0,0" TextTrimming="CharacterEllipsis" MaxWidth="170" VerticalAlignment="Center"/>
-                <TextBlock Text="выбран" FontSize="{StaticResource FsSmall}" FontWeight="SemiBold" Foreground="{DynamicResource Ac}" Margin="8,1,0,0" VerticalAlignment="Center" Visibility="{Binding SelectedVisibility}"/>
-              </StackPanel>
+              <!-- DockPanel, а не StackPanel: название обрезается многоточием, а не пропадает в узком окне;
+                   протокол уступает место первым. -->
+              <DockPanel VerticalAlignment="Center" Margin="0,0,8,0">
+                <TextBlock DockPanel.Dock="Left" Text="{Binding Name}" FontSize="{StaticResource FsRowLarge}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="240"/>
+                <TextBlock DockPanel.Dock="Right" Text="выбран" FontSize="{StaticResource FsSmall}" FontWeight="SemiBold" Foreground="{DynamicResource Ac}" Margin="8,1,0,0" VerticalAlignment="Center" Visibility="{Binding SelectedVisibility}"/>
+                <TextBlock Text="{Binding Detail}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Fa}" Margin="8,1,0,0" TextTrimming="CharacterEllipsis" MaxWidth="170" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+              </DockPanel>
             </DockPanel>
-          </Button>
-          <!-- Проверка одного сервера и «убрать»: видны при наведении и фокусе, для экранного диктора есть всегда. -->
-          <Button x:Name="CheckButton" Grid.Column="1" Tag="check" Style="{StaticResource IconButton}" Width="32" Height="32" Opacity="0" AutomationProperties.Name="Проверить этот сервер" ToolTip="Проверить этот сервер">
-            <Path Data="{StaticResource IcoRefresh}" Width="15" Height="15" Stretch="Uniform" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Mu2}"/>
-          </Button>
-          <Button x:Name="RemoveButton" Grid.Column="2" Tag="remove" Style="{StaticResource IconButton}" Width="32" Height="32" Opacity="0" AutomationProperties.Name="Убрать сервер" ToolTip="Убрать сервер">
-            <Path Data="{StaticResource IcoClose}" Width="11" Height="11" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stroke="{DynamicResource Mu2}"/>
           </Button>
           <Button x:Name="StarButton" Grid.Column="3" Tag="star" Style="{StaticResource IconButton}" Width="34" Height="34" Margin="0,0,2,0" AutomationProperties.Name="Избранное" Visibility="Visible">
             <Path x:Name="StarGlyph" Data="{StaticResource IcoStar}" Width="16" Height="16" Stretch="Uniform" StrokeThickness="1.8" StrokeLineJoin="Round" Stroke="{DynamicResource Ring}" Fill="Transparent"/>
@@ -76,11 +83,14 @@
           <Setter TargetName="RemoveButton" Property="Visibility" Value="Collapsed"/>
         </DataTrigger>
         <Trigger SourceName="Plate" Property="IsMouseOver" Value="True">
-          <Setter TargetName="CheckButton" Property="Opacity" Value="1"/>
-          <Setter TargetName="RemoveButton" Property="Opacity" Value="1"/>
+          <Setter TargetName="RowTools" Property="Opacity" Value="1"/>
+          <Setter TargetName="RowTools" Property="IsHitTestVisible" Value="True"/>
+          <Setter TargetName="SpeedText" Property="Visibility" Value="Hidden"/>
         </Trigger>
-        <Trigger SourceName="RemoveButton" Property="IsKeyboardFocused" Value="True"><Setter TargetName="RemoveButton" Property="Opacity" Value="1"/></Trigger>
-        <Trigger SourceName="CheckButton" Property="IsKeyboardFocused" Value="True"><Setter TargetName="CheckButton" Property="Opacity" Value="1"/></Trigger>
+        <Trigger SourceName="RowTools" Property="IsKeyboardFocusWithin" Value="True">
+          <Setter TargetName="RowTools" Property="Opacity" Value="1"/>
+          <Setter TargetName="SpeedText" Property="Visibility" Value="Hidden"/>
+        </Trigger>
         <DataTrigger Binding="{Binding IconMuted}" Value="True">
           <Setter TargetName="IconPlate" Property="Background" Value="{DynamicResource Field}"/>
           <Setter TargetName="IconGlyph" Property="Stroke" Value="{DynamicResource Mu2}"/>
@@ -110,7 +120,8 @@
         <Path Data="{StaticResource IcoBack}" Style="{StaticResource Icon}" StrokeThickness="2.2"/>
       </Button>
       <TextBlock Text="Серверы" Style="{StaticResource PageHead}" Margin="10,0,16,0" VerticalAlignment="Center"/>
-      <Grid VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True">
+      <Grid x:Name="HeaderSearchSlot" VerticalAlignment="Center">
+      <Grid x:Name="SearchField" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True">
         <TextBox x:Name="SearchBox" Height="38" Padding="34,0,12,0" FontSize="{StaticResource FsBody}" VerticalContentAlignment="Center" BorderThickness="0"
                  Background="{DynamicResource Field}" Foreground="{DynamicResource Tx}" CaretBrush="{DynamicResource Tx}" AutomationProperties.Name="Найти сервер">
           <TextBox.Template>
@@ -134,9 +145,12 @@
         <Path Data="{StaticResource IcoSearch}" Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource Fa}" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
               HorizontalAlignment="Left" VerticalAlignment="Center" Margin="13,0,0,0" IsHitTestVisible="False"/>
       </Grid>
+      </Grid>
     </DockPanel>
 
     <StackPanel Grid.Row="1" Margin="24,0,20,0">
+      <!-- В узком окне поиск — здесь, во всю ширину: в шапке рядом с заголовком от него оставалась одна буква. -->
+      <Grid x:Name="NarrowSearchSlot" Margin="0,0,0,10" Visibility="Collapsed"/>
       <!-- Вкладки подписок и порядок — одной строкой. Порядок — меню у «Лучшие сверху ▾». -->
       <DockPanel>
         <Button x:Name="SortButton" DockPanel.Dock="Right" Style="{StaticResource Plain}" Tag="Transparent" Padding="8,0" Height="32" VerticalAlignment="Center" AutomationProperties.Name="Порядок серверов">

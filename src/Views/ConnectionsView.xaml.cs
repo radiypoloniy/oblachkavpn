@@ -24,6 +24,7 @@ public partial class ConnectionsView : UserControl
     {
         InitializeComponent();
         BackButton.Click += (_, _) => Closed?.Invoke();
+        SizeChanged += (_, args) => Fit(args.NewSize.Width);
         SearchBox.TextChanged += (_, _) => Filter();
         Filters.ItemsSource = new[] { "Все", "Через VPN", "Напрямую", "С правилом" };
         Filters.SelectedIndex = 0;
@@ -33,6 +34,22 @@ public partial class ConnectionsView : UserControl
         {
             if ((args.OriginalSource as FrameworkElement)?.DataContext is ConnectionRow row) { Toggle(row); args.Handled = true; }
         }), true);
+    }
+
+    // Узкий остров: переключатель режима — строкой под заголовком, поиск — под фильтрами во всю ширину.
+    private void Fit(double width)
+    {
+        var narrow = width < 640;
+        var host = narrow ? NarrowModeSlot : HeaderModeSlot;
+        if (ModeTrack.Parent is Panel from && from != host) { from.Children.Remove(ModeTrack); host.Children.Add(ModeTrack); }
+        NarrowModeSlot.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
+        DockPanel.SetDock(SearchBox, narrow ? Dock.Bottom : Dock.Right);
+        SearchBox.Width = narrow ? double.NaN : 200;
+        SearchBox.Margin = narrow ? new Thickness(0, 8, 0, 0) : new Thickness(12, 0, 0, 0);
+        // Подвал: кнопка правил — строкой ниже, иначе «Локальная сеть напрямую» ужималась до «Локал…».
+        DockPanel.SetDock(RulesOpen, narrow ? Dock.Bottom : Dock.Right);
+        RulesOpen.Margin = narrow ? new Thickness(0, 10, 0, 0) : new Thickness(0);
+        RulesOpen.HorizontalAlignment = narrow ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
     }
 
     // focus — человек открыл раздел сам; при открытии по умолчанию фокус поиск не отбирает.

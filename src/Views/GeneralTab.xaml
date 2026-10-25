@@ -4,13 +4,9 @@
        настроек. Всё про сеть — в «Программах и сайтах», «Серверах» и «Помощи». -->
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="24,0,24,20">
-      <!-- Запуск слева, вид справа; обновления и перенос — на всю ширину (макет «Приложение»). -->
-      <Grid>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*"/>
-          <ColumnDefinition Width="28"/>
-          <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+      <!-- Одна колонка: в две «Вид» выходил узким, а в узком окне строки «Запуска» ломались
+           по слову в строке. Плитки темы — рядом, не шире, чем нужно. -->
+      <StackPanel>
         <StackPanel>
         <TextBlock Text="Запуск" Style="{StaticResource SecHead}" Margin="0,0,0,4"/>
         <Border Style="{StaticResource OptRow}">
@@ -51,8 +47,10 @@
         </Border>
 
         </StackPanel>
-        <StackPanel Grid.Column="2">
-          <TextBlock Text="Вид" Style="{StaticResource SecHead}" Margin="0,0,0,8"/>
+        <StackPanel>
+          <TextBlock Text="Вид" Style="{StaticResource SecHead}"/>
+          <!-- Столбец до 420: плитки тянутся в узком окне и не расползаются в широком. -->
+          <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" MaxWidth="420"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
           <UniformGrid Columns="3">
             <Button x:Name="ThemeLight" Style="{StaticResource ThemeTile}" AutomationProperties.Name="Светлая тема">
               <StackPanel>
@@ -79,8 +77,9 @@
               </StackPanel>
             </Button>
           </UniformGrid>
+          </Grid>
         </StackPanel>
-      </Grid>
+      </StackPanel>
 
       <!-- Обновление без переустановки (AppUpdate): релизы GitHub, установщик по нажатию. -->
       <TextBlock Text="Обновления" Style="{StaticResource SecHead}"/>

@@ -153,7 +153,6 @@ public partial class MainWindow
                 (size.Length > 0 ? " Для этого скачаем базы адресов (" + size + ")." : "");
         }
         whereRouting = CurrentRouting();
-        UpdateWhere();
     }
 
     // Развёрнутые списки для «Куда пойдёт сайт?»: собираются при смене настроек, не на каждую букву.
