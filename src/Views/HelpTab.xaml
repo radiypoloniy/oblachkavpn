@@ -20,7 +20,9 @@
       <Button x:Name="RestoreNetwork" Content="Восстановить сеть" Style="{StaticResource BtnOutline}" Height="36" Padding="16,0" HorizontalAlignment="Left" Margin="0,8,0,0" Visibility="Collapsed"/>
 
       <TextBlock Text="Что случилось?" Style="{StaticResource SecHead}"/>
-      <UniformGrid Columns="2" Margin="0,4,-10,0">
+      <!-- Сетка, а не UniformGrid: тот тянул все карточки по самой высокой, и в узком окне они
+           раздувались. Раскладку (две колонки или одна) задаёт HelpTab.Arrange. -->
+      <Grid x:Name="SymptomGrid" Margin="0,4,-10,0">
         <Border Style="{StaticResource Symptom}" Background="{DynamicResource SkyTint}">
           <DockPanel>
             <TextBlock DockPanel.Dock="Top" Text="Видео через VPN тормозит или рвётся" Style="{StaticResource SymptomQ}"/>
@@ -87,7 +89,7 @@
             </StackPanel>
           </DockPanel>
         </Border>
-      </UniformGrid>
+      </Grid>
 
       <TextBlock Text="Связь сейчас" Style="{StaticResource SecHead}" Margin="0,8,0,4"/>
       <Border Style="{StaticResource OptRow}">

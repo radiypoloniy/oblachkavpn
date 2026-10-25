@@ -84,24 +84,46 @@ public partial class MainWindow
         DetailText.Text = "Загружаем бесплатные серверы («" + FreeServers.Label(list) + "») и проверяем, какие отвечают…";
         try
         {
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(4));
             var parsed = new List<Profile>();
             foreach (var file in FreeServers.Files(list)) parsed.AddRange(await FreeServers.FetchAsync(file, timeout.Token));
             var candidates = FreeServers.Prepare(parsed);
-            var latency = new System.Collections.Concurrent.ConcurrentDictionary<Profile, long>();
-            await ServerPing.PingAllAsync(candidates, (p, ms) => { if (ms is { } value) latency[p] = value; }, timeout.Token);
+            // Отклик рукопожатия — только быстрый отсев, и только без «Весь компьютер»: под ним стек
+            // туннеля отвечает на рукопожатие сам, и любой адрес «отвечал» за 1–2 мс.
+            var shortlist = candidates;
+            if (systemTunnel is null)
+            {
+                var latency = new System.Collections.Concurrent.ConcurrentDictionary<Profile, long>();
+                await ServerPing.PingAllAsync(candidates, (p, ms) => { if (ms is { } value) latency[p] = value; }, timeout.Token);
+                shortlist = candidates.Where(p => latency.ContainsKey(p) || ServerPing.Endpoint(p) is null).OrderBy(p => latency.GetValueOrDefault(p, long.MaxValue)).ToArray();
+            }
+            shortlist = shortlist.Take(FreeServers.Checked).ToArray();
+            // Остаются только серверы, через которые прошёл настоящий запрос (отдельным ядром, как
+            // «Обновить пинг»). Под «Весь компьютер» проверка идёт через туннель — задержка с ним.
+            var works = new Dictionary<string, ServerMeasurement>();
+            var done = 0;
+            FreeStatus($"Проверяем, через какие серверы открываются сайты: 0 из {shortlist.Count}…");
+            await ServerMeasurements.MeasureAsync(shortlist, MeasureEngine, m =>
+            {
+                if (m.Success) works[m.Fingerprint] = m;
+                if (!closed) FreeStatus($"Проверяем, через какие серверы открываются сайты: {++done} из {shortlist.Count}, работают {works.Count}…");
+            }, timeout.Token, route: p => p);
             if (closed || freeList != list) return;
-            var best = FreeServers.Best(candidates, p => latency.TryGetValue(p, out var ms) ? ms : null);
-            if (best.Count == 0) { FreeStatus(DetailText.Text = "Бесплатных серверов, которые отвечают, сейчас нет. Попробуйте другой список или позже."); return; }
+            var best = shortlist.Where(p => works.ContainsKey(Profiles.Fingerprint(p))).OrderBy(p => works[Profiles.Fingerprint(p)].Milliseconds).Take(FreeServers.Shown).ToArray();
+            if (best.Length == 0) { FreeStatus(DetailText.Text = $"Из {shortlist.Count} проверенных бесплатных серверов сейчас не работает ни один. Попробуйте другой список или позже."); return; }
             try { SetGroup(new(FreeServers.GroupId, FreeServers.GroupName, ProfileSource.Free, []) { Updated = DateTimeOffset.UtcNow }, best); }
             catch (UserError ex) { FreeStatus(DetailText.Text = ex.Message); return; }
             FreeStatus("");
-            foreach (var p in best) MarkMeasured(ProfilesOf(FreeServers.GroupId).First(f => f.Name == p.Name), latency[p]);
+            foreach (var p in best)
+            {
+                var stored = Profiles.Fingerprint(ProfilesOf(FreeServers.GroupId).First(f => f.Name == p.Name));
+                measurements[stored] = works[Profiles.Fingerprint(p)] with { Fingerprint = stored };
+            }
             freeLoadedAt = DateTimeOffset.UtcNow;
             ApplyProfiles(preserveSelection: true);
-            DetailText.Text = $"Бесплатных серверов: {best.Count} — лучшие по отклику из {candidates.Count}. Чужие серверы: их владельцы видят, какие сайты вы открываете.";
+            DetailText.Text = $"Бесплатных серверов: {best.Length} — работают из {shortlist.Count} проверенных. Чужие серверы: их владельцы видят, какие сайты вы открываете.";
         }
-        catch (OperationCanceledException) { if (!closed) FreeStatus(DetailText.Text = "Бесплатные серверы не загрузились за минуту. Откройте вкладку снова, чтобы повторить."); }
+        catch (OperationCanceledException) { if (!closed) FreeStatus(DetailText.Text = "Бесплатные серверы не проверились за 4 минуты. Откройте вкладку снова, чтобы повторить."); }
         finally { freeLoading = false; UpdateControls(); }
     }
 
