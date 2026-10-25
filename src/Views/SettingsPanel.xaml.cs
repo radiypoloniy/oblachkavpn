@@ -10,11 +10,11 @@ namespace Oblachka.Views;
 // режим и локальная сеть — в «Программах и сайтах» (LiveView), переключение при обрыве — в
 // «Серверах» (ServersView), средства от бед — в «Помощи», запуск — в «Приложении».
 // Номера страниц прежние: 0 и 3 — «Приложение», 1 — «Обход блокировок», 2 — «Подписки и ключ»,
-// 4 — «Помощь», 5 — «Серверы автовыбора».
+// 4 — «Помощь», 5 — «Серверы автовыбора», 6 — «Для продвинутых».
 public partial class SettingsPanel : UserControl
 {
-    public const int ConnectionPage = 0, BypassPage = 1, SubscriptionPage = 2, AppPage = 3, HelpPage = 4, AutoPoolPage = 5;
-    private static readonly string[] Titles = { "Приложение", "Обход блокировок", "Подписки и ключ", "Приложение", "Помощь", "Серверы автовыбора" };
+    public const int ConnectionPage = 0, BypassPage = 1, SubscriptionPage = 2, AppPage = 3, HelpPage = 4, AutoPoolPage = 5, AdvancedPage = 6;
+    private static readonly string[] Titles = { "Приложение", "Обход блокировок", "Подписки и ключ", "Приложение", "Помощь", "Серверы автовыбора", "Для продвинутых" };
 
     public SettingsPanel() => InitializeComponent();
 
@@ -59,7 +59,7 @@ public partial class SettingsPanel : UserControl
     // Смена страницы: сдвиг 4 → 0 и проявление за 200 мс.
     public void ShowTab(int index)
     {
-        UIElement[] pages = { General, Bypass, Subscription, General, Help, AutoPool };
+        UIElement[] pages = { General, Bypass, Subscription, General, Help, AutoPool, Advanced };
         index = Math.Clamp(index, 0, pages.Length - 1);
         CurrentPage = index;
         var page = pages[index];

@@ -22,6 +22,7 @@
       <v:SubscriptionTab x:Name="Subscription" Visibility="Collapsed"/>
       <v:HelpTab x:Name="Help" Visibility="Collapsed"/>
       <v:AutoPoolPage x:Name="AutoPool" Visibility="Collapsed"/>
+      <v:AdvancedPage x:Name="Advanced" Visibility="Collapsed"/>
     </Grid>
   </Grid>
 </UserControl>

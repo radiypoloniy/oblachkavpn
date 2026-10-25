@@ -140,6 +140,8 @@ public static class Subscriptions
             with { Title = title, Announce = announce, UpdateInterval = interval, Routing = routing, SupportUrl = support, WebPageUrl = page, Provider = provider };
     }
 
+    public static string? ExternalUserAgent { get; set; }
+
     public static async Task<ImportResult> FetchAsync(string url, CancellationToken token, int? socksPort = null)
     {
         using var handler = new SocketsHttpHandler
@@ -162,7 +164,9 @@ public static class Subscriptions
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.UserAgent.ParseAdd(ServiceBrand.UserAgent);
+            // Сторонней подписке — свой User-Agent из «Для продвинутых», если задан: некоторые панели
+            // отдают список только «своим» клиентам. Сервис всегда видит Облачку.
+            request.Headers.TryAddWithoutValidation("User-Agent", ExternalUserAgent is { } agent && !ServiceBrand.IsServiceHost(uri.Host) ? agent : ServiceBrand.UserAgent);
             request.Headers.Accept.ParseAdd("text/plain, application/json");
             // Заголовки лимита устройств (HWID в Remnawave): без x-hwid панель с включённым лимитом
             // отдаёт 404. Сервису — идентификатор установки, сторонней подписке — свой для её хоста

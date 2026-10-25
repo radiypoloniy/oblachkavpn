@@ -119,6 +119,17 @@
           </StackPanel>
         </DockPanel>
       </Border>
+      <!-- Тонкая настройка (AdvancedPage): тем, кто пришёл из Throne, v2rayN или Happ. -->
+      <TextBlock Text="Для продвинутых" Style="{StaticResource SecHead}"/>
+      <Border Style="{StaticResource Plate}">
+        <DockPanel>
+          <Button x:Name="AdvancedOpen" DockPanel.Dock="Right" Content="Открыть" Style="{StaticResource BtnOutline}" Height="36" Padding="16,0" Margin="8,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="Открыть настройки для продвинутых"/>
+          <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+            <TextBlock x:Name="AdvancedTitle" Text="Тонкая настройка" Style="{StaticResource OptTitle}"/>
+            <TextBlock x:Name="AdvancedNote" Text="Стек и MTU туннеля, свой DNS, подсети мимо VPN, фрагментация, порт прокси" Style="{StaticResource OptSub}"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
       <TextBlock x:Name="VersionText" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Fa}" HorizontalAlignment="Center" Margin="0,16,0,0"/>
 
       <!-- Выбор режима хранится в этих флажках: от них зависит вся логика подключения.

@@ -50,6 +50,7 @@ public static partial class SelfTests
         await WfpChecksAsync(CheckAsync);
         await ReinjectionChecksAsync(CheckAsync);
         await DirectAppsChecksAsync(CheckAsync);
+        await AdvancedChecksAsync(CheckAsync);
         await RuleChecksAsync(CheckAsync);
         await ProgramScopeChecksAsync(CheckAsync);
         await HelperHostChecksAsync(CheckAsync);

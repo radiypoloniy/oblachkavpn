@@ -1,0 +1,116 @@
+<UserControl x:Class="Oblachka.Views.AdvancedPage" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="clr-namespace:Oblachka">
+  <!-- «Для продвинутых» (AdvancedOptions): тонкая настройка в облике остальных страниц — строки
+       «подпись слева, значение справа», поле под подписью, где значение длинное. Пустое поле —
+       как без настройки. Значение сохраняется при уходе из поля или по Enter (MainWindow.Advanced). -->
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="24,0,24,20">
+      <TextBlock Text="Для тех, кто знает, зачем это нужно. Пустое поле — как без настройки. Настройки туннеля действуют со следующего подключения." Style="{StaticResource OptSub}" Margin="0,0,0,4"/>
+
+      <TextBlock Text="Туннель «Весь компьютер»" Style="{StaticResource SecHead}"/>
+      <Border Style="{StaticResource OptRow}">
+        <StackPanel>
+          <TextBlock Text="Сетевой стек" Style="{StaticResource OptTitle}"/>
+          <TextBlock Text="gvisor быстрее; mixed и system — для игр и программ, которым он мешает" Style="{StaticResource OptSub}"/>
+          <!-- Под подписью, а не справа: в узком окне четыре кнопки съедали ширину подписи. -->
+          <Border Style="{StaticResource SegTrack}" HorizontalAlignment="Left" Margin="0,8,0,0">
+            <StackPanel Orientation="Horizontal">
+              <Button x:Name="StackAuto" Content="Сам" Style="{StaticResource SegButton}" AutomationProperties.Name="Стек: сам"/>
+              <Button x:Name="StackGvisor" Content="gvisor" Style="{StaticResource SegButton}" AutomationProperties.Name="Стек gvisor"/>
+              <Button x:Name="StackMixed" Content="mixed" Style="{StaticResource SegButton}" AutomationProperties.Name="Стек mixed"/>
+              <Button x:Name="StackSystem" Content="system" Style="{StaticResource SegButton}" AutomationProperties.Name="Стек system"/>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource OptRow}">
+        <StackPanel>
+          <DockPanel>
+            <TextBox x:Name="MtuInput" DockPanel.Dock="Right" Style="{StaticResource FieldBox}" Width="110" Height="36" Tag="9000" Margin="12,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="MTU"/>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="MTU" Style="{StaticResource OptTitle}"/>
+              <TextBlock Text="От 1280 до 9000. Пусто — 9000, с «Совместимостью с играми» — 1500" Style="{StaticResource OptSub}"/>
+            </StackPanel>
+          </DockPanel>
+          <TextBlock x:Name="MtuError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource OptRow}" BorderThickness="0">
+        <StackPanel>
+          <TextBlock Text="Подсети мимо туннеля" Style="{StaticResource OptTitle}"/>
+          <TextBlock Text="По одной в строке: рабочая сеть, VPN работодателя. Трафик к ним идёт напрямую, минуя сервер" Style="{StaticResource OptSub}"/>
+          <TextBox x:Name="BypassInput" Style="{StaticResource FieldBox}" Height="76" Padding="12,8" Margin="0,8,0,0" VerticalContentAlignment="Top" AcceptsReturn="True" TextWrapping="NoWrap"
+                   VerticalScrollBarVisibility="Auto" FontFamily="{StaticResource MonoFont}" Tag="10.20.0.0/16" AutomationProperties.Name="Подсети мимо туннеля"/>
+          <TextBlock x:Name="BypassError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Text="DNS" Style="{StaticResource SecHead}"/>
+      <Border Style="{StaticResource OptRow}" BorderThickness="0">
+        <StackPanel>
+          <TextBlock Text="DNS через VPN" Style="{StaticResource OptTitle}"/>
+          <TextBlock Text="DoH (https://), DoT (tls://) или DoQ (quic://). Пусто — Cloudflare 1.1.1.1 через туннель" Style="{StaticResource OptSub}"/>
+          <TextBox x:Name="DnsInput" Style="{StaticResource FieldBox}" Height="36" Margin="0,8,0,0" FontFamily="{StaticResource MonoFont}" Tag="https://dns.example/dns-query" AutomationProperties.Name="DNS через VPN"/>
+          <TextBlock x:Name="DnsError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Text="Соединение с сервером" Style="{StaticResource SecHead}"/>
+      <Border Style="{StaticResource OptRow}" BorderThickness="0">
+        <StackPanel>
+          <TextBlock Text="Фрагментация рукопожатия" Style="{StaticResource OptTitle}"/>
+          <TextBlock Text="Для «Провайдер режет подключение» в «Помощи». Пусто — по умолчанию или как задал провайдер" Style="{StaticResource OptSub}"/>
+          <UniformGrid Columns="3" Margin="0,8,-8,0">
+            <StackPanel Margin="0,0,8,0">
+              <TextBlock Text="Куски" Style="{StaticResource OptSub}"/>
+              <TextBox x:Name="FragmentPackets" Style="{StaticResource FieldBox}" Height="36" Margin="0,4,0,0" FontFamily="{StaticResource MonoFont}" Tag="tlshello" AutomationProperties.Name="Фрагментация: куски"/>
+            </StackPanel>
+            <StackPanel Margin="0,0,8,0">
+              <TextBlock Text="Длина, байт" Style="{StaticResource OptSub}"/>
+              <TextBox x:Name="FragmentLength" Style="{StaticResource FieldBox}" Height="36" Margin="0,4,0,0" FontFamily="{StaticResource MonoFont}" Tag="50-100" AutomationProperties.Name="Фрагментация: длина"/>
+            </StackPanel>
+            <StackPanel Margin="0,0,8,0">
+              <TextBlock Text="Пауза, мс" Style="{StaticResource OptSub}"/>
+              <TextBox x:Name="FragmentInterval" Style="{StaticResource FieldBox}" Height="36" Margin="0,4,0,0" FontFamily="{StaticResource MonoFont}" Tag="5-10" AutomationProperties.Name="Фрагментация: пауза"/>
+            </StackPanel>
+          </UniformGrid>
+          <TextBlock x:Name="FragmentError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Text="Подписки и проверки" Style="{StaticResource SecHead}"/>
+      <Border Style="{StaticResource OptRow}">
+        <StackPanel>
+          <TextBlock Text="User-Agent сторонних подписок" Style="{StaticResource OptTitle}"/>
+          <TextBlock Text="Некоторые панели отдают список только «своим» клиентам, например Happ или v2rayN. Подписка сервиса — без изменений" Style="{StaticResource OptSub}"/>
+          <TextBox x:Name="UserAgentInput" Style="{StaticResource FieldBox}" Height="36" Margin="0,8,0,0" FontFamily="{StaticResource MonoFont}" AutomationProperties.Name="User-Agent сторонних подписок"/>
+          <TextBlock x:Name="UserAgentError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource OptRow}" BorderThickness="0">
+        <StackPanel>
+          <TextBlock Text="Адрес проверки связи" Style="{StaticResource OptTitle}"/>
+          <TextBlock Text="Этот сайт открывается через VPN, чтобы понять, жив ли туннель. Медленный сайт — ложные «обрывы» и переключения" Style="{StaticResource OptSub}"/>
+          <TextBox x:Name="ProbeInput" Style="{StaticResource FieldBox}" Height="36" Margin="0,8,0,0" FontFamily="{StaticResource MonoFont}" Tag="https://www.microsoft.com/" AutomationProperties.Name="Адрес проверки связи"/>
+          <TextBlock x:Name="ProbeError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Text="Прокси для программ" Style="{StaticResource SecHead}"/>
+      <Border Style="{StaticResource OptRow}" BorderThickness="0">
+        <StackPanel>
+          <DockPanel>
+            <TextBox x:Name="PortInput" DockPanel.Dock="Right" Style="{StaticResource FieldBox}" Width="110" Height="36" Tag="любой" Margin="12,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="Постоянный порт прокси"/>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="Постоянный порт" Style="{StaticResource OptTitle}"/>
+              <TextBlock Text="SOCKS и HTTP на 127.0.0.1 — чтобы не перенастраивать программы после перезапуска" Style="{StaticResource OptSub}"/>
+            </StackPanel>
+          </DockPanel>
+          <TextBlock x:Name="PortError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
+        </StackPanel>
+      </Border>
+
+      <Button x:Name="ResetButton" Content="Вернуть всё как было" Style="{StaticResource BtnOutline}" Height="36" Padding="16,0" HorizontalAlignment="Left" Margin="0,20,0,0"/>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

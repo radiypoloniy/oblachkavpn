@@ -85,6 +85,6 @@ public partial class MainWindow
         Ui.SetSelected(Home.AllServersButton, island && (Servers.Visibility == Visibility.Visible && !settings || shown is Views.SettingsPanel.SubscriptionPage or Views.SettingsPanel.AutoPoolPage));
         Ui.SetSelected(Home.RulesNav, rules);
         Ui.SetSelected(Home.HelpNav, shown == Views.SettingsPanel.HelpPage);
-        Ui.SetSelected(Home.SettingsButton, shown is Views.SettingsPanel.AppPage or Views.SettingsPanel.ConnectionPage);
+        Ui.SetSelected(Home.SettingsButton, shown is Views.SettingsPanel.AppPage or Views.SettingsPanel.ConnectionPage or Views.SettingsPanel.AdvancedPage);
     }
 }

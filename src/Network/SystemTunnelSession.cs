@@ -32,6 +32,8 @@ public sealed class SystemTunnelSession : IAsyncDisposable
     // Можно ли сейчас вести трафик прямо на сервер, минуя ядро окна: нет списков «напрямую» и
     // фрагментации TLS — их исполняет ядро окна. Решает окно, спрашивается при каждой смене узла.
     public Func<bool>? DirectAllowed { get; set; }
+    // «Для продвинутых»: стек, MTU, DNS, подсети мимо туннеля — со следующей сессии.
+    public TunnelTuning? Tuning { get; set; }
     // Идёт ли трафик сейчас прямо на сервер (одно ядро) — для отчёта и проверок.
     public bool DirectActive { get; private set; }
     private System.Text.Json.Nodes.JsonObject?[]? direct;
@@ -111,7 +113,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
                 // Запрос ограничен своим сроком в канале; отмена проверяется после него, и
                 // сессия снимается обычным Release.
                 BlocksBypass = await helper.AcquireAsync(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, leasePort, peers,
-                    sites?.ToArray(), programs?.ToArray(), coreDirect, directByDefault, Stats, direct, lists, localNetwork, quicOverTcp, compatibleStack, foreignNode), CancellationToken.None).ConfigureAwait(false);
+                    sites?.ToArray(), programs?.ToArray(), coreDirect, directByDefault, Stats, direct, lists, localNetwork, quicOverTcp, compatibleStack, foreignNode, Tuning), CancellationToken.None).ConfigureAwait(false);
                 DirectActive = direct?[0] is not null;
                 token.ThrowIfCancellationRequested();
                 Set(SystemTunnelState.Running);

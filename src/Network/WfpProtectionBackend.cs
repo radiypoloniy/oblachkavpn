@@ -60,8 +60,10 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
         if (lease.Action != NetworkLeaseAction.Acquire) throw new UserError("Для запуска нужна команда Acquire.");
         // direct=1 — пользователь сам отправил часть трафика мимо туннеля правилами: ядру туннеля
         // открыт любой адрес. local=1 — только локальная сеть: ядру туннеля открыты частные подсети.
+        // bypass= — подсети мимо туннеля из «Для продвинутых»: программам открыты они, и только они.
+        var bypass = lease.Tuning?.Subnets.Select(TunnelTuning.Normalize).ToArray() ?? [];
         var after = "sublayer=" + SublayerKey + (lease.HasDirect ? " direct=1" : "") + (lease.LocalNetwork ? " local=1" : "") +
-            " peers=" + string.Join(',', lease.Peers.Select(p => p.ToString()));
+            (bypass.Length > 0 ? " bypass=" + string.Join(',', bypass) : "") + " peers=" + string.Join(',', lease.Peers.Select(p => p.ToString()));
         return new[] { new NetworkChange(NetworkResourceKind.WfpProtection, ResourceId, null, after) };
     }
 
@@ -96,7 +98,17 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
     }
 
     private IReadOnlyList<WfpFilter> FiltersOf(NetworkChange change) =>
-        Filters(Peers(change), change.After.Contains(" direct=1 ", StringComparison.Ordinal), change.After.Contains(" local=1 ", StringComparison.Ordinal));
+        Filters(Peers(change), change.After.Contains(" direct=1 ", StringComparison.Ordinal), change.After.Contains(" local=1 ", StringComparison.Ordinal), Bypass(change));
+
+    // Подсети из журнала проверяются заново, как и адреса узлов: строку могли изменить.
+    private static string[] Bypass(NetworkChange change)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(change.After, @" bypass=(\S+) ");
+        if (!match.Success) return [];
+        var subnets = match.Groups[1].Value.Split(',');
+        if (AdvancedOptions.CheckSubnets(subnets) is { } problem) throw new UserError(problem);
+        return subnets;
+    }
 
     public NetworkWriteResult Restore(Guid leaseId, NetworkChange change)
     {
@@ -122,7 +134,7 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
     }
 
     // Состав фильтров. Вес внутри подслоя: разрешения выше запрета.
-    public IReadOnlyList<WfpFilter> Filters(IReadOnlyList<IPAddress> peers, bool direct = false, bool local = false)
+    public IReadOnlyList<WfpFilter> Filters(IReadOnlyList<IPAddress> peers, bool direct = false, bool local = false, IReadOnlyList<string>? bypass = null)
     {
         var list = new List<WfpFilter>();
         void Add(string name, bool v6, byte weight, bool permit, params WfpCondition[] conditions) =>
@@ -167,6 +179,8 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
                 // (mDNS, SSDP, WS-Discovery). Они идут на физический интерфейс и за пределы сети не выходят.
                 Add("локальная сеть для программ" + family, v6, 11, true, LocalSubnets(v6).Concat(Discovery(v6)).ToArray());
             }
+            // Подсети мимо туннеля («Для продвинутых»): маршрутами Windows, любой программе — как локальная сеть.
+            if (Subnets(bypass ?? [], v6).ToArray() is { Length: > 0 } bypassed) Add("подсети мимо туннеля" + family, v6, 11, true, bypassed);
             Add("запрет мимо туннеля" + family, v6, 0, false);
             // Пакеты уже разрешённых потоков слой соединений не видит. На снятии туннеля
             // соединения, жившие в нём, закрываются, и их FIN уходил на физический адаптер

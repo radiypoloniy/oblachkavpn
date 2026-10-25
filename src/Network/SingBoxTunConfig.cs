@@ -94,6 +94,7 @@ public static class SingBoxTunConfig
             }
         };
         AddServers(config, lease);
+        TunnelTuning.Apply(config, lease.Tuning, tunnel);
         AddRules(config, lease, programSets, tunnel);
         AddLists(config, lease, listsFolder, tunnel);
         if (lease.HasDirect && localDns is not null && ruleSet is not null) AddDirectDns(config, localDns, ruleSet);

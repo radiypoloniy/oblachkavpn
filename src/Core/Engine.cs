@@ -17,6 +17,8 @@ public sealed partial class Engine : ITunnelController
     private ProcessJob? job;
     private bool stopping;
     private int preferredPort;
+    // Постоянный порт локального прокси («Для продвинутых»); 0 — свободный, какой найдётся.
+    public int PreferredPort { get => preferredPort; set => preferredPort = value; }
     public int Port { get; private set; }
     public int? ProcessId => carrier is not null ? Environment.ProcessId : Alive(process, null) is { } p ? p.Id : null;
 

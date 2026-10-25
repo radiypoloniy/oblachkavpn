@@ -181,9 +181,15 @@ public partial class MainWindow
         Navigate(page switch { "servers" => "Servers", "routes" => "Routes", "diagnostics" => "Diagnostics", _ => "Connection" });
         if (page == "rules") ShowRulesSection();
         if (page is "settings" or "bypass" or "storage" or "app" or "help" or "autopool" or "advanced") SettingsClick(this, new RoutedEventArgs());
-        if (page is "bypass" or "storage" or "app" or "help" or "autopool")
+        if (page is "bypass" or "storage" or "app" or "help" or "autopool" or "advanced")
             Settings.ShowTab(page switch { "bypass" => Views.SettingsPanel.BypassPage, "storage" => Views.SettingsPanel.SubscriptionPage, "app" => Views.SettingsPanel.AppPage,
-                "autopool" => Views.SettingsPanel.AutoPoolPage, _ => Views.SettingsPanel.HelpPage });
+                "autopool" => Views.SettingsPanel.AutoPoolPage, "advanced" => Views.SettingsPanel.AdvancedPage, _ => Views.SettingsPanel.HelpPage });
+        // Заполненный раздел: видно и значения, и подпись ошибки под полем.
+        if (page == "advanced")
+        {
+            RestoreAdvanced(AdvancedOptions.Default with { Stack = TunnelStack.Mixed, Mtu = 1400, BypassSubnets = ["10.20.0.0/16", "192.168.77.0/24"], TunnelDns = "https://dns.adguard-dns.com/dns-query" });
+            Settings.Advanced.PortInput.Text = "80"; Settings.Advanced.PortError.Text = "Порт — от 1024 до 65535."; Settings.Advanced.PortError.Visibility = Visibility.Visible;
+        }
         if (page == "autopool") RenderAutoPool();
     }
 
