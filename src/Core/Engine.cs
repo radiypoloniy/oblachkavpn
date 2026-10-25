@@ -58,7 +58,10 @@ public sealed partial class Engine : ITunnelController
         if (CarriedBy is { } carriedBy) return StartCarried(carriedBy);
         adapter = new(profile.Core, Path.Combine(Path.GetDirectoryName(adapter.Executable)!, CoreAdapter.FileFor(profile)));
         var rules = SiteRules; var routing = Routing; var entry = DirectEntry;
-        FragmentActive = Fragment && TlsFragment.Applies(profile);
+        // Поправка «Подобрать лучшее»: пробная (Trial) или сохранённая для этого сервера.
+        var tweak = Trial ?? ServerTweak.Lookup(profile);
+        if (tweak is not null) profile = tweak.Apply(profile);
+        FragmentActive = (Fragment || tweak?.Fragment == true) && TlsFragment.Applies(profile);
         var fragment = FragmentActive; var shape = FragmentShape;
         return StartCoreAsync(port =>
         {
@@ -71,6 +74,8 @@ public sealed partial class Engine : ITunnelController
 
     // «Обход DPI» для следующего запуска (TlsFragment). FragmentActive — включён у работающего ядра.
     public bool Fragment { get; set; }
+    // Вариант, который сейчас пробует «Подобрать лучшее», вместо сохранённой поправки.
+    public ServerTweak? Trial { get; set; }
     public ProviderFragment? FragmentShape { get; set; }
     public bool FragmentActive { get; private set; }
 

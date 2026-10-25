@@ -227,10 +227,11 @@
       </StackPanel>
     </ScrollViewer>
 
-    <!-- Подвал: когда обновлялся пинг и одна главная кнопка. -->
+    <!-- Подвал: когда обновлялся пинг, «Подобрать лучшее» и его итог. -->
     <Border Grid.Row="3" BorderBrush="{DynamicResource Divider}" BorderThickness="0,1.5,0,0" Padding="24,10,20,14">
       <DockPanel>
-        <Button x:Name="BestButton" DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Content="Подключить лучший" Padding="22,0"/>
+        <v:TuneCard x:Name="Tune" DockPanel.Dock="Top" Visibility="Collapsed"/>
+        <Button x:Name="BestButton" DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Content="Подобрать лучшее" Padding="22,0" ToolTip="Проверит лучшие серверы с разными настройками и подключит самый быстрый и стабильный"/>
         <TextBlock x:Name="MeasuredAgo" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Fa}" VerticalAlignment="Center"/>
       </DockPanel>
     </Border>

@@ -1,0 +1,17 @@
+<UserControl x:Class="Oblachka.Views.TuneCard" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="clr-namespace:Oblachka" FontFamily="{StaticResource UiFont}" Foreground="{DynamicResource Tx}">
+  <!-- «Подобрать лучшее» (MainWindow.Tune): ход подбора и итог «было → стало» над подвалом «Серверов». -->
+  <Border CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource Cream}" Padding="14,10,8,12" Margin="0,0,0,10">
+    <DockPanel>
+      <Button x:Name="CloseButton" DockPanel.Dock="Right" VerticalAlignment="Top" Style="{StaticResource IconButton}" Width="30" Height="30" AutomationProperties.Name="Скрыть итог подбора" ToolTip="Скрыть">
+        <Path Data="{StaticResource IcoClose}" Width="10" Height="10" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stroke="{DynamicResource CreamMu}"/>
+      </Button>
+      <StackPanel>
+        <TextBlock x:Name="Title" FontSize="{StaticResource FsRowLarge}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+        <TextBlock x:Name="Line" FontSize="{StaticResource FsLabel}" FontWeight="SemiBold" Margin="0,4,0,0" TextWrapping="Wrap"/>
+        <TextBlock x:Name="Detail" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource CreamMu}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+        <Button x:Name="UndoButton" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Padding="0" Margin="0,6,0,0" Content="Вернуть как было" Visibility="Collapsed"/>
+      </StackPanel>
+    </DockPanel>
+  </Border>
+</UserControl>

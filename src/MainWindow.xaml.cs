@@ -124,7 +124,9 @@ public partial class MainWindow : Window
         CopyEndpointButton.IsEnabled = engine.ProcessId is not null;
         ReconnectButton.IsEnabled = profile is not null && operation is null;
         Servers.MeasureButton.IsEnabled = profile is not null && operation is null && importedProfiles.Any(p => p.IsService);
-        Servers.BestButton.IsEnabled = Servers.MeasureButton.IsEnabled;
+        // Во время подбора его кнопка — «Остановить», а отдельный замер ждёт.
+        Servers.BestButton.IsEnabled = tuning is not null || operation is null && importedProfiles.Count > 0;
+        if (tuning is not null) Servers.MeasureButton.IsEnabled = false;
         Diagnostics.ValidateRulesButton.IsEnabled = profile is not null && operation is null;
         trayConnect.Enabled = ConnectButton.IsEnabled;
         trayStop.Enabled = StopButton.IsEnabled;
