@@ -1,39 +1,46 @@
 ﻿<UserControl x:Class="Oblachka.Views.OnboardingView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:o="clr-namespace:Oblachka" FontFamily="{StaticResource UiFont}" Foreground="{DynamicResource Tx}" Background="{DynamicResource Bg}">
-  <!-- Первый запуск: «Вставьте ключ — и всё готово» (экран 04). Одно поле на всё: ключ Облачков,
-       ссылка подписки любого сервиса, vless://, trojan://, hy2://, JSON. -->
+             xmlns:o="clr-namespace:Oblachka" xmlns:v="clr-namespace:Oblachka.Views" FontFamily="{StaticResource UiFont}" Foreground="{DynamicResource Tx}" Background="{DynamicResource Bg}">
+  <!-- Первый запуск: «Вставьте ключ — и всё готово». Одно поле на всё: ключ Облачков, ссылка
+       подписки любого сервиса, vless://, trojan://, hy2://, JSON. Облик 0.20: карточка ясного неба
+       с облачком — та же, что карточка статуса, когда защищено. -->
   <!-- В широком окне колонка не растягивается: первый экран читается как раньше, по центру. -->
   <DockPanel Margin="32,0,32,24" MaxWidth="520">
-    <TextBlock DockPanel.Dock="Top" Text="облачка" Style="{StaticResource Brand}" Height="64" Padding="0,21,0,0" Margin="-8,0,0,0"/>
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="56" Margin="-8,0,0,0">
+      <Path Data="M6,32 C0,32 0,20 8,20 C8,10 20,8 24,14 C28,4 42,6 42,18 C48,18 48,32 42,32 Z" Width="22" Height="15" Stretch="Uniform" Fill="{DynamicResource Ac}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+      <TextBlock Text="облачка" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FsLabel}" FontWeight="Bold" VerticalAlignment="Center"/>
+    </StackPanel>
     <TextBlock DockPanel.Dock="Bottom" Text="Ключ хранится в зашифрованном виде только на этом компьютере" FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource Fa}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0"/>
-    <!-- Свечение — подложкой: эффект на самой кнопке размывал её текст. -->
-    <Grid DockPanel.Dock="Bottom">
-      <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource Ac}" Margin="10,4,10,0" IsHitTestVisible="False">
-        <Border.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="5" Direction="270" Color="{DynamicResource GlowColor}" Opacity="0.7"/></Border.Effect>
-      </Border>
-      <Button x:Name="ContinueButton" Content="Подключиться" Style="{StaticResource BtnPrimary}" Height="52" o:Ui.CornerRadius="{StaticResource RadiusXl}" FontSize="{StaticResource FsLead}"/>
-    </Grid>
+    <Button x:Name="ContinueButton" DockPanel.Dock="Bottom" Content="Подключиться" Style="{StaticResource BtnPrimary}" Height="52" FontSize="{StaticResource FsLead}"/>
     <StackPanel>
-      <TextBlock Text="Вставьте ключ —&#x0a;и всё готово" FontSize="{StaticResource FsDisplay}" FontWeight="Bold" LineHeight="31" Margin="0,32,0,0"/>
-      <TextBlock Text="Подойдёт ключ Облачков, ссылка подписки другого сервиса или отдельное подключение: vless://, vmess://, ss://, trojan://, hy2://, tuic://, файл WireGuard."
-                 FontSize="{StaticResource FsRow}" Foreground="{DynamicResource Mu}" TextWrapping="Wrap" LineHeight="21" Margin="0,8,0,0"/>
-      <TextBlock Text="Ключ или ссылка" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" Margin="0,26,0,6"/>
+      <Border CornerRadius="{StaticResource RadiusSky}" Background="{DynamicResource Clear}" Padding="20,18" Margin="0,8,0,0">
+        <DockPanel>
+          <v:CloudFace Mood="Happy" Width="84" Height="56" Margin="0,0,18,0" VerticalAlignment="Center"/>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Вставьте ключ —&#x0a;и всё готово" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FsDisplay}" FontWeight="ExtraBold" LineHeight="31" Foreground="{DynamicResource Tx}"/>
+            <TextBlock Text="Ключ Облачков, ссылка подписки любого сервиса или отдельное подключение: vless://, vmess://, ss://, trojan://, hy2://, tuic://, файл WireGuard."
+                       FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource ClearMu}" TextWrapping="Wrap" LineHeight="18" Margin="0,8,0,0"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+      <TextBlock Text="Ключ или ссылка" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" Margin="0,22,0,6"/>
       <TextBox x:Name="KeyInput" Style="{StaticResource FieldBox}" Height="96" Tag="Ctrl+V" MaxLength="20480" AcceptsReturn="True" TextWrapping="Wrap"
                VerticalContentAlignment="Top" Padding="14,12" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FsLabel}"
                VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Ключ или ссылка подписки"/>
-      <Button x:Name="FileButton" Style="{StaticResource BtnGhost}" HorizontalAlignment="Left" Margin="-6,8,0,0" Padding="6,0,10,0" Foreground="{DynamicResource Ac}">
-        <StackPanel Orientation="Horizontal">
-          <Path Data="{StaticResource IcoFile}" Width="16" Height="16" Stretch="Uniform" Stroke="{DynamicResource Ac}" StrokeThickness="2" StrokeLineJoin="Round" Margin="0,0,8,0"/>
-          <TextBlock Text="Открыть файл профиля (JSON, txt)" VerticalAlignment="Center"/>
-        </StackPanel>
-      </Button>
-      <Button x:Name="ScanButton" Style="{StaticResource BtnGhost}" HorizontalAlignment="Left" Margin="-6,0,0,0" Padding="6,0,10,0" Foreground="{DynamicResource Ac}"
-              ToolTip="Откройте QR-код в Telegram или браузере, чтобы он был виден на экране. Картинку с кодом можно и вставить в поле: Ctrl+V.">
-        <StackPanel Orientation="Horizontal">
-          <Path Data="{StaticResource IcoQr}" Width="16" Height="16" Stretch="Uniform" Stroke="{DynamicResource Ac}" StrokeThickness="2" StrokeLineJoin="Round" Margin="0,0,8,0"/>
-          <TextBlock Text="Сканировать QR-код на экране" VerticalAlignment="Center"/>
-        </StackPanel>
-      </Button>
+      <WrapPanel Margin="0,10,0,0">
+        <Button x:Name="FileButton" Style="{StaticResource BtnOutline}" Height="36" Padding="14,0,16,0" Margin="0,0,8,0" AutomationProperties.Name="Открыть файл профиля">
+          <StackPanel Orientation="Horizontal">
+            <Path Data="{StaticResource IcoFile}" Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource Tx}" StrokeThickness="2" StrokeLineJoin="Round" Margin="0,0,8,0"/>
+            <TextBlock Text="Открыть файл" VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
+        <Button x:Name="ScanButton" Style="{StaticResource BtnOutline}" Height="36" Padding="14,0,16,0" AutomationProperties.Name="Найти QR-код на экране"
+                ToolTip="Откройте QR-код в Telegram или браузере, чтобы он был виден на экране. Картинку с кодом можно и вставить в поле: Ctrl+V.">
+          <StackPanel Orientation="Horizontal">
+            <Path Data="{StaticResource IcoQr}" Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource Tx}" StrokeThickness="2" StrokeLineJoin="Round" Margin="0,0,8,0"/>
+            <TextBlock Text="QR-код на экране" VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
+      </WrapPanel>
       <!-- Подписки, найденные в других клиентах на этом компьютере (ForeignClients). Нажатие
            загружает выбранную и подключает, как «Подключиться» с этой ссылкой в поле. -->
       <StackPanel x:Name="ForeignPanel" Visibility="Collapsed" Margin="0,22,0,0">

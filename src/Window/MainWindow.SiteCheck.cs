@@ -146,7 +146,7 @@ public partial class MainWindow
             var rule = RoutingPlan.Create(domain, action);
             var index = siteRules.FindIndex(r => r.Domain == rule.Domain);
             if (index >= 0) siteRules[index] = rule;
-            else if (siteRules.Count >= 100) throw new UserError("Достигнут предел 100 правил: удалите лишние в «Без VPN → Свои правила».");
+            else if (siteRules.Count >= 100) throw new UserError("Достигнут предел 100 правил: удалите лишние в «Программы и сайты → Правила».");
             else siteRules.Add(rule);
         }
         catch (UserError ex) { ShowSiteProgress(ex.Message); return; }

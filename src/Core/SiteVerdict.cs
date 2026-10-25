@@ -15,7 +15,7 @@ public sealed record SiteVerdict(string Title, string Text, SiteTone Tone, SiteA
         if (vpn.Stage == SiteStage.Skipped && direct.Stage == SiteStage.Skipped)
             return new("Проверить не получилось", "Напрямую: " + direct.Note + ". Через VPN: " + vpn.Note + ".", SiteTone.Warning, null);
         if (route == SiteRoute.Block)
-            return new("Сайт заблокирован вашим правилом", "Он в правилах с действием «Блокировать». Уберите правило в «Настройки → Без VPN → Свои правила».", SiteTone.Warning, null);
+            return new("Сайт заблокирован вашим правилом", "Он в правилах с действием «Блокировать». Уберите правило в «Программы и сайты → Правила».", SiteTone.Warning, null);
 
         // Один путь не проверить — говорим только о том, что видели.
         if (direct.Stage == SiteStage.Skipped)

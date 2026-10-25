@@ -7,6 +7,21 @@ namespace Oblachka;
 // которая прямо сейчас переключается. Таблицы соединений компьютера не читаются.
 public partial class MainWindow
 {
+    // Вид подключённого «Весь компьютер» в карточке статуса: ядро в превью не запускается.
+    private void ConnectedPreview()
+    {
+        RefreshHome();
+        Home.StatusTitle.Text = "Защищено"; Home.StatusSub.Text = profile?.DisplayName + " · 00:12:48";
+        Home.StatusDot.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "Ok");
+        Home.CheckText.Text = "Связь проверена · 84 мс"; Home.CheckIcon.Visibility = Visibility.Visible;
+        Home.CheckChip.SetResourceReference(System.Windows.Controls.Border.BackgroundProperty, "OkB");
+        Home.CheckText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "OkF");
+        // Снимок делается сразу, анимация ещё не прошла: ставим её итог.
+        Home.Power.State = Views.PowerState.On;
+        Home.Power.OnLayer.BeginAnimation(OpacityProperty, null); Home.Power.OnLayer.Opacity = 1;
+        ApplyStatusLook();
+    }
+
     private void LivePreview()
     {
         // «Сейчас в сети» с подложными программами: таблицы соединений компьютера не читаются.
