@@ -45,7 +45,7 @@
           </Border>
           <Button x:Name="SuggestButton" Style="{StaticResource BtnPrimary}" Height="42" Margin="0,10,0,0" o:Ui.CornerRadius="{StaticResource RadiusMd}" Visibility="Collapsed"/>
           <TextBlock x:Name="SuggestNote" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" Margin="2,6,2,0" Visibility="Collapsed"
-                     Text="Правило появится в «Настройки → Без VPN → Свои правила», там его можно поменять или удалить."/>
+                     Text="Правило появится в «Программы и сайты → Правила», там его можно поменять или удалить."/>
         </StackPanel>
       </StackPanel>
     </ScrollViewer>

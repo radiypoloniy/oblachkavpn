@@ -86,6 +86,9 @@ public partial class MainWindow
 
     internal void PrepareDesignPreview(string page)
     {
+        // «Серверы» с итогом «Подобрать лучшее» (servers-tune[-dark]).
+        var tuned = page.StartsWith("servers-tune", StringComparison.Ordinal);
+        if (tuned) page = "servers";
         if (page == "welcome") return;
         if (page == "welcome-import")
         {
@@ -140,7 +143,7 @@ public partial class MainWindow
             Navigate("Connection"); RefreshHome();
             return;
         }
-        if (page == "live") { LivePreview(); return; }
+        if (page is "live" or "live-on") { LivePreview(); if (page == "live-on") ConnectedPreview(); return; }
         if (page is "apps" or "apps-rules")
         {
             // Настоящий каталог этого компьютера, собранный сразу: снимок делается синхронно.
@@ -160,19 +163,7 @@ public partial class MainWindow
             Picker.AddButton.IsEnabled = true; Picker.AddButton.Content = "Добавить (2)";
             return;
         }
-        if (page == "power-on") { LoadGroupsPreview(); Navigate("Connection"); RefreshHome(); Home.Power.State = Views.PowerState.On;
-            // Вид подключённого «Весь компьютер»: ядро в превью не запускается.
-            Home.StatusTitle.Text = "Защищено"; Home.StatusSub.Text = profile?.DisplayName + " · 00:12:48";
-            Home.StatusDot.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "Ok");
-            Home.CheckText.Text = "Связь проверена · 84 мс"; Home.CheckIcon.Visibility = Visibility.Visible;
-            Home.CheckChip.SetResourceReference(System.Windows.Controls.Border.BackgroundProperty, "OkB");
-            Home.CheckText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "OkF");
-            // Снимок делается сразу, анимация ещё не прошла: ставим её итог.
-            var power = Home.Power;
-            power.State = Views.PowerState.On;
-            foreach (var layer in new UIElement[] { power.OnLayer }) { layer.BeginAnimation(OpacityProperty, null); layer.Opacity = 1; }
-            ApplyStatusLook();
-            return; }
+        if (page == "power-on") { LoadGroupsPreview(); Navigate("Connection"); ConnectedPreview(); return; }
         // «Не открывается сайт?» с итогом: напрямую режет DPI, через VPN открывается.
         if (page is "site" or "site-ok") { LoadGroupsPreview(); OpenSiteCheck(); checkedHost = page == "site" ? "rutracker.org" : "www.gosuslugi.ru"; SiteCheck.SiteInput.Text = checkedHost;
             if (page == "site") ShowSiteResult(new(SiteStage.Handshake, 230), new(SiteStage.Ok, 412, 200), SiteRoute.Direct, "напрямую · по спискам", profile);
@@ -191,6 +182,7 @@ public partial class MainWindow
             Settings.Advanced.Extras.PortInput.Text = "80"; Settings.Advanced.Extras.PortError.Text = "Порт — от 1024 до 65535."; Settings.Advanced.Extras.PortError.Visibility = Visibility.Visible;
         }
         if (page == "autopool") RenderAutoPool();
+        if (tuned) ShowTune("Лучшее — Нидерланды", "Было 182 мс · 6,4 МБ/с  →  стало 141 мс · 18,2 МБ/с", "Подстроено: отпечаток Firefox.", undo: true);
     }
 
     // Три группы: две подписки и «Вручную»; у части узлов есть отклик.
