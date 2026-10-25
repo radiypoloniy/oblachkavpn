@@ -25,8 +25,10 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
     public static readonly Guid ProviderKey = new("6f1a3c52-0b7e-4d0e-9a1d-0b1a5c7e2f01");
     public static readonly Guid SublayerKey = new("6f1a3c52-0b7e-4d0e-9a1d-0b1a5c7e2f02");
     // Номеров с запасом: фильтр на каждый из 16 адресов узлов плюс общие фильтры обоих семейств
-    // (до 10 на семейство с локальной сетью); последние 14 — у WfpReinjection.
+    // (до 10 на семейство с локальной сетью); последние 14 — у WfpReinjection. За ними —
+    // разрешения программам «напрямую» (WfpDirectApps).
     public const int MaxFilters = 64;
+    public static int AllFilters => MaxFilters + WfpDirectApps.Slots;
     private const ushort SublayerWeight = ushort.MaxValue;
     // Тип интерфейса wintun по IANA: IF_TYPE_PROP_VIRTUAL. Физические адаптеры — другие
     // типы (Ethernet 6, Wi-Fi 71), поэтому «не 53» и значит «мимо туннеля».
@@ -111,7 +113,7 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
         engine.Begin();
         try
         {
-            for (var i = 0; i < MaxFilters; i++) engine.DeleteFilter(FilterKey(i));
+            for (var i = 0; i < AllFilters; i++) engine.DeleteFilter(FilterKey(i));
             engine.DeleteSublayer(SublayerKey);
             engine.DeleteProvider(ProviderKey);
             engine.Commit();

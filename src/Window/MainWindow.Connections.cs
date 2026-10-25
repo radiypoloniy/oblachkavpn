@@ -121,7 +121,8 @@ public partial class MainWindow
     private string LiveName(string path)
     {
         if (appCatalog?.FirstOrDefault(a => string.Equals(a.App.Path, path, StringComparison.OrdinalIgnoreCase)) is { } app) return app.Name;
-        try { if (FileVersionInfo.GetVersionInfo(path).FileDescription is { Length: > 0 } description) return description.Trim(); }
+        // Описание из одних пробелов (так собирает csc без атрибутов) давало строку без имени.
+        try { if (FileVersionInfo.GetVersionInfo(path).FileDescription?.Trim() is { Length: > 0 } description) return description; }
         catch (FileNotFoundException) { }
         return Path.GetFileNameWithoutExtension(path);
     }

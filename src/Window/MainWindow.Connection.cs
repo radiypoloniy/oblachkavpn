@@ -59,6 +59,7 @@ public partial class MainWindow
                 nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
                 runningProfile = target;
                 if (!closed) DetailText.Text = "Системный режим запущен: весь трафик идёт через туннель.";
+                _ = WarnEarlyGamesAsync();
             }
             else
             {

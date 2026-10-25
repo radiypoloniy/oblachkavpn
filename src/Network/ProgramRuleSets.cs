@@ -30,8 +30,10 @@ public static class ProgramRuleSets
     public static string Folder => NetworkHelperHost.DataPath("programs");
     public static string Tag(int level, SiteAction action) => "programs-" + level + "-" + action.ToString().ToLowerInvariant();
 
-    // Правила, которые сейчас в файлах: с ними сравнивается новый набор (ConnectionReset).
+    // Правила, которые сейчас в файлах: с ними сравнивается новый набор (ConnectionReset),
+    // по ним защита пропускает программы «напрямую» (WfpDirectApps).
     private static ProgramRule[] current = [];
+    public static IReadOnlyList<ProgramRule> Current { get { lock (Gate) return current; } }
 
     public static void Accept(ProgramRulesRequest request)
     {

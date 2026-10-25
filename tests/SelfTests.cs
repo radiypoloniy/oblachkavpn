@@ -49,6 +49,7 @@ public static partial class SelfTests
         await KillSwitchChecksAsync(CheckAsync, root);
         await WfpChecksAsync(CheckAsync);
         await ReinjectionChecksAsync(CheckAsync);
+        await DirectAppsChecksAsync(CheckAsync);
         await RuleChecksAsync(CheckAsync);
         await ProgramScopeChecksAsync(CheckAsync);
         await HelperHostChecksAsync(CheckAsync);

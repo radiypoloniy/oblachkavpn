@@ -67,13 +67,17 @@ public static class NetworkHelperHost
     internal static readonly TimeSpan GuardInterval = TimeSpan.FromSeconds(1);
     internal static void StartGuard(NetworkSession session, CancellationToken token) => new Thread(() =>
     {
+        var ticks = 0;
         while (!token.WaitHandle.WaitOne(GuardInterval))
         {
             try
             {
+                // Раз в две секунды — разрешения программам «напрямую», запущенным с прошлого раза.
+                if (++ticks % 2 == 0) HelperPipeServer.SyncDirectApps();
                 if (!session.Guard()) continue;
                 RecordStep(DateTime.UtcNow.ToString("HH:mm:ss.fff") + " защита WFP пропала и поставлена заново");
                 HelperPipeServer.SyncReinjection();
+                HelperPipeServer.SyncDirectApps(force: true);
             }
             catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException) { RecordFailure(ex); }
         }
