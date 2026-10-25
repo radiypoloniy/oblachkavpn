@@ -49,7 +49,7 @@
       <Border Style="{StaticResource OptRow}" BorderThickness="0">
         <StackPanel>
           <TextBlock Text="DNS через VPN" Style="{StaticResource OptTitle}"/>
-          <TextBlock Text="DoH (https://), DoT (tls://) или DoQ (quic://). Пусто — Cloudflare 1.1.1.1 через туннель" Style="{StaticResource OptSub}"/>
+          <TextBlock Text="Адрес DoH, например AdGuard или NextDNS. Пусто — Cloudflare 1.1.1.1 через туннель" Style="{StaticResource OptSub}"/>
           <TextBox x:Name="DnsInput" Style="{StaticResource FieldBox}" Height="36" Margin="0,8,0,0" FontFamily="{StaticResource MonoFont}" Tag="https://dns.example/dns-query" AutomationProperties.Name="DNS через VPN"/>
           <TextBlock x:Name="DnsError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
         </StackPanel>

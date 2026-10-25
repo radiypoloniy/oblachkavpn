@@ -21,7 +21,9 @@ public static partial class SelfTests
         {
             Assert(AdvancedOptions.Default.IsDefault && AdvancedOptions.Default.Problem() is null && TunnelTuning.From(AdvancedOptions.Default) is null);
             Assert(AdvancedOptions.CheckMtu(1500) is null && AdvancedOptions.CheckMtu(576) is not null && AdvancedOptions.CheckMtu(65000) is not null);
-            Assert(AdvancedOptions.CheckDns("https://dns.adguard-dns.com/dns-query") is null && AdvancedOptions.CheckDns("tls://1.1.1.1") is null && AdvancedOptions.CheckDns("quic://dns.example") is null);
+            // Только DoH: DoT и DoQ через встроенный Xray замолкали на стенде.
+            Assert(AdvancedOptions.CheckDns("https://dns.adguard-dns.com/dns-query") is null && AdvancedOptions.CheckDns("https://9.9.9.9/dns-query") is null);
+            Assert(AdvancedOptions.CheckDns("tls://1.1.1.1") is not null && AdvancedOptions.CheckDns("quic://dns.example") is not null);
             Assert(AdvancedOptions.CheckDns("http://dns.example/dns-query") is not null && AdvancedOptions.CheckDns("8.8.8.8") is not null && AdvancedOptions.CheckDns("https://user:pw@dns.example/") is not null);
             Assert(AdvancedOptions.CheckSubnets(["10.20.0.0/16", "192.168.77.0/24", "fd00:1::/48"]) is null);
             // Шире /8 — почти весь интернет мимо VPN: не принимается.
@@ -48,10 +50,12 @@ public static partial class SelfTests
             var servers = (JsonArray)tuned["dns"]!["servers"]!;
             var remote = (JsonObject)servers.First(s => (string?)s!["tag"] == "remote-dns")!;
             Assert((string?)remote["server"] == "dns.example" && (string?)remote["path"] == "/custom-query" && (string?)remote["domain_resolver"] == "dns-bootstrap");
-            Assert(servers.Any(s => (string?)s!["tag"] == "dns-bootstrap" && s!["detour"]!.ToString() == remote["detour"]!.ToString()));
-            // DoT по IP — без загрузочного DNS.
-            var dot = SingBoxTunConfig.Create(Lease(new(Dns: "tls://9.9.9.9")), ipv6: false);
-            Assert(((JsonArray)dot["dns"]!["servers"]!).All(s => (string?)s!["tag"] != "dns-bootstrap") && dot["dns"]!["servers"]!.ToJsonString().Contains("\"type\":\"tls\""));
+            Assert((string?)remote["tls"]!["server_name"] == "dns.example");
+            // Загрузочный — встроенный DoH 1.1.1.1 тем же путём, не UDP.
+            Assert(servers.Any(s => (string?)s!["tag"] == "dns-bootstrap" && (string?)s!["type"] == "https" && (string?)s!["server"] == "1.1.1.1" && s!["detour"]!.ToString() == remote["detour"]!.ToString()));
+            // DoH по IP — без загрузочного DNS.
+            var byIp = SingBoxTunConfig.Create(Lease(new(Dns: "https://9.9.9.9/dns-query")), ipv6: false);
+            Assert(((JsonArray)byIp["dns"]!["servers"]!).All(s => (string?)s!["tag"] != "dns-bootstrap"));
         }));
 
         await check("Site rules take subnets and ports beside domains, in both cores and in live rule files", () => Sync(() =>
@@ -103,13 +107,13 @@ public static partial class SelfTests
             Assert(Throws<UserError>(() => backend.Apply(Guid.NewGuid(), forged)));
             // До ядра настройки доходят: служба пересобирает запрос по аренде, бэкенд переносит аренду
             // в ядро — оба места раньше теряли новые поля.
-            var tuned = NetworkHelperContracts.Validate(Lease(new(TunnelStack.Mixed, 1400, "tls://9.9.9.9", ["10.20.0.0/16"])));
+            var tuned = NetworkHelperContracts.Validate(Lease(new(TunnelStack.Mixed, 1400, "https://9.9.9.9/dns-query", ["10.20.0.0/16"])));
             Assert(SingBoxTunnelProcess.RequestFor(tuned).Tuning is { Mtu: 1400, Stack: TunnelStack.Mixed });
             ValidatedNetworkLease? started = null; var up = false;
             using (var tunnel = new WindowsTunnelBackend((l, _) => { started = l; up = true; return new FakeTunnelProcess(); }, _ => up, delay: static (_, _) => Task.CompletedTask))
                 tunnel.Apply(tuned.LeaseId, tunnel.Prepare(tuned).Single());
-            Assert(started?.Tuning is { Dns: "tls://9.9.9.9" } carried && carried.Subnets.Single() == "10.20.0.0/16");
-            foreach (var bad in new TunnelTuning[] { new(Mtu: 100), new(Dns: "http://dns.example/"), new(Bypass: ["0.0.0.0/1"]), new((TunnelStack)9) })
+            Assert(started?.Tuning is { Dns: "https://9.9.9.9/dns-query" } carried && carried.Subnets.Single() == "10.20.0.0/16");
+            foreach (var bad in new TunnelTuning[] { new(Mtu: 100), new(Dns: "http://dns.example/"), new(Dns: "tls://9.9.9.9"), new(Bypass: ["0.0.0.0/1"]), new((TunnelStack)9) })
                 Assert(Throws<UserError>(() => NetworkHelperContracts.Validate(Lease(bad))));
             Assert(Throws<UserError>(() => NetworkHelperContracts.Validate(new NetworkLeaseRequest(1, Guid.NewGuid(), NetworkLeaseAction.Release, 0, [], Tuning: new(Mtu: 1500)))));
         }));

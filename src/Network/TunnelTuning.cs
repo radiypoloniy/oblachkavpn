@@ -58,28 +58,27 @@ public sealed record TunnelTuning(TunnelStack Stack = TunnelStack.Auto, int? Mtu
     }
 
     // Встроенный DoH (remote-dns) заменяется своим сервером с тем же тегом: правила DNS на него
-    // уже ссылаются. Имя сервера разрешает загрузочный DNS 1.1.1.1 — тоже через туннель.
+    // уже ссылаются. Только DoH: DoT и DoQ через встроенный в ядро Xray (серверы XHTTP) отвечали
+    // первые секунды и замолкали (стенд 25.10.2026), а DoH на 443 работал у любого сервера. Имя
+    // сервера разрешает встроенный DoH 1.1.1.1 — он загрузочный: UDP через тот же Xray тоже ненадёжен.
     private static void ReplaceDns(JsonObject config, string dns, string tunnel)
     {
         var uri = new Uri(dns);
-        var server = new JsonObject { ["tag"] = "remote-dns", ["server"] = uri.Host, ["detour"] = tunnel };
-        switch (uri.Scheme)
+        var server = new JsonObject
         {
-            case "https":
-                server["type"] = "https"; server["server_port"] = uri.IsDefaultPort ? 443 : uri.Port;
-                server["path"] = uri.AbsolutePath.Length > 1 ? uri.AbsolutePath : "/dns-query";
-                break;
-            default:
-                server["type"] = uri.Scheme; server["server_port"] = uri.IsDefaultPort || uri.Port < 0 ? 853 : uri.Port;
-                break;
-        }
+            ["type"] = "https", ["tag"] = "remote-dns", ["server"] = uri.Host, ["server_port"] = uri.IsDefaultPort ? 443 : uri.Port,
+            ["path"] = uri.AbsolutePath.Length > 1 ? uri.AbsolutePath : "/dns-query", ["detour"] = tunnel
+        };
         var servers = (JsonArray)config["dns"]!["servers"]!;
+        var index = servers.Select((s, i) => (s, i)).First(p => (string?)p.s!["tag"] == "remote-dns").i;
         if (!IPAddress.TryParse(uri.Host, out _))
         {
-            servers.Add(new JsonObject { ["type"] = "udp", ["tag"] = "dns-bootstrap", ["server"] = "1.1.1.1", ["detour"] = tunnel });
+            var bootstrap = servers[index]!.DeepClone().AsObject();
+            bootstrap["tag"] = "dns-bootstrap";
+            servers.Add(bootstrap);
             server["domain_resolver"] = "dns-bootstrap";
+            server["tls"] = new JsonObject { ["enabled"] = true, ["server_name"] = uri.Host };
         }
-        var index = servers.Select((s, i) => (s, i)).First(p => (string?)p.s!["tag"] == "remote-dns").i;
         servers[index] = server;
     }
 }

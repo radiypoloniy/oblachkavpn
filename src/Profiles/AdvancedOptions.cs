@@ -17,7 +17,7 @@ public sealed record AdvancedOptions
     // Туннель: стек и MTU; Auto — как сейчас (gvisor/9000, с «Совместимостью с играми» — mixed/1500).
     public TunnelStack Stack { get; init; }
     public int? Mtu { get; init; }
-    // DNS через VPN вместо встроенного DoH Cloudflare: https://…/dns-query, tls://хост, quic://хост.
+    // DNS через VPN вместо встроенного DoH Cloudflare: только DoH, https://…/dns-query (TunnelTuning).
     public string? TunnelDns { get; init; }
     // Подсети мимо туннеля, CIDR по одной: рабочая сеть, VPN работодателя.
     public string[] BypassSubnets { get; init; } = [];
@@ -44,8 +44,8 @@ public sealed record AdvancedOptions
     public static string? CheckDns(string? dns)
     {
         if (dns is null) return null;
-        if (!Uri.TryCreate(dns, UriKind.Absolute, out var uri) || uri.Scheme is not ("https" or "tls" or "quic") || uri.Host.Length == 0 || uri.UserInfo.Length > 0)
-            return "Нужен адрес вида https://dns.example/dns-query, tls://dns.example или quic://dns.example.";
+        if (!Uri.TryCreate(dns, UriKind.Absolute, out var uri) || uri.Scheme != "https" || uri.Host.Length == 0 || uri.UserInfo.Length > 0 || uri.Query.Length > 0)
+            return "Нужен адрес DoH вида https://dns.example/dns-query. DoT и DoQ через VPN работают ненадёжно и не поддерживаются.";
         return null;
     }
 
@@ -92,7 +92,7 @@ public sealed record AdvancedOptions
     // Названия изменённых настроек — для отчёта поддержке; значения туда не идут.
     public string[] Changed() => new (bool On, string Name)[]
     {
-        (Stack != TunnelStack.Auto, "Stack:" + Stack), (Mtu is not null, "Mtu:" + Mtu), (TunnelDns is not null, "TunnelDns:" + (TunnelDns is { } d ? new Uri(d).Scheme : "")),
+        (Stack != TunnelStack.Auto, "Stack:" + Stack), (Mtu is not null, "Mtu:" + Mtu), (TunnelDns is not null, "TunnelDns"),
         (BypassSubnets.Length > 0, "BypassSubnets:" + BypassSubnets.Length), ((FragmentPackets ?? FragmentLength ?? FragmentInterval) is not null, "Fragment"),
         (SubscriptionUserAgent is not null, "SubscriptionUserAgent"), (ProbeUrl is not null, "ProbeUrl"), (ProxyPort is not null, "ProxyPort"), (CoreLog != CoreLogLevel.Off, "CoreLog:" + CoreLog)
     }.Where(c => c.On).Select(c => c.Name).ToArray();

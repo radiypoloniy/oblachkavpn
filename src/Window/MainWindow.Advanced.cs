@@ -87,8 +87,10 @@ public partial class MainWindow
 
     private void RestoreAdvanced(AdvancedOptions? saved)
     {
-        // Испорченный снимок — как без настройки: лучше прежнее поведение, чем отказ запуска.
-        advanced = saved is not null && saved.Problem() is null ? saved with { BypassSubnets = saved.BypassSubnets ?? [] } : AdvancedOptions.Default;
+        // Испорченный снимок — как без настройки: лучше прежнее поведение, чем отказ запуска. DNS, который
+        // больше не поддерживается (tls://, quic:// пробной сборки), отбрасывается один, без остального.
+        saved = saved is null ? null : saved with { BypassSubnets = saved.BypassSubnets ?? [], TunnelDns = AdvancedOptions.CheckDns(saved.TunnelDns) is null ? saved.TunnelDns : null };
+        advanced = saved is not null && saved.Problem() is null ? saved : AdvancedOptions.Default;
         ApplyAdvanced();
         FillAdvanced();
     }
