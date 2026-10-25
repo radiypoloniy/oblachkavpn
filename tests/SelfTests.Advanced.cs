@@ -93,6 +93,42 @@ public static partial class SelfTests
                 Assert(Throws<UserError>(() => RulesFile.Import(bad)));
         }));
 
+        await check("P2: uTLS default only for third-party links without fp, UDP timeout, direct DNS, HWID off", async () =>
+        {
+            const string tlsLink = "vless://6f1c2e0a-5b7d-4c3e-9a1f-0b2c3d4e5f60@203.0.113.7:443?security=tls&sni=example.com&type=tcp&encryption=none#t";
+            const string fpLink = tlsLink + "&fp=firefox";
+            var plain = Profiles.Parse(tlsLink) with { Source = ProfileSource.External };
+            try
+            {
+                Utls.Default = "safari";
+                Assert(Utls.For(plain).Outbound["streamSettings"]!["tlsSettings"]!["fingerprint"]!.GetValue<string>() == "safari");
+                Assert(plain.Outbound["streamSettings"]!["tlsSettings"]?["fingerprint"] is null);
+                Assert(ReferenceEquals(Utls.For(plain with { Source = ProfileSource.Service }).Outbound, plain.Outbound));
+                var own = Profiles.Parse("vless://6f1c2e0a-5b7d-4c3e-9a1f-0b2c3d4e5f60@203.0.113.7:443?security=tls&sni=example.com&type=tcp&encryption=none&fp=firefox#f") with { Source = ProfileSource.External };
+                Assert(Utls.For(own).Outbound["streamSettings"]!["tlsSettings"]!["fingerprint"]!.GetValue<string>() == "firefox");
+                var box = new System.Text.Json.Nodes.JsonObject { ["type"] = "trojan", ["tls"] = new System.Text.Json.Nodes.JsonObject { ["enabled"] = true } };
+                Assert(Utls.Apply(box, CoreKind.SingBox, "chrome") && box["tls"]!["utls"]!["fingerprint"]!.GetValue<string>() == "chrome");
+            }
+            finally { Utls.Default = null; }
+            var config = SingBoxTunConfig.Create(Lease(new(UdpTimeout: 15, DirectDns: "77.88.8.8")), ipv6: false);
+            Assert((string?)((JsonObject)((JsonArray)config["inbounds"]!)[0]!)["udp_timeout"] == "15m");
+            Assert(new TunnelTuning(DirectDns: "77.88.8.8").DirectResolver(() => IPAddress.Parse("10.0.2.3"))!.ToString() == "77.88.8.8");
+            Assert(new TunnelTuning().DirectResolver(() => IPAddress.Parse("10.0.2.3"))!.ToString() == "10.0.2.3");
+            Assert(AdvancedOptions.CheckDirectDns("127.0.0.1") is not null && AdvancedOptions.CheckDirectDns("dns.yandex") is not null && AdvancedOptions.CheckUdpTimeout(0) is not null);
+            Assert(Throws<UserError>(() => NetworkHelperContracts.Validate(Lease(new(DirectDns: "224.0.0.1")))));
+            var seen = new List<HttpRequestMessage>();
+            using var client = new HttpClient(new RecordingHandler(seen, () => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(tlsLink) }));
+            try
+            {
+                Subscriptions.ExternalHwid = false;
+                await Subscriptions.FetchWithClientAsync(client, "https://sub.other-service.invalid/sub/abcdefghij", CancellationToken.None);
+                Assert(!seen[^1].Headers.Contains("x-hwid"));
+                await Subscriptions.FetchWithClientAsync(client, "https://" + ServiceBrand.SubscriptionHosts[0] + ServiceBrand.SubscriptionPath + "abcdefghij", CancellationToken.None);
+                Assert(seen[^1].Headers.Contains("x-hwid"));
+            }
+            finally { Subscriptions.ExternalHwid = true; }
+        });
+
         await check("Bypass subnets are opened to programs by protection, and the service rejects bad tuning", () => Sync(() =>
         {
             var backend = new WfpProtectionBackend(() => new FakeWfp(), @"C:\app\tools");

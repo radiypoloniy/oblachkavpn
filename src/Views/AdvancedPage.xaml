@@ -35,6 +35,32 @@
           <TextBlock x:Name="MtuError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
         </StackPanel>
       </Border>
+      <Border Style="{StaticResource OptRow}">
+        <DockPanel>
+          <Border DockPanel.Dock="Right" Style="{StaticResource SegTrack}" VerticalAlignment="Center" Margin="12,0,0,0">
+            <StackPanel Orientation="Horizontal">
+              <Button x:Name="Ipv6Auto" Content="Сам" Style="{StaticResource SegButton}" AutomationProperties.Name="IPv6: сам"/>
+              <Button x:Name="Ipv6Off" Content="Выкл" Style="{StaticResource SegButton}" AutomationProperties.Name="IPv6 выключен"/>
+            </StackPanel>
+          </Border>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="IPv6 в туннеле" Style="{StaticResource OptTitle}"/>
+            <TextBlock Text="«Сам» — если у сети есть IPv6. Выключите, если сайты по IPv6 открываются медленно" Style="{StaticResource OptSub}"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+      <Border Style="{StaticResource OptRow}">
+        <StackPanel>
+          <DockPanel>
+            <TextBox x:Name="UdpInput" DockPanel.Dock="Right" Style="{StaticResource FieldBox}" Width="110" Height="36" Tag="5" Margin="12,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="Тайм-аут UDP, минут"/>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="Тайм-аут UDP, минут" Style="{StaticResource OptTitle}"/>
+              <TextBlock Text="Сколько живёт UDP-связка без пакетов. Больше — для игр и звонков с редкими пакетами" Style="{StaticResource OptSub}"/>
+            </StackPanel>
+          </DockPanel>
+          <TextBlock x:Name="UdpError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
+        </StackPanel>
+      </Border>
       <Border Style="{StaticResource OptRow}" BorderThickness="0">
         <StackPanel>
           <TextBlock Text="Подсети мимо туннеля" Style="{StaticResource OptTitle}"/>
@@ -54,8 +80,29 @@
           <TextBlock x:Name="DnsError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
         </StackPanel>
       </Border>
+      <Border Style="{StaticResource OptRow}" BorderThickness="0">
+        <StackPanel>
+          <DockPanel>
+            <TextBox x:Name="DirectDnsInput" DockPanel.Dock="Right" Style="{StaticResource FieldBox}" Width="160" Height="36" Tag="DNS роутера" Margin="12,0,0,0" VerticalAlignment="Center" FontFamily="{StaticResource MonoFont}" AutomationProperties.Name="DNS для прямых сайтов"/>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="DNS для прямых сайтов" Style="{StaticResource OptTitle}"/>
+              <TextBlock Text="Для сайтов «напрямую» — IP-адрес, например 77.88.8.8 или корпоративный DNS" Style="{StaticResource OptSub}"/>
+            </StackPanel>
+          </DockPanel>
+          <TextBlock x:Name="DirectDnsError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
+        </StackPanel>
+      </Border>
 
       <TextBlock Text="Соединение с сервером" Style="{StaticResource SecHead}"/>
+      <Border Style="{StaticResource OptRow}">
+        <DockPanel>
+          <ComboBox x:Name="UtlsChoice" DockPanel.Dock="Right" Width="170" Margin="12,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="Отпечаток TLS для сторонних ссылок"/>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Отпечаток TLS для сторонних ссылок" Style="{StaticResource OptTitle}"/>
+            <TextBlock Text="Каким браузером представляться серверу, если в ссылке нет «fp». Серверы сервиса — без изменений" Style="{StaticResource OptSub}"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
       <Border Style="{StaticResource OptRow}" BorderThickness="0">
         <StackPanel>
           <TextBlock Text="Фрагментация рукопожатия" Style="{StaticResource OptTitle}"/>
@@ -87,12 +134,35 @@
           <TextBlock x:Name="UserAgentError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
         </StackPanel>
       </Border>
+      <Border Style="{StaticResource OptRow}">
+        <DockPanel>
+          <CheckBox x:Name="ExternalHwid" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" Margin="12,0,0,0" AutomationProperties.Name="Идентификатор устройства сторонним подпискам"/>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Идентификатор устройства сторонним подпискам" Style="{StaticResource OptTitle}"/>
+            <TextBlock Text="Нужен панелям с лимитом устройств (HWID). Каждой подписке — свой, по нему не связать устройство между сервисами" Style="{StaticResource OptSub}"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
       <Border Style="{StaticResource OptRow}" BorderThickness="0">
         <StackPanel>
           <TextBlock Text="Адрес проверки связи" Style="{StaticResource OptTitle}"/>
           <TextBlock Text="Этот сайт открывается через VPN, чтобы понять, жив ли туннель. Медленный сайт — ложные «обрывы» и переключения" Style="{StaticResource OptSub}"/>
           <TextBox x:Name="ProbeInput" Style="{StaticResource FieldBox}" Height="36" Margin="0,8,0,0" FontFamily="{StaticResource MonoFont}" Tag="https://www.microsoft.com/" AutomationProperties.Name="Адрес проверки связи"/>
           <TextBlock x:Name="ProbeError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Text="Автовыбор" Style="{StaticResource SecHead}"/>
+      <Border Style="{StaticResource OptRow}" BorderThickness="0">
+        <StackPanel>
+          <DockPanel>
+            <TextBox x:Name="MarginInput" DockPanel.Dock="Right" Style="{StaticResource FieldBox}" Width="110" Height="36" Tag="20" Margin="12,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="Порог переключения, процентов"/>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="Порог переключения, %" Style="{StaticResource OptTitle}"/>
+              <TextBlock Text="Насколько другой сервер должен быть лучше, чтобы автовыбор перешёл на него. Меньше — чаще переключения" Style="{StaticResource OptSub}"/>
+            </StackPanel>
+          </DockPanel>
+          <TextBlock x:Name="MarginError" Style="{StaticResource OptSub}" Foreground="{DynamicResource RF}" Visibility="Collapsed"/>
         </StackPanel>
       </Border>
 

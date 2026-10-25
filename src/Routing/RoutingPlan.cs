@@ -64,7 +64,7 @@ public static class RoutingPlan
         if (profile.Core != adapter.Kind) throw new UserError("Ядро не соответствует профилю.");
         // Бесплатный чужой узел: заслоны ForeignGuard впереди правил человека.
         if (profile.IsFree) rules = ForeignGuard.With(rules, 100);
-        var config = adapter.RuntimeConfig(profile.Outbound, port);
+        var config = adapter.RuntimeConfig(Utls.For(profile).Outbound, port);
         var outbounds = (JsonArray)config["outbounds"]!;
         var xray = adapter.Kind == CoreKind.Xray;
         // Метка туннеля одна у всех ядер (CoreAdapter); у WireGuard он в endpoints, а не первым в outbounds.

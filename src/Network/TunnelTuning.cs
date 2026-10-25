@@ -6,11 +6,17 @@ namespace Oblachka;
 // Настройки туннеля из «Для продвинутых» (AdvancedOptions), которые уходят в службу: стек и MTU,
 // свой DNS через VPN, подсети мимо туннеля. Служба проверяет их заново — окно могло прислать что
 // угодно, а ядро туннеля работает с правами системы. null у поля — как без настройки.
-public sealed record TunnelTuning(TunnelStack Stack = TunnelStack.Auto, int? Mtu = null, string? Dns = null, string[]? Bypass = null, CoreLogLevel Log = CoreLogLevel.Off)
+public sealed record TunnelTuning(TunnelStack Stack = TunnelStack.Auto, int? Mtu = null, string? Dns = null, string[]? Bypass = null, CoreLogLevel Log = CoreLogLevel.Off,
+    string? DirectDns = null, bool NoIpv6 = false, int? UdpTimeout = null)
 {
     public static TunnelTuning? From(AdvancedOptions options) =>
-        options.Stack == TunnelStack.Auto && options.Mtu is null && options.TunnelDns is null && options.BypassSubnets.Length == 0 && options.CoreLog == CoreLogLevel.Off ? null
-            : new(options.Stack, options.Mtu, options.TunnelDns, options.BypassSubnets.Length == 0 ? null : options.BypassSubnets, options.CoreLog);
+        options.Stack == TunnelStack.Auto && options.Mtu is null && options.TunnelDns is null && options.BypassSubnets.Length == 0 && options.CoreLog == CoreLogLevel.Off &&
+        options.DirectDns is null && !options.NoIpv6 && options.UdpTimeout is null ? null
+            : new(options.Stack, options.Mtu, options.TunnelDns, options.BypassSubnets.Length == 0 ? null : options.BypassSubnets, options.CoreLog,
+                options.DirectDns, options.NoIpv6, options.UdpTimeout);
+
+    // DNS для прямых сайтов: свой адрес или резолвер физической сети (DirectDns).
+    public IPAddress? DirectResolver(Func<IPAddress?> physical) => DirectDns is { } own ? IPAddress.Parse(own) : physical();
 
     // Журнал ядра — в общей папке службы, где и журнал сессии: окно открывает его без прав
     // администратора. Путь задаёт служба, не окно: писать с правами системы туда, куда прислали, нельзя.
@@ -21,7 +27,8 @@ public sealed record TunnelTuning(TunnelStack Stack = TunnelStack.Auto, int? Mtu
     public void Validate()
     {
         if (!Enum.IsDefined(Stack) || !Enum.IsDefined(Log)) throw new UserError("Неизвестный стек туннеля или уровень журнала.");
-        if ((AdvancedOptions.CheckMtu(Mtu) ?? AdvancedOptions.CheckDns(Dns) ?? AdvancedOptions.CheckSubnets(Subnets)) is { } problem)
+        if ((AdvancedOptions.CheckMtu(Mtu) ?? AdvancedOptions.CheckDns(Dns) ?? AdvancedOptions.CheckSubnets(Subnets) ?? AdvancedOptions.CheckDirectDns(DirectDns) ??
+            AdvancedOptions.CheckUdpTimeout(UdpTimeout)) is { } problem)
             throw new UserError(problem);
     }
 
@@ -32,6 +39,7 @@ public sealed record TunnelTuning(TunnelStack Stack = TunnelStack.Auto, int? Mtu
         var tun = (JsonObject)((JsonArray)config["inbounds"]!)[0]!;
         if (tuning.Stack != TunnelStack.Auto) tun["stack"] = tuning.Stack.ToString().ToLowerInvariant();
         if (tuning.Mtu is { } mtu) tun["mtu"] = mtu;
+        if (tuning.UdpTimeout is { } minutes) tun["udp_timeout"] = minutes + "m";
         // Подсети мимо туннеля — маршрутами Windows, как локальная сеть: трафик к ним ядро не видит.
         // Защита открывает их программам отдельным разрешением (WfpProtectionBackend).
         if (tuning.Subnets.Count > 0)

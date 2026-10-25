@@ -32,11 +32,24 @@ public sealed record AdvancedOptions
     // Постоянный порт локального прокси для программ; null — свободный, какой найдётся.
     public int? ProxyPort { get; init; }
     public CoreLogLevel CoreLog { get; init; }
+    // DNS для сайтов «напрямую»: свой адрес вместо DNS роутера (Яндекс, корпоративный). Только IP.
+    public string? DirectDns { get; init; }
+    // IPv6 в туннеле: false — сам (если у сети есть IPv6), true — выключен.
+    public bool NoIpv6 { get; init; }
+    // Сколько минут живёт UDP-связка без пакетов (игры с редкими пакетами); null — 5 минут ядра.
+    public int? UdpTimeout { get; init; }
+    // Отпечаток TLS (uTLS) для сторонних ссылок без своего «fp»; null — как в ссылке.
+    public string? Utls { get; init; }
+    // Не отправлять идентификатор устройства (HWID) сторонним подпискам.
+    public bool NoExternalHwid { get; init; }
+    // Порог автовыбора: другой сервер должен быть лучше на столько процентов; null — 20.
+    public int? SwitchMargin { get; init; }
 
     public const int MinMtu = 1280, MaxMtu = 9000, MaxSubnets = 32;
 
     public bool IsDefault => Stack == TunnelStack.Auto && Mtu is null && TunnelDns is null && BypassSubnets.Length == 0 &&
-        FragmentPackets is null && FragmentLength is null && FragmentInterval is null && SubscriptionUserAgent is null && ProbeUrl is null && ProxyPort is null && CoreLog == CoreLogLevel.Off;
+        FragmentPackets is null && FragmentLength is null && FragmentInterval is null && SubscriptionUserAgent is null && ProbeUrl is null && ProxyPort is null && CoreLog == CoreLogLevel.Off &&
+        DirectDns is null && !NoIpv6 && UdpTimeout is null && Utls is null && !NoExternalHwid && SwitchMargin is null;
 
     // Ошибка — человеческим текстом для поля; null — всё верно.
     public static string? CheckMtu(int? mtu) => mtu is null or (>= MinMtu and <= MaxMtu) ? null : $"MTU — от {MinMtu} до {MaxMtu}.";
@@ -83,18 +96,30 @@ public sealed record AdvancedOptions
     public static string? CheckProbe(string? url) =>
         url is null || Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == "https" && uri.UserInfo.Length == 0 ? null : "Нужен адрес https://…";
 
+    // Адрес DNS для прямых сайтов: обычный внешний или частный адрес, не служебный.
+    public static string? CheckDirectDns(string? dns) =>
+        dns is null || IPAddress.TryParse(dns, out var ip) && !IPAddress.IsLoopback(ip) && !ip.Equals(IPAddress.Any) && !ip.Equals(IPAddress.IPv6Any) && !ip.IsIPv6Multicast
+            && !(ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && ip.GetAddressBytes()[0] is 0 or >= 224) ? null : "Нужен IP-адрес DNS-сервера, например 77.88.8.8.";
+
+    public static string? CheckUdpTimeout(int? minutes) => minutes is null or (>= 1 and <= 60) ? null : "От 1 до 60 минут.";
+
+    public static string? CheckMargin(int? percent) => percent is null or (>= 5 and <= 200) ? null : "От 5 до 200 %.";
+
     public static string? CheckPort(int? port) => port is null or (>= 1024 and <= 65535) ? null : "Порт — от 1024 до 65535.";
 
     // Весь набор: так снимок проверяется при чтении (испорченное значение — как без настройки).
     public string? Problem() => CheckMtu(Mtu) ?? CheckDns(TunnelDns) ?? CheckSubnets(BypassSubnets) ?? CheckFragment(FragmentPackets, FragmentLength, FragmentInterval) ??
-        CheckUserAgent(SubscriptionUserAgent) ?? CheckProbe(ProbeUrl) ?? CheckPort(ProxyPort);
+        CheckUserAgent(SubscriptionUserAgent) ?? CheckProbe(ProbeUrl) ?? CheckPort(ProxyPort) ??
+        CheckDirectDns(DirectDns) ?? CheckUdpTimeout(UdpTimeout) ?? CheckMargin(SwitchMargin) ?? (Oblachka.Utls.Valid(Utls) ? null : "Неизвестный отпечаток TLS.");
 
     // Названия изменённых настроек — для отчёта поддержке; значения туда не идут.
     public string[] Changed() => new (bool On, string Name)[]
     {
         (Stack != TunnelStack.Auto, "Stack:" + Stack), (Mtu is not null, "Mtu:" + Mtu), (TunnelDns is not null, "TunnelDns"),
         (BypassSubnets.Length > 0, "BypassSubnets:" + BypassSubnets.Length), ((FragmentPackets ?? FragmentLength ?? FragmentInterval) is not null, "Fragment"),
-        (SubscriptionUserAgent is not null, "SubscriptionUserAgent"), (ProbeUrl is not null, "ProbeUrl"), (ProxyPort is not null, "ProxyPort"), (CoreLog != CoreLogLevel.Off, "CoreLog:" + CoreLog)
+        (SubscriptionUserAgent is not null, "SubscriptionUserAgent"), (ProbeUrl is not null, "ProbeUrl"), (ProxyPort is not null, "ProxyPort"), (CoreLog != CoreLogLevel.Off, "CoreLog:" + CoreLog),
+        (DirectDns is not null, "DirectDns"), (NoIpv6, "NoIpv6"), (UdpTimeout is not null, "UdpTimeout:" + UdpTimeout), (Utls is not null, "Utls:" + Utls),
+        (NoExternalHwid, "NoExternalHwid"), (SwitchMargin is not null, "SwitchMargin:" + SwitchMargin)
     }.Where(c => c.On).Select(c => c.Name).ToArray();
 
     // Своя форма фрагментации поверх провайдерской: незаданное — из неё же или по умолчанию.

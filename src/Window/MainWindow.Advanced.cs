@@ -39,6 +39,20 @@ public partial class MainWindow
         Field(Advanced.ProbeInput, Advanced.ProbeError, text => AdvancedOptions.CheckProbe(Empty(text)) ?? Keep(advanced with { ProbeUrl = Empty(text) }));
         Field(Advanced.PortInput, Advanced.PortError, text => Number(text, out var port) is { } bad ? bad
             : AdvancedOptions.CheckPort(port) ?? Keep(advanced with { ProxyPort = port }));
+        Advanced.Ipv6Auto.Click += (_, _) => SetAdvanced(advanced with { NoIpv6 = false });
+        Advanced.Ipv6Off.Click += (_, _) => SetAdvanced(advanced with { NoIpv6 = true });
+        Field(Advanced.UdpInput, Advanced.UdpError, text => Number(text, out var minutes) is { } bad ? bad
+            : AdvancedOptions.CheckUdpTimeout(minutes) ?? Keep(advanced with { UdpTimeout = minutes }));
+        Field(Advanced.DirectDnsInput, Advanced.DirectDnsError, text => AdvancedOptions.CheckDirectDns(Empty(text)) ?? Keep(advanced with { DirectDns = Empty(text) }));
+        Advanced.UtlsChoice.ItemsSource = new[] { "как в ссылке" }.Concat(Utls.Names).ToArray();
+        Advanced.UtlsChoice.SelectionChanged += (_, _) =>
+        {
+            if (fillingAdvanced) return;
+            SetAdvanced(advanced with { Utls = Advanced.UtlsChoice.SelectedIndex > 0 ? Utls.Names[Advanced.UtlsChoice.SelectedIndex - 1] : null });
+        };
+        Advanced.ExternalHwid.Click += (_, _) => SetAdvanced(advanced with { NoExternalHwid = Advanced.ExternalHwid.IsChecked != true });
+        Field(Advanced.MarginInput, Advanced.MarginError, text => Number(text, out var percent) is { } bad ? bad
+            : AdvancedOptions.CheckMargin(percent) ?? Keep(advanced with { SwitchMargin = percent }));
         Advanced.LogOff.Click += (_, _) => SetAdvanced(advanced with { CoreLog = CoreLogLevel.Off });
         Advanced.LogWarn.Click += (_, _) => SetAdvanced(advanced with { CoreLog = CoreLogLevel.Warn });
         Advanced.LogDebug.Click += (_, _) => SetAdvanced(advanced with { CoreLog = CoreLogLevel.Debug });
@@ -98,6 +112,9 @@ public partial class MainWindow
     private void ApplyAdvanced()
     {
         Subscriptions.ExternalUserAgent = advanced.SubscriptionUserAgent;
+        Subscriptions.ExternalHwid = !advanced.NoExternalHwid;
+        Utls.Default = advanced.Utls;
+        ServerMeasurements.Stickiness = 1 + (advanced.SwitchMargin ?? 20) / 100.0;
         TunnelHealth.Custom = advanced.ProbeUrl is { } probe ? new Uri(probe) : null;
         if (engine is Engine core && advanced.ProxyPort is { } port) core.PreferredPort = port;
         MarkStack();
@@ -110,13 +127,21 @@ public partial class MainWindow
         MarkSegment(Advanced.StackGvisor, advanced.Stack == TunnelStack.Gvisor);
         MarkSegment(Advanced.StackMixed, advanced.Stack == TunnelStack.Mixed);
         MarkSegment(Advanced.StackSystem, advanced.Stack == TunnelStack.System);
+        MarkSegment(Advanced.Ipv6Auto, !advanced.NoIpv6);
+        MarkSegment(Advanced.Ipv6Off, advanced.NoIpv6);
         MarkSegment(Advanced.LogOff, advanced.CoreLog == CoreLogLevel.Off);
         MarkSegment(Advanced.LogWarn, advanced.CoreLog == CoreLogLevel.Warn);
         MarkSegment(Advanced.LogDebug, advanced.CoreLog == CoreLogLevel.Debug);
     }
 
+    private bool fillingAdvanced;
     private void FillAdvanced()
     {
+        fillingAdvanced = true;
+        Advanced.UtlsChoice.SelectedIndex = advanced.Utls is { } fp ? Array.IndexOf(Utls.Names, fp) + 1 : 0;
+        fillingAdvanced = false;
+        Advanced.ExternalHwid.IsChecked = !advanced.NoExternalHwid;
+        Advanced.MarginInput.Text = advanced.SwitchMargin?.ToString() ?? "";
         Advanced.MtuInput.Text = advanced.Mtu?.ToString() ?? "";
         Advanced.BypassInput.Text = string.Join(Environment.NewLine, advanced.BypassSubnets);
         Advanced.DnsInput.Text = advanced.TunnelDns ?? "";
@@ -125,7 +150,9 @@ public partial class MainWindow
         Advanced.UserAgentInput.Text = advanced.SubscriptionUserAgent ?? "";
         Advanced.ProbeInput.Text = advanced.ProbeUrl ?? "";
         Advanced.PortInput.Text = advanced.ProxyPort?.ToString() ?? "";
-        foreach (var error in new[] { Advanced.MtuError, Advanced.BypassError, Advanced.DnsError, Advanced.FragmentError, Advanced.UserAgentError, Advanced.ProbeError, Advanced.PortError })
+        Advanced.UdpInput.Text = advanced.UdpTimeout?.ToString() ?? "";
+        Advanced.DirectDnsInput.Text = advanced.DirectDns ?? "";
+        foreach (var error in new[] { Advanced.MtuError, Advanced.BypassError, Advanced.DnsError, Advanced.FragmentError, Advanced.UserAgentError, Advanced.ProbeError, Advanced.PortError, Advanced.UdpError, Advanced.DirectDnsError, Advanced.MarginError })
             error.Visibility = Visibility.Collapsed;
     }
 }

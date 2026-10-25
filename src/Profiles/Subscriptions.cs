@@ -141,6 +141,7 @@ public static class Subscriptions
     }
 
     public static string? ExternalUserAgent { get; set; }
+    public static bool ExternalHwid { get; set; } = true;
 
     public static async Task<ImportResult> FetchAsync(string url, CancellationToken token, int? socksPort = null)
     {
@@ -171,10 +172,14 @@ public static class Subscriptions
             // Заголовки лимита устройств (HWID в Remnawave): без x-hwid панель с включённым лимитом
             // отдаёт 404. Сервису — идентификатор установки, сторонней подписке — свой для её хоста
             // (DeviceIdentity.ForHost): связать устройство между сервисами по нему нельзя.
-            request.Headers.Add("x-hwid", ServiceBrand.IsServiceHost(uri.Host) ? DeviceIdentity.Current : DeviceIdentity.ForHost(uri.Host));
-            request.Headers.Add("x-device-os", DeviceIdentity.OperatingSystem);
-            request.Headers.Add("x-ver-os", DeviceIdentity.OperatingSystemVersion);
-            request.Headers.Add("x-device-model", DeviceIdentity.DeviceModel);
+            // Сторонним подпискам — если не выключено в «Для продвинутых».
+            if (ServiceBrand.IsServiceHost(uri.Host) || ExternalHwid)
+            {
+                request.Headers.Add("x-hwid", ServiceBrand.IsServiceHost(uri.Host) ? DeviceIdentity.Current : DeviceIdentity.ForHost(uri.Host));
+                request.Headers.Add("x-device-os", DeviceIdentity.OperatingSystem);
+                request.Headers.Add("x-ver-os", DeviceIdentity.OperatingSystemVersion);
+                request.Headers.Add("x-device-model", DeviceIdentity.DeviceModel);
+            }
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
             // Ответ панели о лимите устройств — понятным текстом, а не «HTTP 404». Список не трогаем.
             // x-hwid-limit панель ставит при любом отказе, поэтому «не принят» проверяется первым.
