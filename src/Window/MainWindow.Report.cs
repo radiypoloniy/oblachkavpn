@@ -20,7 +20,9 @@ public partial class MainWindow
                 Mode = SystemTunnelWanted ? "SystemTunnel" : "BrowsersAndPrograms", LocalNetwork = Settings.LocalNetwork.IsChecked == true,
                 QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, CompatibleStack = Settings.CompatibleStack.IsChecked == true, RussiaDirect = Settings.RussiaDirect.IsChecked == true,
                 AutoSelect = autoSelect, AutoRecover = AutoRecover.IsChecked == true, SelectiveVpn = selectiveVpn,
-                ProgramRules = programRules.Count, SiteRules = siteRules.Count
+                ProgramRules = programRules.Count, SiteRules = siteRules.Count,
+                // «Для продвинутых»: что изменено, без значений — в них бывают адреса рабочей сети.
+                Advanced = advanced.Changed()
             },
             Servers = ReportServers(),
             ProgramRules = programRules.Take(60).Select(r => new

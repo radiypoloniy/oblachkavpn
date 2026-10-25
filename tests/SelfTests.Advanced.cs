@@ -76,6 +76,19 @@ public static partial class SelfTests
             finally { try { Directory.Delete(folder, true); } catch (IOException) { } }
         }));
 
+        await check("Rules file round-trips sites, subnets, ports and programs, and rejects what cannot be typed", () => Sync(() =>
+        {
+            SiteRule[] sites = [new("example.com", SiteAction.Direct), new("10.20.0.0/16", SiteAction.Direct), new("port:25", SiteAction.Block)];
+            ProgramRule[] programs = [ProgramRoutingPlan.Create("steam.exe", SiteAction.Direct),
+                ProgramRoutingPlan.Create(@"C:\Games\Dota\dota2.exe", SiteAction.Direct, allInFolder: true),
+                ProgramRoutingPlan.Create("telegram.exe", SiteAction.Tunnel) with { Domain = "t.me" }];
+            var (back, apps) = RulesFile.Import(RulesFile.Export(sites, programs));
+            Assert(back.SequenceEqual(sites) && apps.Select(a => a.Key).SequenceEqual(programs.Select(p => p.Key)) && apps.Select(a => a.Action).SequenceEqual(programs.Select(p => p.Action)));
+            foreach (var bad in new[] { "[]", "{\"oblachka-rules\":2}", "{\"oblachka-rules\":1,\"sites\":[{\"target\":\"0.0.0.0/0\",\"action\":\"direct\"}]}",
+                "{\"oblachka-rules\":1,\"sites\":[{\"target\":\"example.com\",\"action\":\"steal\"}]}", "{\"oblachka-rules\":1,\"programs\":[{\"executable\":\"..\\x.exe\",\"action\":\"direct\"}]}", "не json" })
+                Assert(Throws<UserError>(() => RulesFile.Import(bad)));
+        }));
+
         await check("Bypass subnets are opened to programs by protection, and the service rejects bad tuning", () => Sync(() =>
         {
             var backend = new WfpProtectionBackend(() => new FakeWfp(), @"C:\app\tools");

@@ -9,7 +9,7 @@ public partial class MainWindow
     {
         WireProgramRules();
         WireFree();
-        WireAdvanced(); RestoreAdvanced(null);
+        WireAdvanced(); RestoreAdvanced(null); WireRulesFile();
         WireConnections();
         WireSelective();
         WireRouting();

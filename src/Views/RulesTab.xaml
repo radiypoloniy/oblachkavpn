@@ -39,10 +39,19 @@
        без VPN целиком (YouTube и Discord, рунет) — в «Настройки → Обход блокировок». -->
   <DockPanel Margin="10,0,20,16">
     <DockPanel DockPanel.Dock="Top" Height="64">
+      <!-- Правила файлом (RulesFile): перенос и обмен наборами, без ключей и серверов. -->
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True">
+        <Button x:Name="ImportRules" Style="{StaticResource BtnOutline}" Height="34" Padding="12,0,14,0" Margin="0,0,8,0" AutomationProperties.Name="Импорт правил из файла" ToolTip="Импорт правил из файла">
+          <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IcoUpload}" Style="{StaticResource Icon}" Width="14" Height="14" StrokeThickness="2.2" Margin="0,0,6,0"/><TextBlock x:Name="ImportText" Text="Импорт" VerticalAlignment="Center"/></StackPanel>
+        </Button>
+        <Button x:Name="ExportRules" Style="{StaticResource BtnOutline}" Height="34" Padding="12,0,14,0" AutomationProperties.Name="Экспорт правил в файл" ToolTip="Экспорт правил в файл">
+          <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IcoTray}" Style="{StaticResource Icon}" Width="14" Height="14" StrokeThickness="2.2" Margin="0,0,6,0"/><TextBlock x:Name="ExportText" Text="Экспорт" VerticalAlignment="Center"/></StackPanel>
+        </Button>
+      </StackPanel>
       <Button x:Name="BackButton" Style="{StaticResource IconButton}" Foreground="{DynamicResource Tx}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Назад">
         <Path Data="{StaticResource IcoBack}" Style="{StaticResource Icon}" StrokeThickness="2.2"/>
       </Button>
-      <TextBlock Text="Правила" Style="{StaticResource Brand}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+      <TextBlock Text="Правила" Style="{StaticResource PageHead}" Margin="10,0,0,0" VerticalAlignment="Center"/>
     </DockPanel>
     <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Divider}" BorderThickness="0,0,0,1" Margin="10,4,0,0">
       <StackPanel Orientation="Horizontal" Margin="4,0">

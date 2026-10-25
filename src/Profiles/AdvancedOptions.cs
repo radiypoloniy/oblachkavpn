@@ -86,6 +86,14 @@ public sealed record AdvancedOptions
     public string? Problem() => CheckMtu(Mtu) ?? CheckDns(TunnelDns) ?? CheckSubnets(BypassSubnets) ?? CheckFragment(FragmentPackets, FragmentLength, FragmentInterval) ??
         CheckUserAgent(SubscriptionUserAgent) ?? CheckProbe(ProbeUrl) ?? CheckPort(ProxyPort);
 
+    // Названия изменённых настроек — для отчёта поддержке; значения туда не идут.
+    public string[] Changed() => new (bool On, string Name)[]
+    {
+        (Stack != TunnelStack.Auto, "Stack:" + Stack), (Mtu is not null, "Mtu:" + Mtu), (TunnelDns is not null, "TunnelDns:" + (TunnelDns is { } d ? new Uri(d).Scheme : "")),
+        (BypassSubnets.Length > 0, "BypassSubnets:" + BypassSubnets.Length), ((FragmentPackets ?? FragmentLength ?? FragmentInterval) is not null, "Fragment"),
+        (SubscriptionUserAgent is not null, "SubscriptionUserAgent"), (ProbeUrl is not null, "ProbeUrl"), (ProxyPort is not null, "ProxyPort")
+    }.Where(c => c.On).Select(c => c.Name).ToArray();
+
     // Своя форма фрагментации поверх провайдерской: незаданное — из неё же или по умолчанию.
     public ProviderFragment? Fragment(ProviderFragment? provider)
     {
