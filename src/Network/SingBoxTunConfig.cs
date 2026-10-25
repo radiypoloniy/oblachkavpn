@@ -124,7 +124,7 @@ public static class SingBoxTunConfig
     private static void DnsByDefaultDirect(JsonObject config, ValidatedNetworkLease lease)
     {
         config["dns"]!["final"] = DirectDns.ServerTag;
-        var tunnel = lease.SiteRules.Where(r => r.Action == SiteAction.Tunnel).Select(r => (JsonNode?)JsonValue.Create(r.Domain)).ToArray();
+        var tunnel = lease.SiteRules.Where(r => r.Action == SiteAction.Tunnel && SiteTarget.Kind(r.Domain) == SiteTargetKind.Domain).Select(r => (JsonNode?)JsonValue.Create(r.Domain)).ToArray();
         if (tunnel.Length > 0)
             ((JsonArray)config["dns"]!["rules"]!).Insert(0, new JsonObject { ["domain_suffix"] = new JsonArray(tunnel), ["server"] = "remote-dns" });
     }
@@ -224,8 +224,8 @@ public static class SingBoxTunConfig
         }
         foreach (var rule in ProgramRoutingPlan.Ordered(lease.ProgramRules))
             rules.Add(Route(ProgramRoutingPlan.Match(rule), rule.Action, tunnel));
-        foreach (var rule in lease.SiteRules.OrderByDescending(r => r.Domain.Count(c => c == '.')))
-            rules.Add(Route(new JsonObject { ["domain_suffix"] = new JsonArray(rule.Domain) }, rule.Action, tunnel));
+        foreach (var rule in lease.SiteRules.OrderByDescending(r => SiteTarget.Order(r.Domain)))
+            rules.Add(Route(SiteTarget.SingBox(rule.Domain), rule.Action, tunnel));
     }
 
     public const string UserDirect = "user-direct";

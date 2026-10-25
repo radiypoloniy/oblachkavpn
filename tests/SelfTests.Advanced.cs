@@ -54,6 +54,28 @@ public static partial class SelfTests
             Assert(((JsonArray)dot["dns"]!["servers"]!).All(s => (string?)s!["tag"] != "dns-bootstrap") && dot["dns"]!["servers"]!.ToJsonString().Contains("\"type\":\"tls\""));
         }));
 
+        await check("Site rules take subnets and ports beside domains, in both cores and in live rule files", () => Sync(() =>
+        {
+            Assert(RoutingPlan.Create("10.20.1.5/16", SiteAction.Direct).Domain == "10.20.0.0/16" && RoutingPlan.Create("8.8.8.8", SiteAction.Block).Domain == "8.8.8.8/32");
+            Assert(RoutingPlan.Create("port:25", SiteAction.Block).Domain == "port:25" && RoutingPlan.Create("ПОРТ:27015-27030", SiteAction.Direct).Domain == "port:27015-27030");
+            Assert(RoutingPlan.Create("Example.COM", SiteAction.Tunnel).Domain == "example.com");
+            foreach (var bad in new[] { "port:0", "port:30-20", "port:70000", "0.0.0.0/0", "10.0.0.0/40", "https://x.com/a" })
+                Assert(Throws<UserError>(() => RoutingPlan.Create(bad, SiteAction.Direct)));
+            RoutingPlan.Validate([new("10.20.0.0/16", SiteAction.Direct), new("port:25", SiteAction.Block), new("example.com", SiteAction.Tunnel)]);
+            Assert(SiteTarget.SingBox("10.20.0.0/16").ToJsonString() == "{\"ip_cidr\":[\"10.20.0.0/16\"]}");
+            Assert(SiteTarget.SingBox("port:25").ToJsonString() == "{\"port\":[25]}" && SiteTarget.SingBox("port:27015-27030").ToJsonString() == "{\"port_range\":[\"27015:27030\"]}");
+            Assert(SiteTarget.Xray("port:27015-27030")["port"]!.GetValue<string>() == "27015-27030" && SiteTarget.Xray("10.20.0.0/16")["ip"]!.ToJsonString() == "[\"10.20.0.0/16\"]");
+            var folder = Path.Combine(Path.GetTempPath(), "obl-sites-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                SiteRuleSets.Write(folder, [new("10.20.0.0/16", SiteAction.Direct), new("example.com", SiteAction.Direct), new("port:25", SiteAction.Block)]);
+                var direct = File.ReadAllText(Path.Combine(folder, SiteRuleSets.Tag(0, SiteAction.Direct) + ".json"));
+                var block = File.ReadAllText(Path.Combine(folder, SiteRuleSets.Tag(0, SiteAction.Block) + ".json"));
+                Assert(direct.Contains("\"ip_cidr\":[\"10.20.0.0/16\"]") && direct.Contains("example.com") && block.Contains("\"port\":[25]"));
+            }
+            finally { try { Directory.Delete(folder, true); } catch (IOException) { } }
+        }));
+
         await check("Bypass subnets are opened to programs by protection, and the service rejects bad tuning", () => Sync(() =>
         {
             var backend = new WfpProtectionBackend(() => new FakeWfp(), @"C:\app\tools");

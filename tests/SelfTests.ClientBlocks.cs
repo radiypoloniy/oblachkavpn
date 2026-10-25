@@ -32,10 +32,12 @@ public static partial class SelfTests
         await check("Routing drafts reject URLs and duplicates, prioritize subdomains, validate both cores", async () =>
         {
             ExpectUserError(() => RoutingPlan.Create("https://example.com/path", SiteAction.Direct));
-            ExpectUserError(() => RoutingPlan.Create("192.0.2.1", SiteAction.Block));
+            // Одиночный адрес — правило подсети /32 (SiteTarget), а не отказ.
+            Assert(RoutingPlan.Create("192.0.2.1", SiteAction.Block).Domain == "192.0.2.1/32");
             var rule = RoutingPlan.Create("EXAMPLE.COM.", SiteAction.Block); Assert(rule.Domain == "example.com");
             ExpectUserError(() => RoutingPlan.Validate([rule, rule]));
-            SiteRule[] rules = [rule, RoutingPlan.Create("sub.example.com", SiteAction.Tunnel), RoutingPlan.Create("direct.example.net", SiteAction.Direct)];
+            SiteRule[] rules = [rule, RoutingPlan.Create("sub.example.com", SiteAction.Tunnel), RoutingPlan.Create("direct.example.net", SiteAction.Direct),
+                RoutingPlan.Create("10.20.0.0/16", SiteAction.Direct), RoutingPlan.Create("port:27015-27030", SiteAction.Direct), RoutingPlan.Create("port:25", SiteAction.Block)];
             foreach (var core in new[] { CoreKind.Xray, CoreKind.SingBox })
             {
                 var profile = Profiles.Parse(core == CoreKind.Xray ? link : link.Replace("type=xhttp&path=%2Fexample&mode=stream-up&", "type=tcp&"));

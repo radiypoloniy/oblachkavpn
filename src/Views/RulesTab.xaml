@@ -55,7 +55,7 @@
       <StackPanel x:Name="SiteInput">
         <DockPanel>
           <Button x:Name="AddRuleButton" DockPanel.Dock="Right" Content="Добавить" Style="{StaticResource BtnPrimary}" Height="38" Padding="14,0" o:Ui.CornerRadius="{StaticResource RadiusMd}" FontSize="{StaticResource FsBody}" Margin="8,0,0,0"/>
-          <TextBox x:Name="RuleDomain" Style="{StaticResource FieldBox}" Height="38" Tag="example.com — с поддоменами" FontSize="{StaticResource FsLabel}" AutomationProperties.Name="Новое правило для сайта"/>
+          <TextBox x:Name="RuleDomain" Style="{StaticResource FieldBox}" Height="38" Tag="example.com, 10.20.0.0/16 или port:25" FontSize="{StaticResource FsLabel}" AutomationProperties.Name="Новое правило для сайта"/>
         </DockPanel>
       </StackPanel>
       <!-- Программы выбираются из списка компьютера (AppPicker), а не вписываются именем файла. -->

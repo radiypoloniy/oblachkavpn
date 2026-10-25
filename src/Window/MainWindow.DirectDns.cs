@@ -13,7 +13,7 @@ public partial class MainWindow
         // здесь нет, и имена разрешаются через туннель, как раньше.
         if (routing is { GlobalProxy: false }) return [];
         var names = (routing?.Direct.Suffix ?? []).Concat(routing?.Direct.Full ?? [])
-            .Concat(rules.Where(r => r.Action == SiteAction.Direct).Select(r => r.Domain));
+            .Concat(rules.Where(r => r.Action == SiteAction.Direct && SiteTarget.Kind(r.Domain) == SiteTargetKind.Domain).Select(r => r.Domain));
         return names.Select(n => n.Trim().TrimStart('.').ToLowerInvariant()).Where(DirectDnsRequest.Valid)
             .Distinct(StringComparer.Ordinal).Take(DirectDnsRequest.MaxParts * DirectDnsRequest.MaxPerPart).ToArray();
     }
