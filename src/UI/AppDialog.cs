@@ -16,12 +16,12 @@ public static class AppDialog
 
     // Возвращает введённое или null при отмене. note — пояснение под полем.
     public static string? Ask(Window? owner, string title, string text, string hint, string yes, string? initial = null, string? note = null,
-        bool multiline = false, int maxLength = 20 * 1024)
+        bool multiline = false, int maxLength = 20 * 1024, double height = 110)
     {
         var box = new TextBox
         {
             Text = initial ?? "", Tag = hint, MaxLength = maxLength, FontFamily = (FontFamily)Application.Current.FindResource("MonoFont"), FontSize = Tokens.Size("FsBody"),
-            AcceptsReturn = multiline, TextWrapping = multiline ? TextWrapping.Wrap : TextWrapping.NoWrap, Height = multiline ? 110 : 42,
+            AcceptsReturn = multiline, TextWrapping = multiline ? TextWrapping.Wrap : TextWrapping.NoWrap, Height = multiline ? height : 42,
             VerticalContentAlignment = multiline ? VerticalAlignment.Top : VerticalAlignment.Center, Padding = new Thickness(12, multiline ? 10 : 0, 12, 0),
             VerticalScrollBarVisibility = multiline ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled, Margin = new Thickness(0, 14, 0, 0)
         };

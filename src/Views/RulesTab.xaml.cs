@@ -13,6 +13,7 @@ public partial class RulesTab : UserControl
         {
             var narrow = args.NewSize.Width < 560;
             ImportText.Visibility = ExportText.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
+            RuleSetText.MaxWidth = narrow ? 90 : 180;
             ImportRules.Padding = ExportRules.Padding = narrow ? new Thickness(10, 0, 4, 0) : new Thickness(12, 0, 14, 0);
         };
         SitesTab.Click += (_, _) => ShowSites(true);

@@ -44,12 +44,15 @@ public sealed record AdvancedOptions
     public bool NoExternalHwid { get; init; }
     // Порог автовыбора: другой сервер должен быть лучше на столько процентов; null — 20.
     public int? SwitchMargin { get; init; }
+    // Горячие клавиши: Ctrl+Alt+V — VPN, Ctrl+Alt+B — обход блокировок.
+    public bool VpnHotkey { get; init; }
+    public bool BypassHotkey { get; init; }
 
     public const int MinMtu = 1280, MaxMtu = 9000, MaxSubnets = 32;
 
     public bool IsDefault => Stack == TunnelStack.Auto && Mtu is null && TunnelDns is null && BypassSubnets.Length == 0 &&
         FragmentPackets is null && FragmentLength is null && FragmentInterval is null && SubscriptionUserAgent is null && ProbeUrl is null && ProxyPort is null && CoreLog == CoreLogLevel.Off &&
-        DirectDns is null && !NoIpv6 && UdpTimeout is null && Utls is null && !NoExternalHwid && SwitchMargin is null;
+        DirectDns is null && !NoIpv6 && UdpTimeout is null && Utls is null && !NoExternalHwid && SwitchMargin is null && !VpnHotkey && !BypassHotkey;
 
     // Ошибка — человеческим текстом для поля; null — всё верно.
     public static string? CheckMtu(int? mtu) => mtu is null or (>= MinMtu and <= MaxMtu) ? null : $"MTU — от {MinMtu} до {MaxMtu}.";
@@ -119,7 +122,7 @@ public sealed record AdvancedOptions
         (BypassSubnets.Length > 0, "BypassSubnets:" + BypassSubnets.Length), ((FragmentPackets ?? FragmentLength ?? FragmentInterval) is not null, "Fragment"),
         (SubscriptionUserAgent is not null, "SubscriptionUserAgent"), (ProbeUrl is not null, "ProbeUrl"), (ProxyPort is not null, "ProxyPort"), (CoreLog != CoreLogLevel.Off, "CoreLog:" + CoreLog),
         (DirectDns is not null, "DirectDns"), (NoIpv6, "NoIpv6"), (UdpTimeout is not null, "UdpTimeout:" + UdpTimeout), (Utls is not null, "Utls:" + Utls),
-        (NoExternalHwid, "NoExternalHwid"), (SwitchMargin is not null, "SwitchMargin:" + SwitchMargin)
+        (NoExternalHwid, "NoExternalHwid"), (SwitchMargin is not null, "SwitchMargin:" + SwitchMargin), (VpnHotkey, "VpnHotkey"), (BypassHotkey, "BypassHotkey")
     }.Where(c => c.On).Select(c => c.Name).ToArray();
 
     // Своя форма фрагментации поверх провайдерской: незаданное — из неё же или по умолчанию.

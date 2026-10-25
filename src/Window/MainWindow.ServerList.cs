@@ -55,6 +55,7 @@ public partial class MainWindow
         if (Equals(button.Tag, "remove")) { if (row.Profile is not null) RemoveServer(row.Profile); return; }
         if (Equals(button.Tag, "star")) { if (row.Profile is not null) ToggleFavorite(row.Profile); return; }
         if (Equals(button.Tag, "check")) { if (row.Profile is not null) _ = CheckServerAsync(row.Profile); return; }
+        if (Equals(button.Tag, "edit")) { if (row.Profile is not null) _ = EditServerAsync(row.Profile); return; }
         PickServer(row.IsAuto ? null : row.Profile);
         Navigate("Connection");
     }

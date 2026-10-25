@@ -41,6 +41,19 @@
     <DockPanel DockPanel.Dock="Top" Height="64">
       <!-- Правила файлом (RulesFile): перенос и обмен наборами, без ключей и серверов. -->
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True">
+        <!-- Наборы правил (MainWindow.RuleSets): «Дом», «Работа», «Игры» — меню в облике приложения. -->
+        <Button x:Name="RuleSetButton" Style="{StaticResource Plain}" Tag="Transparent" Padding="8,0" Height="34" Margin="0,0,8,0" AutomationProperties.Name="Набор правил">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock x:Name="RuleSetText" Text="Набор: Основной" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="180"/>
+            <Path Data="M6,9 L12,15 L18,9" Style="{StaticResource Icon}" Width="11" Height="11" StrokeThickness="2.6" Stroke="{DynamicResource Mu}" Margin="6,1,0,0"/>
+          </StackPanel>
+        </Button>
+        <Popup x:Name="RuleSetPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=RuleSetButton}">
+          <Grid Width="280" Margin="12,4,12,18">
+            <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusSheet}"/>
+            <Border Style="{StaticResource MenuCard}" Padding="14,6"><StackPanel x:Name="RuleSetItems"/></Border>
+          </Grid>
+        </Popup>
         <Button x:Name="ImportRules" Style="{StaticResource BtnOutline}" Height="34" Padding="12,0,14,0" Margin="0,0,8,0" AutomationProperties.Name="Импорт правил из файла" ToolTip="Импорт правил из файла">
           <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IcoUpload}" Style="{StaticResource Icon}" Width="14" Height="14" StrokeThickness="2.2" Margin="0,0,6,0"/><TextBlock x:Name="ImportText" Text="Импорт" VerticalAlignment="Center"/></StackPanel>
         </Button>

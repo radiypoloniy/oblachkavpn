@@ -27,6 +27,8 @@ public sealed class ServerRow
     public bool Selected { get; init; }
     public bool Favorite { get; init; }
     public bool CanFavorite => !IsAuto;
+    // Настройку своего сервера («Вручную») можно поправить (MainWindow.ProfileEditor).
+    public Visibility EditVisibility => Profile?.Group == ProfileGroup.ManualId ? Visibility.Visible : Visibility.Collapsed;
     // Протокол словами («XHTTP, REALITY») и ступени пинга 0…3 (облик 0.20: строка в одну линию).
     public string Protocol { get; init; } = "";
     public int PingSteps { get; init; }

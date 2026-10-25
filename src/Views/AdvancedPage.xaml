@@ -180,6 +180,23 @@
         </StackPanel>
       </Border>
 
+      <TextBlock Text="Горячие клавиши" Style="{StaticResource SecHead}"/>
+      <Border Style="{StaticResource OptRow}">
+        <DockPanel>
+          <CheckBox x:Name="VpnHotkey" DockPanel.Dock="Right" Style="{StaticResource Toggle}" Margin="12,0,0,0" AutomationProperties.Name="Ctrl+Alt+V — включить или выключить VPN"/>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Ctrl+Alt+V — включить или выключить VPN" Style="{StaticResource OptTitle}"/>
+            <TextBlock x:Name="HotkeyNote" Text="Действуют из любой программы, даже когда окно спрятано в трей" Style="{StaticResource OptSub}"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+      <Border Style="{StaticResource OptRow}" BorderThickness="0">
+        <DockPanel>
+          <CheckBox x:Name="BypassHotkey" DockPanel.Dock="Right" Style="{StaticResource Toggle}" Margin="12,0,0,0" AutomationProperties.Name="Ctrl+Alt+B — обход блокировок"/>
+          <TextBlock Text="Ctrl+Alt+B — обход блокировок" Style="{StaticResource OptTitle}" VerticalAlignment="Center"/>
+        </DockPanel>
+      </Border>
+
       <TextBlock Text="Журнал ядра туннеля" Style="{StaticResource SecHead}"/>
       <Border Style="{StaticResource OptRow}" BorderThickness="0">
         <StackPanel>

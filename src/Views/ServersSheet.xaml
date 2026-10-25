@@ -40,6 +40,9 @@
                   <Button x:Name="CheckButton" Tag="check" Style="{StaticResource IconButton}" Width="32" Height="32" AutomationProperties.Name="Проверить этот сервер" ToolTip="Проверить этот сервер">
               <Path Data="{StaticResource IcoRefresh}" Width="15" Height="15" Stretch="Uniform" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Mu2}"/>
             </Button>
+                  <Button x:Name="EditButton" Tag="edit" Style="{StaticResource IconButton}" Width="32" Height="32" Visibility="{Binding EditVisibility}" AutomationProperties.Name="Изменить настройку сервера" ToolTip="Изменить настройку сервера">
+              <Path Data="{StaticResource IcoCode}" Width="14" Height="14" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Mu2}"/>
+            </Button>
                   <Button x:Name="RemoveButton" Tag="remove" Style="{StaticResource IconButton}" Width="32" Height="32" AutomationProperties.Name="Убрать сервер" ToolTip="Убрать сервер">
               <Path Data="{StaticResource IcoClose}" Width="11" Height="11" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stroke="{DynamicResource Mu2}"/>
             </Button>

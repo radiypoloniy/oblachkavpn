@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text.Json.Nodes;
 
 namespace Oblachka;
@@ -152,6 +152,20 @@ public static partial class SelfTests
             foreach (var bad in new TunnelTuning[] { new(Mtu: 100), new(Dns: "http://dns.example/"), new(Dns: "tls://9.9.9.9"), new(Bypass: ["0.0.0.0/1"]), new((TunnelStack)9) })
                 Assert(Throws<UserError>(() => NetworkHelperContracts.Validate(Lease(bad))));
             Assert(Throws<UserError>(() => NetworkHelperContracts.Validate(new NetworkLeaseRequest(1, Guid.NewGuid(), NetworkLeaseAction.Release, 0, [], Tuning: new(Mtu: 1500)))));
+        }));
+
+        await check("Editing an own server goes through the import checks and keeps its name and group", () => Sync(() =>
+        {
+            var own = Profiles.Parse("vless://6f1c2e0a-5b7d-4c3e-9a1f-0b2c3d4e5f60@203.0.113.7:443?security=tls&sni=example.com&type=tcp&encryption=none#Дом") with { Group = ProfileGroup.ManualId };
+            var text = own.Outbound.ToJsonString();
+            var edited = MainWindow.ParseEdited(text.Replace("example.com", "edited.example").Replace("\"tcp\"", "\"ws\""), own);
+            Assert(edited is { Name: "Дом", Group: ProfileGroup.ManualId, Transport: "WS / TLS" } && edited.Outbound.ToJsonString().Contains("edited.example"));
+            // Отключённая проверка сертификата, повтор ключа, лишняя привязка, другой формат и не-JSON — отказ.
+            string With(Action<JsonObject> change) { var copy = (JsonObject)own.Outbound.DeepClone(); change(copy); return copy.ToJsonString(); }
+            var insecure = With(o => o["streamSettings"]!["tlsSettings"]!["allowInsecure"] = true);
+            var bound = With(o => o["sendThrough"] = "10.0.0.1");
+            foreach (var bad in new[] { insecure, bound, "{\"tag\":1,\"tag\":2}", "{\"type\":\"vless\",\"server\":\"a.example\",\"server_port\":443}", "[1]", "{" })
+                Assert(Throws<UserError>(() => MainWindow.ParseEdited(bad, own)));
         }));
     }
 }

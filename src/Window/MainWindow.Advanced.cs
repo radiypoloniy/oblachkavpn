@@ -53,6 +53,8 @@ public partial class MainWindow
         Advanced.ExternalHwid.Click += (_, _) => SetAdvanced(advanced with { NoExternalHwid = Advanced.ExternalHwid.IsChecked != true });
         Field(Advanced.MarginInput, Advanced.MarginError, text => Number(text, out var percent) is { } bad ? bad
             : AdvancedOptions.CheckMargin(percent) ?? Keep(advanced with { SwitchMargin = percent }));
+        Advanced.VpnHotkey.Click += (_, _) => { SetAdvanced(advanced with { VpnHotkey = Advanced.VpnHotkey.IsChecked == true }); ApplyExtraHotkeys(); };
+        Advanced.BypassHotkey.Click += (_, _) => { SetAdvanced(advanced with { BypassHotkey = Advanced.BypassHotkey.IsChecked == true }); ApplyExtraHotkeys(); };
         Advanced.LogOff.Click += (_, _) => SetAdvanced(advanced with { CoreLog = CoreLogLevel.Off });
         Advanced.LogWarn.Click += (_, _) => SetAdvanced(advanced with { CoreLog = CoreLogLevel.Warn });
         Advanced.LogDebug.Click += (_, _) => SetAdvanced(advanced with { CoreLog = CoreLogLevel.Debug });
@@ -141,6 +143,8 @@ public partial class MainWindow
         Advanced.UtlsChoice.SelectedIndex = advanced.Utls is { } fp ? Array.IndexOf(Utls.Names, fp) + 1 : 0;
         fillingAdvanced = false;
         Advanced.ExternalHwid.IsChecked = !advanced.NoExternalHwid;
+        Advanced.VpnHotkey.IsChecked = advanced.VpnHotkey; Advanced.BypassHotkey.IsChecked = advanced.BypassHotkey;
+        ApplyExtraHotkeys();
         Advanced.MarginInput.Text = advanced.SwitchMargin?.ToString() ?? "";
         Advanced.MtuInput.Text = advanced.Mtu?.ToString() ?? "";
         Advanced.BypassInput.Text = string.Join(Environment.NewLine, advanced.BypassSubnets);
