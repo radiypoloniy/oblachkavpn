@@ -46,7 +46,8 @@ public partial class MainWindow
     {
         if (closed || vmTestActive || !backgroundWorkEnabled || operation is not null || recoveryWait is not null || engine.ProcessId is null ||
             DateTimeOffset.UtcNow < nextHealthCheck) return;
-        nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(45);
+        // Идёт трафик — проверяем раз в 20 с: обрыв заметен раньше; в простое — раз в 45 с.
+        nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(DateTimeOffset.UtcNow - lastTraffic < TimeSpan.FromSeconds(60) ? 20 : 45);
         operation = new CancellationTokenSource(); engineOperation = true; backgroundCheck = true; UpdateControls();
         var shouldRecover = false;
         string? pathFailure = null;
@@ -56,13 +57,13 @@ public partial class MainWindow
             if (!closed && !manualStop)
             {
                 RecordProbe(round.Results.FirstOrDefault(r => r.Success) ?? round.Results[^1]);
-                // При «Автовыборе» обрыв подтверждается быстрее: вторая проверка через 10 с, и двух
-                // неудачных подряд достаточно. Иначе — три проверки, повтор через 20 с.
+                // При «Автовыборе» двух неудачных проверок подряд достаточно, иначе — трёх. Повтор через 8 с:
+                // каждая проверка и так спрашивает два независимых сайта, долгие паузы только тянули обрыв.
                 var limit = autoSelect ? 2 : 3;
                 shouldRecover = health.FailedRounds >= limit;
                 if (!round.Reachable)
                 {
-                    nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(autoSelect ? 10 : 20);
+                    nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(8);
                     DetailText.Text = $"Проверка связи не прошла: {health.FailedRounds} из {limit}. Проверяем два независимых сайта.";
                 }
                 // Ядро отвечает — проверяем путь, которым ходят программы (SystemPathProbe).

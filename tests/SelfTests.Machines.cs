@@ -46,5 +46,17 @@ public static partial class SelfTests
             foreach (var p in members) results[p] = new(Profiles.Fingerprint(p), now, false, 0);
             Assert(ServerMachines.Best(members, Latest, "00", now) == a);
         }));
+        await check("Recovery: a stall (sending, nothing back for 5 s) triggers one early check; idle and background traffic do not", () => Sync(() =>
+        {
+            var stall = new TrafficStall();
+            // Простой и фон — не обрыв.
+            for (var i = 0; i < 20; i++) Assert(!stall.Feed(0, 0) && !stall.Feed(100, 0));
+            // Отдача без приёма: на пятой секунде — сигнал, дальше молчим до конца эпизода.
+            var fired = Enumerable.Range(0, 12).Select(_ => stall.Feed(4000, 0)).ToArray();
+            Assert(fired.Count(f => f) == 1 && fired[TrafficStall.Seconds - 1]);
+            // Ответ пришёл — эпизод кончился; новый обрыв снова даёт сигнал.
+            Assert(!stall.Feed(4000, 900));
+            Assert(Enumerable.Range(0, TrafficStall.Seconds).Select(_ => stall.Feed(4000, 0)).ToArray().Last());
+        }));
     }
 }
