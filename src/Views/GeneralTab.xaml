@@ -27,6 +27,38 @@
             </StackPanel>
           </DockPanel>
         </Border>
+        <!-- Поведение в сети (MainWindow.Networks): «Всегда VPN» — включается сам, «Доверенная» — сам не включается. -->
+        <Border Style="{StaticResource OptRow}">
+          <StackPanel>
+            <TextBlock x:Name="NetTitle" Text="Эта сеть" Style="{StaticResource OptTitle}" TextTrimming="CharacterEllipsis"/>
+            <TextBlock x:Name="NetNote" Style="{StaticResource OptSub}" TextWrapping="Wrap"/>
+            <!-- Отдельной строкой: справа от текста три сегмента не помещались в узком окне. -->
+            <Border Style="{StaticResource SegTrack}" HorizontalAlignment="Left" Margin="0,8,0,0">
+              <StackPanel Orientation="Horizontal">
+                <Button x:Name="NetUsual" Content="Обычная" Style="{StaticResource SegButton}" AutomationProperties.Name="Эта сеть: обычная"/>
+                <Button x:Name="NetVpn" Content="Всегда VPN" Style="{StaticResource SegButton}" AutomationProperties.Name="Эта сеть: всегда VPN"/>
+                <Button x:Name="NetTrusted" Content="Доверенная" Style="{StaticResource SegButton}" AutomationProperties.Name="Эта сеть: доверенная"/>
+              </StackPanel>
+            </Border>
+            <Button x:Name="NetRuleSet" Style="{StaticResource BtnGhost}" Height="28" Padding="10,0" Margin="-10,6,0,0" HorizontalAlignment="Left" FontSize="{StaticResource FsNote}" Visibility="Collapsed" AutomationProperties.Name="Набор правил этой сети"/>
+            <Popup x:Name="NetRuleSetPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=NetRuleSet}">
+              <Grid Width="220" Margin="12,4,12,18">
+                <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusSheet}"/>
+                <Border Style="{StaticResource MenuCard}" Padding="14,6"><StackPanel x:Name="NetRuleSetItems"/></Border>
+              </Grid>
+            </Popup>
+            <Button x:Name="NetForget" Style="{StaticResource BtnGhost}" Height="28" Padding="10,0" Margin="-10,4,0,0" HorizontalAlignment="Left" FontSize="{StaticResource FsNote}" Visibility="Collapsed"/>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource OptRow}">
+          <DockPanel>
+            <CheckBox x:Name="SecureUnknown" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="В незнакомых общественных сетях включать VPN сам"/>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+              <TextBlock Text="Незнакомые Wi-Fi" Style="{StaticResource OptTitle}"/>
+              <TextBlock Text="В кафе, отеле, аэропорту — общественных сетях Windows — VPN включится сам" Style="{StaticResource OptSub}" TextWrapping="Wrap"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
         <Border Style="{StaticResource OptRow}">
           <DockPanel>
             <CheckBox x:Name="StayInTray" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Крестик сворачивает в трей"/>

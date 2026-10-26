@@ -5,6 +5,10 @@
        «сервер упал — переключить»); строки серверов в одну линию; внизу одна главная кнопка.
        Срок и остаток подписки — в карточке внизу боковой колонки. -->
   <UserControl.Resources>
+  <ResourceDictionary>
+    <ResourceDictionary.MergedDictionaries>
+      <ResourceDictionary Source="ServerSheetRow.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
     <!-- Заголовок подписки: справа «Скрыть лишние», «Вернуть скрытые», «Обновить», «Убрать». -->
     <DataTemplate DataType="{x:Type o:SheetHeader}">
       <DockPanel Margin="10,10,4,2">
@@ -18,88 +22,7 @@
         <TextBlock Text="{Binding Title}" FontSize="{StaticResource FsRow}" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
       </DockPanel>
     </DataTemplate>
-    <!-- Строка сервера в одну линию: флаг, страна, протокол, скорость, пинг ступенями, мс, звезда. -->
-    <DataTemplate DataType="{x:Type o:ServerRow}">
-      <Border x:Name="Plate" Height="44" CornerRadius="{StaticResource RadiusMd}" Margin="0,0,0,2" Background="Transparent">
-        <Grid>
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
-          </Grid.ColumnDefinitions>
-          <Button x:Name="RowButton" Style="{StaticResource Row}" Height="44" Padding="10,0,4,0" o:Ui.CornerRadius="{StaticResource RadiusMd}" AutomationProperties.Name="{Binding Name}">
-            <DockPanel>
-              <TextBlock DockPanel.Dock="Right" Text="{Binding Latency}" FontSize="{StaticResource FsBody}" FontWeight="Bold" MinWidth="56" TextAlignment="Right" VerticalAlignment="Center" ToolTip="{Binding LatencyHint}"/>
-              <v:PixelBars DockPanel.Dock="Right" Kind="Steps" Width="22" Height="10" Margin="10,0,0,0" VerticalAlignment="Center" Filled="{Binding PingSteps}" Fill="{Binding LatencyDot}" Empty="{DynamicResource Pixel}" Visibility="{Binding LatencyVisibility}"/>
-              <!-- Скорость и на её месте при наведении — «проверить» и «убрать»: кнопки не держат
-                   пустые 64 пикселя у звезды. Для экранного диктора они есть всегда. -->
-              <Grid DockPanel.Dock="Right" MinWidth="64">
-                <TextBlock x:Name="SpeedText" Text="{Binding Speed}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu2}" TextAlignment="Right" VerticalAlignment="Center"/>
-                <StackPanel x:Name="RowTools" Orientation="Horizontal" HorizontalAlignment="Right" Opacity="0" IsHitTestVisible="False">
-                  <Button x:Name="CheckButton" Tag="check" Style="{StaticResource IconButton}" Width="32" Height="32" AutomationProperties.Name="Проверить этот сервер" ToolTip="Проверить этот сервер">
-              <Path Data="{StaticResource IcoRefresh}" Width="15" Height="15" Stretch="Uniform" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Mu2}"/>
-            </Button>
-                  <Button x:Name="EditButton" Tag="edit" Style="{StaticResource IconButton}" Width="32" Height="32" Visibility="{Binding EditVisibility}" AutomationProperties.Name="Изменить настройку сервера" ToolTip="Изменить настройку сервера">
-              <Path Data="{StaticResource IcoCode}" Width="14" Height="14" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Mu2}"/>
-            </Button>
-                  <Button x:Name="RemoveButton" Tag="remove" Style="{StaticResource IconButton}" Width="32" Height="32" AutomationProperties.Name="Убрать сервер" ToolTip="Убрать сервер">
-              <Path Data="{StaticResource IcoClose}" Width="11" Height="11" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stroke="{DynamicResource Mu2}"/>
-            </Button>
-                </StackPanel>
-              </Grid>
-              <Grid Width="22" Height="22" Margin="0,0,12,0" VerticalAlignment="Center">
-                <Ellipse Visibility="{Binding FlagVisibility}" Stroke="{DynamicResource FlagRing}" StrokeThickness="1">
-                  <Ellipse.Fill><ImageBrush ImageSource="{Binding Flag}" Stretch="UniformToFill"/></Ellipse.Fill>
-                </Ellipse>
-                <Border x:Name="IconPlate" CornerRadius="{StaticResource RadiusSm}" Background="{DynamicResource Aci}" Visibility="{Binding IconVisibility}">
-                  <Path x:Name="IconGlyph" Data="{Binding Icon}" Width="12" Height="12" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Ac}"/>
-                </Border>
-              </Grid>
-              <!-- DockPanel, а не StackPanel: название обрезается многоточием, а не пропадает в узком окне;
-                   протокол уступает место первым. -->
-              <DockPanel VerticalAlignment="Center" Margin="0,0,8,0">
-                <TextBlock DockPanel.Dock="Left" Text="{Binding Name}" FontSize="{StaticResource FsRowLarge}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="240"/>
-                <TextBlock DockPanel.Dock="Right" Text="выбран" FontSize="{StaticResource FsSmall}" FontWeight="SemiBold" Foreground="{DynamicResource Ac}" Margin="8,1,0,0" VerticalAlignment="Center" Visibility="{Binding SelectedVisibility}"/>
-                <TextBlock Text="{Binding Detail}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Fa}" Margin="8,1,0,0" TextTrimming="CharacterEllipsis" MaxWidth="170" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-              </DockPanel>
-            </DockPanel>
-          </Button>
-          <Button x:Name="StarButton" Grid.Column="3" Tag="star" Style="{StaticResource IconButton}" Width="34" Height="34" Margin="0,0,2,0" AutomationProperties.Name="Избранное" Visibility="Visible">
-            <Path x:Name="StarGlyph" Data="{StaticResource IcoStar}" Width="16" Height="16" Stretch="Uniform" StrokeThickness="1.8" StrokeLineJoin="Round" Stroke="{DynamicResource Ring}" Fill="Transparent"/>
-          </Button>
-        </Grid>
-      </Border>
-      <DataTemplate.Triggers>
-        <DataTrigger Binding="{Binding Selected}" Value="True">
-          <Setter TargetName="Plate" Property="Background" Value="{DynamicResource Lilac}"/>
-          <Setter TargetName="RowButton" Property="Tag" Value="Transparent"/>
-        </DataTrigger>
-        <DataTrigger Binding="{Binding Favorite}" Value="True">
-          <Setter TargetName="StarGlyph" Property="Fill" Value="{DynamicResource Star}"/>
-          <Setter TargetName="StarGlyph" Property="Stroke" Value="{DynamicResource Star}"/>
-          <Setter TargetName="StarButton" Property="AutomationProperties.Name" Value="Убрать из избранного"/>
-        </DataTrigger>
-        <DataTrigger Binding="{Binding CanFavorite}" Value="False">
-          <Setter TargetName="StarButton" Property="Visibility" Value="Collapsed"/>
-          <Setter TargetName="CheckButton" Property="Visibility" Value="Collapsed"/>
-          <Setter TargetName="RemoveButton" Property="Visibility" Value="Collapsed"/>
-        </DataTrigger>
-        <Trigger SourceName="Plate" Property="IsMouseOver" Value="True">
-          <Setter TargetName="RowTools" Property="Opacity" Value="1"/>
-          <Setter TargetName="RowTools" Property="IsHitTestVisible" Value="True"/>
-          <Setter TargetName="SpeedText" Property="Visibility" Value="Hidden"/>
-        </Trigger>
-        <Trigger SourceName="RowTools" Property="IsKeyboardFocusWithin" Value="True">
-          <Setter TargetName="RowTools" Property="Opacity" Value="1"/>
-          <Setter TargetName="SpeedText" Property="Visibility" Value="Hidden"/>
-        </Trigger>
-        <DataTrigger Binding="{Binding IconMuted}" Value="True">
-          <Setter TargetName="IconPlate" Property="Background" Value="{DynamicResource Field}"/>
-          <Setter TargetName="IconGlyph" Property="Stroke" Value="{DynamicResource Mu2}"/>
-        </DataTrigger>
-      </DataTemplate.Triggers>
-    </DataTemplate>
+  </ResourceDictionary>
   </UserControl.Resources>
 
   <Grid>

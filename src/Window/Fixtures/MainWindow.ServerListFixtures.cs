@@ -8,7 +8,7 @@ public partial class MainWindow
     {
         var selected = profile!;
         Navigate("Servers");
-        ToggleFavorite(selected);
+        ToggleFavorite(Row(selected));
         var sheet = Servers.SheetList.Items.Cast<object>().ToArray();
         var favoriteHeader = Array.FindIndex(sheet, i => i is SheetHeader { Title: "Избранное" });
         if (favoriteHeader < 0 || sheet[favoriteHeader + 1] is not ServerRow { Favorite: true } starred || starred.Profile != selected ||
@@ -27,7 +27,7 @@ public partial class MainWindow
         if (!selected.ListStatus.Contains("устарело") || !selected.ListStatus.Contains("★"))
             throw new InvalidOperationException("Stale measurement or favorite marker missing");
         measurements.Clear();
-        ToggleFavorite(selected);
+        ToggleFavorite(Row(selected));
         Servers.SortOrder.SelectedIndex = 0;
         Navigate("Connection");
         if (Servers.Visibility == Visibility.Visible) throw new InvalidOperationException("Server sheet did not close");

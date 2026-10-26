@@ -54,6 +54,7 @@ public partial class MainWindow
         RefreshPresentation();
         lastProbe = result;
         lastCheck = DateTimeOffset.UtcNow;
+        if (result.Success && runningProfile is { } working) RememberWorking(working);
         RefreshPresentation();
     }
 }

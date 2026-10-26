@@ -104,7 +104,9 @@ public partial class MainWindow
         }
         LoadPreviewProfiles();
         CheckPreviewControls();
-        if (page == "servers") { LoadServerPreview(); LoadPingPreview(); }
+        if (page is "servers" or "servers-machine") { LoadServerPreview(); LoadPingPreview(); }
+        // Машина «Нидерланды» раскрыта: три протокола под строкой.
+        if (page == "servers-machine") { expandedMachines.Add(ServerMachines.Key(importedProfiles.First(p => p.DisplayName == "Нидерланды"))); page = "servers"; }
         if (page is "foreign" or "closed" or "recovery" or "subscription") PrepareStatePreview(page);
         if (page is "groups" or "servers-groups")
         {
@@ -164,6 +166,8 @@ public partial class MainWindow
             return;
         }
         if (page == "power-on") { LoadGroupsPreview(); Navigate("Connection"); ConnectedPreview(); return; }
+        // Своя сеть в превью — выдуманная: настоящее имя Wi-Fi в снимки не попадает.
+        if (page is "app" or "app-net") { currentNetwork = (NetworkPolicy.Key(Guid.Empty), "Дом", false); if (page == "app-net") { knownNetworks[currentNetwork.Value.Key] = new("Дом", NetworkMode.Vpn, "Работа"); ruleSets.Add(new("Работа", [], [])); page = "app"; } RefreshNetworkRow(); }
         if (page == "paused") { LoadGroupsPreview(); Navigate("Connection"); pausedUntil = DateTimeOffset.UtcNow.AddMinutes(15); RefreshHome(); ApplyStatusLook(); return; }
         // «Не открывается сайт?» с итогом: напрямую режет DPI, через VPN открывается.
         if (page is "site" or "site-ok") { LoadGroupsPreview(); OpenSiteCheck(); checkedHost = page == "site" ? "rutracker.org" : "www.gosuslugi.ru"; SiteCheck.SiteInput.Text = checkedHost;
@@ -205,9 +209,12 @@ public partial class MainWindow
     private void LoadServerPreview()
     {
         var names = new[] { "🇪🇺Авто", "🇪🇺Обход", "🇪🇺Обход 2", "🇻🇳Рабочий сервер", "🇳🇱Нидерланды", "🇳🇱Нидерланды 2" };
+        // У каждого сервера свой адрес; у «Нидерландов» (s4) ещё два протокола — одна машина на три строки подписки.
         Import(string.Join("\n", Enumerable.Range(0, 24).Select(i =>
-            $"vless://{i + 1:x8}-1111-4111-8111-111111111111@example.invalid:443?security=tls&type=xhttp#" +
-            Uri.EscapeDataString(i < names.Length ? names[i] : $"🇩🇪Резервный сервер {i - 5}"))));
+            $"vless://{i + 1:x8}-1111-4111-8111-111111111111@s{i}.example.invalid:443?security=tls&type=xhttp#" +
+            Uri.EscapeDataString(i < names.Length ? names[i] : $"🇩🇪Резервный сервер {i - 5}")).Concat([
+            "hysteria2://preview-pass@s4.example.invalid:443?sni=s4.example.invalid#" + Uri.EscapeDataString("🇳🇱Нидерланды Hysteria2"),
+            "trojan://preview-pass@s4.example.invalid:443?security=tls&sni=s4.example.invalid#" + Uri.EscapeDataString("🇳🇱Нидерланды Trojan")])));
     }
 
     // Отклики как после запуска: у части узлов ответа нет.

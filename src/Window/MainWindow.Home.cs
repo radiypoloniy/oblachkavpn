@@ -99,55 +99,10 @@ public partial class MainWindow
         if (signature != quickSignature) { quickSignature = signature; Home.QuickList.ItemsSource = rows; }
     }
 
-    // Автовыбор, затем избранные (без избранного — первые узлы сервиса), до пяти строк.
-    // Выбранный сервер, если его нет среди них, подставляется последней строкой.
-    private IReadOnlyList<ServerRow> QuickRows()
-    {
-        var rows = new List<ServerRow> { new()
-        {
-            IsAuto = true, Name = "Автовыбор", Selected = autoSelect,
-            Note = autoSelect && profile is not null ? "сейчас: " + profile.DisplayName : "самый быстрый из пула",
-            Icon = TryFindResource("IcoAuto") as Geometry, IconOnAccent = true
-        } };
-        var favored = importedProfiles.Where(p => favorites.Contains(FavoriteKey(p))).ToList();
-        // Без избранного — первые узлы текущей подписки (сервиса или той, где выбран узел).
-        if (favored.Count == 0) favored = (CurrentGroup is { } current ? ProfilesOf(current.Id) : importedProfiles).ToList();
-        foreach (var item in favored.Take(4)) rows.Add(Row(item));
-        if (!autoSelect && profile is not null && !rows.Any(r => r.Profile is { } p && ProfileSelection.Identity(p) == ProfileSelection.Identity(profile)))
-        {
-            if (rows.Count == 5) rows.RemoveAt(4);
-            rows.Add(Row(profile));
-        }
-        return rows;
-    }
-
-    // note: false — строка под заголовком своей подписки, повторять её имя незачем.
-    private ServerRow Row(Profile item) => Row(item, true);
-    private ServerRow Row(Profile item, bool note)
-    {
-        var now = DateTimeOffset.UtcNow;
-        var measured = LatestMeasurement(item);
-        // У работающего подключения свежее всего — последняя проверка связи через него.
-        if ((measured is null || !ServerMeasurements.Fresh(measured, now)) && runningProfile is not null && ReferenceEquals(item, runningProfile) && lastProbe is { Success: true })
-            measured = new(Profiles.Fingerprint(item), now, true, lastProbe.Milliseconds);
-        var (latency, dot, hint) = ServerRow.Status(measured, now, checkingServer is not null && ReferenceEquals(item, checkingServer));
-        var icon = ServerRow.IconFor(item);
-        return new ServerRow
-        {
-            Profile = item, Name = item.DisplayName, Note = note ? GroupNote(item) : null,
-            Flag = icon is null ? FlagImages.Local(item.Country.Code) : null, Icon = icon, IconMuted = !item.IsService,
-            Latency = latency, LatencyDot = dot, LatencyHint = hint, Speed = ServerRow.SpeedText(measured, now),
-            Protocol = ServerRow.ProtocolFor(item) + (serverTweaks.ContainsKey(ServerTweak.Key(item)) ? " · подстроен" : ""), PingSteps = ServerRow.StepsFor(measured),
-            Selected = !autoSelect && profile is not null && ProfileSelection.Identity(item) == ProfileSelection.Identity(profile),
-            Favorite = favorites.Contains(FavoriteKey(item))
-        };
-    }
-
     // Клик по серверу — сразу подключение к нему, и при выключенном VPN тоже.
     private void QuickRowClick(object sender, RoutedEventArgs args)
     {
-        if ((args.OriginalSource as FrameworkElement)?.DataContext is not ServerRow row) return;
-        PickServer(row.IsAuto ? null : row.Profile);
+        if ((args.OriginalSource as FrameworkElement)?.DataContext is ServerRow row) PickRow(row);
     }
 
     private async void PickServer(Profile? chosen)
@@ -164,11 +119,13 @@ public partial class MainWindow
 
     // При «Автовыборе» каждое включение начинается с лучшего по свежим замерам сервера,
     // а не с того, что выбрался в прошлый раз.
+    // Выбрана машина — так же: протокол, что работал в этой сети, иначе лучший по замеру (MainWindow.Machines).
     private async Task PickBestBeforeConnectAsync()
     {
-        if (!autoSelect || ConnectionActive) return;
+        if (!autoSelect && !machineMode || ConnectionActive) return;
         await WaitForPingsAsync();
-        if (BestProfile() is { } best && (profile is null || ProfileSelection.Identity(best) != ProfileSelection.Identity(profile))) SelectProfile(best);
+        var best = autoSelect ? BestProfile() : profile is null ? null : MachineBest(MachineOf(profile));
+        if (best is not null && (profile is null || ProfileSelection.Identity(best) != ProfileSelection.Identity(profile))) SelectProfile(best);
     }
 
     private Profile? BestProfile()

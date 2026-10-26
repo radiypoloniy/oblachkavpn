@@ -58,6 +58,7 @@ public partial class MainWindow
         Diagnostics.CopyReportButton.Click += CopyReportClick;
         WireHome();
         WireNotices();
+        WireNetworks();
         WireSettings();
         Servers.BackButton.Click += (_, _) => Navigate("Connection");
         Servers.SearchBox.TextChanged += (_, _) => FilterProfiles();

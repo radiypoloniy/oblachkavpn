@@ -47,9 +47,21 @@ public partial class MainWindow
             trafficSavedBytes = trafficToday; trafficSavedAt = DateTime.UtcNow;
             QueueStateSave();
         }
+        WatchStall();
         Home.StatusSub.ToolTip = trafficToday > 0 ? "Сегодня через ядро туннеля: " + TrafficMeter.Size(trafficToday) : null;
         RefreshTodayCard();
         CreditObservedSpeed();
+    }
+
+    // Обрыв по трафику (TrafficStall): отдача есть, приёма нет — проверка связи сразу, а не по расписанию.
+    private readonly TrafficStall stall = new();
+    private DateTimeOffset lastTraffic = DateTimeOffset.MinValue;
+    private void WatchStall()
+    {
+        if (meter is not { Fresh: true } m) { stall.Reset(); return; }
+        if (m.Up + m.Down > 2048) lastTraffic = DateTimeOffset.UtcNow;
+        if (stall.Feed(m.Up, m.Down) && operation is null && nextHealthCheck > DateTimeOffset.UtcNow.AddSeconds(2))
+            nextHealthCheck = DateTimeOffset.UtcNow;
     }
 
     // Трафик за сегодня по часам (облик 0.20): 12 столбиков по два часа, последний — «сейчас».

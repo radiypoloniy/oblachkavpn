@@ -13,7 +13,8 @@ public partial class MainWindow
     // Сервис может попросить подключаться при каждом запуске (subscription-autoconnect) — «Сразу подключаться»
     // по-прежнему решает человек: выключил её — не подключаемся.
     private string? ServiceAutoConnect => ServiceGroup?.Metadata?.Provider?.AutoConnect;
-    private bool ConnectAtLaunchPlanned => Settings.ConnectOnLaunch.IsChecked == true && (wasConnected || ServiceAutoConnect is not null) && !isolatedPersistence && !vmTestActive;
+    private bool ConnectAtLaunchPlanned => Settings.ConnectOnLaunch.IsChecked == true && (wasConnected || ServiceAutoConnect is not null) && !isolatedPersistence && !vmTestActive &&
+        CurrentNetworkMode != NetworkMode.Trusted;
 
     private void InitLaunch()
     {
@@ -62,7 +63,11 @@ public partial class MainWindow
 
     private async Task ConnectAtLaunchAsync()
     {
-        if (!ConnectAtLaunchPlanned || profile is null) return;
+        ReadNetwork();
+        ApplyNetworkRuleSet();
+        // Не подключаемся по «Сразу подключаться» — решает сеть («Всегда VPN», незнакомые Wi-Fi).
+        if (!ConnectAtLaunchPlanned) { if (!isolatedPersistence && !vmTestActive) await ApplyNetworkAsync(); return; }
+        if (profile is null) return;
         DetailText.Text = wasConnected ? "Подключаемся: VPN был включён, когда Облачка закрылась." : "Подключаемся: так настроил сервис.";
         // lowestdelay — сервис просит самый быстрый сервер: это «Автовыбор».
         if (ServiceAutoConnect == ProviderOptions.LowestDelay && !autoSelect) { autoSelect = true; QueueStateSave(); }
