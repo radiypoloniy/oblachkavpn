@@ -70,6 +70,9 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     public bool WasConnected { get; init; }
     // Уведомления (0.21): по умолчанию включены; ExpiryNotice — о каком сроке подписки уже сказали.
     public bool Notices { get; init; } = true;
+    // Сети (0.21): ключ — хеш идентификатора сети Windows (NetworkPolicy.Key).
+    public Dictionary<string, KnownNetwork>? KnownNetworks { get; init; }
+    public bool SecureUnknown { get; init; }
     public string? ExpiryNotice { get; init; }
     // Подписки и «Вручную» (0.11). Нет значения — снимок прежней версии.
     public ProfileGroup[]? Groups { get; init; }

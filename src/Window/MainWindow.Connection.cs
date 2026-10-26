@@ -10,7 +10,7 @@ public partial class MainWindow
     private async Task ConnectFreshAsync()
     {
         manualStop = false;
-        pausedUntil = null;
+        pausedUntil = null; stoppedOnNetwork = null;
         recoveryWait?.Cancel(); recovery.Reset(); health.Reset(); ResetSystemPath();
         await PickBestBeforeConnectAsync();
         await ConnectCoreAsync();
@@ -81,6 +81,7 @@ public partial class MainWindow
     private void StopClick(object sender, RoutedEventArgs args)
     {
         manualStop = true;
+        stoppedOnNetwork = currentNetwork?.Key;
         RememberConnected(false);
         recoveryWait?.Cancel();
         ResetSystemPath();

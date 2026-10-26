@@ -15,7 +15,18 @@ public static class NetworkCost
     public static bool Metered() => Cost() is { } cost && IsMetered(cost);
 
     // Флаги стоимости соединения физического адаптера; null — не нашлось или Windows не ответила.
-    internal static uint? Cost()
+    internal static uint? Cost() => FromConnection(c => c is INetworkConnectionCost cost ? cost.GetCost() : (uint?)null);
+
+    // Сеть физического адаптера, как её знает Windows: свой идентификатор у каждой сети (Wi-Fi
+    // по имени и точке, проводная — по шлюзу), имя (у Wi-Fi — SSID) и «общественная» ли она.
+    internal static (Guid Id, string Name, bool Public)? Network() => FromConnection(c =>
+    {
+        if (c.GetNetwork() is not INetwork network) return null;
+        try { return ((Guid Id, string Name, bool Public)?)(network.GetNetworkId(), network.GetName() ?? "", network.GetCategory() == 0); }
+        finally { Marshal.ReleaseComObject(network); }
+    });
+
+    private static T? FromConnection<T>(Func<INetworkConnection, T?> read) where T : struct
     {
         if (NetworkIdentity.Physical() is not { } physical || !Guid.TryParse(physical.Adapter.Id, out var adapter)) return null;
         object? manager = null;
@@ -25,11 +36,7 @@ public static class NetworkCost
             var connections = ((INetworkListManager)manager!).GetNetworkConnections();
             while (connections.Next(1, out var connection, out var fetched) == 0 && fetched == 1)
             {
-                try
-                {
-                    if (connection.GetAdapterId() == adapter && connection is INetworkConnectionCost cost)
-                        return cost.GetCost();
-                }
+                try { if (connection.GetAdapterId() == adapter) return read(connection); }
                 finally { Marshal.ReleaseComObject(connection); }
             }
             return null;
@@ -63,6 +70,24 @@ public static class NetworkCost
         int GetConnectivity();
         Guid GetConnectionId();
         Guid GetAdapterId();
+    }
+
+    // Категория: 0 — общественная, 1 — частная, 2 — домен.
+    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsDual), Guid("DCB00002-570F-4A9B-8D69-199FDBA5723B")]
+    private interface INetwork
+    {
+        [return: MarshalAs(UnmanagedType.BStr)] string GetName();
+        void SetName([MarshalAs(UnmanagedType.BStr)] string name);
+        [return: MarshalAs(UnmanagedType.BStr)] string GetDescription();
+        void SetDescription([MarshalAs(UnmanagedType.BStr)] string description);
+        Guid GetNetworkId();
+        int GetDomainType();
+        [return: MarshalAs(UnmanagedType.Interface)] object GetNetworkConnections();
+        void GetTimeCreatedAndConnected(out uint createdLow, out uint createdHigh, out uint connectedLow, out uint connectedHigh);
+        short IsConnectedToInternet();
+        short IsConnected();
+        int GetConnectivity();
+        int GetCategory();
     }
 
     [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("DCB0000A-570F-4A9B-8D69-199FDBA5723B")]

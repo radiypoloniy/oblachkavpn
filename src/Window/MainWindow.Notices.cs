@@ -12,7 +12,7 @@ namespace Oblachka;
 // Одно и то же — не чаще раза в 10 минут: обрыв, который чинится и снова рвётся, не засыпает экран.
 public partial class MainWindow
 {
-    private enum Notice { ServerSwitched, NetworkClosed, Expiring, BypassBroken, ProtectionRepaired, ProxyRepaired, ProxyLost, PauseEnded, Update }
+    private enum Notice { ServerSwitched, NetworkClosed, Expiring, BypassBroken, ProtectionRepaired, ProxyRepaired, ProxyLost, PauseEnded, Update, NetworkSecured }
 
     private static readonly TimeSpan NoticeQuiet = TimeSpan.FromMinutes(10);
     private readonly Dictionary<Notice, DateTimeOffset> noticeShown = new();
