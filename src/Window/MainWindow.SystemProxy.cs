@@ -30,6 +30,37 @@ public partial class MainWindow
             TrySystemProxy(() => { systemProxy.Restore(); systemProxyPort = 0; });
     }
 
+    // Стражник (как у Clash Verge): раз в 5 с сверяет прокси Windows с нашим и возвращает свой.
+    // С другой программой, которая упорно ставит своё, не спорим: три раза за 10 минут — и только говорим.
+    private DateTimeOffset nextProxyGuard;
+    private readonly Queue<DateTimeOffset> proxyRepairs = new();
+    private bool proxyGuardGaveUp;
+
+    private void PollProxyGuard()
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (systemProxy is null || systemProxyPort == 0) { proxyGuardGaveUp = false; return; }
+        if (now < nextProxyGuard || proxyGuardGaveUp) return;
+        nextProxyGuard = now.AddSeconds(5);
+        bool overwritten;
+        try { overwritten = systemProxy.Overwritten(); }
+        catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException or System.Security.SecurityException) { return; }
+        if (!overwritten) return;
+        while (proxyRepairs.Count > 0 && now - proxyRepairs.Peek() > TimeSpan.FromMinutes(10)) proxyRepairs.Dequeue();
+        if (proxyRepairs.Count >= 3)
+        {
+            proxyGuardGaveUp = true;
+            DetailText.Text = "Другая программа раз за разом меняет прокси Windows — браузеры идут мимо VPN. Закройте её или включите «Весь компьютер».";
+            Notify(Notice.ProxyLost, "Браузеры идут мимо VPN", "Другая программа раз за разом меняет прокси Windows. Закройте её или включите «Весь компьютер».", warning: true);
+            return;
+        }
+        proxyRepairs.Enqueue(now);
+        var port = systemProxyPort;
+        TrySystemProxy(() => systemProxy.Apply(port));
+        DetailText.Text = "Прокси Windows поменяла другая программа — Облачка вернула свой, иначе браузеры шли бы мимо VPN.";
+        Notify(Notice.ProxyRepaired, "Прокси снова через VPN", "Другая программа поменяла прокси Windows, Облачка вернула свой.");
+    }
+
     private void CloseSystemProxy()
     {
         SystemEvents.SessionEnding -= SessionEndingRestore;

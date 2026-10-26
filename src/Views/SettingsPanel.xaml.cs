@@ -39,6 +39,7 @@ public partial class SettingsPanel : UserControl
     public CheckBox FreeServers => Subscription.FreeServers;
     public CheckBox StayInTray => General.StayInTray;
     public CheckBox Hotkey => General.Hotkey;
+    public CheckBox Notices => General.Notices;
     public TextBlock HotkeyNote => General.HotkeyNote;
     public Button BackupSave => General.BackupSave;
     public Button BackupRestore => General.BackupRestore;

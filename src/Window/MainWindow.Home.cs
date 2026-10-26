@@ -40,6 +40,7 @@ public partial class MainWindow
         ThemeManager.Changed += RefreshHome;
         WireStates();
         WireSidebar();
+        WirePause();
     }
 
     private string SessionDuration => sessionStarted is null ? "0:00:00" : (DateTimeOffset.UtcNow - sessionStarted.Value).ToString(@"h\:mm\:ss");
@@ -66,6 +67,7 @@ public partial class MainWindow
             : running && health.FailedRounds > 0 ? ("Связь пропала", name + " не отвечает · проверяем ещё раз", PowerState.On, "WI")
             // Выборочный режим не защищает весь компьютер: большая часть трафика идёт напрямую.
             : running ? (SystemTunnelActive && !selectiveVpn ? "Защищено" : "Подключено", TrafficText ?? name + " · " + SessionDuration, PowerState.On, "Ok")
+            : pausedUntil is not null ? ("Пауза", "Включится сам в " + PauseEnd, PowerState.Off, "Fa")
             : engine.State == ConnectionState.Failed ? ("Связь прервана", "Включите снова или выберите другой сервер", PowerState.Off, "EI")
             // VPN выключен, но обход работает: YouTube и Discord открываются и так — это стоит сказать.
             : ZapretWorksWithoutVpn ? ("Без VPN", string.Join(" и ", zapretActiveGroups.Select(ZapretTitle)) + (zapretActiveGroups.Length > 1 ? " работают" : " работает") + " и без него", PowerState.Off, "Ok")
@@ -76,6 +78,7 @@ public partial class MainWindow
         Home.StatusSub.Text = sub;
         Home.StatusDot.SetResourceReference(Shape.FillProperty, dot);
         Home.Power.State = profile is null ? PowerState.Disabled : power;
+        RefreshPauseButton();
 
         var checkedOk = running && lastProbe is { Success: true };
         Home.CheckText.Text = checkedOk ? "Связь проверена · " + lastProbe!.Milliseconds + " мс"

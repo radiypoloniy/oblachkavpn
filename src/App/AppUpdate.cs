@@ -13,10 +13,13 @@ public sealed record AppRelease(Version Version, string Tag, Uri Installer, long
     public string FileName => Installer.Segments[^1];
     public string Revision { get; init; } = "";
     public bool Prerelease { get; init; }
+    // «<установщик>.sig» из того же релиза: без него релиз не предлагается (ReleaseSignature).
+    public Uri? Signature { get; init; }
 }
 
 // Обновление без переустановки: последний релиз репозитория (или пробный — по желанию), установщик из него,
-// проверка SHA256 по digest, который GitHub считает сам при загрузке файла в релиз.
+// проверка SHA256 по digest, который GitHub считает сам при загрузке файла в релиз, а digest — по подписи
+// офлайн-ключом владельца (ReleaseSignature): одному GitHub клиент не верит.
 //
 // В сеть уходит только запрос к api.github.com и скачивание установщика по нажатию:
 // без идентификатора устройства и сведений о подписках. Ставит установщик, запущенный
@@ -50,7 +53,8 @@ public static class AppUpdate
         var pre = root["prerelease"]?.GetValue<bool>() == true || tagMatch.Groups[2].Success;
         if (root["draft"]?.GetValue<bool>() == true || pre && !allowPrerelease || !tagMatch.Success) return null;
         var version = Version.Parse(tagMatch.Groups[1].Value);
-        foreach (var asset in (root["assets"] as JsonArray ?? new JsonArray()).OfType<JsonObject>())
+        var assets = (root["assets"] as JsonArray ?? new JsonArray()).OfType<JsonObject>().ToList();
+        foreach (var asset in assets)
         {
             var name = asset["name"]?.GetValue<string>() ?? "";
             var match = InstallerName.Match(name);
@@ -61,11 +65,15 @@ public static class AppUpdate
             if (!url.StartsWith(DownloadPrefix, StringComparison.Ordinal) || !url.EndsWith("/" + name, StringComparison.Ordinal) ||
                 !digest.StartsWith("sha256:", StringComparison.Ordinal) || digest.Length != 71 || !digest[7..].All(char.IsAsciiHexDigit) ||
                 size <= 0 || size > MaxInstallerBytes) return null;
+            var sig = assets.FirstOrDefault(a => a["name"]?.GetValue<string>() == name + ReleaseSignature.Suffix);
+            var sigUrl = sig?["browser_download_url"]?.GetValue<string>() ?? "";
+            var sigSize = sig?["size"]?.GetValue<long>() ?? 0;
+            if (sigUrl != url + ReleaseSignature.Suffix || sigSize <= 0 || sigSize > ReleaseSignature.MaxBytes) return null;
             var page = Uri.TryCreate(root["html_url"]?.GetValue<string>(), UriKind.Absolute, out var html) && html.Host == "github.com"
                 ? html : new Uri("https://github.com/" + Repository + "/releases");
             var notes = root["body"]?.GetValue<string>() ?? "";
             return new AppRelease(version, tag, new Uri(url), size, digest[7..].ToUpperInvariant(), notes.Length > 4000 ? notes[..4000] : notes, page)
-                { Revision = match.Groups[2].Value, Prerelease = pre };
+                { Revision = match.Groups[2].Value, Prerelease = pre, Signature = new Uri(sigUrl) };
         }
         return null;
     }
@@ -114,21 +122,12 @@ public static class AppUpdate
         var target = Path.Combine(Folder, release.FileName);
         var partial = target + ".part";
         using var client = Client(true);
-        var uri = release.Installer;
+        // Подпись — до установщика: неподписанный файл не стоит даже скачивать.
+        await VerifySignatureAsync(client, release, token);
         HttpResponseMessage? response = null;
         try
         {
-            for (var hop = 0; ; hop++)
-            {
-                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                request.Headers.UserAgent.ParseAdd(ServiceBrand.UserAgent);
-                response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
-                if ((int)response.StatusCode is < 300 or >= 400) break;
-                var next = response.Headers.Location is { } location ? new Uri(uri, location) : null;
-                response.Dispose(); response = null;
-                if (hop >= 4 || next is null || !TrustedHost(next)) throw new UserError("Установщик перенаправлен на незнакомый адрес. Скачайте его со страницы релизов.");
-                uri = next;
-            }
+            response = await GetAsync(client, release.Installer, token);
             if (!response.IsSuccessStatusCode) throw new UserError("Не удалось скачать обновление (HTTP " + (int)response.StatusCode + ").");
             using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             long received = 0;
@@ -152,6 +151,37 @@ public static class AppUpdate
             return target;
         }
         finally { response?.Dispose(); TryDelete(partial); }
+    }
+
+    private static async Task VerifySignatureAsync(HttpClient client, AppRelease release, CancellationToken token)
+    {
+        if (release.Signature is null) throw new UserError(Unsigned);
+        using var response = await GetAsync(client, release.Signature, token);
+        if (!response.IsSuccessStatusCode) throw new UserError("Не удалось скачать подпись обновления (HTTP " + (int)response.StatusCode + ").");
+        await using var input = await response.Content.ReadAsStreamAsync(token);
+        var buffer = new byte[ReleaseSignature.MaxBytes + 1];
+        int length = 0, read;
+        while (length < buffer.Length && (read = await input.ReadAsync(buffer.AsMemory(length), token)) > 0) length += read;
+        if (length > ReleaseSignature.MaxBytes || !ReleaseSignature.Verify(release, System.Text.Encoding.ASCII.GetString(buffer, 0, length)))
+            throw new UserError(Unsigned);
+    }
+
+    private const string Unsigned = "Обновление не подписано ключом Облачки, ставить его нельзя. Сообщите нам об этом, пожалуйста.";
+
+    // GET с переходами только на HTTPS-хосты GitHub: со страницы релиза файл отдаёт его хранилище.
+    private static async Task<HttpResponseMessage> GetAsync(HttpClient client, Uri uri, CancellationToken token)
+    {
+        for (var hop = 0; ; hop++)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.UserAgent.ParseAdd(ServiceBrand.UserAgent);
+            var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+            if ((int)response.StatusCode is < 300 or >= 400) return response;
+            var next = response.Headers.Location is { } location ? new Uri(uri, location) : null;
+            response.Dispose();
+            if (hop >= 4 || next is null || !TrustedHost(next)) throw new UserError("Установщик перенаправлен на незнакомый адрес. Скачайте его со страницы релизов.");
+            uri = next;
+        }
     }
 
     internal static bool TrustedHost(Uri uri) => uri.Scheme == Uri.UriSchemeHttps && uri.UserInfo.Length == 0 &&

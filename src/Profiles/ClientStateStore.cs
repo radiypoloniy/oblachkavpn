@@ -68,6 +68,9 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     // WasConnected снимает только выключение VPN человеком; выключение компьютера и выход его не трогают.
     public bool ConnectOnLaunch { get; init; } = true;
     public bool WasConnected { get; init; }
+    // Уведомления (0.21): по умолчанию включены; ExpiryNotice — о каком сроке подписки уже сказали.
+    public bool Notices { get; init; } = true;
+    public string? ExpiryNotice { get; init; }
     // Подписки и «Вручную» (0.11). Нет значения — снимок прежней версии.
     public ProfileGroup[]? Groups { get; init; }
     // Домены, на которые переехала подписка сервиса (0.18, ServiceBrand.LearnedHosts).

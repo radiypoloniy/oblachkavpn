@@ -124,6 +124,8 @@ public partial class MainWindow
             if (result.ProfileIndex is int found && !closed)
             {
                 var index = candidates[found];
+                if (!ReferenceEquals(profiles[index], profile))
+                    Notify(Notice.ServerSwitched, "Сервер сменился", profile.DisplayName + " перестал отвечать — теперь " + profiles[index].DisplayName + ".");
                 Servers.SearchBox.Clear(); ProfilePicker.ItemsSource = importedProfiles;
                 ProfilePicker.SelectedIndex = index; profile = profiles[index]; runningProfile = profile; health.Reset();
                 RecordProbe(new(true, result.Attempts[^1].Milliseconds, "Соединение восстановлено"));
@@ -134,6 +136,7 @@ public partial class MainWindow
             {
                 // Под защитой сеть остаётся закрытой: главный экран покажет «Интернет закрыт».
                 networkClosed = SystemTunnelActive;
+                Notify(Notice.NetworkClosed, SystemTunnelActive ? "Интернет закрыт" : "VPN не работает", "Рабочий сервер не найден. Нажмите, чтобы выбрать другой или выключить VPN.", warning: true);
                 DetailText.Text = SystemTunnelActive
                     ? "Рабочий сервер не найден. Блокировка остаётся: выберите сервер и подключитесь или нажмите «Остановить»."
                     : "Рабочий сервер не найден. Автоподбор завершён; подключитесь вручную.";

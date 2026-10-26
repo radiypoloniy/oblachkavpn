@@ -41,7 +41,7 @@ public partial class MainWindow : Window
         WireViews();
         viewsReady = true;
         Navigate("Connection");
-        presentationTimer.Tick += (_, _) => { RefreshPresentation(); PollHealth(); PollSubscription(); PollPing(); PollZapretRouting(); PollZapretWatch(); };
+        presentationTimer.Tick += (_, _) => { RefreshPresentation(); PollHealth(); PollSubscription(); PollPing(); PollZapretRouting(); PollZapretWatch(); PollPause(); PollExpiry(); PollProxyGuard(); };
         presentationTimer.Start();
         SubscribeLifecycle(persistenceEnabled && isolatedStore is null);
         InitSystemProxy(persistenceEnabled && isolatedStore is null);
@@ -68,6 +68,7 @@ public partial class MainWindow : Window
         trayStop.Click += (_, _) => Dispatcher.Invoke(() => StopClick(this, new RoutedEventArgs()));
         tray = new Forms.NotifyIcon { Icon = AppIcon.Small(), Text = ServiceBrand.Name + " — отключено", ContextMenuStrip = menu };
         tray.DoubleClick += (_, _) => Dispatcher.Invoke(ShowWindow);
+        tray.BalloonTipClicked += (_, _) => Dispatcher.Invoke(NoticeClicked);
         tray.MouseUp += (_, args) => { if (args.Button == Forms.MouseButtons.Left && args.Clicks < 2) Dispatcher.Invoke(ShowTrayPopup); };
         Loaded += (_, _) => { tray.Visible = true; RestoreSavedState(); UpdateControls(); _ = ConnectAtLaunchAsync(); };
         StateChanged += (_, _) => { if (WindowState != WindowState.Minimized) lastWindowState = WindowState; };

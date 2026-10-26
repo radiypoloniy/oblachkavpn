@@ -11,6 +11,13 @@ namespace Oblachka;
 //   announce-url, banner-*      — объявление с кнопкой
 //   server-address-resolve-*    — адреса серверов через DoH, если DNS провайдера врёт
 //   fragmentation-*             — обход DPI для всех клиентов подписки
+//   subscription-autoconnect(-type) — подключаться при запуске (lastused / lowestdelay; random = lastused)
+//   per-app-proxy-mode-windows: bypass + per-app-proxy-list-windows-add/-set — эти программы мимо VPN
+//   exclude-routes(-set)        — подсети мимо туннеля
+//   tun-mode                    — стек туннеля, когда своего стека нет
+// Уже так работает и без заголовков: subscription-auto-update-open-enable (подписка обновляется при
+// запуске), subscription-ping-onopen-enabled (отклики меряются при запуске), notification-subs-expire.
+// Режим «on» (через VPN — только перечисленные программы) пока не поддержан.
 // Всё приходит от сервера: значения проверяются строго, непонятное отбрасывается молча.
 public sealed record ProviderOptions
 {
@@ -21,8 +28,14 @@ public sealed record ProviderOptions
     public string? AnnounceButton { get; init; }
     public ServerResolve? Resolve { get; init; }
     public ProviderFragment? Fragment { get; init; }
+    public string? AutoConnect { get; init; }
+    public string[]? DirectApps { get; init; }
+    public string[]? ExcludeRoutes { get; init; }
+    public TunnelStack? Stack { get; init; }
 
-    public const int MaxButtonLength = 25;
+    public const int MaxButtonLength = 25, MaxApps = 32;
+    public const string LastUsed = "lastused", LowestDelay = "lowestdelay";
+    private static readonly Regex AppName = new(@"^[A-Za-z0-9][A-Za-z0-9 ._()+-]{0,60}\.exe$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
     private static readonly Regex Range = new(@"^\d{1,5}(-\d{1,5})?$", RegexOptions.CultureInvariant);
     private static readonly Regex Packets = new(@"^(tlshello|\d{1,2}(-\d{1,2})?)$", RegexOptions.CultureInvariant);
 
@@ -39,11 +52,25 @@ public sealed record ProviderOptions
             AnnounceButton = Button(header("banner-button-text")),
             Resolve = ServerResolve.Read(header),
             Fragment = ProviderFragment.Read(header),
+            AutoConnect = !Flag(header("subscription-autoconnect")) ? null
+                : header("subscription-autoconnect-type")?.Trim().ToLowerInvariant() == LowestDelay ? LowestDelay : LastUsed,
+            DirectApps = header("per-app-proxy-mode-windows")?.Trim().ToLowerInvariant() != "bypass" ? null
+                : NullIfEmpty(Split(header("per-app-proxy-list-windows-set"), header("per-app-proxy-list-windows-add"))
+                    .Where(a => AppName.IsMatch(a)).Distinct(StringComparer.OrdinalIgnoreCase).Take(MaxApps)),
+            ExcludeRoutes = NullIfEmpty(Split(header("exclude-routes-set"), header("exclude-routes"), spaces: true)
+                .Where(s => AdvancedOptions.CheckSubnets([s]) is null).Distinct(StringComparer.OrdinalIgnoreCase).Take(AdvancedOptions.MaxSubnets)),
+            Stack = header("tun-mode")?.Trim().ToLowerInvariant() switch { "system" => TunnelStack.System, "gvisor" => TunnelStack.Gvisor, _ => null },
         };
         // Тот же адрес, что и загруженный, — не переезд.
         if (options.NewUrl == source.AbsoluteUri) options = options with { NewUrl = null };
         return options.IsEmpty ? null : options;
     }
+
+    // Программы — через запятую (в имени бывает пробел), подсети — через запятые и пробелы.
+    // «-set» и обычный складываются: своего списка от сервиса раньше у нас нет, добавлять не к чему.
+    private static IEnumerable<string> Split(string? set, string? add, bool spaces = false) =>
+        new[] { set, add }.SelectMany(v => (v ?? "").Split(spaces ? [',', ';', ' ', '\t'] : [',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+    private static string[]? NullIfEmpty(IEnumerable<string> items) => items.ToArray() is { Length: > 0 } array ? array : null;
 
     private static string? First(Func<string, string?> header, params string[] names) =>
         names.Select(n => SubscriptionMetadata.ParseLink(header(n))).FirstOrDefault(l => l is not null);
@@ -78,6 +105,10 @@ public sealed record ProviderOptions
             throw new UserError("Настройки DNS подписки повреждены.");
         if (options.Fragment is { } fragment && (!IsPackets(fragment.Packets) || !IsLength(fragment.Length) || !IsInterval(fragment.Interval)))
             throw new UserError("Настройки обхода DPI подписки повреждены.");
+        if (options.AutoConnect is not (null or LastUsed or LowestDelay) || options.Stack is not (null or TunnelStack.System or TunnelStack.Gvisor) ||
+            options.DirectApps is { } apps && (apps.Length is 0 or > MaxApps || !apps.All(a => AppName.IsMatch(a))) ||
+            options.ExcludeRoutes is { } routes && (routes.Length == 0 || AdvancedOptions.CheckSubnets(routes) is not null))
+            throw new UserError("Настройки сервиса в подписке повреждены.");
     }
 
     internal static bool Flag(string? value) => value?.Trim().ToLowerInvariant() is "1" or "true";

@@ -76,6 +76,7 @@ public partial class MainWindow
         if (groups.Length == 0 && zapretBypassing) await ZapretCallAsync(new(ZapretAction.Stop));
         zapretJournal.Add(ZapretJournalKind.Demote, zapretActiveStrategy, groups, network: zapretActiveNetwork, note: "в VPN: " + string.Join(",", lost));
         var titles = ZapretPlan.Groups.Where(g => lost.Contains(g.Key)).Select(g => g.Title);
+        Notify(Notice.BypassBroken, "Обход перестал работать", string.Join(" и ", titles) + " временно через VPN, подбираем обход заново.");
         Note(string.Join(", ", titles) + " перестал открываться напрямую — вернули в VPN, подбираем заново. " +
             ZapretPlan.Describe(zapretActiveStrategy, groups, probe, zapretVpnGroups));
         await ApplyZapretRoutingAsync();

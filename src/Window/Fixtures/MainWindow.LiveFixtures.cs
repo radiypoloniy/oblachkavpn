@@ -18,6 +18,7 @@ public partial class MainWindow
         Home.CheckText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "OkF");
         // Снимок делается сразу, анимация ещё не прошла: ставим её итог.
         Home.Power.State = Views.PowerState.On;
+        Home.PauseButton.Visibility = Visibility.Visible;
         Home.Power.OnLayer.BeginAnimation(OpacityProperty, null); Home.Power.OnLayer.Opacity = 1;
         ApplyStatusLook();
     }

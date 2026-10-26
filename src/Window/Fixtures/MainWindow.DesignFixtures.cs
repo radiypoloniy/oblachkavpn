@@ -164,6 +164,7 @@ public partial class MainWindow
             return;
         }
         if (page == "power-on") { LoadGroupsPreview(); Navigate("Connection"); ConnectedPreview(); return; }
+        if (page == "paused") { LoadGroupsPreview(); Navigate("Connection"); pausedUntil = DateTimeOffset.UtcNow.AddMinutes(15); RefreshHome(); ApplyStatusLook(); return; }
         // «Не открывается сайт?» с итогом: напрямую режет DPI, через VPN открывается.
         if (page is "site" or "site-ok") { LoadGroupsPreview(); OpenSiteCheck(); checkedHost = page == "site" ? "rutracker.org" : "www.gosuslugi.ru"; SiteCheck.SiteInput.Text = checkedHost;
             if (page == "site") ShowSiteResult(new(SiteStage.Handshake, 230), new(SiteStage.Ok, 412, 200), SiteRoute.Direct, "напрямую · по спискам", profile);

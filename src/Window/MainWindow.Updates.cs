@@ -46,7 +46,8 @@ public partial class MainWindow
             if (availableUpdate is not null && !manual && !updateAnnounced)
             {
                 updateAnnounced = true;
-                DetailText.Text = $"Доступна {ReleaseName(availableUpdate)}. Обновить: «Настройки → Помощь».";
+                DetailText.Text = $"Доступна {ReleaseName(availableUpdate)}. Обновить: «Приложение → Обновления».";
+                Notify(Notice.Update, "Вышла " + ReleaseName(availableUpdate), "Нажмите, чтобы обновить.", () => { ShowWindow(); OpenSettings(Views.SettingsPanel.AppPage); });
             }
             updateError = null; updateChecked = true;
         }
@@ -70,7 +71,7 @@ public partial class MainWindow
         if (availableUpdate is { } release)
         {
             help.UpdateTitle.Text = "Доступна " + ReleaseName(release);
-            help.UpdateText.Text = $"Сейчас {ServiceBrand.Version}. Установщик {release.Size / (1024 * 1024)} МБ, проверяется по SHA256";
+            help.UpdateText.Text = $"Сейчас {ServiceBrand.Version}. Установщик {release.Size / (1024 * 1024)} МБ, проверяется по SHA256 и подписи";
             help.UpdateButton.Content = "Обновить";
         }
         else

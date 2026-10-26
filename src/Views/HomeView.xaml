@@ -52,6 +52,19 @@
                 </DockPanel>
               </Button>
             </Grid>
+            <!-- Пауза: VPN выключается на время и включается сам (MainWindow.Pause). -->
+            <Button x:Name="PauseButton" Style="{StaticResource GlassRow}" Height="32" Padding="12,0" Margin="0,8,0,0" HorizontalAlignment="Right" Visibility="Collapsed" AutomationProperties.Name="Пауза VPN">
+              <StackPanel Orientation="Horizontal">
+                <Path x:Name="PauseIcon" Data="{StaticResource IcoPause}" Style="{StaticResource Icon}" Width="14" Height="14" StrokeThickness="2.4" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="PauseText" Text="Пауза" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+            <Popup x:Name="PausePopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=PauseButton}">
+              <Grid Width="200" Margin="12,4,12,18">
+                <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusSheet}"/>
+                <Border Style="{StaticResource MenuCard}" Padding="14,6"><StackPanel x:Name="PauseItems"/></Border>
+              </Grid>
+            </Popup>
           </StackPanel>
         </Border>
 

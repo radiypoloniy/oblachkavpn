@@ -51,6 +51,22 @@ public static partial class SelfTests
             store.Current = foreign;
             Assert(!proxy.Restore() && store.Current == foreign && !proxy.IsApplied);
         }));
+        await CheckAsync("Proxy guard: a replaced or disabled proxy is noticed, re-applying keeps the first original", () => Sync(() =>
+        {
+            var store = new FakeProxyStore(original);
+            var proxy = new SystemProxy(store, Path.Combine(root, "proxy-g", "backup.json"));
+            Assert(!proxy.Overwritten());
+            proxy.Apply(23462);
+            Assert(!proxy.Overwritten());
+            store.Current = new ProxySettings(1, "127.0.0.1:2080", null, null);
+            Assert(proxy.Overwritten());
+            store.Current = new ProxySettings(0, "127.0.0.1:23462", SystemProxy.Bypass, null);
+            Assert(proxy.Overwritten());
+            store.Current = new ProxySettings(1, "127.0.0.1:23462", SystemProxy.Bypass, "http://pac.invalid/x.pac");
+            Assert(proxy.Overwritten());
+            proxy.Apply(23462);
+            Assert(!proxy.Overwritten() && proxy.Restore() && store.Current == original);
+        }));
         await CheckAsync("Lost backup never records our own proxy as the original", () => Sync(() =>
         {
             var store = new FakeProxyStore(new ProxySettings(1, "127.0.0.1:23460", SystemProxy.Bypass, null));

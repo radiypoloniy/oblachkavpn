@@ -52,8 +52,7 @@ public partial class MainWindow
             var first = !pathBroken;
             pathBroken = true; networkClosed = true;
             DetailText.Text = problem + " Переподключение не помогло. «Выключить VPN и открыть интернет» сразу вернёт обычную сеть.";
-            if (first) tray.ShowBalloonTip(8000, ServiceBrand.Name, "Интернет через VPN не работает. Откройте Облачку и нажмите «Выключить VPN и открыть интернет».",
-                System.Windows.Forms.ToolTipIcon.Warning);
+            if (first) Notify(Notice.NetworkClosed, "Интернет через VPN не работает", "Нажмите и выберите «Выключить VPN и открыть интернет».", warning: true);
             // Проверка продолжается: если путь оживёт сам, карточка уйдёт.
             nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(30);
             RefreshHome();

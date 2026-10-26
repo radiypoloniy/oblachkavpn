@@ -46,7 +46,7 @@ public partial class MainWindow
             UpdateCheck = AppTab.UpdateAuto.IsChecked == true, UpdatePrerelease = AppTab.UpdatePrerelease.IsChecked == true, DpiBypass = fragmentMode,
             ZapretEnabled = zapretEnabled, SelectiveVpn = selectiveVpn, ZapretChoices = new Dictionary<string, string>(zapretChoices), ZapretVpnGroups = zapretVpnGroups.Order(StringComparer.Ordinal).ToArray(),
             AutoPool = autoPool.Snapshot(importedProfiles),
-            ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected,
+            ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected, Notices = Settings.Notices.IsChecked == true, ExpiryNotice = expiryNotice,
             ServiceHosts = ServiceBrand.LearnedIn(groups.SelectMany(g => g.Sources).Concat(subscriptionSources)), LocalNetwork = Settings.LocalNetwork.IsChecked == true,
             QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, CompatibleStack = Settings.CompatibleStack.IsChecked == true, Advanced = advanced.IsDefault ? null : advanced, ServerTweaks = serverTweaks.Count == 0 ? null : new(serverTweaks),
             RuleSets = ruleSets.Count == 0 ? null : SavedRuleSets().Where(s => s.Name != ruleSetName).ToArray(), RuleSetName = ruleSets.Count == 0 && ruleSetName == MainRuleSet ? null : ruleSetName, TrafficDay = trafficDay, TrafficBytes = trafficToday, TrafficHours = trafficHours.ToArray(),
@@ -90,6 +90,7 @@ public partial class MainWindow
         var restored = ClientStateStore.RestoreProfiles(snapshot);
         Settings.StayInTray.IsChecked = snapshot.CloseToTray ?? true; AutoRecover.IsChecked = snapshot.AutoRecover;
         Settings.ConnectOnLaunch.IsChecked = snapshot.ConnectOnLaunch; wasConnected = snapshot.WasConnected;
+        Settings.Notices.IsChecked = snapshot.Notices; expiryNotice = snapshot.ExpiryNotice;
         Settings.LocalNetwork.IsChecked = snapshot.LocalNetwork;
         Settings.QuicOverTcp.IsChecked = snapshot.QuicOverTcp;
         Settings.CompatibleStack.IsChecked = snapshot.CompatibleStack;
