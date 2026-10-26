@@ -72,7 +72,8 @@ public partial class MainWindow
         }
         var rules = siteRules.Count + programRules.Count;
         Home.RulesCount.Text = rules > 0 ? rules.ToString() : "";
-        Home.AllServersText.Text = importedProfiles.Count > 0 ? importedProfiles.Count.ToString() : "";
+        // Серверами, а не записями подписки: протоколы одной машины — один сервер (ServerMachines).
+        Home.AllServersText.Text = importedProfiles.Count > 0 ? ServerMachines.Group(importedProfiles).Count.ToString() : "";
     }
 
     // Погода карточки статуса: ночь — выключено, ясно — подключаемся и защищено, закат — связи нет

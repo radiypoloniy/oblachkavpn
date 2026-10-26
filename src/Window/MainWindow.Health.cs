@@ -109,7 +109,7 @@ public partial class MainWindow
                 candidates = RouteCandidates.ByLatency(RouteCandidates.For(profiles, profile, anyNode: true, InAutoPool), profiles, LatestMeasurement, failed: profile);
                 start = 0;
             }
-            else { candidates = RouteCandidates.For(profiles, profile, pool: InAutoPool); start = RouteCandidates.StartAt(candidates, profiles, profile); }
+            else { candidates = RouteCandidates.For(profiles, profile, pool: InAutoPool, machine: machineMode); start = RouteCandidates.StartAt(candidates, profiles, profile); }
             // Сначала — почему упало (адрес, рукопожатие, туннель), затем попытки в этом порядке.
             var subset = candidates.Select(i => profiles[i]).ToArray();
             var order = new[] { start }.Concat(Enumerable.Range(0, subset.Length).Where(i => i != start)).ToArray();

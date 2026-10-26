@@ -34,10 +34,11 @@ public static partial class SelfTests
                 string.Join(",", RouteLadder.Plan(all, order, all[0], kind, mode).Select(s => s.Index + (s.Fragment ? "f" : "")));
             void Expect(string actual, string expected) { if (actual != expected) throw new InvalidOperationException("ladder " + actual + " != " + expected); }
             Expect(Plan(Blockage.Address), "2");
-            Expect(Plan(Blockage.Handshake), "0f,2,3,1f,2f,0");
+            // Внутри шага сначала та же машина (ServerMachines): Hysteria2 на том же адресе раньше другого сервера.
+            Expect(Plan(Blockage.Handshake), "0f,3,2,1f,2f,0");
             Expect(Plan(Blockage.Tunnel), "1,3,2,0,0f");
-            Expect(Plan(Blockage.Unknown), "1,2,3,0,0f");
-            Expect(Plan(Blockage.Handshake, FragmentMode.Off), "2,3,0");
+            Expect(Plan(Blockage.Unknown), "1,3,2,0,0f");
+            Expect(Plan(Blockage.Handshake, FragmentMode.Off), "3,2,0");
             Expect(Plan(Blockage.Tunnel, FragmentMode.Always), "1f,3,2f,0f");
             Assert(RouteLadder.Family(all[0]) != RouteLadder.Family(all[1]));
         }));

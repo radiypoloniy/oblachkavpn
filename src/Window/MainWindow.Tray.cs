@@ -65,7 +65,7 @@ public partial class MainWindow
         if (DateTime.UtcNow - TrayPopup.ClosedAt < TimeSpan.FromMilliseconds(400)) return;
         var popup = new TrayPopup(
             () => { if (StopButton.IsEnabled) StopClick(this, new RoutedEventArgs()); else ConnectClick(this, new RoutedEventArgs()); },
-            ShowWindow, ExitApplication, row => PickServer(row.IsAuto ? null : row.Profile));
+            ShowWindow, ExitApplication, PickRow);
         trayPopup = popup;
         popup.Closed += (_, _) => { if (ReferenceEquals(trayPopup, popup)) trayPopup = null; };
         RefreshTrayPopup();

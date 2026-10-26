@@ -16,7 +16,7 @@ public partial class MainWindow
         LoadPreviewProfiles();
         Settings.StayInTray.IsChecked = false; AutoRecover.IsChecked = false; Settings.Hotkey.IsChecked = true;
         ApplySnapshot(store.Load()!);
-        if (ProfilePicker.Items.Count != 24 || profile?.DisplayName != "Рабочий сервер" ||
+        if (ProfilePicker.Items.Count != 26 || profile?.DisplayName != "Рабочий сервер" ||
             profile is null || Profiles.Fingerprint(profile) != snapshot.SelectedFingerprint ||
             !subscriptionSources.SequenceEqual(snapshot.SubscriptionSources) || !RefreshButton.IsEnabled ||
             Settings.StayInTray.IsChecked != true || AutoRecover.IsChecked != true || Settings.Hotkey.IsChecked != false || engine.ProcessId is not null)

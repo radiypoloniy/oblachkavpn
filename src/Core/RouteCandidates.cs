@@ -14,10 +14,13 @@ public static class RouteCandidates
     // подписок, в том числе сторонней (а в редакции «вставьте свою подписку» других узлов и нет).
     // pool — пул автовыбора (AutoPool): переключаться можно только на его серверы. Текущий
     // сервер остаётся кандидатом всегда — повторы на нём не запрещены.
-    public static int[] For(IReadOnlyList<Profile> all, Profile current, bool anyNode = false, Func<Profile, bool>? pool = null)
+    // machine — выбрана машина целиком (ServerMachines): это согласие на любой её протокол, и для
+    // сторонней подписки перебор идёт по протоколам той же машины, а не только по выбранной записи.
+    public static int[] For(IReadOnlyList<Profile> all, Profile current, bool anyNode = false, Func<Profile, bool>? pool = null, bool machine = false)
     {
         var selected = ProfileSelection.IndexOf(all, current);
-        var itself = selected >= 0 ? new[] { selected } : Array.Empty<int>();
+        var key = ServerMachines.Key(current);
+        var itself = Enumerable.Range(0, all.Count).Where(i => i == selected || machine && !all[i].IsFree && ServerMachines.Key(all[i]) == key).ToArray();
         // Бесплатный чужой узел — только выбранный вручную: ни автовыбор, ни подбор на него не переходят.
         bool Allowed(int i) => i == selected || !all[i].IsFree && (pool is null || pool(all[i]));
         if (anyNode) return Enumerable.Range(0, all.Count).Where(Allowed).ToArray();

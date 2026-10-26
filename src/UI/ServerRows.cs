@@ -13,6 +13,15 @@ public sealed class ServerRow
 {
     public Profile? Profile { get; init; }
     public bool IsAuto { get; init; }
+    // Машина (ServerMachines): несколько протоколов одного сервера. IsMember — строка протокола под раскрытой машиной.
+    public IReadOnlyList<Profile>? Members { get; init; }
+    public bool IsMachine => Members is { Count: > 1 };
+    public bool IsMember { get; init; }
+    public bool Expanded { get; init; }
+    public Visibility ExpandVisibility => IsMachine ? Visibility.Visible : Visibility.Collapsed;
+    public string ExpandName => Expanded ? "Свернуть протоколы" : "Показать протоколы";
+    public Thickness PlateMargin => IsMember ? new Thickness(34, 0, 0, 2) : new Thickness(0, 0, 0, 2);
+    public Visibility GlyphVisibility => IsMember ? Visibility.Collapsed : Visibility.Visible;
     public required string Name { get; init; }
     public string? Note { get; init; }
     public ImageSource? Flag { get; init; }

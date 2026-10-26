@@ -104,7 +104,9 @@ public partial class MainWindow
         }
         LoadPreviewProfiles();
         CheckPreviewControls();
-        if (page == "servers") { LoadServerPreview(); LoadPingPreview(); }
+        if (page is "servers" or "servers-machine") { LoadServerPreview(); LoadPingPreview(); }
+        // Машина «Нидерланды» раскрыта: три протокола под строкой.
+        if (page == "servers-machine") { expandedMachines.Add(ServerMachines.Key(importedProfiles.First(p => p.DisplayName == "Нидерланды"))); page = "servers"; }
         if (page is "foreign" or "closed" or "recovery" or "subscription") PrepareStatePreview(page);
         if (page is "groups" or "servers-groups")
         {
@@ -207,9 +209,12 @@ public partial class MainWindow
     private void LoadServerPreview()
     {
         var names = new[] { "🇪🇺Авто", "🇪🇺Обход", "🇪🇺Обход 2", "🇻🇳Рабочий сервер", "🇳🇱Нидерланды", "🇳🇱Нидерланды 2" };
+        // У каждого сервера свой адрес; у «Нидерландов» (s4) ещё два протокола — одна машина на три строки подписки.
         Import(string.Join("\n", Enumerable.Range(0, 24).Select(i =>
-            $"vless://{i + 1:x8}-1111-4111-8111-111111111111@example.invalid:443?security=tls&type=xhttp#" +
-            Uri.EscapeDataString(i < names.Length ? names[i] : $"🇩🇪Резервный сервер {i - 5}"))));
+            $"vless://{i + 1:x8}-1111-4111-8111-111111111111@s{i}.example.invalid:443?security=tls&type=xhttp#" +
+            Uri.EscapeDataString(i < names.Length ? names[i] : $"🇩🇪Резервный сервер {i - 5}")).Concat([
+            "hysteria2://preview-pass@s4.example.invalid:443?sni=s4.example.invalid#" + Uri.EscapeDataString("🇳🇱Нидерланды Hysteria2"),
+            "trojan://preview-pass@s4.example.invalid:443?security=tls&sni=s4.example.invalid#" + Uri.EscapeDataString("🇳🇱Нидерланды Trojan")])));
     }
 
     // Отклики как после запуска: у части узлов ответа нет.

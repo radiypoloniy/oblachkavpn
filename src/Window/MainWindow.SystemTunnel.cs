@@ -142,7 +142,7 @@ public partial class MainWindow
         if (autoSelect)
             return new[] { selected }.Concat(RouteCandidates.ByLatency(RouteCandidates.For(profiles, selected, anyNode: true, InAutoPool), profiles, LatestMeasurement)
                 .Select(i => profiles[i])).Concat(profiles).DistinctBy(ProfileSelection.Identity).ToArray();
-        var candidates = RouteCandidates.For(profiles, selected, pool: InAutoPool);
+        var candidates = RouteCandidates.For(profiles, selected, pool: InAutoPool, machine: machineMode);
         if (candidates.Length == 0) return new[] { selected };
         // Сначала порядок автоподбора (выбранный и пять запасных), затем остальные узлы сервиса:
         // на них переключаются вручную, и защита должна разрешать их с самого начала. Иначе
