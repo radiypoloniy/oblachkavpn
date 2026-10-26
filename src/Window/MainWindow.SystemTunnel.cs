@@ -113,9 +113,12 @@ public partial class MainWindow
             DirectAllowed = () => engine is Engine core && (core.DirectEntry is null || tunnelLists is not null) && !core.Fragment
         };
         session.Changed += OnSystemTunnelChanged;
-        session.Tuning = TunnelTuning.From(advanced);
+        session.Tuning = TunnelTuning.From(advanced, ServiceGroup?.Metadata?.Provider, Settings.CompatibleStack.IsChecked == true);
         session.ProtectionRepaired += () => Dispatcher.BeginInvoke(() =>
-            DetailText.Text = "Защиту от утечек кто-то снял (перезапуск службы фильтрации Windows или другая программа) — Облачка поставила её заново.");
+        {
+            DetailText.Text = "Защиту от утечек кто-то снял (перезапуск службы фильтрации Windows или другая программа) — Облачка поставила её заново.";
+            Notify(Notice.ProtectionRepaired, "Защита от утечек снова на месте", "Её снял Windows или другая программа, Облачка поставила заново. Мимо VPN ничего не ушло.", warning: true);
+        });
         systemTunnel = session;
         // Правила сайтов и программ исполняет ядро туннеля у помощника; ядро окна в этом
         // режиме правил не несёт (Engine.SiteRules пуст), иначе «напрямую» шло бы из него.

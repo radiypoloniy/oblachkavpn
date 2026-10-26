@@ -36,6 +36,15 @@
             </StackPanel>
           </DockPanel>
         </Border>
+        <Border Style="{StaticResource OptRow}">
+          <DockPanel>
+            <CheckBox x:Name="Notices" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Уведомления"/>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+              <TextBlock Text="Уведомления" Style="{StaticResource OptTitle}"/>
+              <TextBlock Text="Когда окно свёрнуто: сменился сервер, кончается подписка, обход перестал работать" Style="{StaticResource OptSub}" TextWrapping="Wrap"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
         <Border Style="{StaticResource OptRow}" BorderThickness="0">
           <DockPanel>
             <CheckBox x:Name="Hotkey" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Ctrl+Alt+O показывает окно"/>

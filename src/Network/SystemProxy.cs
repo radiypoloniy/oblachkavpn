@@ -53,6 +53,16 @@ public sealed class SystemProxy(IProxySettingsStore store, string backupPath)
         return ours;
     }
 
+    // Наш прокси заменили или выключили (другой VPN, антивирус, «ускоритель интернета»): браузеры
+    // пошли бы мимо VPN молча. Без отметки о применении — не наше дело.
+    public bool Overwritten()
+    {
+        var backup = ReadBackup();
+        if (backup is null) return false;
+        var current = store.Read();
+        return !(current.ProxyEnable == 1 && current.ProxyServer == backup.Applied && current.AutoConfigUrl is null);
+    }
+
     private static bool IsOurs(string? server) => server is not null && server.StartsWith("127.0.0.1:", StringComparison.Ordinal) && !server.Contains(';');
 
     private ProxyBackup? ReadBackup()

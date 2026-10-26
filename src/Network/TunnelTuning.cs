@@ -11,11 +11,17 @@ public sealed record TunnelTuning(TunnelStack Stack = TunnelStack.Auto, int? Mtu
 {
     public const string LanInbound = "lan";
 
-    public static TunnelTuning? From(AdvancedOptions options) =>
-        options.Stack == TunnelStack.Auto && options.Mtu is null && options.TunnelDns is null && options.BypassSubnets.Length == 0 && options.CoreLog == CoreLogLevel.Off &&
-        options.DirectDns is null && !options.NoIpv6 && options.UdpTimeout is null && !options.LanProxy ? null
-            : new(options.Stack, options.Mtu, options.TunnelDns, options.BypassSubnets.Length == 0 ? null : options.BypassSubnets, options.CoreLog,
+    // provider — заголовки подписки сервиса: стек — только когда своего стека нет, подсети
+    // складываются со своими. «Совместимость с играми» сильнее стека сервиса (compatible).
+    public static TunnelTuning? From(AdvancedOptions options, ProviderOptions? provider = null, bool compatible = false)
+    {
+        var stack = options.Stack == TunnelStack.Auto && !compatible && provider?.Stack is { } offered ? offered : options.Stack;
+        var bypass = options.BypassSubnets.Concat(provider?.ExcludeRoutes ?? []).Distinct(StringComparer.OrdinalIgnoreCase).Take(AdvancedOptions.MaxSubnets).ToArray();
+        return stack == TunnelStack.Auto && options.Mtu is null && options.TunnelDns is null && bypass.Length == 0 && options.CoreLog == CoreLogLevel.Off &&
+            options.DirectDns is null && !options.NoIpv6 && options.UdpTimeout is null && !options.LanProxy ? null
+            : new(stack, options.Mtu, options.TunnelDns, bypass.Length == 0 ? null : bypass, options.CoreLog,
                 options.DirectDns, options.NoIpv6, options.UdpTimeout, options.LanProxy ? options.LanListenPort : null, options.LanProxy ? options.LanPassword : null);
+    }
 
     // DNS для прямых сайтов: свой адрес или резолвер физической сети (DirectDns).
     public IPAddress? DirectResolver(Func<IPAddress?> physical) => DirectDns is { } own ? IPAddress.Parse(own) : physical();

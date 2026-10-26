@@ -10,7 +10,10 @@ public partial class MainWindow
     // Подбор zapret отложен до подключения (RestoreZapret).
     private bool zapretAfterConnect;
 
-    private bool ConnectAtLaunchPlanned => Settings.ConnectOnLaunch.IsChecked == true && wasConnected && !isolatedPersistence && !vmTestActive;
+    // Сервис может попросить подключаться при каждом запуске (subscription-autoconnect) — «Сразу подключаться»
+    // по-прежнему решает человек: выключил её — не подключаемся.
+    private string? ServiceAutoConnect => ServiceGroup?.Metadata?.Provider?.AutoConnect;
+    private bool ConnectAtLaunchPlanned => Settings.ConnectOnLaunch.IsChecked == true && (wasConnected || ServiceAutoConnect is not null) && !isolatedPersistence && !vmTestActive;
 
     private void InitLaunch()
     {
@@ -60,7 +63,9 @@ public partial class MainWindow
     private async Task ConnectAtLaunchAsync()
     {
         if (!ConnectAtLaunchPlanned || profile is null) return;
-        DetailText.Text = "Подключаемся: VPN был включён, когда Облачка закрылась.";
+        DetailText.Text = wasConnected ? "Подключаемся: VPN был включён, когда Облачка закрылась." : "Подключаемся: так настроил сервис.";
+        // lowestdelay — сервис просит самый быстрый сервер: это «Автовыбор».
+        if (ServiceAutoConnect == ProviderOptions.LowestDelay && !autoSelect) { autoSelect = true; QueueStateSave(); }
         // После входа в Windows сеть поднимается не сразу (Wi-Fi), а без неё не разрешить адреса
         // серверов и не выбрать лучший. Ждём адаптер со шлюзом до 30 с, потом пробуем всё равно.
         for (var i = 0; i < 60 && !closed && ZapretRunner.PhysicalInterface() is null; i++) await Task.Delay(500);

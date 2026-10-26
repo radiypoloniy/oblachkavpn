@@ -12,7 +12,7 @@ public partial class MainWindow
 
     // Вызывается при запуске сессии: то же условие, что у ValidatedNetworkLease.HasDirect.
     private void RememberTunnelDirect() =>
-        tunnelDirectAllowed = selectiveVpn || (engine as Engine)?.DirectEntry is not null || siteRules.Any(r => r.Action == SiteAction.Direct) || programRules.Any(r => r.Action == SiteAction.Direct);
+        tunnelDirectAllowed = selectiveVpn || (engine as Engine)?.DirectEntry is not null || siteRules.Any(r => r.Action == SiteAction.Direct) || programRules.Any(r => r.Action == SiteAction.Direct) || ServiceDirectApps.Length > 0;
 
     private void ProgramRulesChanged()
     {

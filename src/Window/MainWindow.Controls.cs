@@ -57,6 +57,7 @@ public partial class MainWindow
         Diagnostics.ExportButton.Click += ExportReportClick;
         Diagnostics.CopyReportButton.Click += CopyReportClick;
         WireHome();
+        WireNotices();
         WireSettings();
         Servers.BackButton.Click += (_, _) => Navigate("Connection");
         Servers.SearchBox.TextChanged += (_, _) => FilterProfiles();

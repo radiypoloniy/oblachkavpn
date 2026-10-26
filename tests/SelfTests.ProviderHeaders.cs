@@ -27,6 +27,33 @@ public static partial class SelfTests
             Assert(ProviderOptions.Read(Headers(("new-domain", "localhost")), source) is null);
             Assert(ProviderOptions.Read(Headers(), source) is null);
         }));
+        await check("Provider headers (Happ): autoconnect, apps past the VPN, excluded subnets and tunnel stack", () => Sync(() =>
+        {
+            var options = ProviderOptions.Read(Headers(("subscription-autoconnect", "1"), ("subscription-autoconnect-type", "LowestDelay"),
+                ("per-app-proxy-mode-windows", "bypass"), ("per-app-proxy-list-windows-set", "Discord.exe, steam.exe"), ("per-app-proxy-list-windows-add", @"My Game.exe;..\evil.exe,steam.exe,cmd"),
+                ("exclude-routes", "192.168.1.0/24, 10.0.0.0/8 0.0.0.0/0 not-a-subnet"), ("tun-mode", "gvisor")), source)!;
+            Assert(options.AutoConnect == ProviderOptions.LowestDelay);
+            // Только имена .exe без путей, без повторов; «0.0.0.0/0» и мусор — мимо.
+            Assert(options.DirectApps!.SequenceEqual(["Discord.exe", "steam.exe", "My Game.exe"]));
+            Assert(options.ExcludeRoutes!.SequenceEqual(["192.168.1.0/24", "10.0.0.0/8"]) && options.Stack == TunnelStack.Gvisor);
+            ProviderOptions.Validate(options);
+            // random и непонятный тип — как lastused; выключенный флаг — без автоподключения; «on» пока не поддержан.
+            Assert(ProviderOptions.Read(Headers(("subscription-autoconnect", "true"), ("subscription-autoconnect-type", "random")), source)!.AutoConnect == ProviderOptions.LastUsed);
+            Assert(ProviderOptions.Read(Headers(("subscription-autoconnect", "0")), source) is null);
+            Assert(ProviderOptions.Read(Headers(("per-app-proxy-mode-windows", "on"), ("per-app-proxy-list-windows-add", "discord.exe")), source) is null);
+            Assert(ProviderOptions.Read(Headers(("tun-mode", "mixed")), source) is null);
+            // Повреждённый снимок не принимается.
+            Assert(Throws<UserError>(() => ProviderOptions.Validate(options with { DirectApps = [@"C:\Windows\cmd.exe"] })));
+            Assert(Throws<UserError>(() => ProviderOptions.Validate(options with { ExcludeRoutes = ["0.0.0.0/0"] })));
+            Assert(Throws<UserError>(() => ProviderOptions.Validate(options with { AutoConnect = "always" })));
+            // Настройка туннеля: подсети складываются со своими, стек сервиса — только без своего и без «Совместимости с играми».
+            var own = new AdvancedOptions { BypassSubnets = ["10.0.0.0/8", "172.20.0.0/16"] };
+            var tuning = TunnelTuning.From(own, options)!;
+            Assert(tuning.Stack == TunnelStack.Gvisor && tuning.Subnets.SequenceEqual(["10.0.0.0/8", "172.20.0.0/16", "192.168.1.0/24"]));
+            Assert(TunnelTuning.From(own with { Stack = TunnelStack.Mixed }, options)!.Stack == TunnelStack.Mixed);
+            Assert(TunnelTuning.From(new AdvancedOptions(), options, compatible: true)!.Stack == TunnelStack.Auto);
+            Assert(TunnelTuning.From(new AdvancedOptions(), null) is null);
+        }));
         await check("Provider headers: renew link, announce button, DoH and fragmentation", () => Sync(() =>
         {
             var options = ProviderOptions.Read(Headers(("sub-expire-button-link", "https://pay.fixture.invalid/renew"), ("premium-url", "javascript:alert(1)"),

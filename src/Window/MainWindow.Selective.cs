@@ -40,9 +40,16 @@ public partial class MainWindow
     private SiteRule[] OwnLeaseSites() => !selectiveVpn ? siteRules.ToArray()
         : siteRules.Concat(SelectiveDomains.Where(d => !siteRules.Any(r => r.Domain == d)).Select(d => RoutingPlan.Create(d, SiteAction.Tunnel))).Take(100).ToArray();
 
-    private ProgramRule[] LeasePrograms() => !selectiveVpn ? programRules.ToArray()
+    private ProgramRule[] LeasePrograms() => WithServiceApps(!selectiveVpn ? programRules.ToArray()
         : programRules.Concat(SelectivePrograms.Where(p => !programRules.Any(r => string.Equals(r.Executable, p, StringComparison.OrdinalIgnoreCase)))
-            .Select(p => ProgramRoutingPlan.Create(p, SiteAction.Tunnel))).Take(100).ToArray();
+            .Select(p => ProgramRoutingPlan.Create(p, SiteAction.Tunnel))).Take(100).ToArray());
+
+    // Программы, которые сервис просит пустить мимо VPN (per-app-proxy-mode-windows: bypass).
+    // Своё правило на ту же программу сильнее: сервис не переспорит человека.
+    private string[] ServiceDirectApps => ServiceGroup?.Metadata?.Provider?.DirectApps ?? [];
+    private ProgramRule[] WithServiceApps(ProgramRule[] rules) => rules.Concat(ServiceDirectApps
+        .Where(a => !rules.Any(r => string.Equals(r.Executable, a, StringComparison.OrdinalIgnoreCase)))
+        .Select(a => ProgramRoutingPlan.Create(a, SiteAction.Direct))).Take(100).ToArray();
 
     // Для «Браузеры и программы»: список в ядре окна, остальное напрямую.
     private RoutingProfile? SelectiveProfile() => selectiveVpn && Settings.SystemTunnel.IsChecked != true
