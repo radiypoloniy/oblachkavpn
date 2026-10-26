@@ -10,7 +10,13 @@ namespace Oblachka;
 public enum NetworkMode { Usual, Vpn, Trusted }
 
 // Сеть, о которой человек что-то решил. Ключ — хеш идентификатора сети Windows, имя — для подписи.
-public sealed record KnownNetwork(string Name, NetworkMode Mode);
+// RuleSet — набор правил («Дом», «Работа»), который включается, как только компьютер в этой сети.
+public sealed record KnownNetwork(string Name, NetworkMode Mode, string? RuleSet = null)
+{
+    // «Обычная» без набора — то же, что ничего не решать: такая сеть не хранится.
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool Worth => Mode != NetworkMode.Usual || RuleSet is not null;
+}
 
 public static class NetworkPolicy
 {
@@ -36,6 +42,6 @@ public static class NetworkPolicy
 
     // Снимок проверяется так же строго, как любые сохранённые данные.
     public static Dictionary<string, KnownNetwork> Restore(Dictionary<string, KnownNetwork>? saved) =>
-        (saved ?? []).Where(p => IsKey(p.Key) && p.Value is { Mode: NetworkMode.Vpn or NetworkMode.Trusted })
+        (saved ?? []).Where(p => IsKey(p.Key) && p.Value is { } n && Enum.IsDefined(n.Mode) && (n.RuleSet is null || MainWindow.ValidName(n.RuleSet)) && n.Worth)
             .Take(MaxKnown).ToDictionary(p => p.Key, p => p.Value with { Name = CleanName(p.Value.Name) });
 }

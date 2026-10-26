@@ -64,6 +64,7 @@ public partial class MainWindow
     private async Task ConnectAtLaunchAsync()
     {
         ReadNetwork();
+        ApplyNetworkRuleSet();
         // Не подключаемся по «Сразу подключаться» — решает сеть («Всегда VPN», незнакомые Wi-Fi).
         if (!ConnectAtLaunchPlanned) { if (!isolatedPersistence && !vmTestActive) await ApplyNetworkAsync(); return; }
         if (profile is null) return;

@@ -27,6 +27,15 @@ public static partial class SelfTests
             });
             Assert(restored.Count == 2 && restored[key].Name == "Дом" && restored.Values.All(n => n.Name.Length <= NetworkPolicy.MaxName + 1));
             Assert(NetworkPolicy.CleanName("  ") == "Без имени" && NetworkPolicy.Restore(null).Count == 0);
+            // «Обычная» с набором правил хранится; «обычная» без набора и негодное имя набора — нет.
+            var home = NetworkPolicy.Key(Guid.NewGuid());
+            var kept = NetworkPolicy.Restore(new()
+            {
+                [home] = new("Дом", NetworkMode.Usual, "Дом"), [NetworkPolicy.Key(Guid.NewGuid())] = new("x", NetworkMode.Vpn, " пробел"),
+                [NetworkPolicy.Key(Guid.NewGuid())] = new("y", (NetworkMode)7)
+            });
+            Assert(kept.Count == 1 && kept[home].RuleSet == "Дом" && !new KnownNetwork("z", NetworkMode.Usual).Worth);
+            Assert(!System.Text.Json.JsonSerializer.Serialize(kept[home]).Contains("Worth"));
         }));
         await check("Networks: Windows reports the network of the physical adapter with a name", () => Sync(() =>
         {

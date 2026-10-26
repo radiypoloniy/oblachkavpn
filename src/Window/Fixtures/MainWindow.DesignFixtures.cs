@@ -167,7 +167,7 @@ public partial class MainWindow
         }
         if (page == "power-on") { LoadGroupsPreview(); Navigate("Connection"); ConnectedPreview(); return; }
         // Своя сеть в превью — выдуманная: настоящее имя Wi-Fi в снимки не попадает.
-        if (page is "app" or "app-net") { currentNetwork = (NetworkPolicy.Key(Guid.Empty), "Дом", false); if (page == "app-net") { knownNetworks[currentNetwork.Value.Key] = new("Дом", NetworkMode.Vpn); page = "app"; } RefreshNetworkRow(); }
+        if (page is "app" or "app-net") { currentNetwork = (NetworkPolicy.Key(Guid.Empty), "Дом", false); if (page == "app-net") { knownNetworks[currentNetwork.Value.Key] = new("Дом", NetworkMode.Vpn, "Работа"); ruleSets.Add(new("Работа", [], [])); page = "app"; } RefreshNetworkRow(); }
         if (page == "paused") { LoadGroupsPreview(); Navigate("Connection"); pausedUntil = DateTimeOffset.UtcNow.AddMinutes(15); RefreshHome(); ApplyStatusLook(); return; }
         // «Не открывается сайт?» с итогом: напрямую режет DPI, через VPN открывается.
         if (page is "site" or "site-ok") { LoadGroupsPreview(); OpenSiteCheck(); checkedHost = page == "site" ? "rutracker.org" : "www.gosuslugi.ru"; SiteCheck.SiteInput.Text = checkedHost;

@@ -25,12 +25,29 @@ public partial class MainWindow
             ReadNetwork();
             // «Выключил сам» не сбрасываем: Wi-Fi моргнул и вернулся в ту же сеть — VPN по-прежнему выключен.
             if (currentNetwork?.Key == before) return;
+            ApplyNetworkRuleSet();
             await ApplyNetworkAsync();
         };
         AppTab.NetUsual.Click += (_, _) => SetNetworkMode(NetworkMode.Usual);
         AppTab.NetVpn.Click += (_, _) => SetNetworkMode(NetworkMode.Vpn);
         AppTab.NetTrusted.Click += (_, _) => SetNetworkMode(NetworkMode.Trusted);
         AppTab.SecureUnknown.Click += (_, _) => QueueStateSave();
+        AppTab.NetRuleSet.Click += (_, _) =>
+        {
+            AppTab.NetRuleSetItems.Children.Clear();
+            var chosen = currentNetwork is { } n && knownNetworks.TryGetValue(n.Key, out var k) ? k.RuleSet : null;
+            foreach (var name in new string?[] { null }.Concat(SavedRuleSets().Select(s => s.Name)))
+            {
+                var item = new System.Windows.Controls.Button
+                {
+                    Content = new System.Windows.Controls.TextBlock { Text = name ?? "Не менять", VerticalAlignment = VerticalAlignment.Center },
+                    Style = (Style)FindResource("MenuRow"), FontWeight = name == chosen ? FontWeights.SemiBold : FontWeights.Normal
+                };
+                item.Click += (_, _) => { AppTab.NetRuleSetPopup.IsOpen = false; SetNetworkRuleSet(name); };
+                AppTab.NetRuleSetItems.Children.Add(item);
+            }
+            AppTab.NetRuleSetPopup.IsOpen = true;
+        };
         AppTab.NetForget.Click += (_, _) =>
         {
             foreach (var key in knownNetworks.Keys.Where(k => k != currentNetwork?.Key).ToArray()) knownNetworks.Remove(key);
@@ -57,13 +74,41 @@ public partial class MainWindow
     private void SetNetworkMode(NetworkMode mode)
     {
         if (currentNetwork is not { } net) return;
-        // «Обычная» — то же, что ничего не решать: сеть из списка уходит.
-        if (mode == NetworkMode.Usual) knownNetworks.Remove(net.Key);
-        else if (knownNetworks.ContainsKey(net.Key) || knownNetworks.Count < NetworkPolicy.MaxKnown) knownNetworks[net.Key] = new(net.Name, mode);
-        else { DetailText.Text = $"Запомнить можно до {NetworkPolicy.MaxKnown} сетей. Забудьте остальные, чтобы добавить эту."; return; }
+        var known = knownNetworks.GetValueOrDefault(net.Key);
+        if (!Remember(net, new(net.Name, mode, known?.RuleSet))) return;
         QueueStateSave();
         RefreshNetworkRow();
         if (mode == NetworkMode.Vpn) { stoppedOnNetwork = null; _ = ApplyNetworkAsync(); }
+    }
+
+    private void SetNetworkRuleSet(string? name)
+    {
+        if (currentNetwork is not { } net) return;
+        if (!Remember(net, new(net.Name, knownNetworks.GetValueOrDefault(net.Key)?.Mode ?? NetworkMode.Usual, name))) return;
+        QueueStateSave(); RefreshNetworkRow();
+        ApplyNetworkRuleSet();
+    }
+
+    // «Обычная» без набора — то же, что ничего не решать: сеть из списка уходит.
+    private bool Remember((string Key, string Name, bool Public) net, KnownNetwork choice)
+    {
+        if (!choice.Worth) { knownNetworks.Remove(net.Key); return true; }
+        if (!knownNetworks.ContainsKey(net.Key) && knownNetworks.Count >= NetworkPolicy.MaxKnown)
+        {
+            DetailText.Text = $"Запомнить можно до {NetworkPolicy.MaxKnown} сетей. Забудьте остальные, чтобы добавить эту.";
+            return false;
+        }
+        knownNetworks[net.Key] = choice;
+        return true;
+    }
+
+    // Набор правил этой сети — на ходу, как переключение кнопкой «Набор». Удалённый набор не включается.
+    private void ApplyNetworkRuleSet()
+    {
+        if (currentNetwork is not { } net || !knownNetworks.TryGetValue(net.Key, out var known) || known.RuleSet is not { } name ||
+            name == ruleSetName || SavedRuleSets().All(s => s.Name != name)) return;
+        SwitchRuleSet(name);
+        DetailText.Text = $"Сеть «{net.Name}»: включён набор правил «{name}».";
     }
 
     private async Task ApplyNetworkAsync()
@@ -94,6 +139,9 @@ public partial class MainWindow
             button.IsEnabled = net is not null;
             MarkSegment(button, net is not null && mode == value);
         }
+        var rule = net is { } here && knownNetworks.TryGetValue(here.Key, out var choice) ? choice.RuleSet : null;
+        AppTab.NetRuleSet.Content = "Набор правил: " + (rule ?? "не менять") + " ▾";
+        AppTab.NetRuleSet.Visibility = net is not null && (rule is not null || SavedRuleSets().Length > 1) ? Visibility.Visible : Visibility.Collapsed;
         var others = knownNetworks.Keys.Count(k => k != net?.Key);
         AppTab.NetForget.Visibility = others > 0 ? Visibility.Visible : Visibility.Collapsed;
         AppTab.NetForget.Content = "Забыть другие сети (" + others + ")";
