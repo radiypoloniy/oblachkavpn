@@ -1,14 +1,18 @@
 // Офлайн-ключ подписи обновлений (ReleaseSignature в клиенте). Запуск: dotnet run scripts\release-key.cs -- <команда>
 //   new <файл ключа>             — новый ключ ECDSA P-256, закрытый шифруется паролем (PKCS#8, AES-256, PBKDF2);
 //                                   открытый печатается и ложится рядом в <файл>.pub — его вписывают в ReleaseSignature.Keys
-//   sign <файл ключа> <установщик> — <установщик>.sig рядом с файлом
+//   protect <файл ключа>          — один раз: пароль с клавиатуры, ключ сохраняется на этом компьютере под
+//                                   защитой Windows (DPAPI, только эта учётная запись); дальше подпись без пароля
+//   sign <файл ключа|stored> <установщик> — <установщик>.sig рядом с файлом; stored — сохранённый protect
 //   verify <файл .pub> <установщик> — проверить подпись тем же способом, что клиент
-// Пароль спрашивается с клавиатуры. Файл ключа и пароль хранятся порознь и не на этом компьютере.
+// Ключа нет на GitHub: кто получит доступ к репозиторию, подписать обновление не сможет.
+#:package System.Security.Cryptography.ProtectedData@10.0.0
+#pragma warning disable CA1416 // только Windows: ключ сохраняет DPAPI
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
-if (args.Length < 2) return Fail("Команды: new <ключ> | sign <ключ> <установщик> | verify <ключ.pub> <установщик>");
+if (args.Length < 2) return Fail("Команды: new <ключ> | protect <ключ> | sign <ключ|stored> <установщик> | verify <ключ.pub> <установщик>");
 switch (args[0])
 {
     case "new" when args.Length == 2:
@@ -27,12 +31,31 @@ switch (args[0])
         Console.WriteLine("Открытый ключ (в ReleaseSignature.Keys): " + pub);
         return 0;
     }
+    case "protect" when args.Length == 2:
+    {
+        using var key = ECDsa.Create();
+        try { key.ImportFromEncryptedPem(File.ReadAllText(args[1]), Ask("Пароль ключа: ")); }
+        catch (CryptographicException) { return Fail("Неверный пароль или это не файл ключа."); }
+        Directory.CreateDirectory(Path.GetDirectoryName(StoredPath())!);
+        File.WriteAllBytes(StoredPath(), ProtectedData.Protect(key.ExportPkcs8PrivateKey(), EntropyBytes(), DataProtectionScope.CurrentUser));
+        Console.WriteLine("Ключ сохранён для этой учётной записи: " + StoredPath());
+        Console.WriteLine("Открытый ключ: " + Convert.ToBase64String(key.ExportSubjectPublicKeyInfo()));
+        return 0;
+    }
     case "sign" when args.Length == 3:
     {
         var (name, size, sha) = Describe(args[2]);
         using var key = ECDsa.Create();
-        try { key.ImportFromEncryptedPem(File.ReadAllText(args[1]), Ask("Пароль ключа: ")); }
-        catch (CryptographicException) { return Fail("Неверный пароль или это не файл ключа."); }
+        try
+        {
+            if (args[1] == "stored")
+            {
+                if (!File.Exists(StoredPath())) return Fail("Ключ не сохранён: сначала protect <файл ключа>.");
+                key.ImportPkcs8PrivateKey(ProtectedData.Unprotect(File.ReadAllBytes(StoredPath()), EntropyBytes(), DataProtectionScope.CurrentUser), out _);
+            }
+            else key.ImportFromEncryptedPem(File.ReadAllText(args[1]), Ask("Пароль ключа: "));
+        }
+        catch (CryptographicException) { return Fail("Неверный пароль, не тот файл ключа или ключ сохранён другой учётной записью."); }
         var signature = Convert.ToBase64String(key.SignData(Payload(name, size, sha), HashAlgorithmName.SHA256));
         File.WriteAllText(args[2] + ".sig", signature);
         Console.WriteLine(name + "  " + size + "  " + sha);
@@ -51,6 +74,10 @@ switch (args[0])
     default:
         return Fail("Неизвестная команда или не те аргументы.");
 }
+
+// Сохранённый ключ — вне репозитория, в профиле пользователя.
+static byte[] EntropyBytes() => Encoding.UTF8.GetBytes("Oblachka.ReleaseKey.v1");
+static string StoredPath() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Oblachka-release", "release-key.dpapi");
 
 // Тот же текст, что ReleaseSignature.Payload в клиенте — менять только вместе.
 static byte[] Payload(string fileName, long size, string sha256) => Encoding.UTF8.GetBytes(

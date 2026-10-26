@@ -13,7 +13,7 @@ public sealed record AppRelease(Version Version, string Tag, Uri Installer, long
     public string FileName => Installer.Segments[^1];
     public string Revision { get; init; } = "";
     public bool Prerelease { get; init; }
-    // «<установщик>.sig» из того же релиза: без него релиз не предлагается (ReleaseSignature).
+    // «<установщик>.sig» из того же релиза (ReleaseSignature). Нет — релиз виден, но не ставится: «ждёт подписи».
     public Uri? Signature { get; init; }
 }
 
@@ -65,15 +65,16 @@ public static class AppUpdate
             if (!url.StartsWith(DownloadPrefix, StringComparison.Ordinal) || !url.EndsWith("/" + name, StringComparison.Ordinal) ||
                 !digest.StartsWith("sha256:", StringComparison.Ordinal) || digest.Length != 71 || !digest[7..].All(char.IsAsciiHexDigit) ||
                 size <= 0 || size > MaxInstallerBytes) return null;
+            // Подписи ещё нет — релиз виден, но не ставится; подпись странная (чужой адрес, размер) — релиза нет.
             var sig = assets.FirstOrDefault(a => a["name"]?.GetValue<string>() == name + ReleaseSignature.Suffix);
             var sigUrl = sig?["browser_download_url"]?.GetValue<string>() ?? "";
             var sigSize = sig?["size"]?.GetValue<long>() ?? 0;
-            if (sigUrl != url + ReleaseSignature.Suffix || sigSize <= 0 || sigSize > ReleaseSignature.MaxBytes) return null;
+            if (sig is not null && (sigUrl != url + ReleaseSignature.Suffix || sigSize <= 0 || sigSize > ReleaseSignature.MaxBytes)) return null;
             var page = Uri.TryCreate(root["html_url"]?.GetValue<string>(), UriKind.Absolute, out var html) && html.Host == "github.com"
                 ? html : new Uri("https://github.com/" + Repository + "/releases");
             var notes = root["body"]?.GetValue<string>() ?? "";
             return new AppRelease(version, tag, new Uri(url), size, digest[7..].ToUpperInvariant(), notes.Length > 4000 ? notes[..4000] : notes, page)
-                { Revision = match.Groups[2].Value, Prerelease = pre, Signature = new Uri(sigUrl) };
+                { Revision = match.Groups[2].Value, Prerelease = pre, Signature = sig is null ? null : new Uri(sigUrl) };
         }
         return null;
     }
@@ -117,6 +118,7 @@ public static class AppUpdate
     // файлов GitHub разрешён только на HTTPS-хосты GitHub.
     public static async Task<string> DownloadAsync(AppRelease release, IProgress<double>? progress, CancellationToken token)
     {
+        if (release.Signature is null) throw new UserError(Unsigned);
         Directory.CreateDirectory(Folder);
         foreach (var old in Directory.EnumerateFiles(Folder, "*.exe")) TryDelete(old);
         var target = Path.Combine(Folder, release.FileName);
