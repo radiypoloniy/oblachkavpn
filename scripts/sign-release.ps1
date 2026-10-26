@@ -10,7 +10,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $repo = 'radiypoloniy/oblachkavpn'
-$credential = "protocol=https`nhost=github.com`n`n" | git credential fill
+# Первая строка — пустышка: PowerShell с UTF-8 в консоли ставит перед текстом BOM, и git не узнаёт первое поле.
+$credential = "oblachka=1`nprotocol=https`nhost=github.com`n" | git credential fill
 $token = ($credential | Where-Object { $_ -like 'password=*' } | Select-Object -First 1) -replace '^password=', ''
 if (-not $token) { throw 'git не хранит токен GitHub для этого компьютера.' }
 $headers = @{ Authorization = 'Bearer ' + $token; Accept = 'application/vnd.github+json'; 'User-Agent' = 'oblachka-release' }
