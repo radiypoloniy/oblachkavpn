@@ -104,9 +104,8 @@ public partial class MainWindow
         }
         LoadPreviewProfiles();
         CheckPreviewControls();
-        if (page is "servers" or "servers-machine") { LoadServerPreview(); LoadPingPreview(); }
-        // Машина «Нидерланды» раскрыта: три протокола под строкой.
-        if (page == "servers-machine") { expandedMachines.Add(ServerMachines.Key(importedProfiles.First(p => p.DisplayName == "Нидерланды"))); page = "servers"; }
+        if (page is "servers" or "servers-machine" or "servers-now" or "servers-pinned") { LoadServerPreview(); LoadPingPreview(); }
+        if (page is "servers-machine" or "servers-now" or "servers-pinned") page = MachinePreview(page);
         if (page is "foreign" or "closed" or "recovery" or "subscription") PrepareStatePreview(page);
         if (page is "groups" or "servers-groups")
         {

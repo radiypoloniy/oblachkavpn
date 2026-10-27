@@ -42,9 +42,12 @@ public static partial class SelfTests
             Assert(release.Signature == new Uri("https://github.com/radiypoloniy/oblachkavpn/releases/download/v9.1.0/Oblachka-setup-9.1.0-abc1234.exe.sig"));
             Assert(AppUpdate.Parse(Release(sigUrl: "https://github.com/radiypoloniy/oblachkavpn/releases/download/v9.0.0/Oblachka-setup-9.1.0-abc1234.exe.sig")) is null);
             Assert(AppUpdate.Parse(Release(sigSize: 0)) is null && AppUpdate.Parse(Release(sigSize: ReleaseSignature.MaxBytes + 1)) is null);
+            // Подписи ещё нет — релиз виден («ждёт подписи»), но без адреса подписи его не поставить.
             var unsigned = JsonNode.Parse(Release())!.AsObject();
             unsigned["assets"]!.AsArray().RemoveAt(2);
-            Assert(AppUpdate.Parse(unsigned.ToJsonString()) is null);
+            var waiting = AppUpdate.Parse(unsigned.ToJsonString())!;
+            Assert(waiting.Signature is null && waiting.Version == new Version(9, 1, 0));
+            Assert(Throws<UserError>(() => AppUpdate.DownloadAsync(waiting, null, CancellationToken.None).GetAwaiter().GetResult()));
         }));
         await check("Updates: the signature binds file name, size and SHA256 to the owner's P-256 key, and the client carries that key", () => Sync(() =>
         {

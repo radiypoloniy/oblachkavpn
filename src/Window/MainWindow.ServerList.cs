@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
@@ -50,12 +50,11 @@ public partial class MainWindow
 
     private void SheetRowClick(object sender, RoutedEventArgs args)
     {
-        if (args.OriginalSource is Button { DataContext: SheetHeader header } headerButton) { SheetHeaderClick(headerButton, header); return; }
+        if (args.OriginalSource is Button { DataContext: SheetHeader header } headerButton) { if (Equals(headerButton.Tag, "group-menu")) ShowGroupMenu(headerButton, header); return; }
+        if (args.OriginalSource is Button { DataContext: MachineNote machineNote }) { UnpinMachine(machineNote); return; }
         if (args.OriginalSource is not Button { DataContext: ServerRow row } button) return;
-        if (Equals(button.Tag, "remove")) { if (row.Profile is not null) RemoveServer(row.Profile); return; }
         if (Equals(button.Tag, "star")) { if (row.Profile is not null) ToggleFavorite(row); return; }
-        if (Equals(button.Tag, "check")) { if (row.Profile is not null) _ = CheckMachineAsync(row); return; }
-        if (Equals(button.Tag, "edit")) { if (row.Profile is not null) _ = EditServerAsync(row.Profile); return; }
+        if (Equals(button.Tag, "more")) { if (row.Profile is not null) ShowRowMenu(button, row); return; }
         if (Equals(button.Tag, "expand")) { if (row.Profile is not null) ToggleMachine(row); return; }
         PickRow(row);
         Navigate("Connection");
@@ -75,16 +74,17 @@ public partial class MainWindow
         var tab = Servers.GroupTabs.SelectedIndex > 0 && Servers.GroupTabs.Tag is string[] ids && Servers.GroupTabs.SelectedIndex - 1 < ids.Length ? ids[Servers.GroupTabs.SelectedIndex - 1] : null;
         void Group(SheetHeader header, IEnumerable<Profile> members, bool note = false)
         {
-            var rows = MachineRows(members, note).ToArray();
+            var list = members.ToArray();
+            var rows = MachineRows(list, note).ToArray();
             if (rows.Length == 0 && (header.GroupId is null || Servers.SearchBox.Text.Trim().Length > 0 || tab is not null && tab != header.GroupId)) return;
-            items.Add(header);
+            items.Add(header with { Count = ServerMachines.Group(list).Count });
             items.AddRange(rows);
         }
         // Избранное — машинами: звезда стоит на всех записях машины (MainWindow.Machines).
         var starred = shown.Where(p => favorites.Contains(FavoriteKey(p))).Select(ServerMachines.Key).ToHashSet();
         Group(new SheetHeader("Избранное"), shown.Where(p => starred.Contains(ServerMachines.Key(p))), note: true);
         foreach (var group in groups)
-            Group(new SheetHeader(group.Name, group.Id, group.IsSubscription, HiddenIn(group.Id), group.IsSubscription ? Junk(group.Id).Length : 0),
+            Group(new SheetHeader(group.Name, group.Id, group.IsSubscription, HiddenIn(group.Id), group.IsSubscription ? Junk(group.Id).Length : 0) { Updated = UpdatedText(group) },
                 shown.Where(p => p.Group == group.Id && !starred.Contains(ServerMachines.Key(p))));
         Servers.SheetList.ItemsSource = items;
         RefreshMeasurement();

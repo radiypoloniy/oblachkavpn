@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -60,6 +60,45 @@ public static class ServerMachines
             .OrderBy(m => ServerMeasurements.Score(latest(m)!)).FirstOrDefault();
         return measured ?? members.FirstOrDefault(m => latest(m) is not { Success: false }) ?? members[0];
     }
+
+    // Имя протокола внутри раскрытой машины: «Hysteria2», «XHTTP», «VLESS Reality», «Trojan».
+    // Если два протокола машины получают одно имя (XHTTP с REALITY и с TLS), у них полная подпись.
+    public static string ShortName(Profile profile, IReadOnlyList<Profile> members)
+    {
+        var name = ShortName(profile);
+        return members.Count(m => ShortName(m) == name) > 1 ? ServerRow.ProtocolFor(profile) : name;
+    }
+
+    public static string ShortName(Profile profile)
+    {
+        var t = profile.Transport.ToUpperInvariant();
+        if (t.StartsWith("HYSTERIA2")) return "Hysteria2";
+        if (t.StartsWith("TUIC")) return "TUIC";
+        if (t.StartsWith("WIREGUARD")) return "WireGuard";
+        if (t.StartsWith("AMNEZIAWG")) return "AmneziaWG";
+        if (t.StartsWith("SHADOWSOCKS")) return "Shadowsocks";
+        if (t.StartsWith("TROJAN")) return "Trojan";
+        if (t.StartsWith("VMESS")) return "VMess";
+        return t.Split(" / ")[0] switch
+        {
+            "XHTTP" => "XHTTP",
+            "WS" => "WebSocket",
+            "GRPC" => "gRPC",
+            "HTTPUPGRADE" => "HTTPUpgrade",
+            _ => t.EndsWith("/ REALITY") ? "VLESS Reality" : "VLESS " + (t.EndsWith("/ TLS") ? "TLS" : "TCP")
+        };
+    }
+
+    // Чем протокол хорош — для того, кто не знает названий. Пусто, если сказать нечего.
+    public static string Hint(Profile profile) => ShortName(profile) switch
+    {
+        "Hysteria2" or "TUIC" => "быстрый, по UDP",
+        "XHTTP" => "похож на обычный сайт",
+        "VLESS Reality" => "надёжный запасной",
+        "Trojan" => "через TLS",
+        "Shadowsocks" => "простой и лёгкий",
+        _ => ""
+    };
 
     // Протоколы машины одной строкой, выбранный первым: «Hysteria2 · XHTTP, REALITY · VLESS».
     public static string Protocols(IReadOnlyList<Profile> members, Profile first) =>

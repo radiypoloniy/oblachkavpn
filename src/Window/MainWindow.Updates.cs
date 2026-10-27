@@ -16,7 +16,8 @@ public partial class MainWindow
         AppUpdate.CleanUp();
         AppTab.UpdateButton.Click += async (_, _) =>
         {
-            if (availableUpdate is null) await CheckUpdateAsync(manual: true);
+            // Ждёт подписи — кнопка проверяет снова: подпись прикладывают вскоре после выпуска.
+            if (availableUpdate is not { Signature: not null }) await CheckUpdateAsync(manual: true);
             else await InstallUpdateAsync();
         };
         AppTab.UpdateAuto.Click += (_, _) => QueueStateSave();
@@ -43,7 +44,7 @@ public partial class MainWindow
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var release = await AppUpdate.CheckAsync(AppTab.UpdatePrerelease.IsChecked == true, timeout.Token);
             availableUpdate = release is not null && AppUpdate.IsNewer(release) ? release : null;
-            if (availableUpdate is not null && !manual && !updateAnnounced)
+            if (availableUpdate is { Signature: not null } && !manual && !updateAnnounced)
             {
                 updateAnnounced = true;
                 DetailText.Text = $"Доступна {ReleaseName(availableUpdate)}. Обновить: «Приложение → Обновления».";
@@ -70,9 +71,10 @@ public partial class MainWindow
         if (updateBusy) return;
         if (availableUpdate is { } release)
         {
-            help.UpdateTitle.Text = "Доступна " + ReleaseName(release);
-            help.UpdateText.Text = $"Сейчас {ServiceBrand.Version}. Установщик {release.Size / (1024 * 1024)} МБ, проверяется по SHA256 и подписи";
-            help.UpdateButton.Content = "Обновить";
+            help.UpdateTitle.Text = (release.Signature is null ? "Вышла " : "Доступна ") + ReleaseName(release);
+            help.UpdateText.Text = release.Signature is null ? "Ждёт подписи разработчика — обновить можно будет чуть позже. Ничего делать не нужно."
+                : $"Сейчас {ServiceBrand.Version}. Установщик {release.Size / (1024 * 1024)} МБ, проверяется по SHA256 и подписи";
+            help.UpdateButton.Content = release.Signature is null ? "Проверить" : "Обновить";
         }
         else
         {

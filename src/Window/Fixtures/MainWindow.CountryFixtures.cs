@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
@@ -20,8 +20,8 @@ public partial class MainWindow
                 throw new InvalidOperationException($"Synthetic country case {code}: resolved {parsed.Country.Code}/{parsed.Country.Name}, name={parsed.Name}");
             // Имя отдельно от результата проверки: он не заменяет название подписки.
             var labels = RenderRow(parsed);
-            // Без замера строка показывает имя и протокол (облик 0.20): «не проверен» не загромождает список.
-            if (labels.Length != 2 || labels[0].Text != parsed.DisplayName || labels[0].Text == countryName || labels[1].Text != ServerRow.ProtocolFor(parsed))
+            // Без замера строка показывает только имя (облик 0.21): протокол — в меню «⋯», «не проверен» не загромождает список.
+            if (labels.Length != 1 || labels[0].Text != parsed.DisplayName || labels[0].Text == countryName || Row(parsed).MenuDetail != ServerRow.ProtocolFor(parsed))
                 throw new InvalidOperationException("Server row replaces its subscription name with a country or includes extra labels: " + string.Join(" | ", labels.Select(l => l.Text)) + " (всего " + labels.Length + ")");
             // Сторонний узел: то же имя плюс видимая пометка источника.
             var foreignLabels = RenderRow(parsed with { Source = ProfileSource.External });
@@ -37,7 +37,7 @@ public partial class MainWindow
         if (ServerLabels.DisplayName("🇪🇺Авто") != "Авто" || ServerLabels.DisplayName("🇪🇺Обход 2") != "Обход 2" ||
             ServerLabels.DisplayName("🇻🇳Рабочий сервер") != "Рабочий сервер" || ServerLabels.DisplayName("Мой сервер") != "Мой сервер")
             throw new InvalidOperationException("Subscription labels were renamed instead of separating the flag");
-        checks.Add("Server rows preserve subscription names and separate flags; no country replacement; protocol in words, no core labels");
+        checks.Add("Server rows preserve subscription names and separate flags; no country replacement; protocol in words in the row menu, no core labels");
     }
 
     // Рендерит одну строку списка по шаблону и возвращает её видимые подписи.

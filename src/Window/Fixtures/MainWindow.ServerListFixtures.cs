@@ -1,9 +1,19 @@
-using System.Windows;
+﻿using System.Windows;
 
 namespace Oblachka;
 
 public partial class MainWindow
 {
+    // Превью «Серверов» с машиной «Нидерланды», раскрытой: три протокола под строкой. «-now» — она
+    // выбрана и протокол Облачка взяла сама (метка «сейчас»), «-pinned» — протокол закреплён руками.
+    private string MachinePreview(string page)
+    {
+        var machine = MachineOf(importedProfiles.First(p => p.DisplayName == "Нидерланды"));
+        expandedMachines.Add(ServerMachines.Key(machine[0]));
+        if (page != "servers-machine") { autoSelect = false; machineMode = page == "servers-now"; SelectProfile(page == "servers-now" ? MachineBest(machine) : machine[1]); }
+        return "servers";
+    }
+
     private void CheckServerList(ICollection<string> checks)
     {
         var selected = profile!;

@@ -1,9 +1,9 @@
-using System.Windows.Media;
+﻿using System.Windows.Media;
 
 namespace Oblachka;
 
 // Строки серверов и машины (ServerMachines): записи одной подписки с одним адресом — одной строкой,
-// протоколы — внутри (раскрываются стрелкой). Выбрана машина (machineMode) — протокол Облачка берёт
+// протоколы — внутри (раскрываются плашкой «3 варианта» у названия). Выбрана машина (machineMode) — протокол Облачка берёт
 // сама: тот, что работал в этой сети (machineMemory), иначе лучший по замеру. Выбран протокол
 // в раскрытой машине — только он, как раньше.
 public partial class MainWindow
@@ -93,7 +93,8 @@ public partial class MainWindow
     // note: false — строка под заголовком своей подписки, повторять её имя незачем.
     private ServerRow Row(Profile item) => Row(item, true);
     private ServerRow Row(Profile item, bool note) => Row(item, note, null, false);
-    private ServerRow Row(Profile item, bool note, IReadOnlyList<Profile>? members, bool machineSelected, bool member = false)
+    // member — строка протокола в раскрытой машине siblings (её имя и подпись — ServerMachines.ShortName, Hint).
+    private ServerRow Row(Profile item, bool note, IReadOnlyList<Profile>? members, bool machineSelected, IReadOnlyList<Profile>? siblings = null, bool last = false)
     {
         var now = DateTimeOffset.UtcNow;
         var measured = LatestMeasurement(item);
@@ -102,32 +103,48 @@ public partial class MainWindow
             measured = new(Profiles.Fingerprint(item), now, true, lastProbe.Milliseconds);
         var (latency, dot, hint) = ServerRow.Status(measured, now, checkingServer is not null && ReferenceEquals(item, checkingServer));
         var icon = ServerRow.IconFor(item);
-        var tweak = serverTweaks.ContainsKey(ServerTweak.Key(item)) ? " · подстроен" : "";
+        var member = siblings is not null;
+        var current = !autoSelect && profile is not null && ProfileSelection.Identity(item) == ProfileSelection.Identity(profile);
         return new ServerRow
         {
-            Profile = item, Members = members, IsMember = member,
-            Name = member ? ServerRow.ProtocolFor(item) : members is null ? item.DisplayName : ServerMachines.Title(members),
+            Profile = item, Members = members, IsMember = member, IsLastMember = last,
+            Name = member ? ServerMachines.ShortName(item, siblings!) : members is null ? item.DisplayName : ServerMachines.Title(members),
+            Hint = member ? ServerMachines.Hint(item) : "",
+            Badge = member && current ? machineMode ? "сейчас" : "закреплён" : null,
+            Pinned = members is not null && machineSelected && !machineMode ? "только " + ServerMachines.ShortName(item, members) : null,
             Note = note && !member ? GroupNote(item) : null,
             Flag = icon is null && !member ? FlagImages.Local(item.Country.Code) : null, Icon = member ? null : icon, IconMuted = !item.IsService,
             Latency = latency, LatencyDot = dot, LatencyHint = hint, Speed = ServerRow.SpeedText(measured, now),
-            Protocol = (member ? "" : members is null ? ServerRow.ProtocolFor(item) : ServerMachines.Protocols(members, item)) + tweak, PingSteps = ServerRow.StepsFor(measured),
+            Protocol = ServerRow.ProtocolFor(item), Tuned = !member && serverTweaks.ContainsKey(ServerTweak.Key(item)), PingSteps = ServerRow.StepsFor(measured),
             Selected = members is not null ? machineSelected
-                : !autoSelect && (!machineMode || !member && MachineOf(item).Count < 2) && profile is not null && ProfileSelection.Identity(item) == ProfileSelection.Identity(profile),
+                : current && (!machineMode || !member && MachineOf(item).Count < 2),
             Favorite = (members ?? [item]).Any(m => favorites.Contains(FavoriteKey(m))),
             Expanded = members is not null && expandedMachines.Contains(ServerMachines.Key(item))
         };
     }
 
-    // Строки подписки для «Всех серверов»: машина, под ней — её протоколы, если раскрыта.
-    private IEnumerable<ServerRow> MachineRows(IEnumerable<Profile> shown, bool note)
+    // Строки подписки для «Всех серверов»: машина, под ней — пояснение и её протоколы, если раскрыта.
+    private IEnumerable<object> MachineRows(IEnumerable<Profile> shown, bool note)
     {
         foreach (var machine in ServerMachines.Group(shown))
         {
             var row = MachineRow(machine, note);
             yield return row;
-            if (row.IsMachine && row.Expanded)
-                foreach (var item in machine) yield return Row(item, false, null, false, member: true);
+            if (!row.IsMachine || !row.Expanded) continue;
+            yield return new MachineNote
+            {
+                Members = machine, CanReset = row.Pinned is not null,
+                Text = row.Pinned is not null ? "Закреплён " + ServerMachines.ShortName(row.Profile!, machine) + "." : "Облачка выбирает сама. Можно закрепить вручную:"
+            };
+            for (var i = 0; i < machine.Count; i++) yield return Row(machine[i], false, null, false, machine, last: i == machine.Count - 1);
         }
+    }
+
+    // «Пусть выбирает сама» под раскрытой машиной: снять закрепление протокола.
+    private void UnpinMachine(MachineNote note)
+    {
+        machineMode = true;
+        PickServer(MachineBest(note.Members));
     }
 
     // «Проверить» у машины — все её протоколы по очереди.
