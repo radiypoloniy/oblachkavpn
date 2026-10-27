@@ -65,7 +65,8 @@ public partial class MainWindow
         }
     }
 
-    private bool InAutoPool(Profile item) => autoPool.Contains(item);
+    // Набор правил с серверами (MainWindow.RuleSetServers) сужает и пул: автовыбор и подбор — только через них.
+    private bool InAutoPool(Profile item) => autoPool.Contains(item) && InRuleSet(item);
 
     // «Настройки → Автовыбор»: строка на сервер с переключателем.
     private void RenderAutoPool()
