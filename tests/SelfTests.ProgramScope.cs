@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -185,6 +186,21 @@ public static partial class SelfTests
             Assert(ConnectionReset.Changed([tg], [], @"C:\Apps\Telegram\Telegram.exe"));
             Assert(!ConnectionReset.Changed([tg], [tg], @"C:\Apps\Telegram\Telegram.exe"));
             Assert(!ConnectionReset.Changed([tg], [tgDirect], @"C:\Apps\Chrome\chrome.exe"));
+        }));
+
+        await check("Connections opened before the tunnel are reset, except the tunnel's, the node's, LAN and direct programs", () => Task.Run(() =>
+        {
+            var peer = IPAddress.Parse("203.0.113.9");
+            var tg = ProgramRoutingPlan.Create(@"C:\Apps\Telegram\Telegram.exe", SiteAction.Direct, allInFolder: true);
+            var lease = new ValidatedNetworkLease(Guid.NewGuid(), NetworkLeaseAction.Acquire, 1080, [peer], Programs: [tg]);
+            LiveSocket To(string local, string remote) => new(1, false, IPAddress.Parse(local), 50000, IPAddress.Parse(remote), 443, ConnectionTable.Established);
+            Assert(ConnectionReset.IsStale(lease, To("192.168.1.5", "198.51.100.7"), @"C:\Apps\Chrome\chrome.exe"));
+            Assert(ConnectionReset.IsStale(lease, To("192.168.1.5", "198.51.100.7"), null));
+            Assert(!ConnectionReset.IsStale(lease, To(SingBoxTunConfig.TunHost4, "198.51.100.7"), null));
+            Assert(!ConnectionReset.IsStale(lease, To("192.168.1.5", "203.0.113.9"), null));
+            Assert(!ConnectionReset.IsStale(lease, To("192.168.1.5", "192.168.1.1"), null));
+            Assert(!ConnectionReset.IsStale(lease, To("192.168.1.5", "198.51.100.7"), @"C:\Apps\Telegram\Telegram.exe"));
+            Assert(ConnectionReset.Stale(lease with { DirectByDefault = true }) == 0);
         }));
     }
 }

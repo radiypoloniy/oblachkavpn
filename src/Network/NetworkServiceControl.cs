@@ -66,9 +66,13 @@ public static class NetworkServiceControl
     }
 
     // Остановка службы снимает сессию и возвращает обычную сеть, затем служба удаляется.
+    // Запрет без VPN постоянный и без Облачки не снялся бы никогда — его снимаем первым. При обновлении
+    // установщик зовёт то же самое; запрет ставит снова окно новой версии при запуске.
     public static int Uninstall()
     {
         if (!NetworkHelperHost.IsElevated()) return 2;
+        try { using var engine = WfpEngine.Open(); WfpLockdown.Remove(engine); }
+        catch (IOException) { } // служба фильтрации недоступна — тогда и запрет не действует
         if (!Query().Installed) return 0;
         Sc("stop", NetworkService.Name);
         if (!WaitFor(s => !s.Running)) return 4;

@@ -106,6 +106,14 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                     else if (request.Operation == HelperOperation.DirectDns) DirectDns.Accept(request.DirectDns!);
                     else if (request.Operation == HelperOperation.ProgramRules) { ProgramRuleSets.Accept(request.Programs!); SyncDirectApps(); }
                     else if (request.Operation == HelperOperation.RoutingLists) RoutingLists.Accept(request.Lists!);
+                    else if (request.Operation == HelperOperation.Lockdown)
+                    {
+                        // Программы — из папки самой службы, не из запроса: окно не назначает, кому открыть выход.
+                        using var engine = WfpEngine.Open();
+                        if (request.Lockdown!.On) WfpLockdown.Apply(engine, WfpLockdown.Programs(AppContext.BaseDirectory), request.Lockdown.Lan);
+                        else WfpLockdown.Remove(engine);
+                        blocking = WfpLockdown.IsOn(engine);
+                    }
                     else if (request.Operation == HelperOperation.Recover)
                     {
                         // Только чужая, оставленная сессия: свою владелец снимает через Release.

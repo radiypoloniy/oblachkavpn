@@ -37,6 +37,9 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
     private readonly Func<string, bool> interfaceUp;
     private readonly TimeSpan timeout;
     private readonly Func<TimeSpan, CancellationToken, Task> delay;
+    // Что сделать после подъёма: служба обрывает старые соединения (ConnectionReset.Stale).
+    // В тестах не задаётся — обрыв настоящих соединений машины, на которой они идут, недопустим.
+    private readonly Action<ValidatedNetworkLease>? afterStart;
     private ITunnelProcess? core;
     private Guid owner;
     // Правила сессии в журнал не помещаются (до 200 записей), а нужны только для запуска
@@ -45,8 +48,9 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
 
     public WindowsTunnelBackend(Func<ValidatedNetworkLease, CancellationToken, ITunnelProcess> startCore,
         Func<string, bool> interfaceExists, TimeSpan? timeout = null, Func<TimeSpan, CancellationToken, Task>? delay = null,
-        Func<string, bool>? interfaceUp = null)
+        Func<string, bool>? interfaceUp = null, Action<ValidatedNetworkLease>? afterStart = null)
     {
+        this.afterStart = afterStart;
         this.startCore = startCore;
         this.interfaceExists = interfaceExists;
         this.interfaceUp = interfaceUp ?? interfaceExists;
@@ -98,6 +102,18 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
         }
         core = started;
         owner = leaseId;
+        // Маршруты ядро ставит чуть позже интерфейса: обрываем старые соединения, когда новые
+        // уже пойдут в туннель, иначе программа переподключилась бы прежним путём.
+        if (afterStart is { } reset)
+        {
+            var stale = lease;
+            _ = Task.Run(async () =>
+            {
+                await delay(TimeSpan.FromMilliseconds(1500), CancellationToken.None).ConfigureAwait(false);
+                try { reset(stale); }
+                catch (Exception ex) when (ex is not OutOfMemoryException) { }
+            });
+        }
         return NetworkWriteResult.Changed;
     }
 

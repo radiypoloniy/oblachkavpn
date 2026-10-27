@@ -13,7 +13,23 @@ public static class ConnectionReset
 {
     private const int DeleteTcb = 12;
 
-    public static int Apply(IReadOnlyList<ProgramRule> before, IReadOnlyList<ProgramRule> after)
+    public static int Apply(IReadOnlyList<ProgramRule> before, IReadOnlyList<ProgramRule> after) =>
+        Reset((_, path) => path is not null && Changed(before, after, path));
+
+    // Под «Весь компьютер» соединения, открытые до туннеля, держатся прежнего пути — мимо VPN:
+    // захват на VM показал, что под защитой наружу уходят только они. Сразу после подъёма
+    // туннеля служба их обрывает, программы переподключаются уже через туннель.
+    public static int Stale(ValidatedNetworkLease lease) =>
+        lease.DirectByDefault ? 0 : Reset((socket, path) => IsStale(lease, socket, path));
+
+    // Не трогаем: соединения через сам туннель, ядер с узлом, к локальной сети и программ,
+    // которым правило велит идти напрямую, — их путь и так верный.
+    internal static bool IsStale(ValidatedNetworkLease lease, LiveSocket socket, string? path) =>
+        socket.Remote is { } remote && socket.Local.ToString() != SingBoxTunConfig.TunHost4 && !DohResolver.IsPrivate(remote) &&
+        !lease.Peers.Contains(remote) &&
+        (path is null || ProgramRoutingPlan.Find(lease.ProgramRules, path)?.Action != SiteAction.Direct);
+
+    private static int Reset(Func<LiveSocket, string?, bool> pick)
     {
         var reset = 0;
         var paths = new Dictionary<int, string?>();
@@ -22,7 +38,7 @@ public static class ConnectionReset
             if (socket.Udp || socket.State != ConnectionTable.Established || socket.Remote is null ||
                 socket.Local.AddressFamily != AddressFamily.InterNetwork || IPAddress.IsLoopback(socket.Remote)) continue;
             if (!paths.TryGetValue(socket.Pid, out var path)) paths[socket.Pid] = path = ConnectionTable.ProcessPath(socket.Pid);
-            if (path is null || !Changed(before, after, path)) continue;
+            if (!pick(socket, path)) continue;
             var row = new TcpRow
             {
                 State = DeleteTcb,

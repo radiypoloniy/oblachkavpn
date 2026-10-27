@@ -21,9 +21,11 @@ public static partial class SelfTests
         }
         public bool SublayerExists(Guid key) => Sublayer;
         public bool FilterExists(Guid key) => Filters.ContainsKey(key);
-        public void AddProvider(Guid key, string name) { Provider = true; Log.Add("provider+"); }
-        public void AddSublayer(Guid key, Guid provider, string name, ushort weight)
-        { Assert(weight == ushort.MaxValue && InTransaction); Sublayer = true; Log.Add("sublayer+"); }
+        public ushort Weight = ushort.MaxValue;
+        public bool PersistentObjects;
+        public void AddProvider(Guid key, string name, bool persistent = false) { Provider = true; PersistentObjects = persistent; Log.Add("provider+"); }
+        public void AddSublayer(Guid key, Guid provider, string name, ushort weight, bool persistent = false)
+        { Assert(weight == Weight && InTransaction && persistent == PersistentObjects); Sublayer = true; Log.Add("sublayer+"); }
         public void AddFilter(WfpFilter filter, Guid provider, Guid sublayer)
         {
             Assert(InTransaction);
@@ -48,6 +50,40 @@ public static partial class SelfTests
             Assert(Marshal.SizeOf<WfpNative.Provider>() == 64 && Marshal.SizeOf<WfpNative.Value>() == 16);
             Assert(Marshal.OffsetOf<WfpNative.Filter>(nameof(WfpNative.Filter.Context)) == 152);
             Assert(Marshal.OffsetOf<WfpNative.Filter>(nameof(WfpNative.Filter.EffectiveWeight)) == 184);
+            return Task.CompletedTask;
+        });
+        await check("Lockdown lets out only Oblachka and its cores, loopback, DHCP and the chosen LAN, persistently, below the session protection", () =>
+        {
+            var programs = WfpLockdown.Programs(@"C:\app");
+            Assert(programs.Contains(@"C:\app\Oblachka.exe") && programs.Contains(@"C:\app\tools\xray.exe") && programs.Count == 4);
+            foreach (var lan in new[] { false, true })
+            {
+                var filters = WfpLockdown.Filters(programs, lan);
+                Assert(filters.Count <= WfpLockdown.MaxFilters && filters.Select(f => f.Key).Distinct().Count() == filters.Count);
+                foreach (var v6 in new[] { false, true })
+                {
+                    var family = filters.Where(f => f.V6 == v6).ToArray();
+                    Assert(family.Single(f => !f.Permit && f.Conditions.Length == 0).Weight == 0);
+                    var apps = family.Single(f => f.Permit && f.Conditions.All(c => c.Kind == WfpConditionKind.Application));
+                    Assert(apps.Conditions.Length == 4);
+                    Assert(family.Any(f => f.Permit && f.Conditions.Any(c => c.Kind == WfpConditionKind.RemoteSubnet)) == lan);
+                    Assert(family.Any(f => !f.Permit && f.Conditions.Any(c => c.Kind == WfpConditionKind.RemotePort && c.Number == 53)) == lan);
+                }
+            }
+            Assert(WfpLockdown.SublayerWeight < ushort.MaxValue && WfpLockdown.SublayerKey != WfpProtectionBackend.SublayerKey && WfpLockdown.ProviderKey != WfpProtectionBackend.ProviderKey);
+
+            var engine = new FakeWfp { Weight = WfpLockdown.SublayerWeight };
+            WfpLockdown.Apply(engine, programs, lan: false);
+            Assert(WfpLockdown.IsOn(engine) && engine.PersistentObjects && engine.Filters.Values.All(f => f.Persistent));
+            WfpLockdown.Apply(engine, programs, lan: true);
+            Assert(engine.Filters.Count == WfpLockdown.Filters(programs, true).Count);
+            WfpLockdown.Remove(engine);
+            Assert(!WfpLockdown.IsOn(engine) && engine.Filters.Count == 0);
+            WfpLockdown.Remove(engine);
+
+            HelperProtocol.Validate(new HelperRequest(1, Guid.NewGuid(), HelperOperation.Lockdown, null, Lockdown: new(true, false)));
+            ExpectUserError(() => HelperProtocol.Validate(new HelperRequest(1, Guid.NewGuid(), HelperOperation.Lockdown, null)));
+            ExpectUserError(() => HelperProtocol.Validate(new HelperRequest(1, Guid.NewGuid(), HelperOperation.Heartbeat, null, Lockdown: new(true, false))));
             return Task.CompletedTask;
         });
         await check("WFP protection permits only the tunnel, loopback, DHCP and the cores to the peers, and blocks the rest", () =>

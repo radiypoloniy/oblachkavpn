@@ -73,6 +73,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     // Сети (0.21): ключ — хеш идентификатора сети Windows (NetworkPolicy.Key).
     public Dictionary<string, KnownNetwork>? KnownNetworks { get; init; }
     public bool SecureUnknown { get; init; }
+    // «Без VPN — без интернета» (0.21, WfpLockdown): окно просит службу о запрете при каждом запуске.
+    public bool Lockdown { get; init; }
     // Машины (0.21): выбрана машина, а не протокол; какой протокол машины работал в какой сети.
     public bool MachinePick { get; init; }
     public Dictionary<string, Dictionary<string, string>>? MachineMemory { get; init; }
