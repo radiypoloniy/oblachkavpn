@@ -17,7 +17,7 @@
           <Button x:Name="RowButton" Style="{StaticResource Row}" Height="44" Padding="10,0,6,0" o:Ui.CornerRadius="{StaticResource RadiusMd}" AutomationProperties.Name="{Binding Name}">
             <DockPanel>
               <TextBlock DockPanel.Dock="Right" Text="{Binding Latency}" FontSize="{StaticResource FsBody}" FontWeight="Bold" MinWidth="50" TextAlignment="Right" VerticalAlignment="Center" ToolTip="{Binding LatencyHint}"/>
-              <v:PixelBars DockPanel.Dock="Right" Kind="Steps" Width="22" Height="10" Margin="10,0,8,0" VerticalAlignment="Center" Filled="{Binding PingSteps}" Fill="{Binding LatencyDot}" Empty="{DynamicResource Pixel}" Visibility="{Binding LatencyVisibility}" ToolTip="{Binding LatencyHint}"/>
+              <v:PixelBars x:Name="RowBars" DockPanel.Dock="Right" Kind="Steps" Width="22" Height="10" Margin="10,0,8,0" VerticalAlignment="Center" Filled="{Binding PingSteps}" Fill="{Binding LatencyDot}" Empty="{DynamicResource Pixel}" Visibility="{Binding LatencyVisibility}" ToolTip="{Binding LatencyHint}"/>
               <Grid Width="22" Height="22" Margin="0,0,12,0" VerticalAlignment="Center">
                 <Ellipse Visibility="{Binding FlagVisibility}" Stroke="{DynamicResource FlagRing}" StrokeThickness="1">
                   <Ellipse.Fill><ImageBrush ImageSource="{Binding Flag}" Stretch="UniformToFill"/></Ellipse.Fill>
@@ -26,21 +26,23 @@
                   <Path x:Name="IconGlyph" Data="{Binding Icon}" Width="12" Height="12" Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Ac}"/>
                 </Border>
               </Grid>
-              <!-- Название обрезается многоточием, а не пропадает в узком окне; подпись и плашка уступают место первыми. -->
-              <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsRowLarge}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="240" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding Detail}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Fa}" Margin="8,1,0,0" TextTrimming="CharacterEllipsis" MaxWidth="150" VerticalAlignment="Center" Visibility="{Binding DetailVisibility}"/>
-                <Path Data="{StaticResource IcoSliders}" Width="13" Height="13" Margin="8,1,0,0" Stretch="Uniform" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stroke="{DynamicResource Ac}" VerticalAlignment="Center"
-                      Visibility="{Binding TunedVisibility}" ToolTip="Подстроен «Подобрать лучшее»"/>
+              <!-- Плашка, значок и подпись получают место первыми (прижаты справа внутри панели по ширине
+                   содержимого), название — что осталось, с многоточием: в узком окне плашка не уходит за край. -->
+              <DockPanel HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,8,0">
                 <!-- Машина: плашка «3 варианта ⌄» раскрывает её протоколы; щелчок по строке подключает, протокол Облачка выбирает сама. -->
-                <Button x:Name="ExpandChip" Tag="expand" Style="{StaticResource Plain}" Height="24" Padding="10,0,8,0" Margin="10,0,0,0" o:Ui.CornerRadius="{StaticResource RadiusSm}" VerticalAlignment="Center"
+                <Button x:Name="ExpandChip" DockPanel.Dock="Right" Tag="expand" Style="{StaticResource Plain}" Height="24" Padding="10,0,8,0" Margin="10,0,0,0" o:Ui.CornerRadius="{StaticResource RadiusSm}" VerticalAlignment="Center"
                         Background="{DynamicResource Field}" Visibility="{Binding ExpandVisibility}" AutomationProperties.Name="{Binding ExpandName}" ToolTip="{Binding ExpandHint}">
                   <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{Binding ExpandText}" FontSize="{StaticResource FsSmall}" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding ExpandCount}" FontSize="{StaticResource FsSmall}" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="ExpandWord" Text="{Binding ExpandWord}" FontSize="{StaticResource FsSmall}" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" Margin="4,0,0,0" VerticalAlignment="Center"/>
                     <Path x:Name="ExpandGlyph" Data="M6,9 L12,15 L18,9" Width="9" Height="9" Margin="6,1,0,0" Stretch="Uniform" StrokeThickness="2.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="{DynamicResource Mu}" RenderTransformOrigin="0.5,0.5"/>
                   </StackPanel>
                 </Button>
-              </StackPanel>
+                <Path DockPanel.Dock="Right" Data="{StaticResource IcoSliders}" Width="13" Height="13" Margin="8,1,0,0" Stretch="Uniform" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stroke="{DynamicResource Ac}" VerticalAlignment="Center"
+                      Visibility="{Binding TunedVisibility}" ToolTip="Подстроен «Подобрать лучшее»"/>
+                <TextBlock x:Name="DetailLine" DockPanel.Dock="Right" Text="{Binding Detail}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Fa}" Margin="8,1,0,0" TextTrimming="CharacterEllipsis" MaxWidth="150" VerticalAlignment="Center" Visibility="{Binding DetailVisibility}"/>
+                <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsRowLarge}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="240" VerticalAlignment="Center"/>
+              </DockPanel>
             </DockPanel>
           </Button>
           <Button x:Name="MoreButton" Grid.Column="1" Tag="more" Style="{StaticResource IconButton}" Width="30" Height="30" Opacity="0" AutomationProperties.Name="Ещё: проверить, убрать" ToolTip="Проверить, убрать">
@@ -60,15 +62,16 @@
           <Button x:Name="MemberButton" Style="{StaticResource Row}" Height="44" Margin="6,0,0,0" Padding="38,0,6,0" o:Ui.CornerRadius="{StaticResource RadiusInner}" AutomationProperties.Name="{Binding Name}">
             <DockPanel>
               <TextBlock DockPanel.Dock="Right" Text="{Binding Latency}" FontSize="{StaticResource FsBody}" FontWeight="Bold" MinWidth="50" TextAlignment="Right" VerticalAlignment="Center" ToolTip="{Binding LatencyHint}"/>
-              <v:PixelBars DockPanel.Dock="Right" Kind="Steps" Width="22" Height="10" Margin="10,0,8,0" VerticalAlignment="Center" Filled="{Binding PingSteps}" Fill="{Binding LatencyDot}" Empty="{DynamicResource Pixel}" Visibility="{Binding LatencyVisibility}"/>
+              <v:PixelBars x:Name="MemberBars" DockPanel.Dock="Right" Kind="Steps" Width="22" Height="10" Margin="10,0,8,0" VerticalAlignment="Center" Filled="{Binding PingSteps}" Fill="{Binding LatencyDot}" Empty="{DynamicResource Pixel}" Visibility="{Binding LatencyVisibility}"/>
               <Ellipse Width="8" Height="8" Margin="0,0,10,0" VerticalAlignment="Center" Fill="{Binding LatencyDot}" Stroke="{DynamicResource Ring}" StrokeThickness="1"/>
-              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsRow}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding Hint}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Fa}" Margin="10,1,0,0" TextTrimming="CharacterEllipsis" MaxWidth="200" VerticalAlignment="Center"/>
-                <Border Background="{DynamicResource Bg}" CornerRadius="{StaticResource RadiusIcon}" Padding="7,2" Margin="10,1,0,0" VerticalAlignment="Center" Visibility="{Binding BadgeVisibility}">
+              <!-- Метка «сейчас»/«закреплён» и имя — всегда целиком; подпись уступает место первой. -->
+              <DockPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+                <Border DockPanel.Dock="Right" Background="{DynamicResource Bg}" CornerRadius="{StaticResource RadiusIcon}" Padding="7,2" Margin="10,1,0,0" VerticalAlignment="Center" Visibility="{Binding BadgeVisibility}">
                   <TextBlock Text="{Binding Badge}" FontSize="{StaticResource FsCaption}" FontWeight="SemiBold" Foreground="{DynamicResource Ac}"/>
                 </Border>
-              </StackPanel>
+                <TextBlock DockPanel.Dock="Left" Text="{Binding Name}" FontSize="{StaticResource FsRow}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Hint}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Fa}" Margin="10,1,0,0" TextTrimming="CharacterEllipsis" MaxWidth="200" VerticalAlignment="Center"/>
+              </DockPanel>
             </DockPanel>
           </Button>
         </Grid>
@@ -114,6 +117,13 @@
         <Setter TargetName="StarGlyph" Property="Stroke" Value="{DynamicResource Star}"/>
         <Setter TargetName="StarButton" Property="AutomationProperties.Name" Value="Убрать из избранного"/>
       </DataTrigger>
+      <!-- Узкое окно (ServersSheet ставит списку Tag="narrow"): плашка — «3 ⌄», подпись под именем уходит. -->
+      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="narrow">
+        <Setter TargetName="ExpandWord" Property="Visibility" Value="Collapsed"/>
+        <Setter TargetName="DetailLine" Property="Visibility" Value="Collapsed"/>
+        <Setter TargetName="RowBars" Property="Visibility" Value="Collapsed"/>
+        <Setter TargetName="MemberBars" Property="Visibility" Value="Collapsed"/>
+      </DataTrigger>
       <DataTrigger Binding="{Binding CanFavorite}" Value="False">
         <Setter TargetName="StarButton" Property="Visibility" Value="Collapsed"/>
         <Setter TargetName="MoreButton" Property="Visibility" Value="Collapsed"/>
@@ -134,10 +144,10 @@
   <!-- Пояснение под раскрытой машиной — часть её карточки. -->
   <DataTemplate DataType="{x:Type o:MachineNote}">
     <Border Background="{DynamicResource CardBg}" Padding="44,0,14,2" Height="28" UseLayoutRounding="True" SnapsToDevicePixels="True">
-      <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-        <TextBlock Text="{Binding Text}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu2}" VerticalAlignment="Center"/>
-        <Button Tag="machine-auto" Content="Пусть выбирает сама" Style="{StaticResource BtnLink}" Height="24" Padding="8,0" FontSize="{StaticResource FsNote}" Visibility="{Binding ResetVisibility}"/>
-      </StackPanel>
+      <DockPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+        <Button DockPanel.Dock="Right" Tag="machine-auto" Content="Пусть выбирает сама" Style="{StaticResource BtnLink}" Height="24" Padding="8,0" FontSize="{StaticResource FsNote}" Visibility="{Binding ResetVisibility}"/>
+        <TextBlock Text="{Binding Text}" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+      </DockPanel>
     </Border>
   </DataTemplate>
 </ResourceDictionary>

@@ -23,7 +23,10 @@ public sealed class ServerRow
     public Visibility ExpandVisibility => IsMachine ? Visibility.Visible : Visibility.Collapsed;
     public string ExpandName => Expanded ? "Свернуть варианты" : "Показать варианты подключения";
     // Плашка раскрытия у названия: «3 варианта». Протоколы словами — только в раскрытом списке.
-    public string ExpandText => Members is { Count: var n } ? n + " " + (n % 10 == 1 && n % 100 != 11 ? "вариант" : n % 10 is >= 2 and <= 4 && n % 100 is < 12 or > 14 ? "варианта" : "вариантов") : "";
+    public string ExpandText => ExpandCount + " " + ExpandWord;
+    // Число и слово плашки — раздельно: в узком окне слово прячется (ServerSheetRow.xaml).
+    public string ExpandCount => Members is { Count: var n } ? n.ToString() : "";
+    public string ExpandWord => Members is { Count: var n } ? n % 10 == 1 && n % 100 != 11 ? "вариант" : n % 10 is >= 2 and <= 4 && n % 100 is < 12 or > 14 ? "варианта" : "вариантов" : "";
     public string? ExpandHint => IsMachine ? ServerMachines.Protocols(Members!, Profile!) : null;
     public Visibility GlyphVisibility => IsMember ? Visibility.Collapsed : Visibility.Visible;
     public required string Name { get; init; }
