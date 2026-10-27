@@ -47,7 +47,7 @@ public partial class MainWindow
             ZapretEnabled = zapretEnabled, SelectiveVpn = selectiveVpn, ZapretChoices = new Dictionary<string, string>(zapretChoices), ZapretVpnGroups = zapretVpnGroups.Order(StringComparer.Ordinal).ToArray(),
             AutoPool = autoPool.Snapshot(importedProfiles),
             ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected, Notices = Settings.Notices.IsChecked == true, ExpiryNotice = expiryNotice,
-            KnownNetworks = knownNetworks.Count == 0 ? null : new(knownNetworks), SecureUnknown = AppTab.SecureUnknown.IsChecked == true,
+            KnownNetworks = knownNetworks.Count == 0 ? null : new(knownNetworks), SecureUnknown = AppTab.SecureUnknown.IsChecked == true, Lockdown = AppTab.Lockdown.IsChecked == true,
             MachinePick = machineMode, MachineMemory = machineMemory.Count == 0 ? null : machineMemory.ToDictionary(p => p.Key, p => new Dictionary<string, string>(p.Value)),
             ServiceHosts = ServiceBrand.LearnedIn(groups.SelectMany(g => g.Sources).Concat(subscriptionSources)), LocalNetwork = Settings.LocalNetwork.IsChecked == true,
             QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, CompatibleStack = Settings.CompatibleStack.IsChecked == true, Advanced = advanced.IsDefault ? null : advanced, ServerTweaks = serverTweaks.Count == 0 ? null : new(serverTweaks),

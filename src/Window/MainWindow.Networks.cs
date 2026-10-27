@@ -60,6 +60,8 @@ public partial class MainWindow
         knownNetworks.Clear();
         foreach (var (key, network) in NetworkPolicy.Restore(snapshot.KnownNetworks)) knownNetworks[key] = network;
         AppTab.SecureUnknown.IsChecked = snapshot.SecureUnknown;
+        AppTab.Lockdown.IsChecked = snapshot.Lockdown;
+        if (snapshot.Lockdown && !isolatedPersistence) Dispatcher.BeginInvoke(async () => await SendLockdownAsync(true));
         RefreshNetworkRow();
     }
 

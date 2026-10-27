@@ -88,6 +88,19 @@ public sealed class NetworkHelperClient : INetworkHelperClient
         finally { operations.Release(); }
     }
 
+    // «Без VPN — без интернета»: служба ставит или снимает постоянный запрет; true — запрет стоит.
+    public async Task<bool> LockdownAsync(bool on, bool lan, CancellationToken token)
+    {
+        await operations.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            var response = await pipe.SendAsync(HelperOperation.Lockdown, null, token, lockdown: new(on, lan)).ConfigureAwait(false);
+            if (response.Failure != HelperFailure.None) throw new UserError("Служба не смогла " + (on ? "закрыть" : "открыть") + " интернет без VPN.");
+            return response.Blocking == true;
+        }
+        finally { operations.Release(); }
+    }
+
     // Сайты, которые идут мимо VPN: их имена разрешает DNS физической сети (DirectDns).
     public async Task DirectDnsAsync(IReadOnlyList<string> domains, CancellationToken token)
     {

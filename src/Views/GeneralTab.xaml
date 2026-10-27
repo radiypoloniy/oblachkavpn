@@ -59,6 +59,16 @@
             </StackPanel>
           </DockPanel>
         </Border>
+        <!-- Запрет без VPN (WfpLockdown): ставит служба, держится и после выхода, и после перезагрузки. -->
+        <Border Style="{StaticResource OptRow}">
+          <DockPanel>
+            <CheckBox x:Name="Lockdown" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Без VPN — без интернета"/>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+              <TextBlock Text="Без VPN — без интернета" Style="{StaticResource OptTitle}"/>
+              <TextBlock x:Name="LockdownNote" Text="Пока VPN выключен, программы не выходят в интернет — даже после выхода из Облачки и перезагрузки. Локальная сеть — как в «Программах и сайтах»" Style="{StaticResource OptSub}" TextWrapping="Wrap"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
         <Border Style="{StaticResource OptRow}">
           <DockPanel>
             <CheckBox x:Name="StayInTray" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Крестик сворачивает в трей"/>

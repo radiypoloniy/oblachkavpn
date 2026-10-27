@@ -59,6 +59,7 @@ public partial class MainWindow
         WireHome();
         WireNotices();
         WireNetworks();
+        WireLockdown();
         WireSettings();
         Servers.BackButton.Click += (_, _) => Navigate("Connection");
         Servers.SearchBox.TextChanged += (_, _) => FilterProfiles();

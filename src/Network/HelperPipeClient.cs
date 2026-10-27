@@ -53,9 +53,9 @@ public sealed class HelperPipeClient : IAsyncDisposable
         operation == HelperOperation.Heartbeat ? QuickTimeout : SessionTimeout;
 
     public async Task<HelperResponse> SendAsync(HelperOperation operation, NetworkLeaseRequest? lease, CancellationToken token, RepairRequest? repair = null, ZapretRequest? zapret = null, DirectDnsRequest? directDns = null,
-        ProgramRulesRequest? programs = null, RoutingListsRequest? lists = null)
+        ProgramRulesRequest? programs = null, RoutingListsRequest? lists = null, LockdownRequest? lockdown = null)
     {
-        var request = new HelperRequest(1, Guid.NewGuid(), operation, lease, repair, zapret, directDns, programs, lists); HelperProtocol.Validate(request);
+        var request = new HelperRequest(1, Guid.NewGuid(), operation, lease, repair, zapret, directDns, programs, lists, lockdown); HelperProtocol.Validate(request);
         await gate.WaitAsync(token);
         try
         {

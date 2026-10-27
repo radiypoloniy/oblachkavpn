@@ -10,7 +10,8 @@ public enum WfpConditionKind { Loopback, LocalAddress, RemoteAddress, Applicatio
 public sealed record WfpCondition(WfpConditionKind Kind, IPAddress? Address = null, string? Program = null, int Number = 0, int High = 0);
 // Packet — слой исходящих IP-пакетов, а не установления соединений: там видны пакеты
 // уже разрешённых потоков, в том числе закрытие соединения после снятия туннеля.
-public sealed record WfpFilter(Guid Key, string Name, bool V6, byte Weight, bool Permit, WfpCondition[] Conditions, bool Packet = false);
+// Persistent — фильтр переживает перезагрузку (только у запрета без VPN, WfpLockdown).
+public sealed record WfpFilter(Guid Key, string Name, bool V6, byte Weight, bool Permit, WfpCondition[] Conditions, bool Packet = false, bool Persistent = false);
 
 // Windows Filtering Platform, каким её видит защита. Интерфейс нужен затем, чтобы порядок
 // и состав фильтров проверялись на подменном движке, а не на сети компьютера.
@@ -21,8 +22,8 @@ public interface IWfpEngine : IDisposable
     void Abort();
     bool SublayerExists(Guid key);
     bool FilterExists(Guid key);
-    void AddProvider(Guid key, string name);
-    void AddSublayer(Guid key, Guid provider, string name, ushort weight);
+    void AddProvider(Guid key, string name, bool persistent = false);
+    void AddSublayer(Guid key, Guid provider, string name, ushort weight, bool persistent = false);
     void AddFilter(WfpFilter filter, Guid provider, Guid sublayer);
     // false — объекта не было. Это нужный итог снятия, а не ошибка.
     bool DeleteFilter(Guid key);
@@ -32,8 +33,8 @@ public interface IWfpEngine : IDisposable
 
 // Движок WFP через fwpuclnt.dll. Сессия не динамическая: фильтры не исчезают вместе с
 // процессом помощника, иначе его падение сняло бы защиту. Снимает их сессия по журналу,
-// в том числе при следующем запуске помощника. Флаг постоянства не ставится: после
-// перезагрузки фильтров нет, и компьютер не остаётся без сети из-за забытой сессии.
+// в том числе при следующем запуске помощника. Постоянен только запрет без VPN (WfpLockdown):
+// у защиты сессии после перезагрузки фильтров нет, и забытая сессия не оставит без сети.
 public sealed class WfpEngine : IWfpEngine
 {
     // Ключи из fwpmu.h. Сверены на стенде: netsh wfp show filters называет наши слои и
@@ -56,6 +57,7 @@ public sealed class WfpEngine : IWfpEngine
     // Разрешение с очищенным правом на действие не может перебить подслой ниже по весу —
     // в том числе брандмауэр Windows, если в нём исходящее по умолчанию запрещено.
     private const uint FlagClearActionRight = 0x8;
+    private const uint FlagPersistent = 0x1; // FWPM_{PROVIDER,SUBLAYER,FILTER}_FLAG_PERSISTENT
     private const uint MatchEqual = 0, MatchRange = 5, MatchFlagsAllSet = 6, MatchNotEqual = 10;
     private const uint TypeUint8 = 1, TypeUint16 = 2, TypeUint32 = 3, TypeArray16 = 11, TypeBlob = 12, TypeV4Mask = 0x100, TypeV6Mask = 0x101, TypeRange = 0x102;
     private const uint IsLoopback = 0x1;
@@ -95,18 +97,18 @@ public sealed class WfpEngine : IWfpEngine
         return true;
     }
 
-    public void AddProvider(Guid key, string name)
+    public void AddProvider(Guid key, string name, bool persistent = false)
     {
         using var text = new Strings();
-        var provider = new WfpNative.Provider { Key = key, Display = new() { Name = text.Add(name) } };
+        var provider = new WfpNative.Provider { Key = key, Display = new() { Name = text.Add(name) }, Flags = persistent ? FlagPersistent : 0 };
         Check(WfpNative.FwpmProviderAdd0(engine, ref provider, IntPtr.Zero), "добавление поставщика");
     }
 
-    public void AddSublayer(Guid key, Guid provider, string name, ushort weight)
+    public void AddSublayer(Guid key, Guid provider, string name, ushort weight, bool persistent = false)
     {
         using var text = new Strings();
         var providerKey = text.Copy(provider);
-        var sublayer = new WfpNative.Sublayer { Key = key, Display = new() { Name = text.Add(name) }, ProviderKey = providerKey, Weight = weight };
+        var sublayer = new WfpNative.Sublayer { Key = key, Display = new() { Name = text.Add(name) }, Flags = persistent ? FlagPersistent : 0, ProviderKey = providerKey, Weight = weight };
         Check(WfpNative.FwpmSubLayerAdd0(engine, ref sublayer, IntPtr.Zero), "добавление подслоя");
     }
 
@@ -121,7 +123,7 @@ public sealed class WfpEngine : IWfpEngine
         {
             Key = filter.Key,
             Display = new() { Name = memory.Add(filter.Name) },
-            Flags = filter.Permit ? FlagClearActionRight : 0,
+            Flags = (filter.Permit ? FlagClearActionRight : 0) | (filter.Persistent ? FlagPersistent : 0),
             ProviderKey = memory.Copy(provider),
             LayerKey = filter.Packet ? (filter.V6 ? LayerPacketV6 : LayerPacketV4) : (filter.V6 ? LayerConnectV6 : LayerConnectV4),
             SublayerKey = sublayer,
