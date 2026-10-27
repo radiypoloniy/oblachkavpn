@@ -33,27 +33,54 @@ public partial class MainWindow
         Routes.RuleSetServersText.Text = "Серверы: " + (names.Length is > 0 and <= 2 ? string.Join(", ", names) : "только " + names.Length);
     }
 
+    // Строки меню в облике приложения (как список наборов), не галочки. Пока «Любые» — нажатие на страну
+    // оставляет только её: один сервер — одно нажатие. Дальше нажатие добавляет или убирает страну;
+    // убрали последнюю — снова «Любые».
     private void FillRuleSetServers()
     {
         var items = Routes.RuleSetServerItems.Children;
         items.Clear();
-        var any = new CheckBox { Content = "Любые серверы", IsChecked = ruleSetServers is null, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 4, 0, 6) };
-        any.Click += (_, _) => SetRuleSetServers(any.IsChecked == true ? null : RuleSetMachines().Select(m => ServerMachines.Hash(m[0])).ToHashSet());
-        items.Add(any);
+        items.Add(ServerMenuRow("Любые серверы", null, ruleSetServers is null, () => SetRuleSetServers(null)));
+        var note = new TextBlock { Text = ruleSetServers is null ? "Нажмите страну, чтобы ходить только через неё" : "Нажмите, чтобы добавить или убрать",
+            FontSize = (double)FindResource("FsSmall"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 6, 2, 4) };
+        note.SetResourceReference(TextBlock.ForegroundProperty, "Mu2");
+        items.Add(note);
         foreach (var machine in RuleSetMachines())
         {
             var key = ServerMachines.Hash(machine[0]);
-            var box = new CheckBox { Content = ServerMachines.Title(machine), IsChecked = ruleSetServers is null || ruleSetServers.Contains(key), IsEnabled = ruleSetServers is not null, Margin = new Thickness(0, 3, 0, 3) };
-            box.Click += (_, _) =>
+            items.Add(ServerMenuRow(ServerMachines.Title(machine), machine[0], ruleSetServers?.Contains(key) == true, () =>
             {
                 var next = new HashSet<string>(ruleSetServers ?? []);
-                if (box.IsChecked == true) next.Add(key); else next.Remove(key);
-                // Без единого сервера набор оставил бы VPN без выхода.
-                if (next.Count == 0) { box.IsChecked = true; DetailText.Text = "В наборе должен остаться хотя бы один сервер."; return; }
-                SetRuleSetServers(next);
-            };
-            items.Add(box);
+                if (!next.Remove(key)) next.Add(key);
+                SetRuleSetServers(next.Count == 0 ? null : next);
+            }));
         }
+    }
+
+    private Button ServerMenuRow(string text, Profile? sample, bool on, Action act)
+    {
+        var check = new System.Windows.Shapes.Path { Data = (System.Windows.Media.Geometry)FindResource("IcoCheck"), Style = (Style)FindResource("Icon"), Width = 14, Height = 14, StrokeThickness = 2.4,
+            Visibility = on ? Visibility.Visible : Visibility.Hidden };
+        check.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "Ac");
+        DockPanel.SetDock(check, Dock.Right);
+        var row = new DockPanel { Children = { check } };
+        if (sample is not null)
+        {
+            // Без флага — пустое место того же размера: названия стоят ровной колонкой.
+            var ring = new System.Windows.Shapes.Ellipse { Width = 18, Height = 18, Margin = new Thickness(0, 0, 10, 0), StrokeThickness = 1 };
+            if (FlagImages.Local(sample.Country.Code) is { } flag)
+            {
+                ring.Fill = new System.Windows.Media.ImageBrush(flag) { Stretch = System.Windows.Media.Stretch.UniformToFill };
+                ring.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "FlagRing");
+            }
+            row.Children.Add(ring);
+        }
+        row.Children.Add(new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal });
+        var button = new Button { Content = row, Style = (Style)FindResource("MenuRow") };
+        // Выбранное — сиренью, как выбранная строка «Серверов».
+        if (on) button.SetResourceReference(BackgroundProperty, "Lilac");
+        button.Click += (_, _) => act();
+        return button;
     }
 
     private void SetRuleSetServers(HashSet<string>? next)

@@ -14,6 +14,18 @@ public partial class MainWindow
         return "servers";
     }
 
+    // Меню «Серверы ▾» набора правил отдельным снимком (всплывающие окна в снимок страницы не попадают).
+    // any — «Любые серверы»; иначе в наборе одна страна — «Нидерланды».
+    internal FrameworkElement RuleSetServersPreview(bool any)
+    {
+        LoadServerPreview();
+        ruleSetServers = any ? null : [ServerMachines.Hash(importedProfiles.First(p => p.DisplayName == "Нидерланды"))];
+        FillRuleSetServers();
+        var card = (FrameworkElement)Routes.RuleSetServersPopup.Child;
+        Routes.RuleSetServersPopup.Child = null;
+        return card;
+    }
+
     private void CheckServerList(ICollection<string> checks)
     {
         var selected = profile!;
