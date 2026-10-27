@@ -44,7 +44,7 @@ public partial class MainWindow
             Servers.SortPopup.HorizontalOffset = Servers.SortButton.ActualWidth - 254 + 12;
             Servers.SortPopup.IsOpen = true;
         };
-        Servers.AutoPick.Click += (_, _) => { PickServer(null); Navigate("Connection"); };
+        Servers.AutoPick.Click += (_, _) => PickServer(null);
         Servers.SheetList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(SheetRowClick));
     }
 
@@ -56,8 +56,10 @@ public partial class MainWindow
         if (Equals(button.Tag, "star")) { if (row.Profile is not null) ToggleFavorite(row); return; }
         if (Equals(button.Tag, "more")) { if (row.Profile is not null) ShowRowMenu(button, row); return; }
         if (Equals(button.Tag, "expand")) { if (row.Profile is not null) ToggleMachine(row); return; }
+        // Выбор остаётся в «Серверах»: выбранная строка и так видна по цвету, а уводить на главный экран —
+        // привычка шторки 0.16. Уже выбранная машина в автоматике раскрывается, уже выбранный сервер — без действия.
+        if (row.Selected && !row.IsAuto && (!row.IsMachine || machineMode)) { if (row.IsMachine) ToggleMachine(row); return; }
         PickRow(row);
-        Navigate("Connection");
     }
 
     // Группы: автовыбор (без поиска), избранное, узлы сервиса, сторонние без проверок.
