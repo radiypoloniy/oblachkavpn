@@ -9,17 +9,19 @@
     <ResourceDictionary.MergedDictionaries>
       <ResourceDictionary Source="ServerSheetRow.xaml"/>
     </ResourceDictionary.MergedDictionaries>
-    <!-- Заголовок подписки: справа «Скрыть лишние», «Вернуть скрытые», «Обновить», «Убрать». -->
+    <!-- Заголовок подписки: имя, число серверов и «⋯» — обновить, скрыть лишние, вернуть скрытые, убрать
+         (MainWindow.SheetMenus). Оранжевая точка на «⋯» — есть неотвечающие серверы или повторы. -->
     <DataTemplate DataType="{x:Type o:SheetHeader}">
-      <DockPanel Margin="10,10,4,2">
-        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Visibility="{Binding ActionsVisibility}">
-          <Button Tag="group-hide-junk" Content="{Binding JunkText}" Style="{StaticResource BtnLink}" Height="26" FontSize="{StaticResource FsSmall}" Visibility="{Binding JunkVisibility}"
-                  ToolTip="Скрыть серверы, которые не ответили при последней проверке, и повторы — серверы с той же настройкой, что уже есть выше"/>
-          <Button Tag="group-unhide" Content="{Binding UnhideText}" Style="{StaticResource BtnLink}" Height="26" FontSize="{StaticResource FsSmall}" Visibility="{Binding UnhideVisibility}"/>
-          <Button Tag="group-refresh" Content="Обновить" Style="{StaticResource BtnLink}" Height="26" FontSize="{StaticResource FsSmall}" Visibility="{Binding RefreshVisibility}"/>
-          <Button Tag="group-remove" Content="Убрать" Style="{StaticResource BtnLink}" Height="26" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" AutomationProperties.Name="{Binding RemoveName}"/>
-        </StackPanel>
-        <TextBlock Text="{Binding Title}" FontSize="{StaticResource FsRow}" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+      <DockPanel Margin="10,10,4,2" Height="32">
+        <Button DockPanel.Dock="Right" Tag="group-menu" Style="{StaticResource IconButton}" Width="30" Height="30" Visibility="{Binding ActionsVisibility}"
+                AutomationProperties.Name="{Binding MenuName}" ToolTip="Обновить, скрыть, убрать">
+          <Grid Width="18" Height="18">
+            <Path Data="M5,12 L5.01,12 M12,12 L12.01,12 M19,12 L19.01,12" Width="16" Height="4" Stretch="Uniform" StrokeThickness="3.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stroke="{DynamicResource Mu2}"/>
+            <Ellipse Width="7" Height="7" Fill="{DynamicResource Alert}" HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="{Binding JunkVisibility}"/>
+          </Grid>
+        </Button>
+        <TextBlock Text="{Binding Title}" FontSize="{StaticResource FsBody}" FontWeight="Bold" Foreground="{DynamicResource Mu}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+        <TextBlock Text="{Binding CountText}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Fa}" Margin="8,1,0,0" VerticalAlignment="Center"/>
       </DockPanel>
     </DataTemplate>
   </ResourceDictionary>
@@ -35,8 +37,8 @@
 
     <!-- Шапка: заголовок, поиск в той же строке, пинг, подписки. -->
     <DockPanel Margin="10,0,20,0">
-      <Button x:Name="SubscriptionsButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="38" Height="38" Background="{DynamicResource Field}" o:Ui.CornerRadius="{StaticResource RadiusLg}" Margin="6,0,0,0" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Подписки и ключ" ToolTip="Подписки и ключ">
-        <Path Data="{StaticResource IcoKey}" Style="{StaticResource Icon}" Width="17" Height="17" StrokeThickness="2.2"/>
+      <Button x:Name="SubscriptionsButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="38" Height="38" Background="{DynamicResource Field}" o:Ui.CornerRadius="{StaticResource RadiusLg}" Margin="6,0,0,0" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Добавить: подписку, ключ, файл или QR" ToolTip="Добавить: подписку, ключ, файл или QR">
+        <Path Data="{StaticResource IcoPlus}" Style="{StaticResource Icon}" Width="15" Height="15" StrokeThickness="2.4"/>
       </Button>
       <Button x:Name="MeasureButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="38" Height="38" Background="{DynamicResource Field}" o:Ui.CornerRadius="{StaticResource RadiusLg}" Margin="6,0,0,0" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Обновить пинг" ToolTip="Обновить пинг: задержка через каждый сервер, работает и при подключении">
         <Path Data="{StaticResource IcoRefresh}" Style="{StaticResource Icon}" Width="16" Height="16" StrokeThickness="2.2"/>
@@ -81,8 +83,8 @@
       <DockPanel>
         <Button x:Name="SortButton" DockPanel.Dock="Right" Style="{StaticResource Plain}" Tag="Transparent" Padding="8,0" Height="32" VerticalAlignment="Center" AutomationProperties.Name="Порядок серверов">
           <StackPanel Orientation="Horizontal">
+            <Path Data="M7,4 L7,20 M3,16 L7,20 L11,16 M14,6 L21,6 M14,12 L19,12 M14,18 L17,18" Style="{StaticResource Icon}" Width="13" Height="13" StrokeThickness="2.4" Stroke="{DynamicResource Mu}" Margin="0,1,6,0"/>
             <TextBlock x:Name="SortText" Text="Лучшие сверху" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
-            <Path Data="M6,9 L12,15 L18,9" Style="{StaticResource Icon}" Width="11" Height="11" StrokeThickness="2.6" Stroke="{DynamicResource Mu}" Margin="6,1,0,0"/>
           </StackPanel>
         </Button>
         <ListBox x:Name="SortOrder" Visibility="Collapsed" SelectedIndex="0">
@@ -141,12 +143,6 @@
     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,6,0,0" Padding="14,0">
       <StackPanel>
         <ItemsControl x:Name="SheetList" Focusable="False"/>
-        <Button x:Name="AddButton" Style="{StaticResource Row}" Height="40" Margin="0,6,0,8" Foreground="{DynamicResource Ac}" AutomationProperties.Name="Добавить ключ, ссылку или файл">
-          <StackPanel Orientation="Horizontal">
-            <Path Data="{StaticResource IcoPlus}" Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource Ac}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Margin="4,0,0,0"/>
-            <TextBlock Text="Добавить ключ, ссылку или файл" FontSize="{StaticResource FsLabel}" Margin="12,0,0,0" VerticalAlignment="Center"/>
-          </StackPanel>
-        </Button>
       </StackPanel>
     </ScrollViewer>
 
@@ -159,9 +155,16 @@
       </DockPanel>
     </Border>
 
-    <!-- Всплывающие окна в облике приложения: «Добавить сервер» и порядок списка. -->
+    <!-- Всплывающие окна в облике приложения: «Добавить сервер», меню «⋯» и порядок списка. -->
     <Popup x:Name="AddPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade">
       <v:AddMenu x:Name="Add"/>
+    </Popup>
+    <!-- Меню «⋯» строки сервера и заголовка подписки: пункты собирает MainWindow.SheetMenus. -->
+    <Popup x:Name="RowMenuPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade">
+      <Grid Width="250" Margin="12,4,12,18">
+        <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusSheet}"/>
+        <Border Style="{StaticResource MenuCard}" Padding="14,6"><StackPanel x:Name="RowMenuItems"/></Border>
+      </Grid>
     </Popup>
     <Popup x:Name="SortPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=SortButton}">
       <Grid Width="230" Margin="12,4,12,18">

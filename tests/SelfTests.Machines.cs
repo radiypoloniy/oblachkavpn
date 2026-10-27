@@ -1,4 +1,4 @@
-namespace Oblachka;
+﻿namespace Oblachka;
 
 public static partial class SelfTests
 {
@@ -18,6 +18,11 @@ public static partial class SelfTests
             Assert(ServerMachines.Title(machines[0]) == "Германия" && ServerMachines.Title([other]) == "Финляндия");
             Assert(ServerMachines.Title([In(Node("203.0.113.60", name: "Нидерланды 1")), In(Node("203.0.113.60", name: "Нидерланды 2"))]) == "Нидерланды");
             Assert(ServerMachines.Protocols(machines[0], hy2).StartsWith("Hysteria2 · ", StringComparison.Ordinal));
+            // В раскрытой машине — короткие имена и подпись простыми словами.
+            Assert(ServerMachines.ShortName(hy2, machines[0]) == "Hysteria2" && ServerMachines.ShortName(xhttp, machines[0]) == "XHTTP" && ServerMachines.Hint(hy2) == "быстрый, по UDP");
+            // Два XHTTP в одной машине не сливаются в одно имя — у них полная подпись.
+            var xhttp2 = In(Node("203.0.113.50", "xhttp", name: "Германия XHTTP 2"));
+            Assert(ServerMachines.ShortName(xhttp, [xhttp, xhttp2]) == ServerRow.ProtocolFor(xhttp));
             // Бесплатные чужие узлы не объединяются, даже с одним адресом.
             var free1 = In(Node("203.0.113.70", name: "F1"), source: ProfileSource.Free);
             var free2 = In(Node("203.0.113.70", "xhttp", name: "F2"), source: ProfileSource.Free);

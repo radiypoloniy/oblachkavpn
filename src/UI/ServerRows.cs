@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Media;
 
 namespace Oblachka;
@@ -18,9 +18,13 @@ public sealed class ServerRow
     public bool IsMachine => Members is { Count: > 1 };
     public bool IsMember { get; init; }
     public bool Expanded { get; init; }
+    // Последняя строка раскрытой машины: блок вариантов закрывается скруглением снизу.
+    public bool IsLastMember { get; init; }
     public Visibility ExpandVisibility => IsMachine ? Visibility.Visible : Visibility.Collapsed;
-    public string ExpandName => Expanded ? "Свернуть протоколы" : "Показать протоколы";
-    public Thickness PlateMargin => IsMember ? new Thickness(34, 0, 0, 2) : new Thickness(0, 0, 0, 2);
+    public string ExpandName => Expanded ? "Свернуть варианты" : "Показать варианты подключения";
+    // Плашка раскрытия у названия: «3 варианта». Протоколы словами — только в раскрытом списке.
+    public string ExpandText => Members is { Count: var n } ? n + " " + (n % 10 == 1 && n % 100 != 11 ? "вариант" : n % 10 is >= 2 and <= 4 && n % 100 is < 12 or > 14 ? "варианта" : "вариантов") : "";
+    public string? ExpandHint => IsMachine ? ServerMachines.Protocols(Members!, Profile!) : null;
     public Visibility GlyphVisibility => IsMember ? Visibility.Collapsed : Visibility.Visible;
     public required string Name { get; init; }
     public string? Note { get; init; }
@@ -38,11 +42,24 @@ public sealed class ServerRow
     public bool CanFavorite => !IsAuto;
     // Настройку своего сервера («Вручную») можно поправить (MainWindow.ProfileEditor).
     public Visibility EditVisibility => Profile?.Group == ProfileGroup.ManualId ? Visibility.Visible : Visibility.Collapsed;
-    // Протокол словами («XHTTP, REALITY») и ступени пинга 0…3 (облик 0.20: строка в одну линию).
+    // Протокол словами («XHTTP, REALITY») и ступени пинга 0…3. В строке «Серверов» протокол не
+    // показывается (облик 0.21): он в меню «⋯» (MenuDetail) и в раскрытой машине.
     public string Protocol { get; init; } = "";
     public int PingSteps { get; init; }
-    public string Detail => string.IsNullOrEmpty(Note) ? Protocol : Note;
-    public Visibility SelectedVisibility => Selected ? Visibility.Visible : Visibility.Collapsed;
+    // Протокол машины закреплён руками: «только XHTTP» у названия.
+    public string? Pinned { get; init; }
+    public string Detail => Note ?? Pinned ?? "";
+    public Visibility DetailVisibility => Detail.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+    // «Подобрать лучшее» оставил поправку — значок у названия.
+    public bool Tuned { get; init; }
+    public Visibility TunedVisibility => Tuned ? Visibility.Visible : Visibility.Collapsed;
+    // Строка протокола в раскрытой машине: подпись простыми словами и метка «сейчас» / «закреплён».
+    public string Hint { get; init; } = "";
+    public string? Badge { get; init; }
+    public Visibility BadgeVisibility => Badge is null ? Visibility.Collapsed : Visibility.Visible;
+    // Первая строка меню «⋯»: протоколы, скорость, поправка.
+    public string MenuDetail => string.Join(" · ", new[] { IsMachine ? ExpandHint! : Protocol, Speed, Tuned ? "подстроен" : "" }.Where(t => t.Length > 0));
+    public bool IsManual => Profile?.Group == ProfileGroup.ManualId;
 
     public Visibility FlagVisibility => Flag is null ? Visibility.Collapsed : Visibility.Visible;
     public Visibility IconVisibility => Flag is null ? Visibility.Visible : Visibility.Collapsed;
@@ -126,16 +143,17 @@ public sealed class GroupRow
 }
 
 // Заголовок группы в панели «Все серверы»: «Избранное», затем подписки по именам.
+// Действия подписки — в меню «⋯» (MainWindow.SheetMenus); точка на нём — есть что скрыть.
 public sealed record SheetHeader(string Title, string? GroupId = null, bool CanRefresh = false, int Hidden = 0, int Junk = 0)
 {
+    // Сколько серверов (машин) под заголовком и когда подписка обновлялась — для меню «⋯».
+    public int Count { get; init; }
+    public string CountText => Count > 0 ? Count.ToString() : "";
+    public string? Updated { get; init; }
+    public string MenuName => "«" + Title + "»: обновить, скрыть, убрать";
     public Visibility ActionsVisibility => GroupId is null ? Visibility.Collapsed : Visibility.Visible;
-    public Visibility RefreshVisibility => CanRefresh ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility UnhideVisibility => Hidden > 0 ? Visibility.Visible : Visibility.Collapsed;
-    public string UnhideText => $"Вернуть скрытые ({Hidden})";
     // Серверы без ответа на свежей проверке и повторы (MainWindow.Junk).
     public Visibility JunkVisibility => Junk > 0 ? Visibility.Visible : Visibility.Collapsed;
-    public string JunkText => $"Скрыть лишние ({Junk})";
-    public string RemoveName => "Убрать «" + Title + "»";
 }
 
 // Строка правила во вкладке «Правила»: адрес или программа и метка действия.
@@ -155,4 +173,13 @@ public sealed class RuleRow
     public Visibility WarningVisibility => Warning is null ? Visibility.Collapsed : Visibility.Visible;
     public string ActionText => ActionLabel(Action);
     public static string ActionLabel(SiteAction action) => action switch { SiteAction.Direct => "напрямую", SiteAction.Block => "блок", _ => "через VPN" };
+}
+
+// Пояснение под раскрытой машиной: протокол Облачка выбирает сама — или он закреплён руками.
+public sealed class MachineNote
+{
+    public required IReadOnlyList<Profile> Members { get; init; }
+    public required string Text { get; init; }
+    public bool CanReset { get; init; }
+    public Visibility ResetVisibility => CanReset ? Visibility.Visible : Visibility.Collapsed;
 }

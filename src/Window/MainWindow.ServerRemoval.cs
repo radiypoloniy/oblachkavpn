@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 
 namespace Oblachka;
@@ -34,7 +34,7 @@ public partial class MainWindow
         else
         {
             hiddenServers.Add(key);
-            DetailText.Text = "Сервер скрыт. Вернуть — «Вернуть скрытые» у заголовка подписки.";
+            DetailText.Text = "Сервер скрыт. Вернуть — «Вернуть скрытые» в меню «⋯» у подписки.";
         }
         AfterServerListChange(profile is not null && FavoriteKey(profile) == key);
     }
@@ -69,7 +69,7 @@ public partial class MainWindow
         if (junk.Length == 0) return;
         foreach (var item in junk) hiddenServers.Add(FavoriteKey(item));
         AfterServerListChange(profile is not null && junk.Any(p => FavoriteKey(p) == FavoriteKey(profile)));
-        DetailText.Text = "Скрыли " + ServerCount(junk.Length) + ". Вернуть — «Вернуть скрытые» у заголовка подписки.";
+        DetailText.Text = "Скрыли " + ServerCount(junk.Length) + ". Вернуть — «Вернуть скрытые» в меню «⋯» у подписки.";
     }
 
     private void AfterServerListChange(bool removedSelected)
@@ -87,11 +87,11 @@ public partial class MainWindow
         return AppDialog.Confirm(this, title, "Уберём и её " + ServerCount(ProfilesOf(group.Id).Count) + ". Вернуть можно, добавив подписку снова.", "Убрать", danger: true);
     }
 
-    // Кнопки у заголовка подписки в «Серверах»: обновить, убрать, вернуть скрытые.
-    private async void SheetHeaderClick(Button button, SheetHeader header)
+    // Пункты меню «⋯» у заголовка подписки в «Серверах» (MainWindow.SheetMenus): обновить, убрать, вернуть скрытые.
+    private async void GroupAction(string action, SheetHeader header)
     {
         if (operation is not null || groups.FirstOrDefault(g => g.Id == header.GroupId) is not { } group) return;
-        switch (button.Tag)
+        switch (action)
         {
             case "group-refresh": await LoadSubscriptionAsync(group.Sources, group.PreferredSource); break;
             case "group-unhide": UnhideServers(group.Id); break;
