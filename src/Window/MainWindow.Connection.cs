@@ -49,7 +49,7 @@ public partial class MainWindow
             {
                 await session.SwitchAsync(profile, operation.Token);
                 _ = SyncDirectDnsAsync();
-                nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
+                StartedFresh();
                 runningProfile = target;
                 if (!closed) DetailText.Text = "Подключено к " + profile.DisplayName + ". Блокировка не снималась.";
             }
@@ -57,7 +57,7 @@ public partial class MainWindow
             {
                 await StartSystemTunnelAsync(operation.Token);
                 sentDirectDns = ""; _ = SyncDirectDnsAsync();
-                nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
+                StartedFresh();
                 runningProfile = target;
                 if (!closed) DetailText.Text = "Системный режим запущен: весь трафик идёт через туннель.";
                 _ = WarnEarlyGamesAsync();
@@ -65,7 +65,7 @@ public partial class MainWindow
             else
             {
                 await engine.StartAsync(profile, operation.Token);
-                nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
+                StartedFresh();
                 runningProfile = target;
                 if (!closed) DetailText.Text = "Подключение запущено. Проверьте туннель в диагностике.";
             }

@@ -41,19 +41,6 @@
     <DockPanel DockPanel.Dock="Top" Height="64">
       <!-- Правила файлом (RulesFile): перенос и обмен наборами, без ключей и серверов. -->
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True">
-        <!-- Наборы правил (MainWindow.RuleSets): «Дом», «Работа», «Игры» — меню в облике приложения. -->
-        <Button x:Name="RuleSetButton" Style="{StaticResource Plain}" Tag="Transparent" Padding="8,0" Height="34" Margin="0,0,8,0" AutomationProperties.Name="Набор правил">
-          <StackPanel Orientation="Horizontal">
-            <TextBlock x:Name="RuleSetText" Text="Набор: Основной" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="180"/>
-            <Path Data="M6,9 L12,15 L18,9" Style="{StaticResource Icon}" Width="11" Height="11" StrokeThickness="2.6" Stroke="{DynamicResource Mu}" Margin="6,1,0,0"/>
-          </StackPanel>
-        </Button>
-        <Popup x:Name="RuleSetPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=RuleSetButton}">
-          <Grid Width="280" Margin="12,4,12,18">
-            <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusSheet}"/>
-            <Border Style="{StaticResource MenuCard}" Padding="14,6"><StackPanel x:Name="RuleSetItems"/></Border>
-          </Grid>
-        </Popup>
         <Button x:Name="ImportRules" Style="{StaticResource BtnOutline}" Height="34" Padding="12,0,14,0" Margin="0,0,8,0" AutomationProperties.Name="Импорт правил из файла" ToolTip="Импорт правил из файла">
           <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IcoUpload}" Style="{StaticResource Icon}" Width="14" Height="14" StrokeThickness="2.2" Margin="0,0,6,0"/><TextBlock x:Name="ImportText" Text="Импорт" VerticalAlignment="Center"/></StackPanel>
         </Button>
@@ -66,6 +53,48 @@
       </Button>
       <TextBlock Text="Правила" Style="{StaticResource PageHead}" Margin="10,0,0,0" VerticalAlignment="Center"/>
     </DockPanel>
+    <!-- Набор правил (MainWindow.RuleSets): какой включён, через какие серверы, новый с чистого листа, удалить.
+         В черновике нового набора — вместо этого «Отмена» и «Сохранить». -->
+    <Grid DockPanel.Dock="Top" Margin="10,0,0,6" MinHeight="36">
+      <DockPanel x:Name="RuleSetBar">
+        <Button x:Name="DeleteRuleSet" DockPanel.Dock="Right" Content="Удалить" Style="{StaticResource BtnGhost}" Height="32" Padding="10,0" Foreground="{DynamicResource RF}" AutomationProperties.Name="Удалить набор"/>
+        <Button x:Name="NewRuleSet" DockPanel.Dock="Right" Style="{StaticResource BtnOutline}" Height="32" Padding="10,0,12,0" Margin="8,0,4,0" AutomationProperties.Name="Создать новый набор">
+          <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IcoPlus}" Style="{StaticResource Icon}" Width="12" Height="12" StrokeThickness="2.4" Margin="0,0,6,0"/><TextBlock Text="Новый набор" VerticalAlignment="Center"/></StackPanel>
+        </Button>
+        <Button x:Name="RuleSetButton" Style="{StaticResource Plain}" Tag="Transparent" Padding="6,0" Height="32" AutomationProperties.Name="Набор правил">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock x:Name="RuleSetText" Text="Набор: Основной" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="180"/>
+            <Path Data="M6,9 L12,15 L18,9" Style="{StaticResource Icon}" Width="11" Height="11" StrokeThickness="2.6" Margin="6,1,0,0"/>
+          </StackPanel>
+        </Button>
+        <Button x:Name="RuleSetServers" Style="{StaticResource Plain}" Tag="Transparent" Padding="6,0" Height="32" Margin="6,0,0,0" HorizontalAlignment="Left" AutomationProperties.Name="Серверы набора">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock x:Name="RuleSetServersText" Text="Серверы: любые" FontSize="{StaticResource FsBody}" Foreground="{DynamicResource Mu}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="200"/>
+            <Path Data="M6,9 L12,15 L18,9" Style="{StaticResource Icon}" Width="11" Height="11" StrokeThickness="2.6" Stroke="{DynamicResource Mu}" Margin="6,1,0,0"/>
+          </StackPanel>
+        </Button>
+      </DockPanel>
+      <DockPanel x:Name="RuleSetDraft" Visibility="Collapsed">
+        <Button x:Name="SaveRuleSet" DockPanel.Dock="Right" Content="Сохранить" Style="{StaticResource BtnPrimary}" Height="32" Padding="14,0" AutomationProperties.Name="Сохранить новый набор"/>
+        <Button x:Name="CancelRuleSet" DockPanel.Dock="Right" Content="Отмена" Style="{StaticResource BtnGhost}" Height="32" Padding="12,0" Margin="0,0,6,0" AutomationProperties.Name="Отменить новый набор"/>
+        <TextBlock Text="Новый набор: добавьте сайты и программы, затем сохраните" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="6,0,0,0"/>
+      </DockPanel>
+      <Popup x:Name="RuleSetPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=RuleSetButton}">
+        <Grid Width="280" Margin="12,4,12,18">
+          <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusSheet}"/>
+          <Border Style="{StaticResource MenuCard}" Padding="14,6"><StackPanel x:Name="RuleSetItems"/></Border>
+        </Grid>
+      </Popup>
+      <!-- Серверы набора (MainWindow.RuleSetServers): страны целиком, со всеми протоколами. -->
+      <Popup x:Name="RuleSetServersPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=RuleSetServers}">
+        <Grid Width="300" Margin="12,4,12,18">
+          <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusSheet}"/>
+          <Border Style="{StaticResource MenuCard}" Padding="14,8">
+            <ScrollViewer MaxHeight="380" VerticalScrollBarVisibility="Auto"><StackPanel x:Name="RuleSetServerItems"/></ScrollViewer>
+          </Border>
+        </Grid>
+      </Popup>
+    </Grid>
     <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Divider}" BorderThickness="0,0,0,1" Margin="10,4,0,0">
       <StackPanel Orientation="Horizontal" Margin="4,0">
         <Button x:Name="SitesTab" Content="Сайты" Style="{StaticResource Plain}" Height="34" Padding="2,0" FontSize="{StaticResource FsLabel}" Margin="0,0,16,0"/>

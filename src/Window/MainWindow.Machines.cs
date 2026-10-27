@@ -51,6 +51,7 @@ public partial class MainWindow
 
     private void PickRow(ServerRow row)
     {
+        if (!row.IsAuto && row.Profile is { } item && !AllowOutsideRuleSet(item)) return;
         machineMode = row.IsMachine;
         if (row.IsAuto) PickServer(null);
         else if (row.Members is { } members && row.IsMachine) PickServer(MachineBest(members));
@@ -112,7 +113,7 @@ public partial class MainWindow
             Hint = member ? ServerMachines.Hint(item) : "",
             Badge = member && current ? machineMode ? "сейчас" : "закреплён" : null,
             Pinned = members is not null && machineSelected && !machineMode ? "только " + ServerMachines.ShortName(item, members) : null,
-            Note = note && !member ? GroupNote(item) : null,
+            Note = member ? null : RuleSetNote(item) ?? (note ? GroupNote(item) : null),
             Flag = icon is null && !member ? FlagImages.Local(item.Country.Code) : null, Icon = member ? null : icon, IconMuted = !item.IsService,
             Latency = latency, LatencyDot = dot, LatencyHint = hint, Speed = ServerRow.SpeedText(measured, now),
             Protocol = ServerRow.ProtocolFor(item), Tuned = !member && serverTweaks.ContainsKey(ServerTweak.Key(item)), PingSteps = ServerRow.StepsFor(measured),

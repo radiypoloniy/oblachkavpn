@@ -38,7 +38,7 @@ public partial class MainWindow
         SavedGroups.SelectMany(g => ProfilesOf(g.Id)).Select(p => new SavedProfile(p.Name, (System.Text.Json.Nodes.JsonObject)p.Outbound.DeepClone()) { Source = p.Source, Group = p.Group }).ToArray(),
         profile is null || profile.IsFree ? null : Profiles.Fingerprint(profile), subscriptionSources.ToArray(), preferredSource,
         Settings.StayInTray.IsChecked == true, AutoRecover.IsChecked == true)
-        { SelectedName = profile is { IsFree: false } ? profile.Name : null, ExternalSources = externalSources.ToArray(), AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, CloseToTray = Settings.StayInTray.IsChecked == true, SystemTunnel = Settings.SystemTunnel.IsChecked == true, Theme = ThemeManager.Choice, Metadata = ServiceGroup?.Metadata, Groups = SavedGroups.ToArray(), RouteRules = siteRules.ToArray(), ProgramRules = programRules.ToArray(),
+        { SelectedName = profile is { IsFree: false } ? profile.Name : null, ExternalSources = externalSources.ToArray(), AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, CloseToTray = Settings.StayInTray.IsChecked == true, SystemTunnel = Settings.SystemTunnel.IsChecked == true, Theme = ThemeManager.Choice, Metadata = ServiceGroup?.Metadata, Groups = SavedGroups.ToArray(), RouteRules = PersistedSet.Sites, ProgramRules = PersistedSet.Programs,
             Favorites = favorites.Where(f => importedProfiles.Any(p => FavoriteKey(p) == f)).Take(Subscriptions.MaxProfiles).ToArray(),
             HiddenServers = hiddenServers.Take(Subscriptions.MaxProfiles).ToArray(), RemovedSubscriptions = removedSubscriptions.ToArray(),
             Measurements = measurements.Values.Where(m => importedProfiles.Any(p => !p.IsFree && Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
@@ -51,7 +51,8 @@ public partial class MainWindow
             MachinePick = machineMode, MachineMemory = machineMemory.Count == 0 ? null : machineMemory.ToDictionary(p => p.Key, p => new Dictionary<string, string>(p.Value)),
             ServiceHosts = ServiceBrand.LearnedIn(groups.SelectMany(g => g.Sources).Concat(subscriptionSources)), LocalNetwork = Settings.LocalNetwork.IsChecked == true,
             QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, CompatibleStack = Settings.CompatibleStack.IsChecked == true, Advanced = advanced.IsDefault ? null : advanced, ServerTweaks = serverTweaks.Count == 0 ? null : new(serverTweaks),
-            RuleSets = ruleSets.Count == 0 ? null : SavedRuleSets().Where(s => s.Name != ruleSetName).ToArray(), RuleSetName = ruleSets.Count == 0 && ruleSetName == MainRuleSet ? null : ruleSetName, TrafficDay = trafficDay, TrafficBytes = trafficToday, TrafficHours = trafficHours.ToArray(),
+            RuleSets = ruleSets.Count == 0 ? null : SavedRuleSets().Where(s => s.Name != PersistedSet.Name).ToArray(), RuleSetName = ruleSets.Count == 0 && PersistedSet.Name == MainRuleSet ? null : PersistedSet.Name,
+            RuleSetServers = PersistedSet.Servers, TrafficDay = trafficDay, TrafficBytes = trafficToday, TrafficHours = trafficHours.ToArray(),
             Hotkey = Settings.Hotkey.IsChecked == true, FreeConsent = freeConsent, FreeList = freeList.ToString() };
 
     private IEnumerable<ProfileGroup> SavedGroups => groups.Where(g => g.Source != ProfileSource.Free);
@@ -112,7 +113,7 @@ public partial class MainWindow
         UpdateModeText();
         siteRules.Clear(); siteRules.AddRange(snapshot.RouteRules); RefreshRules();
         programRules.Clear(); programRules.AddRange(snapshot.ProgramRules); RefreshRules();
-        RestoreRuleSets(snapshot.RuleSets, snapshot.RuleSetName);
+        RestoreRuleSets(snapshot.RuleSets, snapshot.RuleSetName, snapshot.RuleSetServers);
         measurements.Clear(); foreach (var measurement in snapshot.Measurements) measurements[measurement.Fingerprint] = measurement;
         favorites.Clear(); foreach (var favorite in snapshot.Favorites) favorites.Add(favorite);
         hiddenServers.Clear(); foreach (var hidden in snapshot.HiddenServers) hiddenServers.Add(hidden);

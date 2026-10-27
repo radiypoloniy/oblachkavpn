@@ -96,6 +96,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     // Наборы правил (0.20): все, кроме текущего, — его правила в RouteRules и ProgramRules.
     public RuleSet[]? RuleSets { get; init; }
     public string? RuleSetName { get; init; }
+    // Через какие страны можно ходить в текущем наборе (0.21, ServerMachines.Hash); null — через любые.
+    public string[]? RuleSetServers { get; init; }
     // Бесплатные серверы (0.19): версия принятого текста согласия (0 — не принят) и выбранный список.
     public int FreeConsent { get; init; }
     public string? FreeList { get; init; }
