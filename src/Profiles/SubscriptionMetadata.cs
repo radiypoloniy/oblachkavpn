@@ -91,12 +91,13 @@ public sealed record SubscriptionMetadata(long? Upload, long? Download, long? To
         if (info.Provider is { } provider) ProviderOptions.Validate(provider);
     }
 
-    // profile-update-interval в документации панели задан в днях.
+    // profile-update-interval — в часах, как у Happ («The interval is set in hours») и Clash. До 28.10.2026
+    // читался в днях: «3» от панели сервиса означало обновление раз в 3 дня вместо 3 часов.
     public static TimeSpan? ParseUpdateInterval(string? header)
     {
-        if (!double.TryParse(header?.Trim(), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var days)) return null;
-        if (double.IsNaN(days) || days <= 0 || days > 7) return null;
-        var interval = TimeSpan.FromDays(days);
+        if (!double.TryParse(header?.Trim(), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var hours)) return null;
+        if (double.IsNaN(hours) || hours <= 0 || hours > MaxUpdateInterval.TotalHours) return null;
+        var interval = TimeSpan.FromHours(hours);
         return interval < MinUpdateInterval ? MinUpdateInterval : interval;
     }
 

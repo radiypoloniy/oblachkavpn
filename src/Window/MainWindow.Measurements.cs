@@ -5,11 +5,14 @@ public partial class MainWindow
     private readonly Dictionary<string, ServerMeasurement> measurements = new();
     private void WireMeasurements()
     {
-        // «Обновить пинг»: задержка через каждый сервер, в том числе при подключении.
+        // «Обновить»: сначала подписки (значок со стрелками ждут именно этого — новый сервер в панели
+        // иначе приходил только по расписанию), затем задержка через каждый сервер, и при подключении тоже.
+        // Идёт подключение — подписка обновится по расписанию, пинг меряется сразу.
         Servers.MeasureButton.Click += async (_, _) =>
         {
             if (measuring) { measureCancel?.Cancel(); return; }
-            await MeasureServersAsync(importedProfiles.ToArray(), quiet: false);
+            if (operation is null) await RefreshAllAsync();
+            if (!closed) await MeasureServersAsync(importedProfiles.ToArray(), quiet: false);
         };
         // «Подобрать лучшее» — MainWindow.Tune; «Автовыбор» подключает по готовым замерам.
         WireTune();
