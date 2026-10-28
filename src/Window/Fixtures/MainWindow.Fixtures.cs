@@ -104,17 +104,32 @@ public partial class MainWindow
             {
                 var activeId = engine.ProcessId;
                 var current = profile!;
-                var refreshed = new ImportResult(new[] { (Profile)ProfilePicker.Items[1], current with { Name = "Обновлённое имя" } }, 0, 0);
+                var other = (Profile)ProfilePicker.Items[1];
+                var refreshed = new ImportResult(new[] { other, current with { Name = "Обновлённое имя" } }, 0, 0);
                 var sources = SubscriptionMirrors.ParseSources("https://fixture.invalid/primary\nhttps://backup.invalid/mirror");
                 await LoadSubscriptionAsync(sources, 0, (_, _, _) => Task.FromResult(new MirrorResult(refreshed, 1, 2)));
-                if (engine.ProcessId != activeId || profile != current || pendingImport is null || !RefreshButton.IsEnabled)
-                    throw new InvalidOperationException("Refresh changed the active tunnel");
-                checks.Add("Subscription refresh defers list changes and preserves active Xray");
+                // 0.21.1: работающий сервер в новом списке есть — список применяется сразу, ядро не трогается.
+                if (engine.ProcessId != activeId || pendingImport is not null || profile?.Name != "Обновлённое имя" || ProfilePicker.SelectedIndex != 1 || !RefreshButton.IsEnabled)
+                    throw new InvalidOperationException("Live refresh changed the active tunnel or lost the selection");
+                await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+                if (engine.ProcessId != activeId || switchTimer?.IsEnabled == true)
+                    throw new InvalidOperationException("Live refresh queued a server switch");
+                checks.Add("Subscription refresh while connected applies the list at once and preserves active Xray");
+                // Работающего сервера в подписке больше нет — список ждёт отключения, выбор не перескакивает сам.
+                var shown = ProfilePicker.ItemsSource;
+                await LoadSubscriptionAsync(sources, 0, (_, _, _) => Task.FromResult(new MirrorResult(new ImportResult(new[] { other }, 0, 0), 0, 1)));
+                if (!ReferenceEquals(shown, ProfilePicker.ItemsSource) || engine.ProcessId != activeId || pendingImport is null || profile?.Name != "Обновлённое имя")
+                    throw new InvalidOperationException("Refresh without the running server changed the active tunnel");
+                checks.Add("Subscription without the running server waits for disconnect");
                 var before = ProfilePicker.ItemsSource;
                 await LoadSubscriptionAsync(sources, 1, (_, _, _) => throw new UserError("Synthetic fetch failure"));
                 if (!ReferenceEquals(before, ProfilePicker.ItemsSource) || engine.ProcessId != activeId || pendingImport is null)
                     throw new InvalidOperationException("Failed refresh destroyed profiles or pending update");
                 checks.Add("Failed refresh preserves active profiles and pending update");
+                // Следующий список снова с работающим сервером — применяется сразу и снимает устаревшее ожидание.
+                await LoadSubscriptionAsync(sources, 0, (_, _, _) => Task.FromResult(new MirrorResult(refreshed, 1, 2)));
+                if (engine.ProcessId != activeId || pendingImport is not null || profile?.Name != "Обновлённое имя")
+                    throw new InvalidOperationException("Live refresh kept a stale pending update");
             }
             StopClick(this, new RoutedEventArgs());
             await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);

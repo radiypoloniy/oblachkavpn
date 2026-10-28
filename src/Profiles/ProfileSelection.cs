@@ -24,13 +24,16 @@ public static class ProfileSelection
         return -1;
     }
 
-    public static int Find(IReadOnlyList<Profile> profiles, Profile? previous)
+    public static int Find(IReadOnlyList<Profile> profiles, Profile? previous) =>
+        previous is null ? 0 : Math.Max(0, Locate(profiles, previous));
+
+    // Тот же сервер в новом списке или -1, если его там нет.
+    public static int Locate(IReadOnlyList<Profile> profiles, Profile previous)
     {
-        if (previous is null) return 0;
         var found = IndexOf(profiles, previous);
         if (found >= 0) return found;
         // Key rotation can alter every credential. Use a unique server-provided name as fallback.
         var named = profiles.Select((p, i) => (p, i)).Where(x => x.p.Core == previous.Core && x.p.Name == previous.Name).ToArray();
-        return named.Length == 1 ? named[0].i : 0;
+        return named.Length == 1 ? named[0].i : -1;
     }
 }

@@ -125,12 +125,22 @@ public partial class MainWindow
             var group = new ProfileGroup(id, ProfileGroup.NameFor(current, metadata, kind), kind, current.ToArray())
                 { PreferredSource = result.SourceIndex, Metadata = metadata, Updated = DateTimeOffset.UtcNow };
             var imported = result.Import.WithSource(kind);
-            if (engine.State is ConnectionState.Running or ConnectionState.Verified)
+            // Под работающим подключением новый список виден сразу, подключение не трогается: выбор
+            // остаётся на работающем сервере (переименование и смена ключей его не теряют). Новый сервер,
+            // не вошедший в защиту при подключении, выбирается с переподключением (SwitchServerAsync).
+            // Ждёт отключения только список, где работающего сервера нет вовсе: иначе выбор перескочил
+            // бы на первый сервер и сам переключил подключение. До 0.21.1 ждал любой список.
+            if (engine.State is ConnectionState.Running or ConnectionState.Verified && runningProfile is { } running &&
+                running.Group == id && ProfileSelection.Locate(imported.Profiles, running) < 0)
             {
                 pendingImport = (group, imported);
-                DetailText.Text = $"Получено подключений: {result.Import.Profiles.Count}; адрес №{result.SourceIndex + 1}. Текущий туннель сохранён. Новый список применится после остановки.";
+                DetailText.Text = $"Получено подключений: {result.Import.Profiles.Count}; адрес №{result.SourceIndex + 1}. Сервера, к которому вы подключены, в подписке больше нет: новый список применится после отключения.";
             }
-            else { ApplyGroupImport(group, imported, true); DetailText.Text += $" Загрузка: адрес №{result.SourceIndex + 1}, попыток {result.Attempts}."; }
+            else
+            {
+                if (pendingImport?.Group.Id == id) pendingImport = null;
+                ApplyGroupImport(group, imported, true); DetailText.Text += $" Загрузка: адрес №{result.SourceIndex + 1}, попыток {result.Attempts}.";
+            }
             if (result.Moved) DetailText.Text += " Подписка переехала на новый адрес, прежний оставлен запасным.";
             if (result.Sources is not null) QueueStateSave();
         }
