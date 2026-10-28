@@ -10,7 +10,7 @@
 |---|---|
 | `subscription-userinfo` | трафик и срок (`upload=…; download=…; total=…; expire=…`) |
 | `profile-title` | название подписки (`base64:` поддерживается) |
-| `profile-update-interval` | как часто обновлять подписку |
+| `profile-update-interval` | как часто обновлять подписку, в часах (как у Happ) |
 | `support-url`, `profile-web-page-url` | кнопки «Поддержка» и личный кабинет |
 | `announce` | объявление на главном экране |
 | `routing` | маршрутизация (формат Happ), включается с согласия человека |

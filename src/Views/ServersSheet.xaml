@@ -40,7 +40,7 @@
       <Button x:Name="SubscriptionsButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="38" Height="38" Background="{DynamicResource Field}" o:Ui.CornerRadius="{StaticResource RadiusLg}" Margin="6,0,0,0" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Добавить: подписку, ключ, файл или QR" ToolTip="Добавить: подписку, ключ, файл или QR">
         <Path Data="{StaticResource IcoPlus}" Style="{StaticResource Icon}" Width="15" Height="15" StrokeThickness="2.4"/>
       </Button>
-      <Button x:Name="MeasureButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="38" Height="38" Background="{DynamicResource Field}" o:Ui.CornerRadius="{StaticResource RadiusLg}" Margin="6,0,0,0" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Обновить пинг" ToolTip="Обновить пинг: задержка через каждый сервер, работает и при подключении">
+      <Button x:Name="MeasureButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="38" Height="38" Background="{DynamicResource Field}" o:Ui.CornerRadius="{StaticResource RadiusLg}" Margin="6,0,0,0" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Обновить подписки и пинг" ToolTip="Обновить подписки и пинг: новые серверы из подписки, затем задержка через каждый">
         <Path Data="{StaticResource IcoRefresh}" Style="{StaticResource Icon}" Width="16" Height="16" StrokeThickness="2.2"/>
       </Button>
       <Button x:Name="RefreshButton" Visibility="Collapsed"/>

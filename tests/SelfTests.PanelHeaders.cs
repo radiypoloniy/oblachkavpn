@@ -22,9 +22,10 @@ public static partial class SelfTests
         }));
         await check("Update interval is taken from the panel within sane bounds", () => Sync(() =>
         {
-            // У проверенной подписки profile-update-interval равен 3 (дня).
-            Assert(SubscriptionMetadata.ParseUpdateInterval("3") == TimeSpan.FromDays(3));
-            Assert(SubscriptionMetadata.ParseUpdateInterval("0.5") == TimeSpan.FromHours(12));
+            // Часы, как у Happ: у подписки сервиса profile-update-interval равен 3 — раз в 3 часа.
+            Assert(SubscriptionMetadata.ParseUpdateInterval("3") == TimeSpan.FromHours(3));
+            Assert(SubscriptionMetadata.ParseUpdateInterval("168") == TimeSpan.FromDays(7) && SubscriptionMetadata.ParseUpdateInterval("169") is null);
+            Assert(SubscriptionMetadata.ParseUpdateInterval("0.5") == SubscriptionMetadata.MinUpdateInterval);
             // Слишком частое обновление поднимается до минимума, бессмысленное отбрасывается.
             Assert(SubscriptionMetadata.ParseUpdateInterval("0.001") == SubscriptionMetadata.MinUpdateInterval);
             Assert(SubscriptionMetadata.ParseUpdateInterval("0") is null);
