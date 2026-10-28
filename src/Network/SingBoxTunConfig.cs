@@ -1,5 +1,4 @@
-﻿using System.Net.Sockets;
-using System.Text.Json.Nodes;
+﻿using System.Text.Json.Nodes;
 
 namespace Oblachka;
 
@@ -35,12 +34,15 @@ public static class SingBoxTunConfig
         if (lease.Action != NetworkLeaseAction.Acquire) throw new UserError("TUN требует новую сетевую сессию.");
         // Куда идёт трафик «через VPN»: прямо на сервер через переключатель (одно ядро) или в ядро окна.
         var tunnel = lease.Direct is null ? "local-core" : ServerSelector;
-        // Мимо туннеля Windows сама шлёт адреса узлов и, с «Локальной сетью напрямую», частные подсети:
-        // принтер и NAS работают без ядра (как у Throne). Защита открывает их программам, кроме DNS
-        // и адресов узлов (WfpProtectionBackend). Подсеть самого туннеля внутри 172.16/12 остаётся
-        // в туннеле: её маршрут — подключённый, он точнее исключения.
-        var exclusions = new JsonArray(lease.Peers.Select(ip => ip + (ip.AddressFamily == AddressFamily.InterNetwork ? "/32" : "/128"))
-            .Concat(lease.LocalNetwork ? LocalSubnets : []).Select(s => (JsonNode?)JsonValue.Create(s)).ToArray());
+        // Адреса узлов из маршрутов не вырезаются: ядра сами выходят к серверу через физический
+        // интерфейс (auto_detect_interface здесь, PhysicalBinding у ядер окна). Вырезанный адрес
+        // ломал сайты на том же узле CDN, что и сервер: браузер шёл мимо туннеля и упирался в защиту
+        // (картинки ggsel.net на CDN Яндекса, 28.10.2026). Теперь программы ходят к нему через VPN.
+        // С «Локальной сетью напрямую» Windows сама шлёт мимо туннеля частные подсети: принтер и NAS
+        // работают без ядра (как у Throne). Защита открывает их программам, кроме DNS и адресов
+        // узлов (WfpProtectionBackend). Подсеть самого туннеля внутри 172.16/12 остаётся в туннеле:
+        // её маршрут — подключённый, он точнее исключения.
+        var exclusions = new JsonArray((lease.LocalNetwork ? LocalSubnets : []).Select(s => (JsonNode?)JsonValue.Create(s)).ToArray());
         var config = new JsonObject
         {
             ["log"] = new JsonObject { ["disabled"] = true },

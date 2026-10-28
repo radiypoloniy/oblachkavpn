@@ -21,6 +21,7 @@ public partial class MainWindow
         networkSettle.Tick += async (_, _) =>
         {
             networkSettle.Stop();
+            _ = FollowNetworkAsync();
             var before = currentNetwork?.Key;
             ReadNetwork();
             // «Выключил сам» не сбрасываем: Wi-Fi моргнул и вернулся в ту же сеть — VPN по-прежнему выключен.
@@ -123,6 +124,14 @@ public partial class MainWindow
         DetailText.Text = $"Сеть «{net.Name}»: {why} — включаем.";
         Notify(Notice.NetworkSecured, "VPN включается", $"Сеть «{net.Name}»: {why}.");
         await ConnectFreshAsync();
+    }
+
+    // Xray окна под «Весь компьютер» привязан к интерфейсу, который был при запуске (PhysicalBinding):
+    // сменился основной интерфейс — ядро перезапускается на том же сервере, туннель и защита остаются.
+    private async Task FollowNetworkAsync()
+    {
+        if (closed || operation is not null || systemTunnel is not { } session || !session.NetworkMoved()) return;
+        await ConnectCoreAsync();
     }
 
     private void RefreshNetworkRow()

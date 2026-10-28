@@ -29,6 +29,18 @@ public static partial class SelfTests
             Assert(calls.Take(4).SequenceEqual(new[] { "core:start", "helper:acquire", "helper:release", "core:stop" }));
             Assert(session.State == SystemTunnelState.Idle);
         });
+        await check("Network change restarts only a window Xray bound to the previous interface", async () =>
+        {
+            var calls = new List<string>(); var core = new SessionCore(calls); var helper = new SessionHelper(calls);
+            await using var session = new SystemTunnelSession(core, helper);
+            Assert(!session.NetworkMoved(() => "Ethernet"));
+            await session.StartAsync(new(Profiles.Parse(link), new[] { "192.0.2.1" }), CancellationToken.None);
+            // sing-box и ядро туннеля следят за сетью сами: привязки нет — перезапуск не нужен.
+            Assert(!session.NetworkMoved(() => "Ethernet"));
+            core.BoundInterface = "Wi-Fi";
+            Assert(!session.NetworkMoved(() => "wi-fi") && !session.NetworkMoved(() => null));
+            Assert(session.NetworkMoved(() => "Ethernet"));
+        });
         await check("Unconfirmed cleanup remains RecoveryRequired and still stops the core", async () =>
         {
             var calls = new List<string>(); var core = new SessionCore(calls); var helper = new SessionHelper(calls) { ReleaseState = NetworkSessionState.RecoveryRequired };
@@ -109,6 +121,7 @@ public static partial class SelfTests
         public ConnectionState State { get; private set; }
         public string CoreLabel => "fixture";
         public CoreStatsEntry? CarriedBy { get; set; }
+        public string? BoundInterface { get; set; }
         public event Action<ConnectionState, string>? Changed;
         public Task StartAsync(Profile profile, CancellationToken token)
         { calls.Add("core:start"); ProcessId = 42; State = ConnectionState.Running; Changed?.Invoke(State, "fixture"); return Task.CompletedTask; }

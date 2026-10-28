@@ -26,7 +26,8 @@ internal sealed class VmTunSession : IDisposable
         await CheckHashAsync(Path.Combine(AppContext.BaseDirectory, "tools", "libcronet.dll"),
             "3217C6260FBCA5F16072E0B79735742F40109A63BB0FF88FD6B96DD6B54A2928", token);
         status("Проверяем выбранный сервер…");
-        core = new Engine(executable, AppContext.BaseDirectory);
+        // Адрес сервера маршрутами мимо TUN не выводится: ядро само выходит через физический интерфейс.
+        core = new Engine(executable, AppContext.BaseDirectory) { Physical = true };
         await core.StartAsync(ticket.Profile, token);
         var probe = await core.ProbeAsync(new Uri("https://www.gstatic.com/generate_204"), token);
         if (!probe.Success) throw new UserError("Выбранный сервер не прошёл проверку SOCKS. Остановите проверку и выберите другой сервер в приложении.");

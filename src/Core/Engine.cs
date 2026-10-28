@@ -51,13 +51,16 @@ public sealed partial class Engine : ITunnelController
     public CompiledRouting? Routing { get; set; }
     // Локальный вход ядра туннеля для прямого трафика (только «Весь компьютер»).
     public CoreDirectEntry? DirectEntry { get; set; }
+    // «Весь компьютер»: к серверу — через физический интерфейс (PhysicalBinding); BoundInterface — интерфейс Xray, у sing-box null.
+    public bool Physical { get; set; }
+    public string? BoundInterface { get; private set; }
 
     public Task StartAsync(Profile profile, CancellationToken token)
     {
         if (process is not null || carrier is not null) throw new UserError("Сначала остановите текущее подключение.");
-        if (CarriedBy is { } carriedBy) return StartCarried(carriedBy);
+        if (CarriedBy is { } carriedBy) { BoundInterface = null; return StartCarried(carriedBy); }
         adapter = new(profile.Core, Path.Combine(Path.GetDirectoryName(adapter.Executable)!, CoreAdapter.FileFor(profile)));
-        var rules = SiteRules; var routing = Routing; var entry = DirectEntry;
+        var rules = SiteRules; var routing = Routing; var entry = DirectEntry; var physical = Physical;
         // Поправка «Подобрать лучшее»: пробная (Trial) или сохранённая для этого сервера.
         var tweak = Trial ?? ServerTweak.Lookup(profile);
         if (tweak is not null) profile = tweak.Apply(profile);
@@ -71,6 +74,7 @@ public sealed partial class Engine : ITunnelController
             var config = rules.Count == 0 && routing is null ? adapter.RuntimeConfig(profile.Outbound, port)
                 : RoutingPlan.Compile(adapter, profile, port, rules, routing, entry);
             if (fragment) TlsFragment.Apply(config, adapter.Kind, shape);
+            BoundInterface = physical ? PhysicalBinding.Apply(config, adapter.Kind) : null;
             return config;
         }, token);
     }

@@ -30,6 +30,12 @@ public static class DesignPreview
                 popup.SetResourceReference(System.Windows.Controls.Control.BackgroundProperty, "Page");
                 target = popup;
             }
+            if (page is "ruleset-servers" or "ruleset-servers-any")
+            {
+                popup = new Window { Width = 340, Height = 460, Content = main.RuleSetServersPreview(page.EndsWith("-any", StringComparison.Ordinal)) };
+                popup.SetResourceReference(System.Windows.Controls.Control.BackgroundProperty, "Page");
+                target = popup;
+            }
             if (page == "dialog")
             {
                 var field = new System.Windows.Controls.TextBox { Text = "https://sub.example.com/s/abc" + Environment.NewLine + "https://mirror.example.net/s/abc", Height = 90, Margin = new Thickness(0, 14, 0, 0) };

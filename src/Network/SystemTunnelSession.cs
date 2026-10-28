@@ -162,6 +162,13 @@ public sealed class SystemTunnelSession : IAsyncDisposable
         finally { operations.Release(); }
     }
 
+    // Сеть сменилась (Wi-Fi → кабель), а Xray окна привязан к прежнему интерфейсу (PhysicalBinding):
+    // сам он не переедет, ядро нужно перезапустить на тот же узел. sing-box и ядро туннеля следят
+    // за сетью сами. Без сети ждём следующей смены. physical — для проверок.
+    public bool NetworkMoved(Func<string?>? physical = null) =>
+        State == SystemTunnelState.Running && core.BoundInterface is { } bound &&
+        (physical ?? PhysicalNetwork.DefaultInterface)() is { } now && !string.Equals(now, bound, StringComparison.OrdinalIgnoreCase);
+
     // Выход ядра туннеля для узла: прямой, если он есть и сейчас допустим, иначе ядро окна.
     private string Choose(TunnelEndpointPlan plan)
     {

@@ -29,6 +29,7 @@ public partial class MainWindow
             core.Fragment = FragmentWanted; core.FragmentShape = advanced.Fragment(ProviderFragment is { Enabled: true } shape ? shape : null);
             // Списки у ядра туннеля (TunnelLists) — ядру окна под той же сессией они не нужны.
             core.Routing = TunnelListsActive ? null : CurrentRouting();
+            core.Physical = SystemTunnelWanted;
             coreZapretKey = DesiredZapretKey; appliedZapretDomains = ZapretRouting ? zapretDomains : [];
             // Новый вход прямого трафика — только на новую сессию «Весь компьютер»; перезапуск ядра
             // под действующей сессией сохраняет её вход.
