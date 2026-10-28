@@ -13,6 +13,9 @@ public partial class MainWindow
     private string? throughputNetwork;
 
     private static ITunnelController MeasureEngine() => new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), "");
+    // Ядро для замера по MeasureRoute: под «Весь компьютер» оно выходит к серверу через физический
+    // интерфейс (PhysicalBinding), иначе мерило бы сервер через туннель.
+    private ITunnelController RouteEngine() => new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), "") { Physical = systemTunnel is not null };
 
     // Чем замерять сервер: под «Весь компьютер» — его профилем с адресом, который защита
     // разрешила ядрам (иначе отдельное ядро упрётся в защиту и сервер «не ответит» за секунду);
@@ -46,12 +49,12 @@ public partial class MainWindow
                 if (!quiet) DetailText.Text = progress + " Можно остановить.";
                 RenderSheet(); RefreshHome();
             }
-            await ServerMeasurements.MeasureAsync(targets, MeasureEngine, result => Measured(result, $"Пинг: {++done} из {targets.Count - skipped}."), measureCancel.Token, MeasureRoute);
+            await ServerMeasurements.MeasureAsync(targets, RouteEngine, result => Measured(result, $"Пинг: {++done} из {targets.Count - skipped}."), measureCancel.Token, MeasureRoute);
             if (throughput)
             {
                 var fastest = ServerMeasurements.ThroughputTargets(targets, measurements, DateTimeOffset.UtcNow, runningProfile ?? profile);
                 var speedDone = 0;
-                await ServerMeasurements.MeasureAsync(fastest, MeasureEngine, result => Measured(result, $"Скорость лучших: {++speedDone} из {fastest.Count}."), measureCancel.Token, MeasureRoute, throughput: true);
+                await ServerMeasurements.MeasureAsync(fastest, RouteEngine, result => Measured(result, $"Скорость лучших: {++speedDone} из {fastest.Count}."), measureCancel.Token, MeasureRoute, throughput: true);
             }
             QueueStateSave();
             if (!quiet && !closed) DetailText.Text = "Пинг обновлён: задержка через каждый сервер." +

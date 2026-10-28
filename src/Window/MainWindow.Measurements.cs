@@ -31,7 +31,7 @@ public partial class MainWindow
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
             ServerMeasurement? result = null;
-            await ServerMeasurements.MeasureAsync(new[] { item }, MeasureEngine, measured => result = measured, timeout.Token, MeasureRoute);
+            await ServerMeasurements.MeasureAsync(new[] { item }, RouteEngine, measured => result = measured, timeout.Token, MeasureRoute);
             if (result is not null) { measurements[result.Fingerprint] = result; QueueStateSave(); }
             if (!closed) DetailText.Text = result is { Success: true } ? $"{item.DisplayName}: работает, {result.Milliseconds} мс." : $"{item.DisplayName}: не ответил.";
         }

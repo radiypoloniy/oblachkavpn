@@ -13,5 +13,7 @@ public interface ITunnelController : IDisposable
     // Трафик несёт ядро туннеля (одно ядро, DirectOutbound): процесс ядра окна не нужен, проверка
     // связи идёт через переключатель ядра туннеля. null — обычное ядро окна.
     CoreStatsEntry? CarriedBy { get => null; set { } }
+    // Физический интерфейс, к которому привязан работающий Xray (PhysicalBinding); null — следить не за чем.
+    string? BoundInterface => null;
     void Stop();
 }

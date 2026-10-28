@@ -75,7 +75,7 @@ public partial class MainWindow
     {
         if (server is null) return SitePath.Skip("не выбран сервер");
         if (MeasureRoute(server) is not { } route) return SitePath.Skip("адрес сервера закрыт защитой «Весь компьютер»");
-        using var core = MeasureEngine();
+        using var core = RouteEngine();
         try
         {
             await core.StartAsync(route, token);

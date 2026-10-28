@@ -63,7 +63,7 @@ public partial class MainWindow
     private async Task<ServerMeasurement> MeasureTrialAsync(Profile server, ServerTweak tweak, CancellationToken token)
     {
         ServerMeasurement? result = null;
-        await ServerMeasurements.MeasureAsync([server], () => new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), "") { Trial = tweak },
+        await ServerMeasurements.MeasureAsync([server], () => new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), "") { Trial = tweak, Physical = systemTunnel is not null },
             measured => result = measured, token, MeasureRoute, throughput: true);
         return result ?? new(Profiles.Fingerprint(server), DateTimeOffset.UtcNow, false, 0);
     }

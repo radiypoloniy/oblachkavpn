@@ -138,6 +138,24 @@ public static class PhysicalNetwork
     }
 
     public static bool IsGlobal(System.Net.IPAddress address) => (address.GetAddressBytes()[0] & 0xE0) == 0x20;
+
+    // Имя физического интерфейса, через который ядра выходят к серверу мимо туннеля, — тот же выбор,
+    // что у auto_detect_interface sing-box (sing-tun, monitor_windows): маршрут по умолчанию с
+    // наименьшей метрикой на поднятом интерфейсе, кроме виртуальных (наш wintun — тип 53) и loopback.
+    // null — сети нет.
+    public static string? DefaultInterface()
+    {
+        try
+        {
+            var interfaces = NetworkInterface.GetAllNetworkInterfaces()
+                .Where(n => n.OperationalStatus == OperationalStatus.Up && n.Supports(NetworkInterfaceComponent.IPv4) &&
+                    (int)n.NetworkInterfaceType is not (WfpProtectionBackend.TunnelInterfaceType or (int)NetworkInterfaceType.Loopback))
+                .ToDictionary(n => n.GetIPProperties().GetIPv4Properties().Index);
+            return WindowsNetworkProbe.RouteTable().Where(r => r.Dest == 0 && r.Mask == 0 && interfaces.ContainsKey((int)r.IfIndex))
+                .OrderBy(r => r.Metric1).Select(r => interfaces[(int)r.IfIndex].Name).FirstOrDefault();
+        }
+        catch (Exception ex) when (ex is NetworkInformationException or ArgumentException) { return null; }
+    }
 }
 
 public static class TunnelInterfaces

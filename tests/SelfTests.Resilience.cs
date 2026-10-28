@@ -64,6 +64,29 @@ public static partial class SelfTests
             var wg = RoutingPlan.Compile(singBox, Profiles.Parse(WgLink), 34603, new[] { RoutingPlan.Create("example.org", SiteAction.Direct) });
             await CoreConfigurationCheck.ValidateAsync(singBox, wg, CancellationToken.None);
         });
+        await check("Physical binding: Xray binds the socket that reaches the server (fragment chain included), sing-box detects itself, both cores accept it", async () =>
+        {
+            var tools = Path.Combine(AppContext.BaseDirectory, "tools");
+            var xray = new CoreAdapter(CoreKind.Xray, Path.Combine(tools, "xray.exe"));
+            JsonNode? Sockopt(JsonObject config, string tag) => config["outbounds"]!.AsArray().Single(o => o!["tag"]!.GetValue<string>() == tag)!["streamSettings"]?["sockopt"];
+            var plain = xray.RuntimeConfig(Node("203.0.113.41").Outbound, 34610);
+            Assert(PhysicalBinding.Apply(plain, CoreKind.Xray, () => "Ethernet") == "Ethernet");
+            Assert(Sockopt(plain, "tunnel")!["interface"]!.GetValue<string>() == "Ethernet");
+            await CoreConfigurationCheck.ValidateAsync(xray, plain, CancellationToken.None);
+            // «Обход DPI»: сокет открывает freedom из dialerProxy — привязан он, у выхода туннеля только цепочка.
+            var cut = xray.RuntimeConfig(Node("203.0.113.42").Outbound, 34611);
+            Assert(TlsFragment.Apply(cut, CoreKind.Xray) && PhysicalBinding.Apply(cut, CoreKind.Xray, () => "Wi-Fi") == "Wi-Fi");
+            Assert(Sockopt(cut, TlsFragment.XrayTag)!["interface"]!.GetValue<string>() == "Wi-Fi" && Sockopt(cut, "tunnel")!["interface"] is null);
+            await CoreConfigurationCheck.ValidateAsync(xray, cut, CancellationToken.None);
+            // Без сети привязать не к чему: запуск отказывает, а не гоняет трафик ядра через туннель.
+            ExpectUserError(() => PhysicalBinding.Apply(xray.RuntimeConfig(Node("203.0.113.43").Outbound, 34612), CoreKind.Xray, () => null));
+            var singBox = new CoreAdapter(CoreKind.SingBox, Path.Combine(tools, "sing-box.exe"));
+            var hy2 = RoutingPlan.Compile(singBox, Profiles.Parse(hy2Link), 34613, new[] { RoutingPlan.Create("example.org", SiteAction.Direct) },
+                directEntry: CoreDirectEntry.Create(34614));
+            Assert(PhysicalBinding.Apply(hy2, CoreKind.SingBox, () => throw new InvalidOperationException("sing-box picks the interface itself")) is null);
+            Assert(hy2["route"]!["auto_detect_interface"]!.GetValue<bool>());
+            await CoreConfigurationCheck.ValidateAsync(singBox, hy2, CancellationToken.None);
+        });
         await check("Resilience: route search follows ladder steps, switches handshake cutting per step and reports which one worked", async () =>
         {
             var started = new List<string>();

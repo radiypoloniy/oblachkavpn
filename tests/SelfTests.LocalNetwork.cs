@@ -37,9 +37,9 @@ public static partial class SelfTests
             var both = backend.Filters(new[] { IPAddress.Parse("203.0.113.7") }, direct: true, local: true);
             Assert(!both.Any(f => f.Conditions.Any(c => c.Program == backend.TunCoreProgram) && f.Conditions.Any(c => c.Kind == WfpConditionKind.RemoteSubnet)));
             Assert(!SingBoxTunConfig.Create(NetworkAcquire()).ToJsonString().Contains("ip_cidr"));
-            // Мимо туннеля: частные подсети — в исключениях маршрутов, вместе с адресами узлов.
+            // Мимо туннеля: только частные подсети. Адреса узлов в исключения не входят — ядра выходят к ним сами.
             var excluded = config["inbounds"]![0]!["route_exclude_address"]!.AsArray().Select(n => (string?)n).ToArray();
-            Assert(SingBoxTunConfig.LocalSubnets.All(excluded.Contains) && excluded.Any(e => e!.EndsWith("/32", StringComparison.Ordinal)));
+            Assert(excluded.Order().SequenceEqual(SingBoxTunConfig.LocalSubnets.Order()));
             Assert(!SingBoxTunConfig.Create(NetworkAcquire())["inbounds"]![0]!["route_exclude_address"]!.AsArray().Any(n => SingBoxTunConfig.LocalSubnets.Contains((string?)n)));
             // Защита открывает подсети всем программам, но раньше запрещает DNS мимо туннеля и чужим — адреса узлов.
             var peer = IPAddress.Parse("192.168.56.10");

@@ -135,10 +135,10 @@ public sealed class WindowsNetworkProbe : INetworkProbe
     [DllImport("kernel32.dll")] private static extern IntPtr GlobalFree(IntPtr memory);
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct ForwardRow { public uint Dest, Mask, Policy, NextHop, IfIndex, Type, Proto, Age, NextHopAs, Metric1, Metric2, Metric3, Metric4, Metric5; }
+    internal struct ForwardRow { public uint Dest, Mask, Policy, NextHop, IfIndex, Type, Proto, Age, NextHopAs, Metric1, Metric2, Metric3, Metric4, Metric5; }
     [DllImport("iphlpapi.dll")] private static extern int GetIpForwardTable(IntPtr table, ref int size, bool order);
 
-    private static IEnumerable<ForwardRow> RouteTable()
+    internal static IEnumerable<ForwardRow> RouteTable()
     {
         var size = 0;
         GetIpForwardTable(IntPtr.Zero, ref size, false);

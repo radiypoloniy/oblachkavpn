@@ -14,8 +14,10 @@ public static partial class SelfTests
             // Истёкшие адреса — сразу из кэша, обновление в фоне; кэш только в памяти, не на диске.
             Assert(config["dns"]!["optimistic"]!["enabled"]!.GetValue<bool>() && config["dns"]!["cache_capacity"]!.GetValue<int>() >= 4096);
             Assert(config["experimental"]?["cache_file"] is null);
-            var exclusions = config["inbounds"]![0]!["route_exclude_address"]!.AsArray().Select(n => n!.GetValue<string>()).ToArray();
-            Assert(exclusions.SequenceEqual(new[] { "192.0.2.1/32", "2001:db8::1/128" }));
+            // Адреса узлов не вырезаются из маршрутов: сайт на том же узле CDN, что и сервер, идёт через VPN,
+            // а ядра выходят к серверу сами, привязкой к физическому интерфейсу.
+            Assert(config["inbounds"]![0]!["route_exclude_address"]!.AsArray().Count == 0);
+            Assert(config["route"]!["auto_detect_interface"]!.GetValue<bool>());
             Assert(!config.ToJsonString().Contains("direct") && !config.ToJsonString().Contains("insecure"));
         });
         await check("TUN builder rejects release, broad exclusions and invalid loopback ports", () => Sync(() =>
