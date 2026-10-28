@@ -29,6 +29,9 @@ public static partial class SelfTests
             var old = Profiles.Parse(link); var rotated = Profiles.Parse(link.Replace("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"));
             Assert(ProfileSelection.Find([rotated with { Name = "Other" }, rotated], old) == 1);
             Assert(ProfileSelection.Find([rotated with { Name = "Other" }, rotated, rotated], old) == 0);
+            // Locate не подставляет первый сервер: «работающего сервера в списке нет» — это -1 (MainWindow.Import).
+            Assert(ProfileSelection.Locate([rotated with { Name = "Other" }, rotated], old) == 1);
+            Assert(ProfileSelection.Locate([rotated with { Name = "Other" }], old) == -1 && ProfileSelection.Locate([old with { Name = "Новое имя" }], old) == 0);
             var schedule = new SubscriptionSchedule(); var now = DateTimeOffset.UtcNow;
             schedule.Complete(now, true); Assert(!schedule.IsDue(now.AddHours(5)) && schedule.IsDue(now.AddHours(6)));
             schedule.Complete(now, false); Assert(!schedule.IsDue(now.AddMinutes(4)) && schedule.IsDue(now.AddMinutes(5)));
