@@ -1,0 +1,372 @@
+---
+name: flaui-tests
+description: "Use when a Windows desktop app needs UI tests from C# or .NET with in-process UI Automation calls: FlaUI UIA2 and UIA3 packages, launching or attaching to the app, ConditionFactory locators, Retry waits and xUnit, NUnit or MSTest. For the WebDriver protocol use winappdriver."
+type: prompt
+disableModelInvocation: true
+whenToUse: Manually invoke for authoring or reviewing FlaUI desktop UI tests; do not load for ordinary WPF feature work
+metadata:
+  keywords: "flaui, uia, dotnet, windows, wpf, winforms"
+  version: "1.2.21"
+---
+
+# flaui-tests
+
+## Overview
+
+[flaui]: https://github.com/FlaUI/FlaUI
+
+FlaUI is a .NET library for automated UI testing of Windows applications
+([flaui][flaui]) that wraps Microsoft UI Automation (UIA) - the Windows
+accessibility tree covered in `desktop-test-strategy-reference` - behind an
+idiomatic C# API. It supports "Win32, WinForms, WPF, and Store Apps" via two
+bindings: **UIA2** (managed `System.Windows.Automation`,
+[Microsoft Learn - UI Automation Overview][msuia2]) and **UIA3** (COM interop).
+v5.0.0 released February 2025; MIT-licensed and actively maintained
+([flaui][flaui]).
+
+[msuia2]: https://learn.microsoft.com/dotnet/framework/ui-automation/ui-automation-overview
+
+### Disambiguation - FlaUI vs winappdriver
+
+FlaUI is a **.NET library** that links into the test process and
+calls UIA directly. By contrast, `winappdriver` is an
+**HTTP/JSON service** that exposes a W3C-WebDriver endpoint on
+`127.0.0.1:4723`; tests speak Selenium-style protocol over the wire,
+the driver is language-agnostic, and it can be invoked either
+directly or through the Appium 2.x wrapper (gestures / multi-window
+helpers / PowerShell hooks - both paths in that skill).
+
+Pick FlaUI when the test stack is already C# / .NET-first and you
+want in-process UIA calls without an HTTP hop. Pick `winappdriver`
+when you need a Selenium client in another language or the Appium
+feature surface.
+
+## When to use
+
+- Test code lives in a C# / .NET project alongside the application
+  (a `dotnet test` solution).
+- Application under test is WPF, WinForms, Win32, or a Windows Store
+  app - the four classes FlaUI documents support for ([flaui][flaui]).
+- The team prefers strongly-typed control wrappers (`AsButton()`,
+  `AsTextBox()`) over WebDriver's stringly-typed locators.
+- No HTTP wire protocol required between test and driver
+  (in-process testing minimises a moving part).
+
+For cross-language test stacks (Java / Python / Ruby clients), use
+`winappdriver` instead.
+
+## Authoring
+
+### NuGet packages
+
+Per [flaui][flaui], three packages cover the surface:
+
+| Package | Purpose |
+|---|---|
+| `FlaUI.Core` | Base library - element abstractions, `Application`, `ConditionFactory`, `Retry`, control patterns |
+| `FlaUI.UIA3` | COM-based UIA binding - recommended for WPF and Store Apps ([flaui][flaui]) |
+| `FlaUI.UIA2` | Managed UIA binding using `System.Windows.Automation` ([msuia2][msuia2]) - better legacy WinForms compatibility ([flaui][flaui]) |
+
+Reference both `FlaUI.Core` and one of UIA2 / UIA3 from the test
+project. Mixed-mode authoring (UIA2 and UIA3 in the same process) is
+unsupported - see [FlaUInspect][flauinspect] which requires the
+inspector mode to be picked at startup.
+
+[flauinspect]: https://github.com/FlaUI/FlaUInspect
+
+### Launching the application under test
+
+Per the [FlaUI wiki - Application page][flauiapp]:
+
+[flauiapp]: https://github.com/FlaUI/FlaUI/wiki/Application
+
+```csharp
+using FlaUI.Core;
+using FlaUI.UIA3;
+
+// Launch a fresh process
+var app = Application.Launch(@"C:\Path\To\MyApp.exe");
+
+// Attach to an already-running process by name or PID
+var existing = Application.Attach("MyApp");
+
+// Best-effort: attach if running, launch otherwise
+var aol = Application.AttachOrLaunch(new ProcessStartInfo(@"C:\Path\To\MyApp.exe"));
+
+// For a Windows Store app, pass the AUMID
+var store = Application.LaunchStoreApp("Microsoft.WindowsCalculator_8wekyb3d8bbwe!App");
+
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+```
+
+Per [flauiapp][flauiapp]: "When the application object is disposed,
+the application itself is closed as well." Pair the `Application`
+lifecycle with the test harness's fixture scope so child processes
+are cleaned up after each test class.
+
+### Finding elements with ConditionFactory
+
+The lambda form is the shortest and is the upstream convention
+([flauisearch][flauisearch]):
+
+[flauisearch]: https://github.com/FlaUI/FlaUI/wiki/Searching
+
+```csharp
+var loginButton = window.FindFirstDescendant(cf => cf.ByAutomationId("LoginButton"));
+```
+
+Prefer `ByAutomationId` (developer-set, locale- and theme-independent per
+[msuia2][msuia2]); fall back to `ByControlType` + a nested condition, then
+`ByName` as a last resort. The equivalent `ConditionFactory` / `PropertyCondition`
+forms, the `FindFirst*` / `FindAll*` families, and the full condition-constructor
+list are in [references/flaui-api.md](references/flaui-api.md).
+
+### Interacting with elements
+
+Per [flaui][flaui]:
+
+```csharp
+// Strongly-typed wrappers
+var button = window.FindFirstDescendant(cf => cf.ByAutomationId("Submit")).AsButton();
+button.Invoke();
+
+var textbox = window.FindFirstDescendant(cf => cf.ByAutomationId("Username")).AsTextBox();
+textbox.Enter("alice@example.com");
+
+var listbox = window.FindFirstDescendant(cf => cf.ByControlType(ControlType.List)).AsListBox();
+listbox.Select(2);
+```
+
+`AsButton().Invoke()` calls the UIA `InvokePattern` on the element - 
+the accessibility-canonical "press" action, distinct from a synthetic
+mouse click ([msuia2][msuia2] §Control Patterns).
+
+### Waits with the Retry class
+
+Before v2.0.0 some `Find` methods auto-retried; that responsibility now falls to
+the caller ([flauiretry][flauiretry]):
+
+[flauiretry]: https://github.com/FlaUI/FlaUI/wiki/Retry
+
+```csharp
+// Wait until the element appears
+var found = Retry.WhileNull(
+    () => window.FindFirstDescendant(cf => cf.ByAutomationId("StatusLabel")),
+    timeout: TimeSpan.FromSeconds(10),
+    interval: TimeSpan.FromMilliseconds(200),
+    throwOnTimeout: true,
+    ignoreException: true).Result;
+
+// Wait until the element disappears
+Retry.WhileTrue(
+    () => window.FindFirstDescendant(cf => cf.ByAutomationId("Spinner")) is not null,
+    timeout: TimeSpan.FromSeconds(30));
+```
+
+`Retry.WhileNull` / `Retry.WhileTrue` / `Retry.WhileFalse` /
+`Retry.WhileException` are the four variants ([flauiretry][flauiretry]).
+Each returns a `RetryResult` carrying iteration count, duration, and
+the last value - the test can assert on those metrics when
+diagnosing slow-loading screens.
+
+### Waits with Application.WaitWhileBusy
+
+`WaitWhileBusy` blocks while the target process is busy; a null timeout means
+infinite, and it returns true if the application went idle
+([flauiappsrc][flauiappsrc]):
+
+[flauiappsrc]: https://github.com/FlaUI/FlaUI/blob/master/src/FlaUI.Core/Application.cs
+
+```csharp
+public bool WaitWhileBusy(TimeSpan? waitTimeout = null)
+```
+
+Use it after a launch or a window-level action (menu open, modal
+dismiss, dialog confirm) before driving the next element - it blocks
+on the Win32 message-pump-idle signal of the target process. Pair
+with `WaitWhileMainHandleIsMissing` right after `Launch` so the test
+doesn't race the splash screen:
+
+```csharp
+var app = Application.Launch(@"C:\Path\To\InvoiceApp.exe");
+app.WaitWhileMainHandleIsMissing(TimeSpan.FromSeconds(10));
+app.WaitWhileBusy(TimeSpan.FromSeconds(10));
+
+var window = app.GetMainWindow(automation);
+window.FindFirstDescendant(cf => cf.ByAutomationId("Save")).AsButton().Invoke();
+app.WaitWhileBusy(TimeSpan.FromSeconds(5)); // wait for save handler
+```
+
+`Retry.*` waits on *element-level* conditions (descendant appears /
+disappears / matches a predicate); `WaitWhileBusy` waits on the
+*process-level* idle signal. Both belong in the same test - pick by
+what you can actually observe.
+
+## Running
+
+### Test framework integration
+
+FlaUI integrates with any .NET test runner - xUnit, NUnit, MSTest:
+
+```csharp
+// xUnit collection fixture for one-time app launch per test class
+public class LoginAppFixture : IDisposable
+{
+    public Application App { get; }
+    public UIA3Automation Automation { get; }
+    public LoginAppFixture()
+    {
+        App = Application.Launch(@"C:\Path\To\LoginApp.exe");
+        Automation = new UIA3Automation();
+    }
+    public void Dispose()
+    {
+        Automation.Dispose();
+        App.Close();
+        App.Dispose();
+    }
+}
+
+public class LoginTests : IClassFixture<LoginAppFixture>
+{
+    private readonly LoginAppFixture _fx;
+    public LoginTests(LoginAppFixture fx) => _fx = fx;
+
+    [Fact]
+    public void Logs_in_with_valid_credentials()
+    {
+        var window = _fx.App.GetMainWindow(_fx.Automation);
+        window.FindFirstDescendant(cf => cf.ByAutomationId("User")).AsTextBox().Enter("alice");
+        window.FindFirstDescendant(cf => cf.ByAutomationId("Pass")).AsTextBox().Enter("secret");
+        window.FindFirstDescendant(cf => cf.ByAutomationId("Login")).AsButton().Invoke();
+        Assert.NotNull(window.FindFirstDescendant(cf => cf.ByAutomationId("Welcome")));
+    }
+}
+```
+
+For per-test app launch (slower but isolates state), put `Launch` /
+`Close` in the test method itself; for per-class launch (faster but
+shared state), use `IClassFixture` (xUnit) / `[OneTimeSetUp]` (NUnit)
+/ `[ClassInitialize]` (MSTest). Pair authoring conventions with
+`dotnet-unit-tests` (in the qa-unit-tests-net plugin) for the
+matching harness idioms.
+
+### STA threading
+
+UIA3 (COM interop) requires an STA thread ([msuia2][msuia2]); xUnit defaults to
+MTA, so set the apartment via the runner attribute:
+
+```csharp
+// xUnit - install Xunit.StaFact and use [StaFact]
+[StaFact]
+public void Fact_running_on_sta_thread() { /* ... */ }
+
+// NUnit - use [Apartment]
+[Test, Apartment(ApartmentState.STA)]
+public void Test_running_on_sta_thread() { /* ... */ }
+
+// MSTest - STA is default; no attribute needed for sync tests
+```
+
+UIA2 (managed) is more permissive, but keeping all UIA work on STA makes
+threading bugs easier to debug.
+
+### `dotnet test` invocation
+
+```cmd
+:: Build + run
+dotnet test --logger "trx;LogFileName=results.trx"
+
+:: With a filter on the FlaUI smoke suite
+dotnet test --filter "Category=Smoke" --logger "trx;LogFileName=smoke.trx"
+```
+
+Verify: run the suite and confirm it launches the app and passes. If a test
+fails with a `NullReference` or `Retry` timeout, the locator or wait is wrong -
+open [FlaUInspect][flauinspect] to recheck the `AutomationId`, fix the
+`FindFirstDescendant` / `Retry` call, then re-run before adding more cases.
+
+## Parsing results
+
+xUnit / NUnit / MSTest emit standard TRX / JUnit XML output via the
+test logger flag. Pair with
+`junit-xml-analysis` (in the qa-test-reporting plugin)
+for cross-runner aggregation.
+
+For interactive selector discovery during authoring, use
+[FlaUInspect][flauinspect] - per its README it is "based on FlaUI"
+and presents the UIA tree with AutomationId, Name, ControlType, and
+XPath fields. Pre-built `FlaUInspect.UIA2` and `FlaUInspect.UIA3`
+binaries are downloadable from the releases page; pick the build
+matching the UIA mode used by the test project.
+
+## CI integration
+
+Windows runner required (UIA is Windows-only per [msuia2][msuia2]); use
+`windows-latest` for an interactive desktop, since UIA cannot drive Session-0.
+Full `windows-latest` workflow:
+[references/flaui-api.md](references/flaui-api.md).
+
+### UIA2 vs UIA3 selection
+
+Per [flaui][flaui]:
+
+| Choose | When |
+|---|---|
+| **UIA3** | WPF / Store Apps / new code - COM-based, fewer compatibility gaps with modern controls |
+| **UIA2** | Legacy WinForms / older Win32 - managed `System.Windows.Automation` ([msuia2][msuia2]) handles some legacy controls UIA3 misses |
+
+For new projects, UIA3 is the default recommendation
+([flaui][flaui]). UIA2 remains supported as a peer binding; FlaUI
+itself ships both packages.
+
+## Anti-patterns
+
+| Anti-pattern | Why it fails | Fix |
+|---|---|---|
+| `Thread.Sleep(2000)` between actions | Test runtime balloons; still flaky on slow CI | Use `Retry.WhileNull` / `Retry.WhileTrue` with explicit timeout per [flauiretry][flauiretry] |
+| `FindFirstByXPath("//Button[@Name='Save']")` | Brittle to UI tree restructuring | Use `ByAutomationId` first; XPath only as last resort per [flauisearch][flauisearch] |
+| Finding solely by visible Name (`ByName`) | Localised apps fail across languages | `AutomationId` is locale-independent per [msuia2][msuia2] |
+| Sharing one `Application` across all test classes | UI state leaks between tests; one slow test halts the rest | Use one fixture per class (xUnit `IClassFixture`) |
+| Forgetting `app.Dispose()` / `automation.Dispose()` | Orphaned processes accumulate on CI runner | `using` declaration or `IDisposable` fixture |
+| Mouse-coordinate clicks (`Mouse.Click(x, y)`) | DPI / multi-monitor / theme changes break | Resolve element via UIA, call `Invoke()` |
+| Asserting on raw bitmap screenshots | Brittle to font / theme / DPI | UIA tree is the assertion surface; screenshots only for canvas-rendered surfaces |
+| Mixing UIA2 and UIA3 in one process | Unsupported per [FlaUInspect][flauinspect] inspector constraint | Pick one binding per test project |
+
+## Limitations
+
+- **Windows-only.** UIA is a Windows-specific API per [msuia2][msuia2].
+  No macOS / Linux equivalent - for those OSes see the
+  `desktop-test-strategy-reference` matrix (XCTest via qa-mobile's
+  `xcuitest-suite`; AT-SPI on Linux).
+- **Requires an interactive desktop session.** UIA cannot drive
+  Session-0 / headless Windows containers. `windows-latest` GitHub
+  runners are interactive by default; self-hosted containers need
+  Auto-Login + an unlocked desktop.
+- **UIA2 vs UIA3 picked once per process.** Mixed-mode authoring is
+  unsupported ([flauinspect][flauinspect]). New code should prefer
+  UIA3 ([flaui][flaui]); UIA2 is retained for legacy WinForms
+  compatibility but no hard deprecation date is published - pin the
+  decision per project.
+- **GPU / DirectComposition surfaces.** Some WPF + WinUI 3 controls
+  rendered via DirectX may not expose a UIA tree. Inspect with
+  [FlaUInspect][flauinspect]; fall back to image matching for those
+  surfaces.
+- **App must publish UIA.** Custom-painted Win32 windows that don't
+  implement `IRawElementProviderSimple` are opaque to FlaUI (and to
+  every other UIA-backed driver). Add UIA support in the application
+  or fall back to image matching for those screens.
+
+## References
+
+- FlaUI repository (README) - [flaui][flaui].
+- FlaUI wiki - [Application][flauiapp], [Searching][flauisearch],
+  [Retry][flauiretry].
+- FlaUInspect inspector tool - [flauinspect][flauinspect].
+- Microsoft Learn - UI Automation Overview - [msuia2][msuia2].
+- Sibling skills:
+  `winappdriver`,
+  `desktop-test-strategy-reference`.
+- Composing harness:
+  `dotnet-unit-tests` (qa-unit-tests-net).
