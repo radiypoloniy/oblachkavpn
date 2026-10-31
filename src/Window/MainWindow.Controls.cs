@@ -67,6 +67,7 @@ public partial class MainWindow
         WireQr();
         WireDoctor();
         WireSiteCheck();
+        WireAnalytics();
         WireUpdates();
         WireDpi();
         WireZapret();

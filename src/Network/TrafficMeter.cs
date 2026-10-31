@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Net.Http;
 using System.Text.Json.Nodes;
 
@@ -13,15 +13,17 @@ public sealed class TrafficMeter : IDisposable
     private static readonly HttpClient Http = new(new SocketsHttpHandler { UseProxy = false, ConnectTimeout = TimeSpan.FromSeconds(1) })
         { Timeout = Timeout.InfiniteTimeSpan };
     private readonly CancellationTokenSource stop = new();
-    private long up, down, total, lastTicks;
+    private long up, down, totalUp, totalDown, lastTicks;
 
     public TrafficMeter(CoreStatsEntry entry) => _ = RunAsync(entry, stop.Token);
 
     // Байт в секунду за последнюю секунду; 0 — ядро молчит дольше трёх секунд.
     public long Up => Fresh ? Interlocked.Read(ref up) : 0;
     public long Down => Fresh ? Interlocked.Read(ref down) : 0;
-    // Байт в обе стороны с начала сессии.
-    public long Total => Interlocked.Read(ref total);
+    // Байты с начала сессии, раздельно для истории и вместе для прежнего счётчика.
+    public long TotalUp => Interlocked.Read(ref totalUp);
+    public long TotalDown => Interlocked.Read(ref totalDown);
+    public long Total => TotalUp + TotalDown;
     public bool Fresh => DateTime.UtcNow.Ticks - Interlocked.Read(ref lastTicks) < TimeSpan.TicksPerSecond * 3;
 
     private async Task RunAsync(CoreStatsEntry entry, CancellationToken token)
@@ -50,7 +52,7 @@ public sealed class TrafficMeter : IDisposable
     internal void Record(long u, long d)
     {
         Interlocked.Exchange(ref up, u); Interlocked.Exchange(ref down, d);
-        Interlocked.Add(ref total, u + d);
+        Interlocked.Add(ref totalUp, u); Interlocked.Add(ref totalDown, d);
         Interlocked.Exchange(ref lastTicks, DateTime.UtcNow.Ticks);
     }
 

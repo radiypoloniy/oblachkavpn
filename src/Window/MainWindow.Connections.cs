@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
 using Oblachka.Views;
@@ -42,8 +42,8 @@ public partial class MainWindow
     private void ShowLiveSection()
     {
         Settings.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed; Servers.Visibility = Visibility.Collapsed; RulesPage.Visibility = Visibility.Collapsed;
-        Doctor.Visibility = Visibility.Collapsed; SiteCheck.Visibility = Visibility.Collapsed;
-        if (currentPage is "Routes" or "Diagnostics" or "Servers") currentPage = "Connection";
+        Doctor.Visibility = Visibility.Collapsed; SiteCheck.Visibility = Visibility.Collapsed; Analytics.Visibility = Visibility.Collapsed;
+        if (currentPage is "Routes" or "Diagnostics" or "Servers" or "Analytics") currentPage = "Connection";
         OpenConnections(focus: true);
         OpenSection();
     }
@@ -96,7 +96,7 @@ public partial class MainWindow
             // «Весь компьютер»: куда ушло соединение, знает только ядро туннеля — по таблицам Windows
             // любое соединение открыто с адреса туннеля, даже по правилу «напрямую».
             var core = tunnel && systemTunnel?.Stats is { } stats ? await CoreConnections.ReadAsync(stats, CancellationToken.None) : null;
-            if (core is not null) programJournal.Record(core, DateTime.UtcNow);
+            if (core is not null) RecordCoreConnections(core);
             var apps = core is not null ? LiveApps.FromCore(core, Own, liveSpeed.Measure(core, DateTime.UtcNow))
                 : await Task.Run(() => LiveApps.Group(ConnectionTable.Read(), tunnel, proxy, LivePath, Own));
             if (closed) return;

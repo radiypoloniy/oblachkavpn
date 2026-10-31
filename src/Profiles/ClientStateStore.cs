@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -106,6 +106,8 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     // Тот же день по часам (0.20): 24 числа, байты; для столбиков в карточке «сегодня».
     public long[]? TrafficHours { get; init; }
     public long TrafficBytes { get; init; }
+    // Аналитика: до 30 суток, раздельные направления и программы. Необязательно у старых снимков.
+    public TrafficDayStats[]? TrafficHistory { get; init; }
     // Ctrl+Alt+O показывает окно (0.19). По умолчанию включено.
     public bool Hotkey { get; init; } = true;
 }
@@ -235,6 +237,8 @@ public sealed class ClientStateStore(string path)
         if (snapshot.ServiceHosts is { } hosts && (hosts.Length > ServiceBrand.MaxLearnedHosts ||
             hosts.Any(h => h is not { Length: > 0 and <= 253 } || Uri.CheckHostName(h) != UriHostNameType.Dns)))
             throw new UserError("Сохранённые адреса сервиса повреждены.");
+        if (snapshot.TrafficHistory is { } history && !Oblachka.TrafficHistory.Valid(history))
+            throw new UserError("Сохранённая история трафика повреждена.");
         foreach (var info in (snapshot.Groups ?? Array.Empty<ProfileGroup>()).Select(g => g?.Metadata).Append(snapshot.Metadata))
             if (info is not null) SubscriptionMetadata.Validate(info);
     }

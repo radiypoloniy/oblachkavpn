@@ -1,0 +1,123 @@
+<UserControl x:Class="Oblachka.Views.AnalyticsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="clr-namespace:Oblachka.Views" xmlns:o="clr-namespace:Oblachka" FontFamily="{StaticResource UiFont}" Foreground="{DynamicResource Tx}" Background="{DynamicResource Bg}">
+  <!-- Локальная статистика системного туннеля. Все карточки находятся в прокрутке; нижняя пара
+       складывается в одну колонку на узком острове (Fit), поэтому содержимое не обрезается. -->
+  <UserControl.Resources>
+    <DataTemplate DataType="{x:Type v:AnalyticsProgramRow}">
+      <Grid MinHeight="52" Margin="0,1">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <Border Width="32" Height="32" CornerRadius="{StaticResource RadiusSm}" Background="{DynamicResource Field}" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Initial}" FontSize="{StaticResource FsRow}" FontWeight="SemiBold" Foreground="{DynamicResource Mu2}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+        <StackPanel Grid.Column="1" Margin="10,0,12,0" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsRow}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+          <TextBlock Text="{Binding Detail}" Style="{StaticResource Small}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+        </StackPanel>
+        <TextBlock Grid.Column="2" Text="{Binding Total}" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+      </Grid>
+    </DataTemplate>
+  </UserControl.Resources>
+  <Grid>
+    <Grid.RowDefinitions><RowDefinition Height="72"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+    <DockPanel Margin="10,0,20,0">
+      <Button x:Name="ExportButton" DockPanel.Dock="Right" Content="Экспорт CSV" Style="{StaticResource BtnSecondary}" Height="36" Padding="14,0" FontSize="{StaticResource FsNote}" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Экспорт аналитики в CSV"/>
+      <Button x:Name="BackButton" Style="{StaticResource IconButton}" Foreground="{DynamicResource Tx}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Назад">
+        <Path Data="{StaticResource IcoBack}" Style="{StaticResource Icon}" StrokeThickness="2.2"/>
+      </Button>
+      <TextBlock Text="Аналитика" Style="{StaticResource PageHead}" Margin="10,0,12,0" VerticalAlignment="Center"/>
+    </DockPanel>
+
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+      <StackPanel Margin="24,0,24,20">
+        <DockPanel>
+          <TextBlock x:Name="ReportCaption" DockPanel.Dock="Right" Text="Сегодня" Style="{StaticResource Caption}" VerticalAlignment="Center"/>
+          <ListBox x:Name="Periods" ItemContainerStyle="{StaticResource ChipItem}" Background="Transparent" BorderThickness="0" Padding="0" SelectedIndex="0" AutomationProperties.Name="Период аналитики">
+            <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ListBox.ItemsPanel>
+            <ListBox.Template><ControlTemplate TargetType="ListBox"><ItemsPresenter/></ControlTemplate></ListBox.Template>
+            <sys:String xmlns:sys="clr-namespace:System;assembly=System.Runtime">День</sys:String>
+            <sys:String xmlns:sys="clr-namespace:System;assembly=System.Runtime">Неделя</sys:String>
+            <sys:String xmlns:sys="clr-namespace:System;assembly=System.Runtime">Месяц</sys:String>
+          </ListBox>
+        </DockPanel>
+        <TextBlock Text="VPN и правила «напрямую» в системном режиме. Локальная сеть не учитывается. История хранится только на этом компьютере." Style="{StaticResource Small}" Margin="2,8,0,14"/>
+
+        <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <Border Style="{StaticResource Plate}" Margin="0,0,5,0" MinHeight="88">
+            <StackPanel VerticalAlignment="Center"><TextBlock Text="Всего" Style="{StaticResource Caption}"/><TextBlock x:Name="TotalText" Text="0 КБ" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FsTitle}" FontWeight="Bold" TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/></StackPanel>
+          </Border>
+          <Border Grid.Column="1" Style="{StaticResource Plate}" Margin="5,0" MinHeight="88">
+            <StackPanel VerticalAlignment="Center"><TextBlock Text="Получено" Style="{StaticResource Caption}"/><TextBlock x:Name="DownloadText" Text="0 КБ" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FsTitle}" FontWeight="Bold" TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/></StackPanel>
+          </Border>
+          <Border Grid.Column="2" Style="{StaticResource Plate}" Margin="5,0,0,0" MinHeight="88">
+            <StackPanel VerticalAlignment="Center"><TextBlock Text="Отправлено" Style="{StaticResource Caption}"/><TextBlock x:Name="UploadText" Text="0 КБ" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FsTitle}" FontWeight="Bold" TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/></StackPanel>
+          </Border>
+        </Grid>
+
+        <Border Style="{StaticResource Plate}" Margin="0,12,0,0" Padding="16,14,16,10">
+          <StackPanel>
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <Ellipse Width="7" Height="7" Fill="{DynamicResource RouteVpn}" Margin="0,0,5,0"/><TextBlock Text="получено" Style="{StaticResource Small}" TextWrapping="NoWrap" Margin="0,0,10,0"/>
+                <Ellipse Width="7" Height="7" Fill="{DynamicResource Sun}"/><TextBlock Text="отправлено" Style="{StaticResource Small}" TextWrapping="NoWrap" Margin="5,0,0,0"/>
+              </StackPanel>
+              <TextBlock Text="Трафик" FontSize="{StaticResource FsRowLarge}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </DockPanel>
+            <Grid Margin="0,14,0,0" Height="176">
+              <v:TrafficChart x:Name="Chart" UploadBrush="{DynamicResource Sun}" DownloadBrush="{DynamicResource RouteVpn}" GridBrush="{DynamicResource Divider}"/>
+              <TextBlock x:Name="ChartEmpty" Text="Пока нет данных за этот период" Style="{StaticResource Small}" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" IsHitTestVisible="False"/>
+            </Grid>
+            <Grid x:Name="AxisLabels" Height="22" Margin="0,3,0,0"/>
+          </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Plate}" Margin="0,12,0,0">
+          <StackPanel>
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center">
+                <TextBlock x:Name="ServerText" Text="Сервер не выбран" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" TextAlignment="Right" MaxWidth="250"/>
+              </StackPanel>
+              <TextBlock Text="Скорость сейчас" FontSize="{StaticResource FsRowLarge}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </DockPanel>
+            <Grid Margin="0,12,0,0">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <StackPanel><TextBlock Text="↓ получение" Style="{StaticResource Caption}"/><TextBlock x:Name="CurrentDown" Text="0 КБ/с" FontSize="{StaticResource FsLead}" FontWeight="SemiBold" Margin="0,3,8,0" TextTrimming="CharacterEllipsis"/></StackPanel>
+              <StackPanel Grid.Column="1"><TextBlock Text="↑ отправка" Style="{StaticResource Caption}"/><TextBlock x:Name="CurrentUp" Text="0 КБ/с" FontSize="{StaticResource FsLead}" FontWeight="SemiBold" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/></StackPanel>
+            </Grid>
+            <v:TrafficChart x:Name="SpeedChart" Line="True" Height="82" Margin="0,12,0,0" UploadBrush="{DynamicResource Sun}" DownloadBrush="{DynamicResource RouteVpn}" GridBrush="{DynamicResource Divider}"/>
+            <TextBlock Text="Средняя скорость по минутам за последний час" Style="{StaticResource Small}" Margin="0,5,0,0"/>
+          </StackPanel>
+        </Border>
+
+        <Grid x:Name="LowerGrid" Margin="0,12,0,0">
+          <Grid.ColumnDefinitions><ColumnDefinition x:Name="ProgramsColumn" Width="*"/><ColumnDefinition x:Name="PlanColumn" Width="*"/></Grid.ColumnDefinitions>
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <Border x:Name="ProgramsCard" Style="{StaticResource Plate}" Margin="0,0,5,0">
+            <StackPanel>
+              <TextBlock Text="Программы" FontSize="{StaticResource FsRowLarge}" FontWeight="SemiBold"/>
+              <TextBlock Text="Наибольший трафик за выбранный период" Style="{StaticResource Small}" Margin="0,3,0,8"/>
+              <ItemsControl x:Name="ProgramList" Focusable="False"/>
+              <TextBlock x:Name="ProgramsEmpty" Text="Данные появятся после подключения в режиме «Весь компьютер»." Style="{StaticResource Small}" Margin="0,10,0,4"/>
+            </StackPanel>
+          </Border>
+          <Border x:Name="PlanCard" Grid.Column="1" Style="{StaticResource Plate}" Margin="5,0,0,0">
+            <StackPanel>
+              <TextBlock Text="Подписка" FontSize="{StaticResource FsRowLarge}" FontWeight="SemiBold"/>
+              <TextBlock x:Name="PlanText" Text="Нет данных о подписке" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,14,0,0"/>
+              <TextBlock x:Name="PlanRemaining" Style="{StaticResource Small}" Margin="0,5,0,0"/>
+              <v:PixelBars x:Name="PlanBars" Kind="Segments" Count="6" Height="12" Margin="0,16,0,0" Fill="{DynamicResource RouteVpn}" Empty="{DynamicResource Lilac}"/>
+              <TextBlock Text="Сведения приходят из подписки и не зависят от локальной истории." Style="{StaticResource Small}" Margin="0,14,0,0"/>
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <Border Margin="0,12,0,0" BorderBrush="{DynamicResource Divider}" BorderThickness="0,1.5,0,0" Padding="0,12,0,0">
+          <DockPanel>
+            <Button x:Name="ResetButton" DockPanel.Dock="Right" Content="Сбросить статистику" Style="{StaticResource BtnGhost}" Foreground="{DynamicResource RF}" FontSize="{StaticResource FsNote}" VerticalAlignment="Center" AutomationProperties.Name="Сбросить статистику трафика"/>
+            <TextBlock Text="Можно удалить историю трафика и программ. Настройки VPN и подписка останутся." Style="{StaticResource Small}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+          </DockPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

@@ -1,4 +1,6 @@
-﻿namespace Oblachka;
+using System.Windows;
+
+namespace Oblachka;
 
 // Скорость и трафик за день в «Весь компьютер» (TrafficMeter): скорость — в строке под статусом и в
 // трее, трафик за день — в подсказке к строке. В «Браузеры и программы» у ядра окна такого
@@ -7,20 +9,29 @@ public partial class MainWindow
 {
     private TrafficMeter? meter;
     private CoreStatsEntry? meterEntry;
-    private long meterCounted, trafficSavedBytes;
+    private long meterCountedUp, meterCountedDown, trafficSavedBytes;
     private string trafficDay = "";
     private long trafficToday;
     private DateTime trafficSavedAt;
+    private readonly TrafficHistory trafficHistory = new();
+    private readonly ProgramTrafficHistory programTraffic = new();
+    private readonly SpeedHistory speedHistory = new();
 
     // Журнал программ для отчёта (ProgramJournal): соединения ядра туннеля раз в 5 с, и в трее тоже.
     private readonly ProgramJournal programJournal = new();
     private bool journalBusy;
     private DateTime journalAt;
 
+    private void RecordCoreConnections(IReadOnlyList<CoreConnection> core)
+    {
+        programJournal.Record(core, DateTime.UtcNow);
+        programTraffic.Record(core, trafficHistory, DateTime.Now);
+    }
+
     private async Task SampleProgramsAsync(CoreStatsEntry stats)
     {
         journalBusy = true; journalAt = DateTime.UtcNow;
-        try { if (await CoreConnections.ReadAsync(stats, CancellationToken.None) is { } core) programJournal.Record(core, DateTime.UtcNow); }
+        try { if (await CoreConnections.ReadAsync(stats, CancellationToken.None) is { } core) RecordCoreConnections(core); }
         finally { journalBusy = false; }
     }
 
@@ -31,17 +42,24 @@ public partial class MainWindow
         {
             meter?.Dispose();
             meter = stats is null ? null : new TrafficMeter(stats);
-            meterEntry = stats; meterCounted = 0;
+            meterEntry = stats; meterCountedUp = meterCountedDown = 0; programTraffic.Reset();
         }
         if (stats is not null && !journalBusy && DateTime.UtcNow - journalAt >= ProgramJournal.Interval) _ = SampleProgramsAsync(stats);
-        var today = DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        var now = DateTime.Now;
+        var today = now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
         if (trafficDay != today) { trafficDay = today; trafficToday = 0; Array.Clear(trafficHours); }
         if (meter is not null)
         {
-            var total = meter.Total; var delta = total - meterCounted;
-            trafficToday += delta; trafficHours[DateTime.Now.Hour] += Math.Max(0, delta); meterCounted = total;
+            var up = meter.TotalUp; var down = meter.TotalDown;
+            if (up < meterCountedUp) meterCountedUp = 0;
+            if (down < meterCountedDown) meterCountedDown = 0;
+            var deltaUp = up - meterCountedUp; var deltaDown = down - meterCountedDown;
+            trafficToday += deltaUp + deltaDown; trafficHours[now.Hour] += deltaUp + deltaDown;
+            trafficHistory.Add(deltaUp, deltaDown, now);
+            meterCountedUp = up; meterCountedDown = down;
         }
-        // Счётчик дня сохраняется раз в минуту, а не на каждый тик.
+        speedHistory.Record(now, meter?.Up ?? 0, meter?.Down ?? 0);
+        // Счётчик дня и история сохраняются раз в минуту, а не на каждый тик.
         if (trafficToday != trafficSavedBytes && DateTime.UtcNow - trafficSavedAt > TimeSpan.FromMinutes(1))
         {
             trafficSavedBytes = trafficToday; trafficSavedAt = DateTime.UtcNow;
@@ -50,6 +68,7 @@ public partial class MainWindow
         WatchStall();
         Home.StatusSub.ToolTip = trafficToday > 0 ? "Сегодня через ядро туннеля: " + TrafficMeter.Size(trafficToday) : null;
         RefreshTodayCard();
+        if (Analytics.Visibility == Visibility.Visible) RefreshAnalytics();
         CreditObservedSpeed();
     }
 

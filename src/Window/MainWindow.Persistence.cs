@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 
 namespace Oblachka;
 
@@ -52,7 +52,7 @@ public partial class MainWindow
             ServiceHosts = ServiceBrand.LearnedIn(groups.SelectMany(g => g.Sources).Concat(subscriptionSources)), LocalNetwork = Settings.LocalNetwork.IsChecked == true,
             QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, CompatibleStack = Settings.CompatibleStack.IsChecked == true, Advanced = advanced.IsDefault ? null : advanced, ServerTweaks = serverTweaks.Count == 0 ? null : new(serverTweaks),
             RuleSets = ruleSets.Count == 0 ? null : SavedRuleSets().Where(s => s.Name != PersistedSet.Name).ToArray(), RuleSetName = ruleSets.Count == 0 && PersistedSet.Name == MainRuleSet ? null : PersistedSet.Name,
-            RuleSetServers = PersistedSet.Servers, TrafficDay = trafficDay, TrafficBytes = trafficToday, TrafficHours = trafficHours.ToArray(),
+            RuleSetServers = PersistedSet.Servers, TrafficDay = trafficDay, TrafficBytes = trafficToday, TrafficHours = trafficHours.ToArray(), TrafficHistory = trafficHistory.Snapshot(DateTime.Now),
             Hotkey = Settings.Hotkey.IsChecked == true, FreeConsent = freeConsent, FreeList = freeList.ToString() };
 
     private IEnumerable<ProfileGroup> SavedGroups => groups.Where(g => g.Source != ProfileSource.Free);
@@ -102,8 +102,18 @@ public partial class MainWindow
         RestoreAdvanced(snapshot.Advanced);
         RestoreTweaks(snapshot.ServerTweaks);
         RestoreFree(snapshot);
-        trafficDay = snapshot.TrafficDay ?? ""; trafficToday = trafficSavedBytes = snapshot.TrafficBytes;
-        if (snapshot.TrafficHours is { Length: 24 } hours && hours.All(h => h >= 0)) hours.CopyTo(trafficHours, 0);
+        trafficHistory.Restore(snapshot.TrafficHistory, snapshot.TrafficDay, snapshot.TrafficBytes, snapshot.TrafficHours, DateTime.Now);
+        Array.Clear(trafficHours);
+        if (snapshot.TrafficHistory is { })
+        {
+            var today = trafficHistory.Today(DateTime.Now); trafficDay = today.Day; trafficToday = trafficSavedBytes = today.Upload + today.Download;
+            for (var hour = 0; hour < 24; hour++) trafficHours[hour] = today.UploadHours[hour] + today.DownloadHours[hour];
+        }
+        else
+        {
+            trafficDay = snapshot.TrafficDay ?? ""; trafficToday = trafficSavedBytes = snapshot.TrafficBytes;
+            if (snapshot.TrafficHours is { Length: 24 } hours && hours.All(h => h >= 0)) hours.CopyTo(trafficHours, 0);
+        }
         Settings.Hotkey.IsChecked = snapshot.Hotkey; ApplyHotkey();
         Settings.AutoRefresh.IsChecked = snapshot.AutoRefresh;
         ThemeManager.Apply(snapshot.Theme ?? ThemeChoice.System);

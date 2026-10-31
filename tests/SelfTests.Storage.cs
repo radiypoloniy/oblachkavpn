@@ -66,5 +66,15 @@ public static partial class SelfTests
             Assert(File.ReadAllBytes(path).SequenceEqual(oldBytes));
             Assert(stable.LoadWithMigration(new[] { "nonexistent-legacy-path" })!.Profiles.Length == 2);
         }));
+        await check("Traffic history survives encrypted state and invalid counters are rejected", () => Sync(() =>
+        {
+            var day = new TrafficDayStats("2026-10-12", 100, 900, new long[24], new long[24],
+                [new TrafficProgramStats(@"C:\Apps\Browser.exe", 100, 400)]);
+            store.Save(snapshot with { TrafficHistory = [day] });
+            var loaded = store.Load()!.TrafficHistory!.Single();
+            Assert(loaded.Day == day.Day && loaded.Upload == 100 && loaded.Download == 900 && loaded.Programs.Single().Path == day.Programs[0].Path);
+            var brokenHours = new long[24]; brokenHours[3] = -1;
+            ExpectUserError(() => store.Save(snapshot with { TrafficHistory = [day with { DownloadHours = brokenHours }] }));
+        }));
     }
 }

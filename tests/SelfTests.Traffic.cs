@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -33,6 +33,38 @@ public static partial class SelfTests
             Assert(authorized && meter.Total == 4150 && meter.Fresh && meter.Down == 3000 && meter.Up == 50);
             await serve; listener.Stop();
         });
+        await check("Traffic history keeps directions, programs, periods, snapshots and safe CSV", () => Sync(() =>
+        {
+            var now = new DateTime(2026, 10, 12, 14, 30, 0);
+            var history = new TrafficHistory();
+            history.Add(100, 900, now); history.Add(40, 60, now.AddDays(-1));
+            Assert(history.Today(now).Upload == 100);
+            history.AddProgram(@"C:\Apps\Browser.exe", 100, 400, now);
+            var today = history.Report(now, 1);
+            Assert(today.Points.Length == 24 && today.Upload == 100 && today.Download == 900 && today.Total == 1000);
+            Assert(today.Programs.Single().Path == @"C:\Apps\Browser.exe" && today.Programs.Single().Total == 500);
+            var week = history.Report(now, 7);
+            Assert(week.Points.Length == 7 && week.Upload == 140 && week.Download == 960);
+            var restored = new TrafficHistory(); restored.Restore(history.Snapshot(now), null, 0, null, now);
+            Assert(restored.Report(now, 7).Total == 1100 && restored.Today(now).Programs.Single().Download == 400);
+            var legacy = new TrafficHistory(); var hours = new long[24]; hours[14] = 700;
+            legacy.Restore(null, "2026-10-12", 700, hours, now);
+            Assert(legacy.Report(now, 1).Download == 700 && legacy.Report(now, 1).Points[14].Download == 700);
+            var csv = TrafficHistory.Csv(restored.Report(now, 1));
+            Assert(csv.Contains("\"Browser\";100;400;500") && !csv.Contains("example.invalid"));
+        }));
+        await check("Program traffic records only counter deltas and speed history averages a minute", () => Sync(() =>
+        {
+            var now = new DateTime(2026, 10, 12, 14, 30, 0);
+            var history = new TrafficHistory(); var programs = new ProgramTrafficHistory();
+            programs.Record([new CoreConnection(@"C:\Apps\Browser.exe", false, "example.invalid", "192.0.2.1", 443, [], "one", 100, 1000)], history, now);
+            programs.Record([new CoreConnection(@"C:\Apps\Browser.exe", false, "example.invalid", "192.0.2.1", 443, [], "one", 150, 1600)], history, now);
+            var program = history.Report(now, 1).Programs.Single();
+            Assert(program.Upload == 150 && program.Download == 1600);
+            var speed = new SpeedHistory(); speed.Record(now, 100, 1000); speed.Record(now.AddSeconds(20), 300, 3000);
+            var points = speed.Report(now.AddSeconds(30));
+            Assert(points.Length == 60 && points[^1].Upload == 200 && points[^1].Download == 2000);
+        }));
         await check("Exit address is read from the Cloudflare trace: address and country, junk refused", () => Sync(() =>
         {
             var exit = ExitAddress.Parse("fl=123\nh=cloudflare.com\nip=185.12.34.56\nts=1\nloc=DE\ncolo=FRA\n");

@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
@@ -17,6 +17,7 @@ public partial class MainWindow
     // видна всегда. Без подключений — экран ключа во всё окно.
     private void Navigate(string page)
     {
+        Analytics.Visibility = Visibility.Collapsed;
         currentPage = page;
         var welcome = profile is null && page == "Connection";
         Home.Visibility = welcome ? Visibility.Collapsed : Visibility.Visible;
@@ -73,6 +74,7 @@ public partial class MainWindow
         CloseConnections();
         Servers.Visibility = Visibility.Collapsed;
         RulesPage.Visibility = Visibility.Collapsed;
+        Analytics.Visibility = Visibility.Collapsed;
         if (tab is int index) Settings.ShowTab(index);
         else if (Settings.Visibility != Visibility.Visible) Settings.ShowHome();
         if (Settings.Visibility != Visibility.Visible)
@@ -93,7 +95,7 @@ public partial class MainWindow
         CloseConnections();
         Doctor.Visibility = Visibility.Collapsed;
         SiteCheck.Visibility = Visibility.Collapsed;
-        if (currentPage is "Routes" or "Diagnostics") currentPage = "Connection";
+        if (currentPage is "Routes" or "Diagnostics" or "Analytics") currentPage = "Connection";
         // Подписки и серверы автовыбора открываются из «Серверов» — туда и возвращаемся.
         if (Settings.CurrentPage is Views.SettingsPanel.SubscriptionPage or Views.SettingsPanel.AutoPoolPage) { Navigate("Servers"); return; }
         // «Для продвинутых» открывается из «Приложения» — туда и «Назад».
@@ -111,6 +113,7 @@ public partial class MainWindow
         if (ModeMenuLayer.Visibility == Visibility.Visible) ShowModeMenu(false);
         else if (Picker.Visibility == Visibility.Visible) CloseAppPicker();
         else if (narrow && Live.Visibility == Visibility.Visible) { CloseConnections(); narrowOpen = false; ApplyLayout(); }
+        else if (Analytics.Visibility == Visibility.Visible) CloseAnalytics();
         else if (Doctor.Visibility == Visibility.Visible) Doctor.Visibility = Visibility.Collapsed;
         else if (SiteCheck.Visibility == Visibility.Visible) SiteCheck.Visibility = Visibility.Collapsed;
         else if (Settings.Visibility == Visibility.Visible) { if (!Settings.Back()) CloseSettings(); }

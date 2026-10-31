@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using Oblachka.Views;
 
@@ -12,7 +12,6 @@ public partial class MainWindow
     private void WireSidebar()
     {
         Home.ServerCard.Click += (_, _) => Navigate("Servers");
-        Home.TodayCard.Click += (_, _) => Navigate("Servers");
         Home.HelpNav.Click += (_, _) => OpenSettings(Views.SettingsPanel.HelpPage);
         Home.RulesNav.Click += (_, _) => ShowRulesSection();
         Home.BypassOpen.Click += (_, _) => OpenSettings(Views.SettingsPanel.BypassPage);
@@ -32,8 +31,8 @@ public partial class MainWindow
         ShowModeMenu(false);
         CloseConnections();
         Settings.Visibility = Visibility.Collapsed; Servers.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed;
-        Doctor.Visibility = Visibility.Collapsed; SiteCheck.Visibility = Visibility.Collapsed;
-        if (currentPage is "Servers" or "Diagnostics") currentPage = "Connection";
+        Doctor.Visibility = Visibility.Collapsed; SiteCheck.Visibility = Visibility.Collapsed; Analytics.Visibility = Visibility.Collapsed;
+        if (currentPage is "Servers" or "Diagnostics" or "Analytics") currentPage = "Connection";
         RulesPage.Visibility = Visibility.Visible;
         RefreshRules();
         OpenSection();

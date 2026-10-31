@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Input;
 
 namespace Oblachka;
@@ -23,6 +23,7 @@ public partial class MainWindow
         }
         Navigate("Connection");
         checks.Add("Navigation selects one working page at a time and preserves the imported profile");
+        CheckAnalytics(checks);
         SettingsClick(this, new RoutedEventArgs());
         if (Settings.Visibility != Visibility.Visible) throw new InvalidOperationException("Settings did not open");
         // Каждая вкладка реально отрисовывается: ключ ресурса, совпавший со стилем, ронял окно
