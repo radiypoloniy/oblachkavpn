@@ -1,3 +1,6 @@
 # Ложные срабатывания gitleaks (generic-api-key): тестовый пароль-заглушка в SelfTests.Advanced.cs
 # публичного коммита 0.20.0-rc.2. Тест с тех пор берёт пароль из генератора.
 282e08a0ac3b3268cbcbff2012fef08d638f5d22:tests/SelfTests.Advanced.cs:generic-api-key:172
+# Тот же тест в прежней локальной истории; там же старый verify-package.ps1 с SHA256 ядра.
+d8b31889fea42db2c36cc077ed8be3bb2199529b:tests/SelfTests.Advanced.cs:generic-api-key:172
+e8014342688df5dc3894202d358d705718a2347a:verify-package.ps1:jfrog-identity-token:27
