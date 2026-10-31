@@ -1,9 +1,13 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace Oblachka.Views;
 
-public sealed record AnalyticsProgramRow(string Name, string Initial, string Detail, string Total);
+public sealed record AnalyticsProgramRow(string Name, string Initial, string Detail, string Total, ImageSource? Icon)
+{
+    public Visibility PlaceholderVisibility => Icon is null ? Visibility.Visible : Visibility.Collapsed;
+}
 
 public partial class AnalyticsView : UserControl
 {
@@ -48,7 +52,7 @@ public partial class AnalyticsView : UserControl
         {
             var name = Path.GetFileNameWithoutExtension(p.Path);
             return new AnalyticsProgramRow(name, name.Length == 0 ? "?" : char.ToUpper(name[0]).ToString(),
-                "↓ " + TrafficMeter.Size(p.Download) + " · ↑ " + TrafficMeter.Size(p.Upload), TrafficMeter.Size(p.Total));
+                "↓ " + TrafficMeter.Size(p.Download) + " · ↑ " + TrafficMeter.Size(p.Upload), TrafficMeter.Size(p.Total), AppIcons.For(p.Path));
         }).ToArray();
         var signature = string.Join("|", rows.Select(r => r.Name + r.Detail + r.Total));
         if (signature != programsShown) { programsShown = signature; ProgramList.ItemsSource = rows; }

@@ -12,7 +12,7 @@ public partial class MainWindow
         {
             trafficHistory.Reset(); speedHistory.Reset();
             trafficHistory.Add(100, 900, DateTime.Now);
-            trafficHistory.AddProgram(@"C:\Apps\Browser.exe", 100, 400, DateTime.Now);
+            trafficHistory.AddProgram(Environment.ProcessPath!, 100, 400, DateTime.Now);
             speedHistory.Record(DateTime.Now, 100, 1000);
             Home.TodayCard.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             UpdateLayout();
@@ -22,6 +22,9 @@ public partial class MainWindow
             Analytics.Periods.SelectedIndex = 1;
             if (Analytics.PeriodDays != 7 || Analytics.Chart.Download?.Length != 7 || Analytics.ProgramList.Items.Count != 1)
                 throw new InvalidOperationException("Analytics period or program report did not render");
+            var program = (Views.AnalyticsProgramRow)Analytics.ProgramList.Items[0];
+            if (program.Icon is null || program.PlaceholderVisibility != Visibility.Collapsed)
+                throw new InvalidOperationException("Analytics did not load the program icon");
             DesignPreview.Render(this, Path.Combine(AppContext.BaseDirectory, "preview-analytics.png"));
             Navigate("Servers");
             if (Analytics.Visibility != Visibility.Collapsed || Servers.Visibility != Visibility.Visible)

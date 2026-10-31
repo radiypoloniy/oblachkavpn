@@ -6,9 +6,10 @@
     <DataTemplate DataType="{x:Type v:AnalyticsProgramRow}">
       <Grid MinHeight="52" Margin="0,1">
         <Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <Border Width="32" Height="32" CornerRadius="{StaticResource RadiusSm}" Background="{DynamicResource Field}" VerticalAlignment="Center">
+        <Border Width="32" Height="32" CornerRadius="{StaticResource RadiusSm}" Background="{DynamicResource Field}" VerticalAlignment="Center" Visibility="{Binding PlaceholderVisibility}">
           <TextBlock Text="{Binding Initial}" FontSize="{StaticResource FsRow}" FontWeight="SemiBold" Foreground="{DynamicResource Mu2}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Border>
+        <Image Source="{Binding Icon}" Width="30" Height="30" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
         <StackPanel Grid.Column="1" Margin="10,0,12,0" VerticalAlignment="Center">
           <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsRow}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
           <TextBlock Text="{Binding Detail}" Style="{StaticResource Small}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
