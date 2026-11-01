@@ -98,53 +98,12 @@ public partial class MainWindow
         if (profile is null) throw new UserError("Сначала выберите сервер.");
         if (ForeignTunnel.Find() is { } foreign) { foreignVpn = foreign; throw new UserError(ForeignTunnel.Explain(foreign)); }
         foreignVpn = null;
-        // Прерванная сессия (помощник потерян) ещё держит свои объекты. Новая не должна
-        // их перезаписать: иначе прежний помощник остался бы без владельца.
-        if (systemTunnel is not null || helperLifetime is not null) await StopSystemTunnelAsync().ConfigureAwait(true);
-        var service = NetworkHelperConnection.ServiceRunning;
-        DetailText.Text = service ? "Готовим системный режим." : "Готовим системный режим. Подтвердите запрос прав администратора.";
-        // Сессия, оставленная аварийно завершённым окном, держит сеть закрытой, и адреса
-        // узлов не разрешить. Её снимают до подготовки, затем ставят новую.
-        if (service && SessionLeft(NetworkService.JournalPath)) await RecoverServiceSessionAsync(token).ConfigureAwait(true);
-        var plans = await TunnelEndpoints.PrepareSetAsync(SystemCandidates(profile), token).ConfigureAwait(true);
-        var session = await runtime.CreateTunnelAsync(token).ConfigureAwait(true);
-        // Одно ядро: трафик из туннеля прямо на сервер. Списки «напрямую» (DirectEntry) и обход
-        // DPI фрагментацией исполняет ядро окна — с ними трафик идёт через него, как раньше.
-        session.Tuning = TunnelTuning.From(advanced, ServiceGroup?.Metadata?.Provider, preferences.CompatibleStack);
-        // Правила сайтов и программ исполняет ядро туннеля у помощника; ядро окна в этом
-        // режиме правил не несёт (Engine.SiteRules пуст), иначе «напрямую» шло бы из него.
-        foreignSession = profile.IsFree;
-        RememberTunnelDirect(); sentRules = new(LeasePrograms().ToArray(), LeaseSites());
-        var lists = await SendTunnelListsAsync(helperLifetime!.Client).ConfigureAwait(true);
-        await session.StartWithSparesAsync(plans, token, LeaseSites(), LeasePrograms(), (engine as Engine)?.DirectEntry, selectiveVpn, lists, preferences.LocalNetwork,
-            preferences.QuicOverTcp, preferences.CompatibleStack, foreignSession).ConfigureAwait(true);
+        DetailText.Text = "Готовим системный режим.";
+        await runtime.Tunnels.StartAsync(profile, token);
+        RememberTunnelDirect();
     }
 
-    // Выбранный узел первым, затем запасные в том порядке, в каком их переберёт подбор.
-    private Profile[] SystemCandidates(Profile selected)
-    {
-        // Бесплатный чужой узел — без запасных: смена сервера ставит сессию заново, и заслоны
-        // ForeignGuard (порт 80, домены сервиса) не переходят с одного узла на другой.
-        if (selected.IsFree) return [selected];
-        var profiles = importedProfiles.Where(p => !p.IsFree).ToArray();
-        // «Автовыбор»: запасные — пул автовыбора от быстрых к медленным; в лимит адресов защиты
-        // попадают лучшие, и подбор под блокировкой сможет на них перейти. Затем остальные
-        // серверы: на них переключаются вручную, и их можно замерить под защитой.
-        if (autoSelect)
-            return new[] { selected }.Concat(RouteCandidates.ByLatency(RouteCandidates.For(profiles, selected, anyNode: true, InAutoPool), profiles, LatestMeasurement)
-                .Select(i => profiles[i])).Concat(profiles).DistinctBy(ProfileSelection.Identity).ToArray();
-        var candidates = RouteCandidates.For(profiles, selected, pool: InAutoPool, machine: machineMode);
-        if (candidates.Length == 0) return new[] { selected };
-        // Сначала порядок автоподбора (выбранный и пять запасных), затем остальные узлы сервиса:
-        // на них переключаются вручную, и защита должна разрешать их с самого начала. Иначе
-        // смена сервера на такой узел снимала блокировку на время переподключения.
-        // Лишнее по лимиту адресов отбросит TunnelEndpoints.PrepareSetAsync.
-        return RouteSearch.Order(candidates.Length, RouteCandidates.StartAt(candidates, profiles, selected))
-            .Select(i => profiles[candidates[i]])
-            .Concat(candidates.Select(i => profiles[i]))
-            .Concat(profiles.Where(p => p.IsService))
-            .DistinctBy(ProfileSelection.Identity).ToArray();
-    }
+    private Profile[] SystemCandidates(Profile selected) => runtime.Tunnels.Candidates(selected);
 
     // В системном режиме подбор не трогает ядро напрямую: переключение идёт через сессию,
     // и блокировка остаётся на месте. Останавливать между попытками нечего — неудачная
@@ -183,7 +142,6 @@ public partial class MainWindow
             if (closed) return;
             UpdateSystemTunnelNote(state);
             UpdateControls();
-            if (state is SystemTunnelState.Failed or SystemTunnelState.RecoveryRequired) _ = HealLostTunnelAsync();
         }));
     }
 

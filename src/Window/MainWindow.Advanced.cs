@@ -11,7 +11,7 @@ namespace Oblachka;
 // подключения (TunnelTuning уходит в службу при Acquire).
 public partial class MainWindow
 {
-    private AdvancedOptions advanced = AdvancedOptions.Default;
+    private AdvancedOptions advanced { get => runtime.TunnelPolicy.Advanced; set => runtime.TunnelPolicy.Advanced = value; }
     private AdvancedPage Advanced => Settings.Advanced;
 
     private void WireAdvanced()

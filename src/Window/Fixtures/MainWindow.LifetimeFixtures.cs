@@ -15,6 +15,7 @@ public partial class MainWindow
         owner.Profiles.Picker.SelectedItem = profile;
         owner.Preferences.Notices = false;
         owner.Preferences.QuicOverTcp = true;
+        owner.TunnelPolicy.Advanced = AdvancedOptions.Default with { Mtu = 1300 };
         var reference = CreateClosedView(owner);
         for (var i = 0; i < 5; i++)
         {
@@ -30,6 +31,7 @@ public partial class MainWindow
             throw new InvalidOperationException("Closing a view cleared application profile state");
         if (owner.Preferences.Notices || owner.Preferences.QuicOverTcp)
             throw new InvalidOperationException("Preferences did not survive control changes and view release");
+        if (owner.TunnelPolicy.Advanced.Mtu != 1300) throw new InvalidOperationException("Creating a view reset application TUN tuning");
         if (core.Disposed || core.State != ConnectionState.Running)
             throw new InvalidOperationException("Closing a view stopped the application-owned core");
         var completed = new TaskCompletionSource<HealthObservation>();

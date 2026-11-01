@@ -6,15 +6,14 @@ namespace Oblachka;
 // «напрямую», появившееся позже, до переподключения блокирует программу, а не пускает её мимо.
 public partial class MainWindow
 {
-    private bool tunnelDirectAllowed;
+    private bool tunnelDirectAllowed => runtime.Tunnels.DirectAllowed;
     // Правила программ и сайтов, что сейчас у ядра туннеля.
-    private SentRules sentRules = SentRules.None;
+    private SentRules sentRules { get => runtime.Tunnels.SentRules; set => runtime.Tunnels.SentRules = value; }
     private readonly SemaphoreSlim ruleSync = new(1);
 
     // Вызывается при запуске сессии: то же условие, что у ValidatedNetworkLease.HasDirect.
     private void RememberTunnelDirect()
     {
-        tunnelDirectAllowed = selectiveVpn || (engine as Engine)?.DirectEntry is not null || siteRules.Any(r => r.Action == SiteAction.Direct) || programRules.Any(r => r.Action == SiteAction.Direct) || ServiceDirectApps.Length > 0;
         ruleApplyProblem = null; pendingRulesBefore = null;
     }
 

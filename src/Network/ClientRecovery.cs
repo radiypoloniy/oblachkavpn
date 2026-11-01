@@ -1,6 +1,6 @@
 namespace Oblachka;
 
-public enum RecoveryOutcomeKind { Recovered, Restarted, NotFound, RequiresReconnect, Error, Exhausted }
+public enum RecoveryOutcomeKind { Recovered, Restarted, NotFound, RequiresReconnect, Error, Exhausted, Rebuilt, PathBroken }
 public sealed record RecoveryOutcome(RecoveryOutcomeKind Kind, Profile? Previous, Profile? Selected,
     IReadOnlyList<RouteAttempt> Attempts, bool Fragment = false, string? Message = null);
 
@@ -50,13 +50,13 @@ public sealed partial class ClientRecovery : IDisposable
             cancel.Token.ThrowIfCancellationRequested();
             if (!Allowed) return;
             if (owner.Preferences.SystemTunnel && !TunnelActive)
-            { Finish(new(RecoveryOutcomeKind.RequiresReconnect, previous, previous, [])); return; }
+            { await RebuildOrRequestAsync(previous, previous, cancel.Token); return; }
             var plan = BuildPlan(previous);
             var search = CreateSearch();
             var result = plan.Siblings.Length > 0
                 ? await search.FindAsync(plan.Subset, plan.Siblings, TunnelHealth.Targets[0], cancel.Token) : null;
             if (result?.ProfileIndex is null && plan.Outside.Length > 0)
-            { Finish(new(RecoveryOutcomeKind.RequiresReconnect, previous, plan.Subset[plan.Outside[0]], [])); return; }
+            { await RebuildOrRequestAsync(previous, plan.Subset[plan.Outside[0]], cancel.Token); return; }
             if (result?.ProfileIndex is null)
             {
                 var diagnosis = await DiagnoseAsync(previous, cancel.Token); data.LastDiagnosis = diagnosis;
@@ -70,7 +70,8 @@ public sealed partial class ClientRecovery : IDisposable
             Apply(plan, previous, result);
         }
         catch (OperationCanceledException) when (cancel.IsCancellationRequested) { }
-        catch (UserError error) { Finish(new(RecoveryOutcomeKind.Error, previous, null, [], Message: error.Message)); }
+        catch (Exception error) when (error is UserError or IOException or TimeoutException or ObjectDisposedException)
+        { Finish(new(RecoveryOutcomeKind.Error, previous, null, [], Message: RecoveryMessage(error))); }
         finally
         {
             active = null;
@@ -102,7 +103,7 @@ public sealed partial class ClientRecovery : IDisposable
         {
             LastOutcome = result; Message = result.Message ?? "";
             if (result.Kind is RecoveryOutcomeKind.NotFound or RecoveryOutcomeKind.Exhausted) NetworkClosed = TunnelActive;
-            else if (result.Kind is RecoveryOutcomeKind.Recovered or RecoveryOutcomeKind.Restarted) NetworkClosed = false;
+            else if (result.Kind is RecoveryOutcomeKind.Recovered or RecoveryOutcomeKind.Restarted or RecoveryOutcomeKind.Rebuilt) NetworkClosed = false;
         }
     }
     private void Publish(RecoveryOutcome? before)

@@ -8,7 +8,7 @@ namespace Oblachka;
 // берёт папку программы целиком (AppRuleScope); имя и значок берутся из каталога для показа.
 public partial class MainWindow
 {
-    private readonly List<ProgramRule> programRules = new();
+    private List<ProgramRule> programRules => runtime.TunnelPolicy.Programs;
     private IReadOnlyList<AppRow>? appCatalog;
     private bool appCatalogLoading;
 
@@ -49,16 +49,19 @@ public partial class MainWindow
     // Каталог и значки собираются один раз за запуск и в фоне: ярлыков и процессов бывают сотни.
     private async void LoadAppCatalog()
     {
-        if (appCatalog is not null || appCatalogLoading) return;
+        if (closed || appCatalog is not null || appCatalogLoading) return;
         appCatalogLoading = true;
         try
         {
-            var rows = await Task.Run(() => InstalledApps.Find().Select(a => new AppRow(a, null, loadIcon: true)).ToArray());
-            appCatalog = rows;
+            var token = appCatalogCancel.Token;
+            var rows = await Task.Run(() => InstalledApps.Find(token).Select(a =>
+            { token.ThrowIfCancellationRequested(); return new AppRow(a, null, loadIcon: true); }).ToArray(), token).WaitAsync(token);
             if (closed) return;
+            appCatalog = rows;
             picker?.Load(rows, AddedPrograms());
             RefreshRules();
         }
+        catch (OperationCanceledException) when (closed) { }
         finally { appCatalogLoading = false; }
     }
 

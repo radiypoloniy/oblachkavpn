@@ -22,30 +22,6 @@ public partial class MainWindow
         RefreshHome();
     }
 
-    private async Task RepairSystemPathAsync(string problem)
-    {
-        if (closed || operation is not null || profile is null || systemTunnel is null) return;
-        pathProblem = problem;
-        if (pathRebuilt)
-        {
-            var first = !pathBroken;
-            pathBroken = true; networkClosed = true;
-            DetailText.Text = problem + " Переподключение не помогло. «Выключить VPN и открыть интернет» сразу вернёт обычную сеть.";
-            if (first) Notify(Notice.NetworkClosed, "Интернет через VPN не работает", "Нажмите и выберите «Выключить VPN и открыть интернет».", warning: true);
-            // Проверка продолжается: если путь оживёт сам, карточка уйдёт.
-            nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(30);
-            RefreshHome();
-            return;
-        }
-        pathRebuilt = true;
-        DetailText.Text = problem + " Переподключаем «Весь компьютер»…";
-        manualStop = true; recoveryWait?.Cancel();
-        await StopSystemTunnelAsync();
-        UpdateControls();
-        pathHealth.Reset(); directHealth.Reset();
-        if (!closed && ConnectButton.IsEnabled) await ConnectCoreAsync();
-    }
-
     // Ручное подключение и остановка начинают с чистого листа.
     private void ResetSystemPath()
     {

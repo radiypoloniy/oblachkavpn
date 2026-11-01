@@ -36,9 +36,13 @@ public sealed partial class ClientHealthMonitor
                 {
                     ObserveProcess(); var before = LastObservation;
                     await PollAsync();
-                    if (!disposed && LastObservation is { ShouldRecover: true } result && !ReferenceEquals(before, result))
-                        await owner.Recovery.RecoverAsync();
-                    else if (!disposed && owner.Engine.State == ConnectionState.Failed)
+                    if (!disposed && LastObservation is { } result && !ReferenceEquals(before, result))
+                    {
+                        if (result.PathProblem is { } problem && Path.ShouldRepair) await owner.Recovery.RepairPathAsync(problem);
+                        else if (result.Round.Reachable && result.PathProblem is null) owner.Recovery.PathHealthy();
+                        else if (result.ShouldRecover) await owner.Recovery.RecoverAsync();
+                    }
+                    if (!disposed && owner.Engine.State == ConnectionState.Failed)
                         await owner.Recovery.RestartFailedAsync();
                 }
             }
@@ -62,6 +66,7 @@ public sealed partial class ClientHealthMonitor
     private void CoreChanged(ConnectionState state, string message) => context?.Post(_ =>
     { if (!disposed) { ObserveProcess(); Wake(); if (state == ConnectionState.Failed) _ = owner.Recovery.RestartFailedAsync(); } }, null);
     private void RequestSoon() => context?.Post(_ => { if (!disposed) NextCheck = now().AddSeconds(3); }, null);
+    internal void Dispatch(Action action) => context?.Post(_ => { if (!disposed) action(); }, null);
     public void Dispose()
     {
         lock (lifecycle)

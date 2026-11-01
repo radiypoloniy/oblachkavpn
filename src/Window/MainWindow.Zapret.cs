@@ -1,6 +1,5 @@
-﻿﻿using System.Net;
+﻿using System.Net;
 using System.Windows;
-
 namespace Oblachka;
 
 // «Правила → YouTube и Discord без VPN»: zapret (набор Flowseal) в службе. Сайты из его списков
@@ -8,7 +7,8 @@ namespace Oblachka;
 // Нет рабочей стратегии — эти сайты остаются в VPN: обход не должен ломать то, что работало.
 public partial class MainWindow
 {
-    private bool zapretEnabled, zapretBusy;
+    private bool zapretEnabled { get => runtime.TunnelPolicy.Zapret; set => runtime.TunnelPolicy.Zapret = value; }
+    private bool zapretBusy;
     private ZapretStatus? zapretStatus;
     // Сеть (NetworkIdentity) → выбор «стратегия|группы» (ZapretPlan.Encode); стратегия «-» — без обхода.
     private readonly Dictionary<string, string> zapretChoices = new(StringComparer.Ordinal);
@@ -206,9 +206,9 @@ public partial class MainWindow
     }
 
     private void Note(string text) { zapretNote = text; if (!closed) RefreshZapret(); }
-
     private void RefreshZapret()
     {
+        runtime.TunnelPolicy.ZapretProfiles = ZapretRoutingProfiles().ToArray();
         Bypass.ZapretToggle.IsChecked = zapretEnabled;
         RefreshSettingsSummary(); RefreshDirectChip();
         Bypass.ZapretText.Text = zapretNote.Length > 0 ? zapretNote : "Через обход блокировок zapret: быстрее и не тратит VPN";

@@ -39,7 +39,6 @@ public partial class MainWindow
         else if (observation.PathProblem is { } problem)
         {
             RecordProbe(new(false, 0, problem, ProbeFailure.Reachability));
-            if (runtime.Monitor.Path.ShouldRepair) { await RepairSystemPathAsync(problem); return; }
             DetailText.Text = problem + " Проверяем ещё раз.";
         }
         else SystemPathHealthy();

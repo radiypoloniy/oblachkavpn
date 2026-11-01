@@ -7,9 +7,9 @@ namespace Oblachka;
 // разворачиваются из баз адресов, скачанных с согласия пользователя (GeoStore).
 public partial class MainWindow
 {
-    private RoutingProfile? providerRouting;
+    private RoutingProfile? providerRouting { get => runtime.TunnelPolicy.ProviderRouting; set => runtime.TunnelPolicy.ProviderRouting = value; }
     // null — сервис прислал правила, а пользователя ещё не спрашивали.
-    private bool? useProviderRouting;
+    private bool? useProviderRouting { get => runtime.TunnelPolicy.UseProviderRouting; set => runtime.TunnelPolicy.UseProviderRouting = value; }
     private bool geoDownloading;
     private string? geoProgress;
 
@@ -33,12 +33,8 @@ public partial class MainWindow
 
     private IEnumerable<RoutingProfile> ActiveRoutingProfiles()
     {
-        // Сайты zapret — первыми: напрямую через обход, даже если набор сервиса шлёт их в VPN.
-        foreach (var zapret in ZapretRoutingProfiles()) yield return zapret;
-        if (SelectiveProfile() is { } selective) yield return selective;
-        if (RoutingProfile.Custom(advanced.GeoDirect, advanced.GeoProxy, advanced.GeoBlock) is { } custom) yield return custom;
-        if (useProviderRouting == true && providerRouting is not null) yield return providerRouting;
-        if (preferences.RussiaDirect) yield return RoutingProfile.RussiaDirect;
+        runtime.TunnelPolicy.ZapretProfiles = ZapretRoutingProfiles().ToArray();
+        return runtime.TunnelPolicy.RoutingProfiles();
     }
 
     private bool HasDirectEntry => (engine as Engine)?.DirectEntry is not null;

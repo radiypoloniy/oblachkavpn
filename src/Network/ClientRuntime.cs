@@ -9,6 +9,11 @@ public sealed class ClientRuntime : IDisposable
     public ClientActivity Activity { get; } = new();
     public ClientHealthMonitor Monitor { get; }
     public ClientRecovery Recovery { get; }
+    public ClientTunnelPolicy TunnelPolicy { get; }
+    public ClientTunnels Tunnels { get; }
+    private readonly IClientTunnelHost tunnelHost;
+    internal IClientTunnelLink? TunnelLink { get; private set; }
+    internal bool ServiceAvailable => tunnelHost.IsService;
     public RoutingListsEntry? RoutingLists { get; set; }
     public SystemTunnelSession? Tunnel { get; private set; }
     public IHelperLifetime? Helper { get; private set; }
@@ -20,10 +25,12 @@ public sealed class ClientRuntime : IDisposable
 
     public ClientRuntime() : this(new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"),
         Path.Combine(AppContext.BaseDirectory, "data", "runtime"))) { }
-    public ClientRuntime(ITunnelController engine)
+    public ClientRuntime(ITunnelController engine) : this(engine, new ClientTunnelHost()) { }
+    internal ClientRuntime(ITunnelController engine, IClientTunnelHost host, ClientPathHealth? path = null)
     {
         Engine = engine;
-        Monitor = new ClientHealthMonitor(this);
+        tunnelHost = host; TunnelPolicy = new(this); Tunnels = new(this, host);
+        Monitor = new ClientHealthMonitor(this, path: path);
         Recovery = new ClientRecovery(this);
         previousLookup = ServerTweak.Lookup; lookup = Profiles.TweakFor;
         ServerTweak.Lookup = lookup;
@@ -32,29 +39,35 @@ public sealed class ClientRuntime : IDisposable
     public async Task<SystemTunnelSession> CreateTunnelAsync(CancellationToken token)
     {
         await StopTunnelAsync().ConfigureAwait(true);
-        Helper = await NetworkHelperConnection.ConnectAsync(token).ConfigureAwait(true);
-        Tunnel = new SystemTunnelSession(Engine, Helper.Client, ownsResources: false);
+        TunnelLink = await tunnelHost.ConnectAsync(token).ConfigureAwait(true);
+        Helper = TunnelLink.Lifetime;
+        Tunnel = new SystemTunnelSession(Engine, TunnelLink.Client, ownsResources: false);
         Tunnel.DirectAllowed = AllowsDirect;
         Tunnel.Changed += TunnelStateChanged;
         Tunnel.ProtectionRepaired += TunnelProtectionRepaired;
         return Tunnel;
     }
     private bool AllowsDirect() => Engine is Engine core && (core.DirectEntry is null || RoutingLists is not null) && !core.Fragment;
-    private void TunnelStateChanged(SystemTunnelState state) => TunnelChanged?.Invoke(state);
+    private void TunnelStateChanged(SystemTunnelState state)
+    {
+        TunnelChanged?.Invoke(state);
+        if (state is SystemTunnelState.Failed or SystemTunnelState.RecoveryRequired)
+            Monitor.Dispatch(() => _ = Recovery.HealLostTunnelAsync());
+    }
     private void TunnelProtectionRepaired() => ProtectionRepaired?.Invoke();
 
     public Task StopTunnelAsync()
     {
-        if (Tunnel is null && Helper is null) return stopping.IsCompleted ? Task.CompletedTask : stopping;
-        var session = Tunnel; var lifetime = Helper;
-        Tunnel = null; Helper = null;
-        return stopping = ReleaseAsync(session, lifetime);
+        if (Tunnel is null && TunnelLink is null) return stopping.IsCompleted ? Task.CompletedTask : stopping;
+        var session = Tunnel; var link = TunnelLink;
+        Tunnel = null; Helper = null; TunnelLink = null; RoutingLists = null;
+        return stopping = ReleaseAsync(session, link);
     }
 
-    private static async Task ReleaseAsync(SystemTunnelSession? session, IHelperLifetime? lifetime)
+    private static async Task ReleaseAsync(SystemTunnelSession? session, IClientTunnelLink? link)
     {
         try { if (session is not null) await session.DisposeAsync().ConfigureAwait(false); }
-        finally { if (lifetime is not null) await lifetime.DisposeAsync().ConfigureAwait(false); }
+        finally { if (link is not null) await link.DisposeAsync().ConfigureAwait(false); }
     }
 
     // При завершении сеанса Windows ожидание IPC выполняет служба; здесь нет синхронной блокировки UI.

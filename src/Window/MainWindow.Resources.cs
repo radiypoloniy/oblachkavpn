@@ -2,6 +2,7 @@ namespace Oblachka;
 
 public partial class MainWindow
 {
+    private readonly CancellationTokenSource appCatalogCancel = new();
     private void FeedbackChanged(object? sender, EventArgs args) => ShowToast();
     private void OnProtectionRepaired() => Dispatcher.BeginInvoke(() =>
     {
@@ -33,5 +34,6 @@ public partial class MainWindow
         liveTimer?.Stop(); switchTimer?.Stop();
         measureCancel?.Cancel(); pinging?.Cancel(); tuning?.Cancel(); siteCheckCancel?.Cancel();
         meter?.Dispose(); meter = null;
+        appCatalogCancel.Cancel(); appCatalogCancel.Dispose();
     }
 }

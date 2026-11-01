@@ -9,15 +9,10 @@ namespace Oblachka;
 // «Браузеры и программы»: тот же список исполняет ядро окна (остальное у него напрямую).
 public partial class MainWindow
 {
-    private bool selectiveVpn;
+    private bool selectiveVpn { get => runtime.TunnelPolicy.Selective; set => runtime.TunnelPolicy.Selective = value; }
 
-    internal static readonly string[] SelectiveDomains =
-    [
-        "youtube.com", "youtu.be", "googlevideo.com", "ytimg.com", "ggpht.com", "youtube-nocookie.com", "youtubei.googleapis.com",
-        "discord.com", "discord.gg", "discordapp.com", "discordapp.net", "discord.media", "discordcdn.com", "discord.dev", "discordstatus.com",
-    ];
-    // Само приложение Discord (и его бета-версии) — по имени: в VPN, это безопасная сторона.
-    internal static readonly string[] SelectivePrograms = ["Discord.exe", "DiscordPTB.exe", "DiscordCanary.exe"];
+    internal static readonly string[] SelectiveDomains = ClientTunnelPolicy.SelectiveDomains;
+    internal static readonly string[] SelectivePrograms = ClientTunnelPolicy.SelectivePrograms;
 
     private void WireSelective()
     {
@@ -32,17 +27,12 @@ public partial class MainWindow
     // Правила, с которыми ставится сессия «Весь компьютер»: свои и, в выборочном режиме, списки
     // YouTube и Discord. Своё правило на тот же сайт или программу сильнее списка.
     // Сессия через бесплатный чужой узел: домены сервиса закрыты правилами сайтов впереди своих (ForeignGuard).
-    private bool foreignSession;
+    private bool foreignSession { get => runtime.Tunnels.ForeignSession; set => runtime.Tunnels.ForeignSession = value; }
     // В «Браузеры и программы» подписка грузится напрямую, мимо узла; в «Весь компьютер» — через туннель.
     private bool ForeignConnected => SystemTunnelActive && foreignSession;
-    private SiteRule[] LeaseSites() => foreignSession ? ForeignGuard.With(OwnLeaseSites(), 100) : OwnLeaseSites();
-
-    private SiteRule[] OwnLeaseSites() => !selectiveVpn ? siteRules.ToArray()
-        : siteRules.Concat(SelectiveDomains.Where(d => !siteRules.Any(r => r.Domain == d)).Select(d => RoutingPlan.Create(d, SiteAction.Tunnel))).Take(100).ToArray();
-
-    private ProgramRule[] LeasePrograms() => WithServiceApps(!selectiveVpn ? programRules.ToArray()
-        : programRules.Concat(SelectivePrograms.Where(p => !programRules.Any(r => string.Equals(r.Executable, p, StringComparison.OrdinalIgnoreCase)))
-            .Select(p => ProgramRoutingPlan.Create(p, SiteAction.Tunnel))).Take(100).ToArray());
+    private SiteRule[] LeaseSites() => runtime.TunnelPolicy.LeaseSites(foreignSession);
+    private SiteRule[] OwnLeaseSites() => runtime.TunnelPolicy.LeaseSites(false);
+    private ProgramRule[] LeasePrograms() => runtime.TunnelPolicy.LeasePrograms();
 
     // Программы, которые сервис просит пустить мимо VPN (per-app-proxy-mode-windows: bypass).
     // Своё правило на ту же программу сильнее: сервис не переспорит человека.

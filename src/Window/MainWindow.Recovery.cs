@@ -23,6 +23,18 @@ public partial class MainWindow
         }
         if (result.Kind is RecoveryOutcomeKind.Error or RecoveryOutcomeKind.Exhausted)
         { DetailText.Text = result.Message ?? "Восстановить подключение не удалось."; RefreshHome(); return; }
+        if (result.Kind == RecoveryOutcomeKind.PathBroken)
+        {
+            DetailText.Text = result.Message ?? "Интернет через VPN не работает.";
+            Notify(Notice.NetworkClosed, "Интернет через VPN не работает", "Нажмите и выберите «Выключить VPN и открыть интернет».", warning: true);
+            RefreshHome(); return;
+        }
+        if (result.Kind == RecoveryOutcomeKind.Rebuilt && result.Selected is { } rebuilt)
+        {
+            RememberTunnelDirect(); ShowProfile(); Servers.SearchBox.Clear(); ProfilePicker.ItemsSource = importedProfiles;
+            ProfilePicker.SelectedItem = rebuilt;
+            Connected(); QueueStateSave(); DetailText.Text = "Системный туннель пересоздан. Проверяем связь."; UpdateControls(); return;
+        }
         if (result.Kind == RecoveryOutcomeKind.Restarted)
         { Connected(); DetailText.Text = "Подключение запущено заново. Проверяем связь."; UpdateControls(); return; }
         if (result.Kind == RecoveryOutcomeKind.Recovered && result.Selected is { } selected)

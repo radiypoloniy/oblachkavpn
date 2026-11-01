@@ -5,19 +5,10 @@ namespace Oblachka;
 // компьютер» — маршруты ядра и DNS туннеля меняются вместе, без переподключения.
 public partial class MainWindow
 {
-    private string? sentDirectDns;
+    private string? sentDirectDns { get => runtime.Tunnels.SentDirectDns; set => runtime.Tunnels.SentDirectDns = value; }
     private readonly SemaphoreSlim directDnsSync = new(1);
 
-    private static string[] DirectDomains(CompiledRouting? routing, IEnumerable<SiteRule> rules)
-    {
-        // «Всё напрямую, кроме списка» — DNS туннеля нужен как раз списку VPN; такого режима
-        // здесь нет, и имена разрешаются через туннель, как раньше.
-        if (routing is { GlobalProxy: false }) return [];
-        var names = rules.Where(r => r.Action == SiteAction.Direct && SiteTarget.Kind(r.Domain) == SiteTargetKind.Domain).Select(r => r.Domain)
-            .Concat(routing?.Direct.Suffix ?? []).Concat(routing?.Direct.Full ?? []);
-        return names.Select(n => n.Trim().TrimStart('.').ToLowerInvariant()).Where(DirectDnsRequest.Valid)
-            .Distinct(StringComparer.Ordinal).Take(DirectDnsRequest.MaxParts * DirectDnsRequest.MaxPerPart).ToArray();
-    }
+    private static string[] DirectDomains(CompiledRouting? routing, IEnumerable<SiteRule> rules) => ClientTunnelPolicy.DirectDomains(routing, rules);
 
     private async Task<bool> SyncDirectDnsAsync(IReadOnlyList<SiteRule>? sites = null)
     {

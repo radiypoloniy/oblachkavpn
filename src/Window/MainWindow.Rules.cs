@@ -4,13 +4,13 @@ namespace Oblachka;
 
 public partial class MainWindow
 {
-    private readonly List<SiteRule> siteRules = new();
+    private List<SiteRule> siteRules => runtime.TunnelPolicy.Sites;
     private void WireRules()
     {
         WireProgramRules();
         WireRuleApplyStatus();
         WireFree();
-        WireAdvanced(); RestoreAdvanced(null); WireRulesFile(); WireRuleSets();
+        WireAdvanced(); RestoreAdvanced(advanced); WireRulesFile(); WireRuleSets();
         WireConnections();
         WireSelective();
         WireRouting();

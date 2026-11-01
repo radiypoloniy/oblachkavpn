@@ -5,8 +5,7 @@ namespace Oblachka;
 // Здесь же — подключение заново, когда «Весь компьютер» прервался не по воле человека.
 public partial class MainWindow
 {
-    private bool wasConnected, healingTunnel;
-    private readonly Queue<DateTimeOffset> heals = new();
+    private bool wasConnected;
     // Подбор zapret отложен до подключения (RestoreZapret).
     private bool zapretAfterConnect;
 
@@ -43,24 +42,6 @@ public partial class MainWindow
     // Канал со службой оборвался (система надолго замирала, служба перезапустилась): служба держит
     // сессию, как после аварии окна, а окно её потеряло и показывает «Не подключено» — интернет закрыт
     // молча. Снимаем брошенную сессию (это делает подключение) и подключаемся заново, до трёх раз за 10 минут.
-    private async Task HealLostTunnelAsync()
-    {
-        if (healingTunnel || closed || manualStop || systemStopping || !NetworkHelperConnection.ServiceRunning) return;
-        while (heals.Count > 0 && DateTimeOffset.UtcNow - heals.Peek() > TimeSpan.FromMinutes(10)) heals.Dequeue();
-        if (heals.Count >= 3) return;
-        heals.Enqueue(DateTimeOffset.UtcNow);
-        healingTunnel = true;
-        try
-        {
-            await Task.Delay(TimeSpan.FromSeconds(2));
-            if (closed || manualStop || systemStopping) return;
-            DetailText.Text = "Связь со службой прервалась — подключаемся заново.";
-            await StopSystemTunnelAsync();
-            if (!closed && !manualStop && ConnectButton.IsEnabled) await ConnectCoreAsync();
-        }
-        finally { healingTunnel = false; }
-    }
-
     private async Task ConnectAtLaunchAsync()
     {
         ReadNetwork();

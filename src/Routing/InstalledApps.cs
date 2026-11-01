@@ -21,12 +21,14 @@ public static class InstalledApps
 {
     public const int MaxApps = 600;
 
-    public static IReadOnlyList<InstalledApp> Find()
+    public static IReadOnlyList<InstalledApp> Find(CancellationToken token = default)
     {
+        token.ThrowIfCancellationRequested();
         // По полному пути: у разных игр бывает один и тот же Game.exe.
         var found = new Dictionary<string, InstalledApp>(StringComparer.OrdinalIgnoreCase);
         void Add(string? name, string? path, bool running = false, bool addNew = true, string[]? folders = null)
         {
+            token.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(name) || Clean(path) is not { } exe) return;
             var file = System.IO.Path.GetFileName(exe);
             if (!Acceptable(file, exe)) return;
@@ -39,10 +41,10 @@ public static class InstalledApps
         }
         // Лаунчеры первыми: у игры из библиотеки имя и папка точнее, чем у ярлыка.
         foreach (var game in GameLibraries.Steam().Concat(GameLibraries.Epic())) Add(game.Name, game.Exe, folders: game.Folders);
-        foreach (var (name, target) in StartMenu()) Add(name, target);
-        foreach (var (name, target) in Registry()) Add(name, target);
+        foreach (var (name, target) in StartMenu(token)) Add(name, target);
+        foreach (var (name, target) in Registry(token)) Add(name, target);
         // Запущенное без окна (службы, фоновые помощники) только отмечается, в список не добавляется.
-        foreach (var (name, target, window) in Processes()) Add(name, target, running: true, addNew: window);
+        foreach (var (name, target, window) in Processes(token)) Add(name, target, running: true, addNew: window);
         return found.Values.OrderBy(a => a.Name, StringComparer.CurrentCultureIgnoreCase).ToArray();
     }
 
@@ -137,7 +139,7 @@ public static class InstalledApps
     private static readonly EnumerationOptions Recursive = new() { RecurseSubdirectories = true, IgnoreInaccessible = true };
     private static readonly EnumerationOptions TopLevel = new() { IgnoreInaccessible = true };
 
-    private static IEnumerable<(string, string?)> StartMenu()
+    private static IEnumerable<(string, string?)> StartMenu(CancellationToken token)
     {
         // Меню «Пуск» — со всеми подпапками; рабочий стол — только верхний уровень: там бывают огромные папки.
         var roots = new[] { (Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu), Recursive), (Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), Recursive),
@@ -145,12 +147,14 @@ public static class InstalledApps
         var result = new List<(string, string?)>();
         foreach (var (root, depth) in roots.Where(r => Directory.Exists(r.Item1)))
         {
+            token.ThrowIfCancellationRequested();
             IEnumerable<string> links;
             // Недоступная подпапка не должна обрывать перебор всего меню.
             try { links = Directory.EnumerateFiles(root, "*.lnk", depth).Take(1500).ToArray(); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { continue; }
             foreach (var link in links)
             {
+                token.ThrowIfCancellationRequested();
                 try
                 {
                     var (target, arguments) = ShellLinks.Read(link);
@@ -169,7 +173,7 @@ public static class InstalledApps
         return result;
     }
 
-    private static IEnumerable<(string?, string?)> Registry()
+    private static IEnumerable<(string?, string?)> Registry(CancellationToken token)
     {
         var keys = new[]
         {
@@ -178,12 +182,14 @@ public static class InstalledApps
         var result = new List<(string?, string?)>();
         foreach (var (hive, view) in keys)
         {
+            token.ThrowIfCancellationRequested();
             try
             {
                 using var root = RegistryKey.OpenBaseKey(hive, view).OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall");
                 if (root is null) continue;
                 foreach (var name in root.GetSubKeyNames().Take(1500))
                 {
+                    token.ThrowIfCancellationRequested();
                     using var app = root.OpenSubKey(name);
                     if (app is null || app.GetValue("SystemComponent") is 1) continue;
                     result.Add((app.GetValue("DisplayName") as string, app.GetValue("DisplayIcon") as string));
@@ -194,14 +200,16 @@ public static class InstalledApps
         return result;
     }
 
-    private static IEnumerable<(string?, string?, bool)> Processes()
+    private static IEnumerable<(string?, string?, bool)> Processes(CancellationToken token)
     {
-        var session = Process.GetCurrentProcess().SessionId;
+        using var current = Process.GetCurrentProcess();
+        var session = current.SessionId;
         var result = new List<(string?, string?, bool)>();
         foreach (var process in Process.GetProcesses())
         {
             using (process)
             {
+                token.ThrowIfCancellationRequested();
                 try
                 {
                     if (process.SessionId != session) continue;

@@ -21,7 +21,7 @@ public sealed partial class ClientRecovery
                 previous = owner.Profiles.Selected;
                 if (!Allowed || activity.Operation is not null || owner.Engine.State != ConnectionState.Failed || previous is null) return;
                 if (owner.Preferences.SystemTunnel && !TunnelActive)
-                { Finish(new(RecoveryOutcomeKind.RequiresReconnect, previous, previous, [])); return; }
+                { activity.Operation = cancel; activity.EngineOperation = true; await RebuildOrRequestAsync(previous, previous, cancel.Token); return; }
                 activity.Operation = cancel; activity.EngineOperation = true;
                 try
                 {
@@ -33,7 +33,8 @@ public sealed partial class ClientRecovery
                     owner.Profiles.Running = previous; owner.Monitor.ObserveProcess(); owner.Monitor.StartedFresh();
                     Finish(new(RecoveryOutcomeKind.Restarted, previous, previous, []));
                 }
-                catch (UserError error) { Finish(new(RecoveryOutcomeKind.Error, previous, null, [], Message: error.Message)); }
+                catch (Exception error) when (error is UserError or IOException or TimeoutException or ObjectDisposedException)
+                { Finish(new(RecoveryOutcomeKind.Error, previous, null, [], Message: RecoveryMessage(error))); }
                 finally
                 {
                     if (ReferenceEquals(activity.Operation, cancel)) { activity.Operation = null; activity.EngineOperation = false; }
@@ -42,9 +43,12 @@ public sealed partial class ClientRecovery
             }
         }
         catch (OperationCanceledException) when (cancel.IsCancellationRequested) { }
+        catch (Exception error) when (error is UserError or IOException or TimeoutException or ObjectDisposedException)
+        { Finish(new(RecoveryOutcomeKind.Error, owner.Profiles.Selected, null, [], Message: RecoveryMessage(error))); }
         finally
         {
             waiting = null;
+            if (ReferenceEquals(activity.Operation, cancel)) { activity.Operation = null; activity.EngineOperation = false; }
             if (ReferenceEquals(activity.RecoveryWait, cancel)) activity.RecoveryWait = null;
             Publish(before);
         }
