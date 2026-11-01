@@ -41,7 +41,7 @@ public partial class MainWindow
         }
         catch (Exception ex) when (ex is UserError or IOException or OperationCanceledException or TimeoutException) { return false; }
         coreZapretKey = DesiredZapretKey;
-        sentDirectDns = ""; _ = SyncDirectDnsAsync();
+        sentDirectDns = null; _ = SyncDirectDnsAsync();
         return true;
     }
 }

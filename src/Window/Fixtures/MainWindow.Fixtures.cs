@@ -71,6 +71,7 @@ public partial class MainWindow
     internal async Task<IReadOnlyList<string>> RunUiFixtureAsync()
     {
         var checks = new List<string>();
+        CheckDirectDnsRules(checks);
         CheckDeferredViews(checks);
         CheckLiveCache(checks);
         CheckAppVirtualization(checks);

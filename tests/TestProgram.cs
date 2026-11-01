@@ -6,6 +6,8 @@ public static class TestProgram
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Length == 2 && args[0] == "--routing-inspect") return RoutingInspectCommand.Run(args[1]);
+        if (args.Length == 2 && args[0] == "--live-dns-test") return SelfTests.RunLiveDnsAsync(args[1]).GetAwaiter().GetResult();
         if (args.Length == 2 && args[0] == "--subscription-self-test")
             return SelfTests.RunSubscriptionsAsync(args[1]).GetAwaiter().GetResult();
         if (args.Length == 2 && args[0] == "--architecture-self-test")

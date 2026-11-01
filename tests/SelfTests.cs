@@ -77,6 +77,7 @@ public static partial class SelfTests
         await TrafficChecksAsync(CheckAsync);
         await AuditFixChecksAsync(CheckAsync);
         await LiveSiteRuleChecksAsync(CheckAsync);
+        await LiveDnsChecksAsync(CheckAsync);
         await DirectOutboundChecksAsync(CheckAsync);
         await TunnelListsChecksAsync(CheckAsync);
         await XrayBridgeChecksAsync(CheckAsync);

@@ -31,6 +31,7 @@ public partial class MainWindow
         // десятки WPF-свойств каждую секунду. Открытый трей обновляется в прежнем темпе.
         if (!onScreen) { FlushStateSave(); return; }
         RefreshHome();
+        RefreshRuleApplyStatus();
         Servers.SearchBox.IsEnabled = ProfilePicker.IsEnabled;
         RefreshServerListControls();
         Diagnostics.CoreState.Text = pid is null ? "Не запущен" : "Готов";

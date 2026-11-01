@@ -1,4 +1,4 @@
-﻿namespace Oblachka;
+namespace Oblachka;
 
 // Правила программ на ходу: при «Весь компьютер» любое изменение сразу уходит в службу
 // (ProgramRuleSets), ядро туннеля перечитывает файлы правил — без переподключения и без снятия
@@ -9,13 +9,18 @@ public partial class MainWindow
     private bool tunnelDirectAllowed;
     // Правила программ и сайтов, что сейчас у ядра туннеля.
     private SentRules sentRules = SentRules.None;
+    private readonly SemaphoreSlim ruleSync = new(1);
 
     // Вызывается при запуске сессии: то же условие, что у ValidatedNetworkLease.HasDirect.
-    private void RememberTunnelDirect() =>
+    private void RememberTunnelDirect()
+    {
         tunnelDirectAllowed = selectiveVpn || (engine as Engine)?.DirectEntry is not null || siteRules.Any(r => r.Action == SiteAction.Direct) || programRules.Any(r => r.Action == SiteAction.Direct) || ServiceDirectApps.Length > 0;
+        ruleApplyProblem = null; pendingRulesBefore = null;
+    }
 
     private void ProgramRulesChanged()
     {
+        RefreshRuleApplyStatus();
         if (!SystemTunnelActive) return;
         _ = SyncProgramRulesAsync();
         if (!tunnelDirectAllowed && (programRules.Any(r => r.Action == SiteAction.Direct) || siteRules.Any(r => r.Action == SiteAction.Direct)))
@@ -24,32 +29,47 @@ public partial class MainWindow
 
     private async Task SyncProgramRulesAsync()
     {
-        if (helperLifetime is not { } lifetime || !SystemTunnelActive) return;
-        var next = new SentRules(LeasePrograms().ToArray(), LeaseSites());
-        if (next.Key == sentRules.Key) return;
+        await ruleSync.WaitAsync();
         try
         {
+            if (closed || helperLifetime is not { } lifetime || !SystemTunnelActive) return;
+            var session = systemTunnel;
+            var next = new SentRules(LeasePrograms().ToArray(), LeaseSites());
+            var dnsReady = await SyncDirectDnsAsync(next.Sites);
+            if (!ReferenceEquals(lifetime, helperLifetime) || !ReferenceEquals(session, systemTunnel) || !SystemTunnelActive) return;
+            if (next.Key == sentRules.Key && ruleApplyProblem is null && dnsReady) return;
+            pendingRulesBefore ??= sentRules;
+            var before = pendingRulesBefore;
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
             await lifetime.Client.ProgramRulesAsync(next.Programs, next.Sites, timeout.Token);
-            var before = sentRules; sentRules = next;
-            // Ядро перечитывает файлы правил не мгновенно. Первый проход — почти сразу: обычно ядро уже
-            // успело, и программа переподключается по новому правилу без заметной паузы. Второй —
-            // через секунду, только для соединений, что всё ещё идут не туда (переподключились раньше,
-            // чем ядро перечитало правила). Свежие соединения по новому правилу он не трогает.
-            if (systemTunnel?.Stats is { } stats)
+            if (!ReferenceEquals(lifetime, helperLifetime) || !ReferenceEquals(session, systemTunnel) || !SystemTunnelActive) return;
+            sentRules = next;
+            var cacheReady = true;
+            if (session?.Stats is { } stats)
             {
-                var after = sentRules;
-                await Task.Delay(400);
-                await CoreConnections.CloseChangedAsync(stats, before, after, CancellationToken.None);
+                await Task.Delay(400, timeout.Token);
+                if (!ReferenceEquals(session, systemTunnel) || !SystemTunnelActive) return;
+                cacheReady = await CoreDnsCache.FlushAsync(stats, timeout.Token);
+                await CoreConnections.CloseChangedAsync(stats, before, next, timeout.Token);
                 _ = RefreshConnectionsAsync();
-                await Task.Delay(1100);
-                if (await CoreConnections.CloseMismatchedAsync(stats, before, after, CancellationToken.None) > 0) _ = RefreshConnectionsAsync();
+                // Повторно закрываем только соединения, успевшие открыться по прежнему правилу.
+                await Task.Delay(1100, timeout.Token);
+                if (!ReferenceEquals(session, systemTunnel) || !SystemTunnelActive) return;
+                cacheReady = await CoreDnsCache.FlushAsync(stats, timeout.Token) && cacheReady;
+                if (await CoreConnections.CloseMismatchedAsync(stats, before, next, timeout.Token) > 0) _ = RefreshConnectionsAsync();
             }
+            ruleApplyProblem = dnsReady && cacheReady ? null : "Маршруты применены, но обновление DNS не завершилось. Повторите применение или переподключите VPN.";
+            if (ruleApplyProblem is null) pendingRulesBefore = null;
+            RefreshRuleApplyStatus();
         }
-        // Старая служба без этой команды или сбой канала: правила вступят в силу при следующем подключении.
         catch (Exception ex) when (ex is UserError or IOException or OperationCanceledException or TimeoutException)
         {
-            if (!closed) DetailText.Text = "Правила программ вступят в силу при следующем подключении.";
+            if (!closed)
+            {
+                ruleApplyProblem = "Правила сохранены, но подключение их не приняло. Повторите применение или переподключите VPN.";
+                DetailText.Text = ruleApplyProblem; RefreshRuleApplyStatus();
+            }
         }
+        finally { ruleSync.Release(); }
     }
 }

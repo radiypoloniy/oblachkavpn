@@ -8,6 +8,7 @@ public partial class MainWindow
     private void WireRules()
     {
         WireProgramRules();
+        WireRuleApplyStatus();
         WireFree();
         WireAdvanced(); RestoreAdvanced(null); WireRulesFile(); WireRuleSets();
         WireConnections();

@@ -126,6 +126,15 @@
 
     <TextBlock DockPanel.Dock="Bottom" Text="Нажмите на метку, чтобы сменить действие. Программа сильнее сайта." Style="{StaticResource Small}" Foreground="{DynamicResource Fa}" TextWrapping="Wrap" Margin="14,8,0,0"/>
 
+    <Border x:Name="ApplyStatus" DockPanel.Dock="Top" Background="{DynamicResource WB}" CornerRadius="{StaticResource RadiusMd}" Padding="12" Margin="10,8,0,4" Visibility="Collapsed">
+      <StackPanel>
+        <TextBlock x:Name="ApplyStatusText" TextWrapping="Wrap" Style="{StaticResource Small}"/>
+        <WrapPanel Margin="0,6,0,0">
+          <Button x:Name="RetryRules" Content="Повторить применение" Style="{StaticResource BtnGhost}"/>
+          <Button x:Name="ReconnectRules" Content="Переподключить VPN" Style="{StaticResource BtnGhost}"/>
+        </WrapPanel>
+      </StackPanel>
+    </Border>
     <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="10,4,0,0">
       <Grid>
         <o:AccessibleItems x:Name="RuleList" Focusable="False"/>

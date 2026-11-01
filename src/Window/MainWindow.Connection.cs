@@ -57,7 +57,7 @@ public partial class MainWindow
             else if (SystemTunnelWanted)
             {
                 await StartSystemTunnelAsync(operation.Token);
-                sentDirectDns = ""; _ = SyncDirectDnsAsync();
+                sentDirectDns = null; _ = SyncDirectDnsAsync();
                 StartedFresh();
                 runningProfile = target;
                 if (!closed) DetailText.Text = "Системный режим запущен: весь трафик идёт через туннель.";
