@@ -7,8 +7,8 @@ public partial class MainWindow
 {
     private readonly DispatcherTimer presentationTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private DateTimeOffset? sessionStarted;
-    private DateTimeOffset? lastCheck;
-    private ProbeResult? lastProbe;
+    private DateTimeOffset? lastCheck { get => runtime.Monitor.LastCheck; set => runtime.Monitor.LastCheck = value; }
+    private ProbeResult? lastProbe { get => runtime.Monitor.LastProbe; set => runtime.Monitor.LastProbe = value; }
     private int? presentedPid;
     private bool findingRoute;
 
@@ -17,13 +17,12 @@ public partial class MainWindow
         if (!viewsReady) return;
         var state = engine.State;
         var pid = engine.ProcessId;
+        runtime.Monitor.ObserveProcess();
         if (pid != presentedPid)
         {
             presentedPid = pid;
             sessionStarted = pid is null ? null : DateTimeOffset.UtcNow;
-            lastProbe = null; lastCheck = null;
             // Новое ядро — сразу перепроверяем, иначе чип «Проверяем связь…» ждал бы плановые 45 с.
-            if (pid is not null) nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
         }
         var onScreen = !background || (IsVisible && WindowState != WindowState.Minimized) || trayPopup?.IsVisible == true;
         RefreshTraffic(onScreen);

@@ -19,7 +19,7 @@ public partial class MainWindow
 {
     private string? dismissedAnnounce;
     // «Автовыбор»: сервер выбирается по свежим замерам, а при обрыве подбор переключает сам.
-    private bool autoSelect;
+    private bool autoSelect { get => runtime.Profiles.AutoSelect; set => runtime.Profiles.AutoSelect = value; }
     private string? quickSignature;
     private readonly DispatcherTimer toastTimer = new() { Interval = TimeSpan.FromSeconds(6) };
 

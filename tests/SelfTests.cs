@@ -89,6 +89,7 @@ public static partial class SelfTests
         await SubscriptionChecksAsync(CheckAsync);
         await MemoryChecksAsync(CheckAsync);
         await ClientRuntimeChecksAsync(CheckAsync);
+        await ClientMonitorChecksAsync(CheckAsync);
         await CoreProgramChecksAsync(CheckAsync);
         await ClientBlockChecksAsync(CheckAsync, root);
         await HelperLifetimeChecksAsync(CheckAsync, root);

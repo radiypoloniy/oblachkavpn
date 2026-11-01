@@ -92,7 +92,7 @@ public partial class MainWindow
 
     // Обрыв по трафику (TrafficStall): отдача есть, приёма нет — проверка связи сразу, а не по расписанию.
     private readonly TrafficStall stall = new();
-    private DateTimeOffset lastTraffic = DateTimeOffset.MinValue;
+    private DateTimeOffset lastTraffic { get => runtime.Monitor.LastTraffic; set => runtime.Monitor.LastTraffic = value; }
     private void WatchStall()
     {
         if (meter is not { Fresh: true } m) { stall.Reset(); return; }

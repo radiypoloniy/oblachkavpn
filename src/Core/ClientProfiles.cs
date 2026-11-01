@@ -5,6 +5,8 @@ public sealed class ClientProfiles
     public ProfilePickerState Picker { get; } = new();
     public Profile? Selected { get; set; }
     public Profile? Running { get; set; }
+    public bool AutoSelect { get; set; }
+    public bool MachineMode { get; set; }
     public IReadOnlyList<Profile> Imported { get; set; } = Array.Empty<Profile>();
     public List<ProfileGroup> Groups { get; } = new();
     public Dictionary<string, IReadOnlyList<Profile>> GroupProfiles { get; } = new();

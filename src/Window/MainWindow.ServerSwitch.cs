@@ -18,7 +18,7 @@ public partial class MainWindow
     private Profile? runningProfile { get => runtime.Profiles.Running; set => runtime.Profiles.Running = value; }
     private DispatcherTimer? switchTimer;
     // Фоновая проверка связи раз в 45 с не должна гасить список серверов.
-    private bool backgroundCheck;
+    private bool backgroundCheck { get => runtime.Activity.BackgroundCheck; set => runtime.Activity.BackgroundCheck = value; }
     // Идёт замер задержки через серверы (MeasureServersAsync).
     private bool measuring;
 

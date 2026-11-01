@@ -5,7 +5,7 @@ namespace Oblachka;
 
 public partial class MainWindow
 {
-    private bool vmTestActive;
+    private bool vmTestActive { get => runtime.Activity.VmTestActive; set => runtime.Activity.VmTestActive = value; }
     private bool vmTestAllowed;
     private Process? vmTestProcess;
 

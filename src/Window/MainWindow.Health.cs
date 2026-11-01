@@ -1,107 +1,48 @@
-using Microsoft.Win32;
-using System.Net.NetworkInformation;
-using System.Windows;
+using System.Windows.Threading;
 
 namespace Oblachka;
 
 public partial class MainWindow
 {
-    private readonly TunnelHealth health = new();
-    private DateTimeOffset nextHealthCheck = DateTimeOffset.MaxValue;
-    // Через этот протокол с подключения ещё не прошёл ни один запрос. Пока так, ждать трёх неудач
-    // незачем: терять нечего, а у машины есть соседний протокол на том же адресе (0.21, ускорение).
-    private bool verifiedSinceStart;
-    private static readonly TimeSpan FreshBudget = TimeSpan.FromSeconds(5);
-    // Первая проверка после подключения или смены сервера: ядру хватает секунды, чтобы взять маршрут.
-    private static readonly TimeSpan FirstCheck = TimeSpan.FromSeconds(1);
-
-    private void StartedFresh() { verifiedSinceStart = false; nextHealthCheck = DateTimeOffset.UtcNow + FirstCheck; }
-    private bool HasSibling(Profile item) => machineMode && MachineOf(item).Count > 1;
-    private bool lifecycleSubscribed;
+    private TunnelHealth health => runtime.Monitor.Health;
+    private DateTimeOffset nextHealthCheck { get => runtime.Monitor.NextCheck; set => runtime.Monitor.NextCheck = value; }
+    private bool verifiedSinceStart { get => runtime.Monitor.VerifiedSinceStart; set => runtime.Monitor.VerifiedSinceStart = value; }
     private bool backgroundWorkEnabled;
-
+    private void StartedFresh() => runtime.Monitor.StartedFresh();
     private void SubscribeLifecycle(bool enabled)
     {
         if (!enabled) return;
         backgroundWorkEnabled = true;
-        SystemEvents.PowerModeChanged += PowerChanged;
-        System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged += AvailabilityChanged;
-        lifecycleSubscribed = true;
+        runtime.Monitor.StateChanged += HealthStateChanged;
+        runtime.Monitor.Completed += HealthCompleted;
+        runtime.Monitor.Start(new DispatcherSynchronizationContext(Dispatcher));
     }
     private void UnsubscribeLifecycle()
     {
-        if (!lifecycleSubscribed) return;
-        SystemEvents.PowerModeChanged -= PowerChanged;
-        System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged -= AvailabilityChanged;
+        runtime.Monitor.StateChanged -= HealthStateChanged;
+        runtime.Monitor.Completed -= HealthCompleted;
+        backgroundWorkEnabled = false;
     }
-    private void PowerChanged(object sender, PowerModeChangedEventArgs args)
-    { if (args.Mode == PowerModes.Resume) QueueHealthCheck(); }
-    private void AvailabilityChanged(object? sender, NetworkAvailabilityEventArgs args)
-    { if (args.IsAvailable) QueueHealthCheck(); }
-    private void QueueHealthCheck()
-    {
-        if (closed || vmTestActive || Dispatcher.HasShutdownStarted) return;
-        Dispatcher.BeginInvoke(new Action(() => { if (!closed) nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3); }));
-    }
-    // Переключать сервер при обрыве: по настройке или потому что выбран «Автовыбор» —
-    // выбрав его, человек сам попросил, чтобы сервер подбирался без него.
-    // Бесплатный чужой узел не восстанавливается сам ни повтором, ни сменой сервера (решение владельца
-    // 24.10.2026): упал — человек сам выбирает, к чему подключаться дальше.
+    private void HealthStateChanged() { if (!closed) UpdateControls(); }
     private bool AutoSwitching => (autoSelect || preferences.AutoRecover) && (runningProfile ?? profile)?.IsFree != true;
-
-    // Проверка связи идёт всегда: без неё чип под тумблером не узнает, что туннель работает.
-    // Автовосстановление — отдельное решение: по настройке или при «Автовыборе».
-    private async void PollHealth()
+    private async void HealthCompleted(HealthObservation observation)
     {
-        if (closed || vmTestActive || !backgroundWorkEnabled || operation is not null || recoveryWait is not null || engine.ProcessId is null ||
-            DateTimeOffset.UtcNow < nextHealthCheck) return;
-        // Идёт трафик — проверяем раз в 20 с: обрыв заметен раньше; в простое — раз в 45 с.
-        nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(DateTimeOffset.UtcNow - lastTraffic < TimeSpan.FromSeconds(60) ? 20 : 45);
-        operation = new CancellationTokenSource(); engineOperation = true; backgroundCheck = true; UpdateControls();
-        var shouldRecover = false;
-        string? pathFailure = null;
-        try
+        if (closed || vmTestActive || manualStop) return;
+        var round = observation.Round;
+        RecordProbe(round.Results.FirstOrDefault(r => r.Success) ?? round.Results[^1]);
+        if (!round.Reachable)
+            DetailText.Text = $"Проверка связи не прошла: {health.FailedRounds} из {observation.FailureLimit}. Проверяем два независимых сайта.";
+        else if (observation.PathProblem is { } problem)
         {
-            var fresh = !verifiedSinceStart;
-            var round = await health.CheckAsync(engine.ProbeAsync, TunnelHealth.Targets, operation.Token, fresh ? FreshBudget : null);
-            if (!closed && !manualStop)
-            {
-                RecordProbe(round.Results.FirstOrDefault(r => r.Success) ?? round.Results[^1]);
-                if (round.Verified) verifiedSinceStart = true;
-                // При «Автовыборе» двух неудачных проверок подряд достаточно, иначе — трёх. Повтор через 8 с:
-                // каждая проверка и так спрашивает два независимых сайта, долгие паузы только тянули обрыв.
-                // Протокол с подключения не ответил ни разу: у машины — сразу соседний, иначе — после второй.
-                var limit = fresh ? (profile is { } p && HasSibling(p) ? 1 : 2) : autoSelect ? 2 : 3;
-                shouldRecover = health.FailedRounds >= limit;
-                if (!round.Reachable)
-                {
-                    nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(fresh ? 3 : 8);
-                    DetailText.Text = $"Проверка связи не прошла: {health.FailedRounds} из {limit}. Проверяем два независимых сайта.";
-                }
-                // Ядро отвечает — проверяем путь, которым ходят программы (SystemPathProbe).
-                else if (await CheckSystemPathAsync(operation.Token) is { } problem && !closed && !manualStop)
-                {
-                    RecordProbe(new(false, 0, problem, ProbeFailure.Reachability));
-                    if (SystemPathShouldRepair) pathFailure = problem;
-                    else { nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(10); DetailText.Text = problem + " Проверяем ещё раз."; }
-                }
-                else if (!closed && !manualStop) SystemPathHealthy();
-            }
+            RecordProbe(new(false, 0, problem, ProbeFailure.Reachability));
+            if (runtime.Monitor.Path.ShouldRepair) { await RepairSystemPathAsync(problem); return; }
+            DetailText.Text = problem + " Проверяем ещё раз.";
         }
-        catch (OperationCanceledException) { }
-        catch (UserError) { /* Engine exit has its own bounded recovery owner. */ }
-        finally
-        {
-            operation.Dispose(); operation = null; engineOperation = false; backgroundCheck = false;
-            if (manualStop) engine.Stop();
-            if (!closed) UpdateControls();
-        }
-        // Путь программ чинится и без автовосстановления: иначе интернет закрыт молча.
-        if (!closed && !vmTestActive && !manualStop && pathFailure is not null) { await RepairSystemPathAsync(pathFailure); return; }
-        if (!closed && !manualStop && shouldRecover && (runningProfile ?? profile)?.IsFree == true)
+        else SystemPathHealthy();
+        if (observation.ShouldRecover && (runningProfile ?? profile)?.IsFree == true)
             DetailText.Text = "Бесплатный сервер не отвечает. Выберите другой и подключитесь заново — сам он не переключается.";
-        if (closed || vmTestActive || manualStop || !AutoSwitching) return;
-        if (shouldRecover) await RecoverUnreachableAsync();
+        if (!AutoSwitching) return;
+        if (observation.ShouldRecover) await RecoverUnreachableAsync();
         else if (engine.State == ConnectionState.Failed) ScheduleRecovery();
     }
     private async Task RecoverUnreachableAsync()

@@ -14,17 +14,17 @@ public partial class MainWindow : Window
     private readonly bool ownsRuntime;
     private ITunnelController engine => runtime.Engine;
     private Profile? profile { get => runtime.Profiles.Selected; set => runtime.Profiles.Selected = value; }
-    private CancellationTokenSource? operation;
+    private CancellationTokenSource? operation { get => runtime.Activity.Operation; set => runtime.Activity.Operation = value; }
     private bool closed;
-    private bool manualStop;
-    private bool engineOperation;
+    private bool manualStop { get => runtime.Activity.ManualStop; set => runtime.Activity.ManualStop = value; }
+    private bool engineOperation { get => runtime.Activity.EngineOperation; set => runtime.Activity.EngineOperation = value; }
     // Адреса подписки сервиса (основной и резервные) и адреса сторонней подписки.
     // Разделены, чтобы загрузка одной не стирала адрес другой.
     // Загруженная подписка, отложенная до остановки подключения.
     private (ProfileGroup Group, ImportResult Result)? pendingImport;
     private IReadOnlyList<RouteAttempt> routeAttempts = Array.Empty<RouteAttempt>();
-    private readonly RecoveryPolicy recovery = new();
-    private CancellationTokenSource? recoveryWait;
+    private RecoveryPolicy recovery => runtime.Monitor.Recovery;
+    private CancellationTokenSource? recoveryWait { get => runtime.Activity.RecoveryWait; set => runtime.Activity.RecoveryWait = value; }
     private readonly List<ClientEvent> events = new();
     private readonly Forms.NotifyIcon tray;
     private readonly Forms.ToolStripMenuItem trayConnect;
@@ -46,7 +46,7 @@ public partial class MainWindow : Window
         WireViews();
         viewsReady = true;
         Navigate("Connection");
-        presentationTimer.Tick += (_, _) => { RefreshPresentation(background: true); PollHealth(); PollSubscription(); PollPing(); PollZapretRouting(); PollZapretWatch(); PollPause(); PollExpiry(); PollProxyGuard(); };
+        presentationTimer.Tick += (_, _) => { RefreshPresentation(background: true); PollSubscription(); PollPing(); PollZapretRouting(); PollZapretWatch(); PollPause(); PollExpiry(); PollProxyGuard(); };
         presentationTimer.Start();
         SubscribeLifecycle(persistenceEnabled && isolatedStore is null);
         InitSystemProxy(persistenceEnabled && isolatedStore is null);

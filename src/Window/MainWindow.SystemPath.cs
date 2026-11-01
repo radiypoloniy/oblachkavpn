@@ -6,33 +6,12 @@ namespace Oblachka;
 // карточка «Интернет закрыт» с кнопкой выключения и уведомление в трее, а не «Защищено».
 public partial class MainWindow
 {
-    private readonly TunnelHealth pathHealth = new(), directHealth = new();
-    private const int PathFailureLimit = 2;
-    // pathRebuilt — туннель уже пересобран из-за этой поломки; pathBroken — не помогло, сеть закрыта.
-    private bool pathRebuilt, pathBroken;
-    private string pathProblem = "";
-    // Сломан только прямой путь: сайты через VPN открываются, идущие напрямую — нет.
-    private bool pathDirectOnly;
-
-    // null — путь программ в порядке (или проверять нечего); иначе — что сломано. Вызывается
-    // после удачной проверки ядра, внутри operation проверки связи.
-    private async Task<string?> CheckSystemPathAsync(CancellationToken token)
-    {
-        if (!SystemTunnelActive) { pathHealth.Reset(); directHealth.Reset(); return null; }
-        var tunnel = await pathHealth.CheckAsync(SystemPathProbe.RunAsync, TunnelHealth.Targets, token);
-        pathDirectOnly = false;
-        if (!tunnel.Reachable) return "Сервер отвечает, но программы компьютера через туннель в интернет не выходят.";
-        // Прямой путь проверяем по сайтам, которые точно идут мимо VPN: «Российские сайты напрямую».
-        if (preferences.RussiaDirect && (engine as Engine)?.Routing?.HasDirect == true)
-        {
-            var direct = await directHealth.CheckAsync(SystemPathProbe.RunAsync, SystemPathProbe.DirectTargets, token);
-            if (!direct.Reachable) { pathDirectOnly = true; return "Сайты через VPN открываются, а российские, которые идут напрямую, — нет."; }
-        }
-        else directHealth.Reset();
-        return null;
-    }
-
-    private bool SystemPathShouldRepair => pathHealth.FailedRounds >= PathFailureLimit || directHealth.FailedRounds >= PathFailureLimit;
+    private TunnelHealth pathHealth => runtime.Monitor.Path.Tunnel;
+    private TunnelHealth directHealth => runtime.Monitor.Path.Direct;
+    private bool pathRebuilt { get => runtime.Monitor.Path.Rebuilt; set => runtime.Monitor.Path.Rebuilt = value; }
+    private bool pathBroken { get => runtime.Monitor.Path.Broken; set => runtime.Monitor.Path.Broken = value; }
+    private string pathProblem { get => runtime.Monitor.Path.Problem; set => runtime.Monitor.Path.Problem = value; }
+    private bool pathDirectOnly => runtime.Monitor.Path.DirectOnly;
 
     private void SystemPathHealthy()
     {
@@ -70,7 +49,6 @@ public partial class MainWindow
     // Ручное подключение и остановка начинают с чистого листа.
     private void ResetSystemPath()
     {
-        pathRebuilt = false; pathBroken = false;
-        pathHealth.Reset(); directHealth.Reset();
+        runtime.Monitor.Path.Reset();
     }
 }

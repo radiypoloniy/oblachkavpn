@@ -6,6 +6,8 @@ public sealed class ClientRuntime : IDisposable
     public ITunnelController Engine { get; }
     public ClientProfiles Profiles { get; } = new();
     public ClientPreferences Preferences { get; } = new();
+    public ClientActivity Activity { get; } = new();
+    public ClientHealthMonitor Monitor { get; }
     public SystemTunnelSession? Tunnel { get; private set; }
     public IHelperLifetime? Helper { get; private set; }
     private Task stopping = Task.CompletedTask;
@@ -17,6 +19,7 @@ public sealed class ClientRuntime : IDisposable
     public ClientRuntime(ITunnelController engine)
     {
         Engine = engine;
+        Monitor = new ClientHealthMonitor(this);
         previousLookup = ServerTweak.Lookup; lookup = Profiles.TweakFor;
         ServerTweak.Lookup = lookup;
     }
@@ -48,6 +51,7 @@ public sealed class ClientRuntime : IDisposable
     {
         if (disposed) return;
         disposed = true;
+        Monitor.Dispose();
         if (ServerTweak.Lookup == lookup) ServerTweak.Lookup = previousLookup;
         Engine.Dispose(); Profiles.Clear();
     }

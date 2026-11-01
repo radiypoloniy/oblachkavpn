@@ -32,7 +32,12 @@ public partial class MainWindow
             throw new InvalidOperationException("Preferences did not survive control changes and view release");
         if (core.Disposed || core.State != ConnectionState.Running)
             throw new InvalidOperationException("Closing a view stopped the application-owned core");
-        checks.Add("Closed WPF window is collectible while application runtime, simulated core and selected profile remain alive");
+        var completed = new TaskCompletionSource<HealthObservation>();
+        owner.Monitor.Completed += result => completed.TrySetResult(result);
+        owner.Monitor.NextCheck = DateTimeOffset.MinValue;
+        var observation = await completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        if (!observation.Round.Verified) throw new InvalidOperationException("Application monitor stopped with the closed view");
+        checks.Add("Closed WPF window is collectible while application runtime, monitor, simulated core and selected profile remain alive");
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -42,6 +47,7 @@ public partial class MainWindow
         if (window.Settings.Notices.IsChecked != false || window.Settings.QuicOverTcp.IsChecked != true)
             throw new InvalidOperationException("New view did not display application preferences");
         window.Settings.QuicOverTcp.SetCurrentValue(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, false);
+        window.SubscribeLifecycle(enabled: true); // Только имитация ядра; реальные запросы не выполняются.
         if (owner.Preferences.QuicOverTcp) throw new InvalidOperationException("Toggle did not update application preference");
         owner.Preferences.QuicOverTcp = true;
         if (window.Settings.QuicOverTcp.IsChecked != true) throw new InvalidOperationException("Preference did not update toggle");
