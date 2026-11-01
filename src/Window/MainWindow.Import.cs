@@ -32,6 +32,7 @@ public partial class MainWindow
     // Подписка заменяет свою группу целиком; «Вручную» пополняется. Остальные группы не трогаются.
     private void ApplyGroupImport(ProfileGroup group, ImportResult result, bool preserveSelection = false)
     {
+        var isNewSubscription = group.Source == ProfileSource.External && !group.IsManual && groups.All(g => g.Id != group.Id);
         try
         {
             SetGroup(group, group.IsManual ? ProfileGroups.Append(ProfilesOf(ProfileGroup.ManualId), result.Profiles) : result.Profiles);
@@ -39,6 +40,9 @@ public partial class MainWindow
         catch (UserError ex) { DetailText.Text = ex.Message; return; }
         if (result.Metadata?.Routing is { } routing) ReceiveRouting(routing);
         ApplyProfiles(preserveSelection);
+        // Новая подписка открывается отдельно: её серверы не смешиваются на экране с прежними.
+        if (isNewSubscription && Servers.GroupTabs.Tag is string[] ids && Array.IndexOf(ids, group.Id) is var tab && tab >= 0)
+            Servers.GroupTabs.SelectedIndex = tab + 1;
         // Добавленное вручную сразу выбрано: его и собирались подключать.
         if (group.IsManual && !preserveSelection && result.Profiles.Count > 0 &&
             importedProfiles.FirstOrDefault(p => p.Group == ProfileGroup.ManualId && p.Name == result.Profiles[0].Name &&

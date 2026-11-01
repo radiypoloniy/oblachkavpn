@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
@@ -29,6 +29,8 @@ public partial class MainWindow
             // Порядок в дереве не важен: подпись прижата справа и объявлена раньше имени (узкое окно, 0.21).
             if (foreignLabels.Length != 2 || foreignLabels.All(l => l.Text != parsed.DisplayName) || foreignLabels.All(l => l.Text != "вручную"))
                 throw new InvalidOperationException("External node is not marked in the server list: " + string.Join(" | ", foreignLabels.Select(l => l.Text)));
+            if (Row(parsed with { Source = ProfileSource.External }).Flag is null)
+                throw new InvalidOperationException("External subscription flag was replaced by the generic external icon: " + code);
             if (Profiles.Fingerprint(parsed) != Profiles.Fingerprint(parsed with { Name = "Другое имя" }))
                 throw new InvalidOperationException("Country presentation changes connection identity");
         }

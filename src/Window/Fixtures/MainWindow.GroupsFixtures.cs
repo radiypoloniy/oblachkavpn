@@ -17,6 +17,8 @@ public partial class MainWindow
         if (groups.Count != 3 || groups[0].Name != "Основная" || groups[1].Name != "other.invalid" || !groups[2].IsManual ||
             ProfilesOf(ProfileGroup.ManualId).Count != 2 || importedProfiles.Count != 5 || profile?.Name != "Мой")
             throw new InvalidOperationException("Groups: " + string.Join(", ", groups.Select(g => g.Name + "=" + ProfilesOf(g.Id).Count)));
+        if (Servers.GroupTabs.Tag is not string[] addedTabs || Servers.GroupTabs.SelectedIndex < 1 || addedTabs[Servers.GroupTabs.SelectedIndex - 1] != groups[1].Id)
+            throw new InvalidOperationException("A newly added subscription did not open its own tab");
         // Та же подписка ещё раз — обновление её группы, не вторая вкладка.
         await Load("https://main.invalid/subs/a?fresh=1", new ImportResult(new[] { Node("Литва", 1) }, 0, 0));
         if (groups.Count != 3 || ProfilesOf(groups[0].Id).Count != 1 || groups[0].Name != "Основная")

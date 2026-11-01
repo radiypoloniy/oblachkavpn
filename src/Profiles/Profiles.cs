@@ -35,7 +35,8 @@ public sealed record Profile(string Name, string Transport, JsonObject Outbound,
     public ProfileSource Source { get; init; } = ProfileSource.External;
     // Группа (вкладка) узла: подписка или «Вручную» (ProfileGroup). В прежних снимках её нет.
     public string Group { get; init; } = "";
-    public ServerCountry Country => CountryCatalog.Resolve(Name);
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Profile, ServerCountry> countries = new();
+    public ServerCountry Country => countries.GetValue(this, profile => CountryCatalog.Resolve(profile.Name));
     public string DisplayName => ServerLabels.DisplayName(Name);
     public bool IsService => Source == ProfileSource.Service;
     public bool IsFree => Source == ProfileSource.Free;

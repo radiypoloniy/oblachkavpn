@@ -7,8 +7,8 @@ namespace Oblachka;
 
 public partial class MainWindow
 {
-    // «Все серверы» в окне 460×760: длинный список прокручивается, строки по 54 px,
-    // кнопки внизу не обрезаны, выбор последнего сервера доступен.
+    // «Все серверы» в окне 460×760: длинный список виртуализируется и прокручивается,
+    // строки по 44 px, кнопки внизу не обрезаны, выбор последнего сервера доступен.
     private async Task CheckCompactServerLayoutAsync(List<string> checks)
     {
         var savedProfiles = importedProfiles.ToArray();
@@ -19,13 +19,15 @@ public partial class MainWindow
             UpdateLayout();
             await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
             DesignPreview.Render(this, Path.Combine(AppContext.BaseDirectory, "preview-servers-compact.png"));
-            var viewer = Descendants<ScrollViewer>(Servers).First(v => v.Content is StackPanel);
+            var viewer = Descendants<ScrollViewer>(Servers.SheetList).Single();
             var rows = Descendants<Border>(Servers.SheetList).Where(b => b.Name == "Plate" && b.TemplatedParent is ContentPresenter).ToArray();
-            if (rows.Length < 24 || rows.Any(r => r.ActualHeight != 44))
-                throw new InvalidOperationException("Server rows are missing or not 44 px high: " + rows.Length + " / " + string.Join(",", rows.Select(r => r.ActualHeight).Distinct()));
+            if (rows.Length == 0 || rows.Length >= 24 || rows.Any(r => r.ActualHeight != 44))
+                throw new InvalidOperationException("Server rows are missing, not virtualized or not 44 px high: " + rows.Length + " / " + string.Join(",", rows.Select(r => r.ActualHeight).Distinct()));
             viewer.ScrollToEnd();
             await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
             if (viewer.VerticalOffset <= 0) throw new InvalidOperationException("Server sheet cannot scroll the list");
+            if (!Descendants<ContentPresenter>(Servers.SheetList).Any(p => p.DataContext is ServerRow { Name: "Резервный сервер 18" }))
+                throw new InvalidOperationException("Last server was not realized after scrolling");
             ProfilePicker.SelectedIndex = 23;
             if (profile?.DisplayName != "Резервный сервер 18") throw new InvalidOperationException("End-of-list selection was lost");
             if (Servers.MeasureButton.ActualWidth < 38 || Servers.BestButton.ActualWidth < 150 || Servers.BestButton.ActualHeight < 40)

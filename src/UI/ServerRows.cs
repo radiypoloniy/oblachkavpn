@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Media;
 
 namespace Oblachka;
@@ -114,7 +114,7 @@ public sealed class ServerRow
     public static Geometry? IconFor(Profile profile)
     {
         var name = profile.DisplayName.ToLowerInvariant();
-        var key = !profile.IsService ? "IcoExternal"
+        var key = !profile.IsService ? profile.Country.Code is null ? "IcoExternal" : null
             : name.Contains("игр") || name.Contains("звонк") ? "IcoGame"
             : name.Contains("бел") || name.Contains("обход") ? "IcoRoute"
             : null;

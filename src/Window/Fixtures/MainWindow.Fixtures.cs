@@ -164,6 +164,7 @@ public partial class MainWindow
         await CheckCompactServerLayoutAsync(checks);
         CheckSavedSession(checks);
         await CheckGroupsAsync(checks);
+        await CheckLargeServerList(checks);
         await CheckTrayOpenAsync(checks);
         await CheckRememberedSubscriptionAsync(checks);
         return checks;

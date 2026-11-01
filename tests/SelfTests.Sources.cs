@@ -19,6 +19,13 @@ public static partial class SelfTests
             Assert(Subscriptions.Parse(link).Profiles[0].Source == ProfileSource.External);
             Assert(Subscriptions.Parse(link).WithSource(ProfileSource.Service).Profiles[0].IsService);
         }));
+        await check("Subscription identity keeps tokens apart but ignores cache-busting refreshes", () => Sync(() =>
+        {
+            var source = new[] { "https://sub.other.invalid/sub?token=one" };
+            Assert(ProfileGroup.IdFor(source, ProfileSource.External) != ProfileGroup.IdFor(["https://sub.other.invalid/sub?token=two"], ProfileSource.External));
+            Assert(ProfileGroup.IdFor(["https://sub.other.invalid/sub"], ProfileSource.External) == ProfileGroup.IdFor(["https://sub.other.invalid/sub?fresh=1"], ProfileSource.External));
+            Assert(ProfileGroup.IdFor(source, ProfileSource.External) == ProfileGroup.IdFor(["https://sub.other.invalid/sub?token=one&fresh=2"], ProfileSource.External));
+        }));
         await check("Route search and recovery never move the user off their own service", () => Sync(() =>
         {
             var mine = Profiles.Parse(link) with { Name = "Финляндия", Source = ProfileSource.Service };

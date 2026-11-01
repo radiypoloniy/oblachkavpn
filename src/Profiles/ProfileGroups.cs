@@ -22,11 +22,18 @@ public sealed record ProfileGroup(string Id, string Name, ProfileSource Source, 
 
     public static ProfileGroup Manual => new(ManualId, "Вручную", ProfileSource.External, Array.Empty<string>());
 
-    // Одна и та же подписка — один идентификатор: по хосту и пути первого адреса, без запроса.
+    // Одна и та же подписка — один идентификатор. Query обычно содержит токен и входит в хеш,
+    // кроме cache-buster fresh: обновление по ?fresh=… не должно создавать новую вкладку.
     public static string IdFor(IReadOnlyList<string> sources, ProfileSource source)
     {
         if (source == ProfileSource.Service) return ServiceId;
-        var key = Uri.TryCreate(sources[0], UriKind.Absolute, out var uri) ? (uri.Host + uri.AbsolutePath).ToLowerInvariant() : sources[0];
+        var key = sources[0];
+        if (Uri.TryCreate(key, UriKind.Absolute, out var uri))
+        {
+            var query = string.Join('&', uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
+                .Where(part => !part.Equals("fresh", StringComparison.OrdinalIgnoreCase) && !part.StartsWith("fresh=", StringComparison.OrdinalIgnoreCase)));
+            key = (uri.Host + uri.AbsolutePath).ToLowerInvariant() + (query.Length > 0 ? "?" + query : "");
+        }
         return "sub-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)))[..12].ToLowerInvariant();
     }
 
