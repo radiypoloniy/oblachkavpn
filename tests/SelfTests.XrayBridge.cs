@@ -155,18 +155,31 @@ public static partial class SelfTests
             ["outbounds"] = new JsonArray(xray)
         };
         using var job = new ProcessJob();
-        Process Run(string executable, string[] arguments, JsonObject config)
+        Process Run(string executable, string[] arguments, JsonObject config, bool handshake = false)
         {
             var start = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
             foreach (var a in arguments) start.ArgumentList.Add(a);
             var process = Process.Start(start)!;
             job.Attach(process);
-            process.BeginOutputReadLine(); process.BeginErrorReadLine();
-            process.StandardInput.Write(config.ToJsonString()); process.StandardInput.Close();
+            process.BeginErrorReadLine();
+            if (!handshake)
+            {
+                process.BeginOutputReadLine();
+                process.StandardInput.Write(config.ToJsonString()); process.StandardInput.Close();
+                return process;
+            }
+            var checkedConfiguration = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            process.OutputDataReceived += (_, args) => { if (args.Data is null or "READY") checkedConfiguration.TrySetResult(args.Data); };
+            process.BeginOutputReadLine();
+            var payload = System.Text.Encoding.UTF8.GetBytes(config.ToJsonString());
+            var input = process.StandardInput.BaseStream;
+            input.Write(BitConverter.GetBytes(payload.Length)); input.Write(payload); input.Flush();
+            Assert(checkedConfiguration.Task.WaitAsync(TimeSpan.FromSeconds(10)).GetAwaiter().GetResult() == "READY");
+            input.WriteByte((byte)'S'); input.Flush(); process.StandardInput.Close();
             return process;
         }
         using var serverProcess = Run(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), ["run", "-c", "stdin:", "-format", "json"], server);
-        using var coreProcess = Run(TunCore.Program(), ["run", "-c", "stdin"], client);
+        using var coreProcess = Run(TunCore.Program(), ["run-handshake", "-c", "stdin"], client, handshake: true);
         try
         {
             string? body = null;

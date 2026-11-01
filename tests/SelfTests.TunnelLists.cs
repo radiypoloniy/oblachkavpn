@@ -43,12 +43,15 @@ public static partial class SelfTests
                     var matchers = set switch { "direct" => ListsFixture().Direct, "proxy" => ListsFixture().Proxy, _ => ListsFixture().Block };
                     RoutingLists.Write(folder, set, kind => (kind switch { "suffix" => matchers.Suffix, "full" => matchers.Full, "keyword" => matchers.Keyword, "regex" => matchers.Regex, _ => matchers.Cidr }).ToArray());
                 }
-                var direct = JsonNode.Parse(File.ReadAllText(RoutingLists.PathOf(folder, "direct")))!;
-                Assert(direct["rules"]!.AsArray().Count == 2 && direct["rules"]![1]!["ip_cidr"]!.AsArray().Count == 2 && direct["rules"]![0]!["domain_regex"] is not null);
+                var header = File.ReadAllBytes(RoutingLists.PathOf(folder, "direct"));
+                Assert(header.Length > 4 && header[0] == 'S' && header[1] == 'R' && header[2] == 'S' && header[3] > 0);
+                ExpectUserError(() => BinaryRuleSets.Compile(folder, "{not-json", RoutingLists.PathOf(folder, "direct")));
+                Assert(File.ReadAllBytes(RoutingLists.PathOf(folder, "direct")).SequenceEqual(header));
                 var lists = new RoutingListsEntry(["block", "direct", "proxy"], true);
                 var request = NetworkAcquire() with { CoreDirect = CoreDirectEntry.Create(23456), Sites = [RoutingPlan.Create("example.org", SiteAction.Tunnel)], Lists = lists };
                 await CoreConfigurationCheck.ValidateTunAsync(request, CancellationToken.None, listsFolder: folder);
                 var config = SingBoxTunConfig.Create(request, listsFolder: folder);
+                Assert(config["route"]!["rule_set"]!.AsArray().All(set => set!["format"]!.GetValue<string>() == "binary"));
                 var rules = config["route"]!["rules"]!.AsArray().Select(r => r!.AsObject()).ToArray();
                 int At(string set) => Array.FindIndex(rules, r => r["rule_set"]?[0]?.GetValue<string>() == RoutingLists.Tag(set));
                 var site = Array.FindIndex(rules, r => r["domain_suffix"] is not null);

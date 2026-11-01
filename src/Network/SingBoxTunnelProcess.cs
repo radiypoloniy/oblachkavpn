@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Net.NetworkInformation;
 
 namespace Oblachka;
@@ -38,7 +38,6 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
     internal static ITunnelProcess Start(ValidatedNetworkLease lease, string executable, CancellationToken token)
     {
         var request = RequestFor(lease);
-        var adapter = new CoreAdapter(CoreKind.SingBox, executable);
         // Конфигурацию проверяет само ядро до запуска: отказ виден до изменения сети.
         // IPv6 в туннеле можно выключить («Для продвинутых»): тогда программы уходят на IPv4,
         // а IPv6 мимо туннеля по-прежнему закрыт защитой.
@@ -53,7 +52,6 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         SiteRuleSets.Write(SiteRuleSets.NextTo(ProgramRuleSets.Folder), lease.SiteRules);
         // Списки маршрутизации — в файлах, которые окно передало до запуска и меняет на ходу (RoutingLists).
         RoutingLists.EnsureFiles(RoutingLists.Folder);
-        CoreConfigurationCheck.ValidateTunAsync(request, token, ipv6, localDns, DirectDns.RuleSetPath, ProgramRuleSets.Folder, RoutingLists.Folder).GetAwaiter().GetResult();
         var config = SingBoxTunConfig.Create(request, ipv6, localDns, DirectDns.RuleSetPath, ProgramRuleSets.Folder, RoutingLists.Folder).ToJsonString();
         NetworkHelperHost.RecordStep(DateTime.UtcNow.ToString("HH:mm:ss.fff") + " DNS прямых сайтов: " + (localDns is null ? "через туннель" : "сеть"));
         // Только число: сами выходы содержат ключи и в след не пишутся.
@@ -69,7 +67,7 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
             // Своя группа процессов: мягкую остановку получает только ядро (ConsoleInterrupt).
             CreateNewProcessGroup = true
         };
-        foreach (var argument in adapter.RunArguments) start.ArgumentList.Add(argument);
+        foreach (var argument in new[] { "run-handshake", "-c", "stdin" }) start.ArgumentList.Add(argument);
         foreach (var key in start.Environment.Keys
             .Where(k => k.StartsWith("SING_", StringComparison.OrdinalIgnoreCase)).ToArray())
             start.Environment.Remove(key);
@@ -82,10 +80,21 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         {
             process.Start();
             job.Attach(process);
-            // Потоки ядра вычитываются, иначе процесс может заблокироваться на записи.
+            var checkedConfiguration = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            process.OutputDataReceived += (_, args) => { if (args.Data is null or "READY") checkedConfiguration.TrySetResult(args.Data); };
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
-            process.StandardInput.Write(config);
+            var payload = System.Text.Encoding.UTF8.GetBytes(config);
+            var input = process.StandardInput.BaseStream;
+            input.Write(BitConverter.GetBytes(payload.Length));
+            input.Write(payload);
+            input.Flush();
+            // Один и тот же процесс проверяет конфигурацию и затем поднимает TUN. До READY
+            // интерфейс ещё не создан; после S продолжаем вычитывать его журнал.
+            var ready = checkedConfiguration.Task.WaitAsync(TimeSpan.FromSeconds(15), token).GetAwaiter().GetResult();
+            if (ready != "READY") throw new UserError("Ядро отклонило конфигурацию. Проверьте совместимость параметров.");
+            input.WriteByte((byte)'S');
+            input.Flush();
             process.StandardInput.Close();
         }
         catch

@@ -4,7 +4,7 @@ namespace Oblachka;
 
 // Базы адресов geosite.dat и geoip.dat в папке клиента. Скачиваются по согласию пользователя
 // (по адресам из маршрутизации сервиса или Loyalsoldier по умолчанию), проверяются разбором
-// и заменяют прежние только целиком. Разобранные категории кэшируются до смены файла.
+// и заменяют прежние только целиком. Разобранные категории живут только до конца сборки маршрутов.
 public sealed class GeoStore(string folder)
 {
     public enum Kind { Geosite, Geoip }
@@ -57,11 +57,12 @@ public sealed class GeoStore(string folder)
                     if (total > 0) progress?.Report((double)read / total.Value);
                 }
             }
-            var bytes = await File.ReadAllBytesAsync(staged, token);
-            if (!GeoDat.LooksValid(bytes)) throw new UserError("Скачанный файл — не база адресов.");
+            await using (var input = File.OpenRead(staged))
+                if (!GeoDat.LooksValid(input)) throw new UserError("Скачанный файл — не база адресов.");
+            var bytes = new System.IO.FileInfo(staged).Length;
             File.Move(staged, PathOf(kind), true);
-            await File.WriteAllTextAsync(MetaOf(kind), JsonSerializer.Serialize(new FileInfo(kind, DateTimeOffset.UtcNow, bytes.LongLength, uri.Host)), token);
-            lock (gate) cache.Clear();
+            await File.WriteAllTextAsync(MetaOf(kind), JsonSerializer.Serialize(new FileInfo(kind, DateTimeOffset.UtcNow, bytes, uri.Host)), token);
+            Clear();
         }
         catch (HttpRequestException) { throw new UserError("Не удалось скачать базу адресов. Проверьте интернет и попробуйте ещё раз."); }
         catch (TaskCanceledException) when (!token.IsCancellationRequested) { throw new UserError("Скачивание базы адресов не уложилось в 5 минут."); }
@@ -69,10 +70,18 @@ public sealed class GeoStore(string folder)
     }
 
     public Dictionary<string, List<GeoDat.SiteEntry>> Sites(IReadOnlyCollection<string> tags) =>
-        Cached("site:" + string.Join(',', tags.Order()), () => Has(Kind.Geosite) ? GeoDat.ReadSites(File.ReadAllBytes(PathOf(Kind.Geosite)), tags) : new());
+        Cached("site:" + string.Join(',', tags.Order()), () => Has(Kind.Geosite) ? Read(Kind.Geosite, stream => GeoDat.ReadSites(stream, tags)) : new());
 
     public Dictionary<string, List<string>> Ips(IReadOnlyCollection<string> tags) =>
-        Cached("ip:" + string.Join(',', tags.Order()), () => Has(Kind.Geoip) ? GeoDat.ReadIps(File.ReadAllBytes(PathOf(Kind.Geoip)), tags) : new());
+        Cached("ip:" + string.Join(',', tags.Order()), () => Has(Kind.Geoip) ? Read(Kind.Geoip, stream => GeoDat.ReadIps(stream, tags)) : new());
+
+    public void Clear() { lock (gate) cache.Clear(); }
+
+    private T Read<T>(Kind kind, Func<Stream, T> parse)
+    {
+        using var stream = File.OpenRead(PathOf(kind));
+        return parse(stream);
+    }
 
     private T Cached<T>(string key, Func<T> load) where T : class
     {

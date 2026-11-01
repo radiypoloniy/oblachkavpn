@@ -10,6 +10,7 @@ package main
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
@@ -34,17 +35,23 @@ func main() {
 		fmt.Println("oblachka-core: sing-box " + C.Version + ", xray and amneziawg outbounds")
 		return
 	}
-	if len(os.Args) != 4 || os.Args[2] != "-c" || os.Args[3] != "stdin" || (os.Args[1] != "run" && os.Args[1] != "check") {
-		fmt.Fprintln(os.Stderr, "usage: oblachka-core run|check -c stdin")
+	if len(os.Args) != 4 || os.Args[2] != "-c" || os.Args[3] != "stdin" || (os.Args[1] != "run" && os.Args[1] != "run-handshake" && os.Args[1] != "check") {
+		fmt.Fprintln(os.Stderr, "usage: oblachka-core run|run-handshake|check -c stdin")
 		os.Exit(2)
 	}
 	ctx := globalContext()
-	options, err := readOptions(ctx)
+	var options option.Options
+	var err error
+	if os.Args[1] == "run-handshake" {
+		options, err = readFramedOptions(ctx)
+	} else {
+		options, err = readOptions(ctx)
+	}
 	if err == nil {
 		if os.Args[1] == "check" {
 			err = check(ctx, options)
 		} else {
-			err = run(ctx, options)
+			err = run(ctx, options, os.Args[1] == "run-handshake")
 		}
 	}
 	if err != nil {
@@ -66,6 +73,26 @@ func readOptions(ctx context.Context) (option.Options, error) {
 	if err != nil {
 		return option.Options{}, E.Cause(err, "read config")
 	}
+	return decodeOptions(ctx, content)
+}
+
+func readFramedOptions(ctx context.Context) (option.Options, error) {
+	var header [4]byte
+	if _, err := io.ReadFull(os.Stdin, header[:]); err != nil {
+		return option.Options{}, E.Cause(err, "read config frame")
+	}
+	size := binary.LittleEndian.Uint32(header[:])
+	if size == 0 || size > 64<<20 {
+		return option.Options{}, fmt.Errorf("read config frame: invalid length %d", size)
+	}
+	content := make([]byte, size)
+	if _, err := io.ReadFull(os.Stdin, content); err != nil {
+		return option.Options{}, E.Cause(err, "read config frame")
+	}
+	return decodeOptions(ctx, content)
+}
+
+func decodeOptions(ctx context.Context, content []byte) (option.Options, error) {
 	options, err := json.UnmarshalExtendedContext[option.Options](ctx, content)
 	if err != nil {
 		return option.Options{}, E.Cause(err, "decode config")
@@ -83,9 +110,10 @@ func check(ctx context.Context, options option.Options) error {
 	return err
 }
 
-// Как sing-box run: остановка по Ctrl+C (служба шлёт его группе процессов ядра),
-// чтобы ядро само убрало адаптер wintun.
-func run(ctx context.Context, options option.Options) error {
+// Как sing-box run: остановка по Ctrl+C (служба шлёт её группе процессов ядра),
+// чтобы ядро само убрало адаптер wintun. В режиме handshake тот же экземпляр,
+// который прошёл проверку, запускается после команды S — без второго процесса.
+func run(ctx context.Context, options option.Options, handshake bool) error {
 	osSignals := make(chan os.Signal, 1)
 	signal.Notify(osSignals, os.Interrupt, syscall.SIGTERM)
 	defer signal.Stop(osSignals)
@@ -94,6 +122,13 @@ func run(ctx context.Context, options option.Options) error {
 	instance, err := box.New(box.Options{Context: ctx, Options: options})
 	if err != nil {
 		return E.Cause(err, "create service")
+	}
+	if handshake {
+		err = readyForStart()
+		if err != nil {
+			instance.Close()
+			return err
+		}
 	}
 	startCtx, finishStart := context.WithCancel(context.Background())
 	go func() {
@@ -116,6 +151,20 @@ func run(ctx context.Context, options option.Options) error {
 	closed()
 	if err != nil {
 		log.Error(E.Cause(err, "core did not close properly"))
+	}
+	return nil
+}
+
+func readyForStart() error {
+	if _, err := fmt.Fprintln(os.Stdout, "READY"); err != nil {
+		return E.Cause(err, "report ready")
+	}
+	var command [1]byte
+	if _, err := io.ReadFull(os.Stdin, command[:]); err != nil {
+		return E.Cause(err, "read start command")
+	}
+	if command[0] != 'S' {
+		return fmt.Errorf("read start command: unexpected command %d", command[0])
 	}
 	return nil
 }

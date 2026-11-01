@@ -38,7 +38,9 @@ public sealed record CompiledRouting(RouteMatchers Direct, RouteMatchers Proxy, 
             AddIps(direct, profile.DirectIp, ips); AddIps(proxy, profile.ProxyIp, ips); AddIps(block, profile.BlockIp, ips);
         }
         // Первый профиль задаёт порядок и итог: встроенный набор добавляется к правилам сервиса.
-        return new(direct, proxy, block, list.All(p => p.GlobalProxy), list[0].Order.Split('-'), missing);
+        var compiled = new CompiledRouting(direct, proxy, block, list.All(p => p.GlobalProxy), list[0].Order.Split('-'), missing);
+        geo.Clear();
+        return compiled;
     }
 
     private static void AddSites(RouteMatchers into, IEnumerable<string> entries, Dictionary<string, List<GeoDat.SiteEntry>> categories)

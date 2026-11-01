@@ -19,40 +19,36 @@ public static class GeoDat
     public const long MaxFileBytes = 96L * 1024 * 1024;
 
     // Категории geosite: имя в нижнем регистре → домены. Неизвестные категории просто отсутствуют.
-    public static Dictionary<string, List<SiteEntry>> ReadSites(byte[] data, IReadOnlyCollection<string> tags)
+    public static Dictionary<string, List<SiteEntry>> ReadSites(byte[] data, IReadOnlyCollection<string> tags) =>
+        ReadSites(new MemoryStream(data, false), tags);
+
+    public static Dictionary<string, List<SiteEntry>> ReadSites(Stream data, IReadOnlyCollection<string> tags)
     {
-        var wanted = new HashSet<string>(tags.Select(t => t.ToLowerInvariant()));
         var result = new Dictionary<string, List<SiteEntry>>();
-        foreach (var (field, entry) in Messages(data, 0, data.Length))
+        GeoDatStream.Read(data, tags, (code, entry) =>
         {
-            if (field != 1) continue;
-            string? code = null; var domains = new List<SiteEntry>();
-            foreach (var (inner, value) in Messages(data, entry.Start, entry.End))
-            {
-                if (inner == 1) { code = Encoding.UTF8.GetString(data, value.Start, value.End - value.Start).ToLowerInvariant(); if (!wanted.Contains(code)) break; }
-                else if (inner == 2 && code is not null) domains.Add(Domain(data, value));
-            }
-            if (code is not null && wanted.Contains(code)) result[code] = domains;
-        }
+            var domains = new List<SiteEntry>();
+            foreach (var (inner, value) in Messages(entry, 0, entry.Length))
+                if (inner == 2) domains.Add(Domain(entry, value));
+            result[code] = domains;
+        });
         return result;
     }
 
     // Категории geoip: имя → диапазоны «a.b.c.d/n».
-    public static Dictionary<string, List<string>> ReadIps(byte[] data, IReadOnlyCollection<string> tags)
+    public static Dictionary<string, List<string>> ReadIps(byte[] data, IReadOnlyCollection<string> tags) =>
+        ReadIps(new MemoryStream(data, false), tags);
+
+    public static Dictionary<string, List<string>> ReadIps(Stream data, IReadOnlyCollection<string> tags)
     {
-        var wanted = new HashSet<string>(tags.Select(t => t.ToLowerInvariant()));
         var result = new Dictionary<string, List<string>>();
-        foreach (var (field, entry) in Messages(data, 0, data.Length))
+        GeoDatStream.Read(data, tags, (code, entry) =>
         {
-            if (field != 1) continue;
-            string? code = null; var ranges = new List<string>();
-            foreach (var (inner, value) in Messages(data, entry.Start, entry.End))
-            {
-                if (inner == 1) { code = Encoding.UTF8.GetString(data, value.Start, value.End - value.Start).ToLowerInvariant(); if (!wanted.Contains(code)) break; }
-                else if (inner == 2 && code is not null && Cidr(data, value) is { } cidr) ranges.Add(cidr);
-            }
-            if (code is not null && wanted.Contains(code)) result[code] = ranges;
-        }
+            var ranges = new List<string>();
+            foreach (var (inner, value) in Messages(entry, 0, entry.Length))
+                if (inner == 2 && Cidr(entry, value) is { } cidr) ranges.Add(cidr);
+            result[code] = ranges;
+        });
         return result;
     }
 
@@ -71,6 +67,8 @@ public static class GeoDat
         }
         catch (FormatException) { return false; }
     }
+
+    public static bool LooksValid(Stream data) => GeoDatStream.LooksValid(data);
 
     private static SiteEntry Domain(byte[] data, (int Start, int End) span)
     {

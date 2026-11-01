@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Nodes;
+using System.Text.Json.Nodes;
 
 namespace Oblachka;
 
@@ -171,7 +171,7 @@ public static class SingBoxTunConfig
         var rules = (JsonArray)config["route"]!["rules"]!;
         foreach (var set in lists.Order)
         {
-            sets.Add(new JsonObject { ["type"] = "local", ["tag"] = RoutingLists.Tag(set), ["format"] = "source", ["path"] = RoutingLists.PathOf(folder, set) });
+            sets.Add(new JsonObject { ["type"] = "local", ["tag"] = RoutingLists.Tag(set), ["format"] = "binary", ["path"] = RoutingLists.PathOf(folder, set) });
             var match = new JsonObject { ["rule_set"] = new JsonArray(RoutingLists.Tag(set)) };
             if (set == "block" || set == "direct" && !lease.HasDirect) match["action"] = "reject";
             else match["outbound"] = set == "direct" ? UserDirect : tunnel;

@@ -35,7 +35,7 @@ public partial class MainWindow
         finally { journalBusy = false; }
     }
 
-    private void RefreshTraffic()
+    private void RefreshTraffic(bool updateUi = true)
     {
         var stats = systemTunnel?.State == SystemTunnelState.Running ? systemTunnel.Stats : null;
         if (!ReferenceEquals(stats, meterEntry))
@@ -66,9 +66,12 @@ public partial class MainWindow
             QueueStateSave();
         }
         WatchStall();
-        Home.StatusSub.ToolTip = trafficToday > 0 ? "Сегодня через ядро туннеля: " + TrafficMeter.Size(trafficToday) : null;
-        RefreshTodayCard();
-        if (Analytics.Visibility == Visibility.Visible) RefreshAnalytics();
+        if (updateUi)
+        {
+            Home.StatusSub.ToolTip = trafficToday > 0 ? "Сегодня через ядро туннеля: " + TrafficMeter.Size(trafficToday) : null;
+            RefreshTodayCard();
+            if (Analytics.Visibility == Visibility.Visible) RefreshAnalytics();
+        }
         CreditObservedSpeed();
     }
 

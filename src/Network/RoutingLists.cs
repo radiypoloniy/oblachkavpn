@@ -81,7 +81,7 @@ public static class RoutingLists
     private static readonly Dictionary<string, HashSet<string>> pending = new();
 
     public static string Folder => NetworkHelperHost.DataPath("routing-lists");
-    public static string PathOf(string folder, string set) => Path.Combine(folder, "routing-" + set + ".json");
+    public static string PathOf(string folder, string set) => Path.Combine(folder, "routing-" + set + ".srs");
     public static string Tag(string set) => "routing-" + set;
 
     // Части собираются по порядку; последняя записывает файлы. Часть 0 — начать заново.
@@ -108,7 +108,10 @@ public static class RoutingLists
                 if (!File.Exists(PathOf(folder, set))) Write(folder, set, _ => []);
     }
 
-    internal static void Write(string folder, string set, Func<string, string[]> items)
+    internal static void Write(string folder, string set, Func<string, string[]> items) =>
+        BinaryRuleSets.Compile(folder, SourceJson(items), PathOf(folder, set));
+
+    internal static string SourceJson(Func<string, string[]> items)
     {
         static JsonArray Array(IEnumerable<string> values) => new(values.Select(v => (JsonNode?)JsonValue.Create(v)).ToArray());
         var sites = new JsonObject();
@@ -117,9 +120,6 @@ public static class RoutingLists
         // Домены и адреса — разные правила: в одном правиле sing-box требовал бы совпадения обоих.
         var rules = new JsonArray(sites.Count > 0 ? sites : new JsonObject { ["domain"] = Array(["oblachka.invalid"]) });
         if (items("cidr") is { Length: > 0 } cidr) rules.Add(new JsonObject { ["ip_cidr"] = Array(cidr) });
-        Directory.CreateDirectory(folder);
-        var path = PathOf(folder, set); var temporary = path + ".tmp";
-        File.WriteAllText(temporary, new JsonObject { ["version"] = 2, ["rules"] = rules }.ToJsonString());
-        File.Move(temporary, path, overwrite: true);
+        return new JsonObject { ["version"] = 2, ["rules"] = rules }.ToJsonString();
     }
 }

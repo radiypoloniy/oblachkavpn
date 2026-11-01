@@ -20,6 +20,20 @@ public static partial class SelfTests
             Assert(config["route"]!["auto_detect_interface"]!.GetValue<bool>());
             Assert(!config.ToJsonString().Contains("direct") && !config.ToJsonString().Contains("insecure"));
         });
+        await check("Core rejects framed configuration before start", async () =>
+        {
+            var start = new System.Diagnostics.ProcessStartInfo(TunCore.Program()) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
+            foreach (var argument in new[] { "run-handshake", "-c", "stdin" }) start.ArgumentList.Add(argument);
+            using var process = System.Diagnostics.Process.Start(start)!;
+            using var job = new ProcessJob(); job.Attach(process);
+            process.BeginErrorReadLine();
+            var payload = System.Text.Encoding.UTF8.GetBytes("""{"outbounds":[{"type":"missing"}]}""");
+            var input = process.StandardInput.BaseStream;
+            input.Write(BitConverter.GetBytes(payload.Length)); input.Write(payload); input.Flush(); process.StandardInput.Close();
+            var ready = await process.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(10));
+            await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
+            Assert(ready is null && process.ExitCode != 0);
+        });
         await check("TUN builder rejects release, broad exclusions and invalid loopback ports", () => Sync(() =>
         {
             ExpectUserError(() => SingBoxTunConfig.Create(new(1, Guid.NewGuid(), NetworkLeaseAction.Release, 0, Array.Empty<string>())));

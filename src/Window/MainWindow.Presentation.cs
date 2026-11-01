@@ -12,7 +12,7 @@ public partial class MainWindow
     private int? presentedPid;
     private bool findingRoute;
 
-    private void RefreshPresentation()
+    private void RefreshPresentation(bool background = false)
     {
         if (!viewsReady) return;
         var state = engine.State;
@@ -25,7 +25,11 @@ public partial class MainWindow
             // Новое ядро — сразу перепроверяем, иначе чип «Проверяем связь…» ждал бы плановые 45 с.
             if (pid is not null) nextHealthCheck = DateTimeOffset.UtcNow.AddSeconds(3);
         }
-        RefreshTraffic();
+        var onScreen = !background || (IsVisible && WindowState != WindowState.Minimized) || trayPopup?.IsVisible == true;
+        RefreshTraffic(onScreen);
+        // Скрытое окно продолжает считать трафик и проверять связь, но не перерисовывает
+        // десятки WPF-свойств каждую секунду. Открытый трей обновляется в прежнем темпе.
+        if (!onScreen) { FlushStateSave(); return; }
         RefreshHome();
         Servers.SearchBox.IsEnabled = ProfilePicker.IsEnabled;
         RefreshServerListControls();
