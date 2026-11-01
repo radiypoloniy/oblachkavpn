@@ -2,7 +2,7 @@ namespace Oblachka;
 
 public partial class MainWindow
 {
-    private readonly Dictionary<string, ServerMeasurement> measurements = new();
+    private Dictionary<string, ServerMeasurement> measurements => runtime.Profiles.Measurements;
     private void WireMeasurements()
     {
         // «Обновить»: сначала подписки (значок со стрелками ждут именно этого — новый сервер в панели
@@ -45,7 +45,7 @@ public partial class MainWindow
 
     // Отклики серверов (ServerPing) живут только в этом запуске: они дешёвые и делаются заново
     // при каждом старте, после загрузки подписки и при открытии «Всех серверов».
-    private readonly Dictionary<string, ServerMeasurement> pings = new();
+    private Dictionary<string, ServerMeasurement> pings => runtime.Profiles.Pings;
     private CancellationTokenSource? pinging;
     private bool pingQueued;
     private DateTimeOffset lastPing = DateTimeOffset.MinValue;
@@ -101,8 +101,7 @@ public partial class MainWindow
     // Итог проверки узла в работе (подбор, автовосстановление): null — не ответил.
     private void MarkMeasured(Profile item, long? milliseconds)
     {
-        var key = Profiles.Fingerprint(item);
-        pings[key] = new(key, DateTimeOffset.UtcNow, milliseconds is not null, Math.Max(1, milliseconds ?? 0));
+        runtime.Profiles.MarkMeasured(item, milliseconds);
         PingsChanged();
     }
 

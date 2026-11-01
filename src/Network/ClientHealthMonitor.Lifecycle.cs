@@ -30,7 +30,18 @@ public sealed partial class ClientHealthMonitor
         if (disposed || Interlocked.Exchange(ref pending, 1) != 0) return;
         context?.Post(async _ =>
         {
-            try { if (!disposed) { ObserveProcess(); await PollAsync(); } }
+            try
+            {
+                if (!disposed)
+                {
+                    ObserveProcess(); var before = LastObservation;
+                    await PollAsync();
+                    if (!disposed && LastObservation is { ShouldRecover: true } result && !ReferenceEquals(before, result))
+                        await owner.Recovery.RecoverAsync();
+                    else if (!disposed && owner.Engine.State == ConnectionState.Failed)
+                        await owner.Recovery.RestartFailedAsync();
+                }
+            }
             finally
             {
                 Interlocked.Exchange(ref pending, 0);
@@ -49,7 +60,7 @@ public sealed partial class ClientHealthMonitor
     private void PowerChanged(object sender, PowerModeChangedEventArgs args) { if (args.Mode == PowerModes.Resume) RequestSoon(); }
     private void AvailabilityChanged(object? sender, NetworkAvailabilityEventArgs args) { if (args.IsAvailable) RequestSoon(); }
     private void CoreChanged(ConnectionState state, string message) => context?.Post(_ =>
-    { if (!disposed) { ObserveProcess(); Wake(); } }, null);
+    { if (!disposed) { ObserveProcess(); Wake(); if (state == ConnectionState.Failed) _ = owner.Recovery.RestartFailedAsync(); } }, null);
     private void RequestSoon() => context?.Post(_ => { if (!disposed) NextCheck = now().AddSeconds(3); }, null);
     public void Dispose()
     {

@@ -6,7 +6,7 @@ namespace Oblachka;
 // Пул «Автовыбора» (AutoPool) и замер задержки через серверы (ServerMeasurements).
 public partial class MainWindow
 {
-    private readonly AutoPool autoPool = new();
+    private AutoPool autoPool => runtime.Profiles.AutoPool;
     private CancellationTokenSource? measureCancel;
     private DateTimeOffset lastMeasure = DateTimeOffset.MinValue, lastThroughput = DateTimeOffset.MinValue;
     // В какой сети мерили скорость (NetworkIdentity): в новой прежние цифры не годятся.
@@ -70,7 +70,7 @@ public partial class MainWindow
     }
 
     // Набор правил с серверами (MainWindow.RuleSetServers) сужает и пул: автовыбор и подбор — только через них.
-    private bool InAutoPool(Profile item) => autoPool.Contains(item) && InRuleSet(item);
+    private bool InAutoPool(Profile item) => runtime.Profiles.InAutoPool(item);
 
     // «Настройки → Автовыбор»: строка на сервер с переключателем.
     private void RenderAutoPool()

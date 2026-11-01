@@ -9,4 +9,5 @@ public sealed class ClientActivity
     public bool BackgroundCheck { get; set; }
     public bool ManualStop { get; set; }
     public bool VmTestActive { get; set; }
+    public bool FindingRoute { get; set; }
 }

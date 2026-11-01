@@ -8,8 +8,12 @@ public sealed class ClientRuntime : IDisposable
     public ClientPreferences Preferences { get; } = new();
     public ClientActivity Activity { get; } = new();
     public ClientHealthMonitor Monitor { get; }
+    public ClientRecovery Recovery { get; }
+    public RoutingListsEntry? RoutingLists { get; set; }
     public SystemTunnelSession? Tunnel { get; private set; }
     public IHelperLifetime? Helper { get; private set; }
+    public event Action<SystemTunnelState>? TunnelChanged;
+    public event Action? ProtectionRepaired;
     private Task stopping = Task.CompletedTask;
     private readonly Func<Profile, ServerTweak?> previousLookup, lookup;
     private bool disposed;
@@ -20,6 +24,7 @@ public sealed class ClientRuntime : IDisposable
     {
         Engine = engine;
         Monitor = new ClientHealthMonitor(this);
+        Recovery = new ClientRecovery(this);
         previousLookup = ServerTweak.Lookup; lookup = Profiles.TweakFor;
         ServerTweak.Lookup = lookup;
     }
@@ -29,8 +34,14 @@ public sealed class ClientRuntime : IDisposable
         await StopTunnelAsync().ConfigureAwait(true);
         Helper = await NetworkHelperConnection.ConnectAsync(token).ConfigureAwait(true);
         Tunnel = new SystemTunnelSession(Engine, Helper.Client, ownsResources: false);
+        Tunnel.DirectAllowed = AllowsDirect;
+        Tunnel.Changed += TunnelStateChanged;
+        Tunnel.ProtectionRepaired += TunnelProtectionRepaired;
         return Tunnel;
     }
+    private bool AllowsDirect() => Engine is Engine core && (core.DirectEntry is null || RoutingLists is not null) && !core.Fragment;
+    private void TunnelStateChanged(SystemTunnelState state) => TunnelChanged?.Invoke(state);
+    private void TunnelProtectionRepaired() => ProtectionRepaired?.Invoke();
 
     public Task StopTunnelAsync()
     {
@@ -51,7 +62,9 @@ public sealed class ClientRuntime : IDisposable
     {
         if (disposed) return;
         disposed = true;
+        Recovery.Dispose();
         Monitor.Dispose();
+        TunnelChanged = null; ProtectionRepaired = null;
         if (ServerTweak.Lookup == lookup) ServerTweak.Lookup = previousLookup;
         Engine.Dispose(); Profiles.Clear();
     }

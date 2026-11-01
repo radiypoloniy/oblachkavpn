@@ -9,7 +9,7 @@ namespace Oblachka;
 public partial class MainWindow
 {
     // null — через любые серверы.
-    private HashSet<string>? ruleSetServers;
+    private HashSet<string>? ruleSetServers { get => runtime.Profiles.RuleSetServers; set => runtime.Profiles.RuleSetServers = value; }
 
     private void WireRuleSetServers()
     {

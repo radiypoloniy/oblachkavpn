@@ -8,7 +8,7 @@ namespace Oblachka;
 public partial class MainWindow
 {
     // Порядок и итог списков этой сессии; null — списки в ядре окна или их нет.
-    private RoutingListsEntry? tunnelLists;
+    private RoutingListsEntry? tunnelLists { get => runtime.RoutingLists; set => runtime.RoutingLists = value; }
 
     private bool TunnelListsActive => tunnelLists is not null && SystemTunnelActive;
 

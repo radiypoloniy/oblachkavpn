@@ -16,7 +16,7 @@ namespace Oblachka;
 public partial class MainWindow
 {
     private string? foreignVpn;
-    private bool networkClosed;
+    private bool networkClosed { get => runtime.Recovery.NetworkClosed; set => runtime.Recovery.NetworkClosed = value; }
 
     private void WireStates()
     {

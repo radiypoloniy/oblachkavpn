@@ -20,6 +20,8 @@ public partial class MainWindow
 
     private void InitSystemTunnel(bool enabled)
     {
+        runtime.TunnelChanged += OnSystemTunnelChanged;
+        runtime.ProtectionRepaired += OnProtectionRepaired;
         Settings.SystemTunnel.Click += SystemTunnelToggled;
         Settings.RestoreNetwork.Click += async (_, _) => await RestoreNetworkAsync();
         if (!enabled) { Settings.SystemTunnel.IsEnabled = false; return; }
@@ -108,15 +110,7 @@ public partial class MainWindow
         var session = await runtime.CreateTunnelAsync(token).ConfigureAwait(true);
         // Одно ядро: трафик из туннеля прямо на сервер. Списки «напрямую» (DirectEntry) и обход
         // DPI фрагментацией исполняет ядро окна — с ними трафик идёт через него, как раньше.
-        session.DirectAllowed = () => engine is Engine core && (core.DirectEntry is null || tunnelLists is not null) && !core.Fragment;
-        session.Changed += OnSystemTunnelChanged;
         session.Tuning = TunnelTuning.From(advanced, ServiceGroup?.Metadata?.Provider, preferences.CompatibleStack);
-        session.ProtectionRepaired += () => Dispatcher.BeginInvoke(() =>
-        {
-            if (closed || !ReferenceEquals(session, systemTunnel)) return;
-            DetailText.Text = "Защиту от утечек кто-то снял (перезапуск службы фильтрации Windows или другая программа) — Облачка поставила её заново.";
-            Notify(Notice.ProtectionRepaired, "Защита от утечек снова на месте", "Её снял Windows или другая программа, Облачка поставила заново. Мимо VPN ничего не ушло.", warning: true);
-        });
         // Правила сайтов и программ исполняет ядро туннеля у помощника; ядро окна в этом
         // режиме правил не несёт (Engine.SiteRules пуст), иначе «напрямую» шло бы из него.
         foreignSession = profile.IsFree;

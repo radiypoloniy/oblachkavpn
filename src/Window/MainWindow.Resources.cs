@@ -3,6 +3,12 @@ namespace Oblachka;
 public partial class MainWindow
 {
     private void FeedbackChanged(object? sender, EventArgs args) => ShowToast();
+    private void OnProtectionRepaired() => Dispatcher.BeginInvoke(() =>
+    {
+        if (closed) return;
+        DetailText.Text = "Защиту от утечек кто-то снял — Облачка поставила её заново.";
+        Notify(Notice.ProtectionRepaired, "Защита от утечек снова на месте", "Её снял Windows или другая программа, Облачка поставила заново. Мимо VPN ничего не ушло.", warning: true);
+    });
     private void NetworkAddressChanged(object? sender, EventArgs args)
     {
         if (closed || Dispatcher.HasShutdownStarted) return;
@@ -16,6 +22,8 @@ public partial class MainWindow
     private void ReleaseViewResources()
     {
         ThemeManager.Changed -= RefreshHome;
+        runtime.TunnelChanged -= OnSystemTunnelChanged;
+        runtime.ProtectionRepaired -= OnProtectionRepaired;
         System.ComponentModel.DependencyPropertyDescriptor.FromProperty(System.Windows.Controls.TextBlock.TextProperty,
             typeof(System.Windows.Controls.TextBlock)).RemoveValueChanged(ShellFeedback, FeedbackChanged);
         tray.ContextMenuStrip?.Dispose();

@@ -6,10 +6,10 @@ namespace Oblachka;
 // по диагнозу (ConnectionDiagnosis → RouteLadder). Само восстановление — в MainWindow.Health.
 public partial class MainWindow
 {
-    private FragmentMode fragmentMode = FragmentMode.Auto;
+    private FragmentMode fragmentMode { get => runtime.Profiles.FragmentMode; set => runtime.Profiles.FragmentMode = value; }
     // В режиме «Авто» подбор нашёл рабочий вариант только с разрезанным рукопожатием:
     // следующие подключения в этом запуске сразу идут так же.
-    private bool fragmentLearned;
+    private bool fragmentLearned { get => runtime.Profiles.FragmentLearned; set => runtime.Profiles.FragmentLearned = value; }
 
     private void WireDpi()
     {
@@ -42,24 +42,7 @@ public partial class MainWindow
 
     private Action<bool> FragmentSetter => cut => { if (engine is Engine core) core.Fragment = cut; };
 
-    // Порядок попыток после отказа: сначала понять почему, потом выбирать.
-    private async Task<IReadOnlyList<LadderStep>> PlanRecoveryAsync(Profile[] profiles, int[] candidates, Profile failed, CancellationToken token)
-    {
-        Diagnosis diagnosis;
-        try
-        {
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-            timeout.CancelAfter(TimeSpan.FromSeconds(12));
-            diagnosis = await ConnectionDiagnosis.RunAsync(failed, timeout.Token);
-        }
-        catch (OperationCanceledException) when (!token.IsCancellationRequested) { diagnosis = new(Blockage.Unknown, "Проверка сервера не уложилась во время."); }
-        catch (Exception ex) when (ex is NullReferenceException or InvalidOperationException) { diagnosis = new(Blockage.Unknown, ""); }
-        lastDiagnosis = diagnosis;
-        if (!closed && diagnosis.Explanation.Length > 0) DetailText.Text = diagnosis.Explanation;
-        return RouteLadder.Plan(profiles, candidates, failed, diagnosis.Kind, fragmentMode);
-    }
-
-    private Diagnosis? lastDiagnosis;
+    private Diagnosis? lastDiagnosis { get => runtime.Profiles.LastDiagnosis; set => runtime.Profiles.LastDiagnosis = value; }
 
     // Итог подбора: рабочий вариант с разрезанным рукопожатием запоминается до конца запуска.
     private void LearnFragment(bool used)

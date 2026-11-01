@@ -10,7 +10,7 @@ public partial class MainWindow
     private DateTimeOffset? lastCheck { get => runtime.Monitor.LastCheck; set => runtime.Monitor.LastCheck = value; }
     private ProbeResult? lastProbe { get => runtime.Monitor.LastProbe; set => runtime.Monitor.LastProbe = value; }
     private int? presentedPid;
-    private bool findingRoute;
+    private bool findingRoute { get => runtime.Activity.FindingRoute; set => runtime.Activity.FindingRoute = value; }
 
     private void RefreshPresentation(bool background = false)
     {

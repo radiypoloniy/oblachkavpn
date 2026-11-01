@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,26 +10,7 @@ namespace Oblachka;
 
 public partial class MainWindow
 {
-    private async void ScheduleRecovery()
-    {
-        if (closed || vmTestActive || manualStop || operation is not null || recoveryWait is not null || !AutoSwitching || profile is null) return;
-        var delay = recovery.NextDelay(DateTimeOffset.UtcNow);
-        if (delay is null) { DetailText.Text = "После трёх попыток за две минуты восстановление приостановлено. Проверьте сеть или выберите другой сервер и подключитесь вручную."; return; }
-        recoveryWait = new CancellationTokenSource();
-        try
-        {
-            DetailText.Text = $"Ядро остановилось. Повторный запуск через {delay.Value.TotalSeconds:0} с…";
-            await Task.Delay(delay.Value, recoveryWait.Token);
-            if (!closed && !manualStop && operation is null && engine.State == ConnectionState.Failed && AutoSwitching)
-            { engine.Stop(); await ConnectCoreAsync(); }
-        }
-        catch (OperationCanceledException) { }
-        finally
-        {
-            recoveryWait.Dispose(); recoveryWait = null;
-            if (!closed && !manualStop && engine.State == ConnectionState.Failed) ScheduleRecovery();
-        }
-    }
+    private void ScheduleRecovery() => _ = runtime.Recovery.RestartFailedAsync();
     private async void ExportReportClick(object sender, RoutedEventArgs args)
     {
         var dialog = new SaveFileDialog { Filter = "Диагностика (*.json)|*.json", FileName = "oblachka-report-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".json", Title = "Сохранить обезличенный отчёт" };
