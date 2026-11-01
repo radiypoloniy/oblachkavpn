@@ -17,7 +17,7 @@ public partial class MainWindow
     // видна всегда. Без подключений — экран ключа во всё окно.
     private void Navigate(string page)
     {
-        Analytics.Visibility = Visibility.Collapsed;
+        HidePage(analytics);
         currentPage = page;
         var welcome = profile is null && page == "Connection";
         Home.Visibility = welcome ? Visibility.Collapsed : Visibility.Visible;
@@ -32,7 +32,7 @@ public partial class MainWindow
         if (page != "Routes") RulesPage.Visibility = Visibility.Collapsed;
         if (page == "Routes") ShowRulesSection();
         else if (page == "Diagnostics") OpenSettings(Views.SettingsPanel.HelpPage);
-        else { Settings.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed; }
+        else { Settings.Visibility = Visibility.Collapsed; HidePage(picker); }
         Onboarding.Visibility = welcome ? Visibility.Visible : Visibility.Collapsed;
         Onboarding.ContinueButton.IsDefault = welcome;
         if (page == "Connection") ShowDefaultSection(); else ApplyLayout();
@@ -74,7 +74,7 @@ public partial class MainWindow
         CloseConnections();
         Servers.Visibility = Visibility.Collapsed;
         RulesPage.Visibility = Visibility.Collapsed;
-        Analytics.Visibility = Visibility.Collapsed;
+        HidePage(analytics);
         if (tab is int index) Settings.ShowTab(index);
         else if (Settings.Visibility != Visibility.Visible) Settings.ShowHome();
         if (Settings.Visibility != Visibility.Visible)
@@ -90,11 +90,11 @@ public partial class MainWindow
     private void CloseSettings()
     {
         Settings.Visibility = Visibility.Collapsed;
-        Picker.Visibility = Visibility.Collapsed;
+        HidePage(picker);
         RulesPage.Visibility = Visibility.Collapsed;
         CloseConnections();
-        Doctor.Visibility = Visibility.Collapsed;
-        SiteCheck.Visibility = Visibility.Collapsed;
+        HidePage(doctor);
+        HidePage(siteCheck);
         if (currentPage is "Routes" or "Diagnostics" or "Analytics") currentPage = "Connection";
         // Подписки и серверы автовыбора открываются из «Серверов» — туда и возвращаемся.
         if (Settings.CurrentPage is Views.SettingsPanel.SubscriptionPage or Views.SettingsPanel.AutoPoolPage) { Navigate("Servers"); return; }
@@ -111,11 +111,11 @@ public partial class MainWindow
     {
         if (args.Key != Key.Escape) return;
         if (ModeMenuLayer.Visibility == Visibility.Visible) ShowModeMenu(false);
-        else if (Picker.Visibility == Visibility.Visible) CloseAppPicker();
+        else if (picker?.Visibility == Visibility.Visible) CloseAppPicker();
         else if (narrow && Live.Visibility == Visibility.Visible) { CloseConnections(); narrowOpen = false; ApplyLayout(); }
-        else if (Analytics.Visibility == Visibility.Visible) CloseAnalytics();
-        else if (Doctor.Visibility == Visibility.Visible) Doctor.Visibility = Visibility.Collapsed;
-        else if (SiteCheck.Visibility == Visibility.Visible) SiteCheck.Visibility = Visibility.Collapsed;
+        else if (analytics?.Visibility == Visibility.Visible) CloseAnalytics();
+        else if (doctor?.Visibility == Visibility.Visible) HidePage(doctor);
+        else if (siteCheck?.Visibility == Visibility.Visible) HidePage(siteCheck);
         else if (Settings.Visibility == Visibility.Visible) { if (!Settings.Back()) CloseSettings(); }
         else if (RulesPage.Visibility == Visibility.Visible) CloseRulesSection();
         else if (Servers.Visibility == Visibility.Visible) Navigate("Connection");

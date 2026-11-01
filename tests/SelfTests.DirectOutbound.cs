@@ -104,6 +104,15 @@ public static partial class SelfTests
                 Assert(ReferenceEquals(core.CarriedBy, allowed && !selective ? session.Stats : null));
             }
         });
+        await check("Many subscription nodes on one IP fit the direct outbound limit without losing fallback nodes", async () =>
+        {
+            var calls = new List<string>(); var helper = new SessionHelper(calls); var core = new SessionCore(calls);
+            await using var session = new SystemTunnelSession(core, helper) { DirectAllowed = () => true };
+            var plan = await TunnelEndpoints.PrepareAsync(Profiles.Parse(realityLink), CancellationToken.None);
+            await session.StartWithSparesAsync(Enumerable.Repeat(plan, DirectOutboundPolicy.MaxOutbounds + 1).ToArray(), CancellationToken.None);
+            Assert(helper.LastRequest!.Direct is { Length: 16 } direct && direct.All(o => o is not null));
+            NetworkHelperContracts.Validate(helper.LastRequest);
+        });
         await check("Window switches the tunnel core's server selector through the pinned sing-box clash API", async () =>
         {
             // Настоящее ядро без входов и без TUN: только переключатель и интерфейс на 127.0.0.1.

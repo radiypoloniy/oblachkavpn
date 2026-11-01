@@ -174,7 +174,7 @@ public sealed class SystemTunnelSession : IAsyncDisposable
     {
         var index = -1;
         for (var i = 0; i < plans.Count; i++) if (ReferenceEquals(plans[i], plan)) index = i;
-        return direct is not null && index >= 0 && direct[index] is not null && DirectAllowed?.Invoke() == true ? SingBoxTunConfig.DirectTag(index) : "local-core";
+        return direct is not null && index >= 0 && index < direct.Length && direct[index] is not null && DirectAllowed?.Invoke() == true ? SingBoxTunConfig.DirectTag(index) : "local-core";
     }
 
     // Ядро окна не нужно, когда трафик идёт прямо из туннеля. «Через VPN только выбранное» — нужно:

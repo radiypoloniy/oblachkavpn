@@ -19,6 +19,7 @@ public partial class MainWindow
 
     // Журнал программ для отчёта (ProgramJournal): соединения ядра туннеля раз в 5 с, и в трее тоже.
     private readonly ProgramJournal programJournal = new();
+    private readonly CoreConnectionSampler coreSamples = new();
     private bool journalBusy;
     private DateTime journalAt;
 
@@ -31,7 +32,7 @@ public partial class MainWindow
     private async Task SampleProgramsAsync(CoreStatsEntry stats)
     {
         journalBusy = true; journalAt = DateTime.UtcNow;
-        try { if (await CoreConnections.ReadAsync(stats, CancellationToken.None) is { } core) RecordCoreConnections(core); }
+        try { if (await coreSamples.ReadAsync(stats, CancellationToken.None) is { } core && ReferenceEquals(stats, meterEntry)) RecordCoreConnections(core); }
         finally { journalBusy = false; }
     }
 
@@ -40,6 +41,7 @@ public partial class MainWindow
         var stats = systemTunnel?.State == SystemTunnelState.Running ? systemTunnel.Stats : null;
         if (!ReferenceEquals(stats, meterEntry))
         {
+            coreSamples.Reset();
             meter?.Dispose();
             meter = stats is null ? null : new TrafficMeter(stats);
             meterEntry = stats; meterCountedUp = meterCountedDown = 0; programTraffic.Reset();
@@ -70,7 +72,7 @@ public partial class MainWindow
         {
             Home.StatusSub.ToolTip = trafficToday > 0 ? "Сегодня через ядро туннеля: " + TrafficMeter.Size(trafficToday) : null;
             RefreshTodayCard();
-            if (Analytics.Visibility == Visibility.Visible) RefreshAnalytics();
+            if (analytics?.Visibility == Visibility.Visible) RefreshAnalytics();
         }
         CreditObservedSpeed();
     }

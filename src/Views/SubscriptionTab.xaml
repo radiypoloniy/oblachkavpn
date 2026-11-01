@@ -3,12 +3,10 @@
   <!-- Настройки → Подписка (0.16): срок и трафик, обновление списка, устройство, все подписки и ключ. -->
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="20,4,20,16">
-      <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource CardBg}" Padding="14">
+      <Border x:Name="ActiveCard" CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource CardBg}" Padding="14">
         <StackPanel>
-          <DockPanel>
-            <TextBlock x:Name="UpdatedText" DockPanel.Dock="Right" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" VerticalAlignment="Bottom"/>
-            <TextBlock x:Name="SubscriptionTitle" Text="Подписка" FontSize="{StaticResource FsLead}" FontWeight="SemiBold"/>
-          </DockPanel>
+          <TextBlock x:Name="SubscriptionTitle" Text="Подписка" TextWrapping="Wrap" FontSize="{StaticResource FsLead}" FontWeight="SemiBold"/>
+          <TextBlock x:Name="UpdatedText" TextWrapping="Wrap" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" Margin="0,4,0,0"/>
           <Grid Margin="0,10,0,0">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*"/>
@@ -18,13 +16,13 @@
             <Border CornerRadius="{StaticResource RadiusMd}" Background="{DynamicResource B2}" Padding="10,8">
               <StackPanel>
                 <TextBlock Text="Действует до" FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource Mu2}"/>
-                <TextBlock x:Name="ExpiryText" Text="—" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
+                <TextBlock x:Name="ExpiryText" Text="—" TextWrapping="Wrap" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
               </StackPanel>
             </Border>
             <Border Grid.Column="2" CornerRadius="{StaticResource RadiusMd}" Background="{DynamicResource B2}" Padding="10,8">
               <StackPanel>
                 <TextBlock Text="Трафик" FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource Mu2}"/>
-                <TextBlock x:Name="TrafficText" Text="—" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
+                <TextBlock x:Name="TrafficText" Text="—" TextWrapping="Wrap" FontSize="{StaticResource FsRow}" FontWeight="SemiBold"/>
               </StackPanel>
             </Border>
           </Grid>
@@ -79,7 +77,7 @@
                 </Button>
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="{Binding Title}" FontSize="{StaticResource FsRow}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                  <TextBlock Text="{Binding Sub}" Style="{StaticResource Small}" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Text="{Binding Sub}" Style="{StaticResource Small}" TextWrapping="Wrap"/>
                 </StackPanel>
               </DockPanel>
             </Border>

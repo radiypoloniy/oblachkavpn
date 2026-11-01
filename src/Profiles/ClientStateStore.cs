@@ -19,6 +19,7 @@ public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string
     // Имя выбранной записи рядом с её отпечатком: конфигурация может совпадать у двух
     // строк списка, например у «Авто» и страны-балансировщика за ним.
     public string? SelectedName { get; init; }
+    public string? SelectedGroup { get; init; }
     // Адреса сторонней подписки. Адреса сервиса остались в SubscriptionSources.
     public string[] ExternalSources { get; init; } = Array.Empty<string>();
     public bool AutoRefresh { get; init; } = true;
@@ -205,6 +206,7 @@ public sealed class ClientStateStore(string path)
                 if (group is null || group.Id is null || group.Name is null || group.Sources is null ||
                     !(group.Id is ProfileGroup.ServiceId or ProfileGroup.ManualId || group.Id.Length == 16 && group.Id.StartsWith("sub-") && group.Id[4..].All(char.IsAsciiHexDigitLower)) ||
                     group.Name.Length > 40 || group.Name.Any(char.IsControl) || group.Sources.Length > SubscriptionMirrors.MaxSources ||
+                    group.DismissedWarning?.Length > 256 || group.ExpiryNotice?.Length > 64 ||
                     group.PreferredSource < 0 || group.Sources.Length > 0 && group.PreferredSource >= group.Sources.Length)
                     throw new UserError("Сохранённые подписки повреждены.");
                 if (group.Sources.Length > 0) SubscriptionMirrors.ParseSources(string.Join("\n", group.Sources));
@@ -226,6 +228,8 @@ public sealed class ClientStateStore(string path)
         if (snapshot.Measurements is null || snapshot.Measurements.Length > Subscriptions.MaxProfiles || snapshot.Measurements.Any(m => m is null ||
             m.Fingerprint is null || m.Fingerprint.Length != 64 || m.Fingerprint.Any(c => !char.IsAsciiHexDigit(c)) || m.Milliseconds < 0))
             throw new UserError("Сохранённые измерения повреждены.");
+        if (snapshot.SelectedGroup is { Length: > 64 })
+            throw new UserError("Сохранённая группа выбора повреждена.");
         if (snapshot.SelectedName is { } selectedName && (selectedName.Length > 80 || selectedName.Any(char.IsControl)))
             throw new UserError("Сохранённый выбор сервера повреждён.");
         // Тексты и ссылки пришли от сервера: в снимке они не должны вырасти, принести

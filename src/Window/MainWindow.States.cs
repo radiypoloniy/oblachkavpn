@@ -36,6 +36,17 @@ public partial class MainWindow
         Home.ClosedPick.Click += (_, _) => Navigate("Servers");
         Home.ClosedOff.Click += (_, _) => { networkClosed = false; StopClick(this, new RoutedEventArgs()); };
         Home.SubWarnRenew.Click += (_, _) => OpenLink(RenewUrl, "страницу продления");
+        Home.SubWarnPick.Click += (_, _) => Navigate("Servers");
+        Home.SubWarnRefresh.Click += async (_, _) =>
+        {
+            if (CurrentGroup is { } group && operation is null) await LoadSubscriptionAsync(group.Sources, group.PreferredSource);
+        };
+        Home.SubWarnHide.Click += (_, _) =>
+        {
+            if (CurrentSubscription is not { WarningKey: { } key } state) return;
+            Replace(state.Group with { DismissedWarning = key });
+            QueueStateSave(); ApplySubscriptionWarning();
+        };
     }
 
     // Поверх обычного статуса: возвращает true, если показано особое состояние.
@@ -105,19 +116,18 @@ public partial class MainWindow
     // Полоса «Подписка заканчивается»: меньше 14 дней или меньше 5 ГБ.
     private void ApplySubscriptionWarning()
     {
-        var meta = subscriptionMetadata;
-        var now = DateTimeOffset.UtcNow;
-        var days = meta?.Expires is { } expires && expires > now ? (int?)(expires - now).TotalDays : null;
-        var leftGb = meta is { Total: > 0, Upload: >= 0, Download: >= 0 }
-            ? (decimal?)Math.Max(0m, (decimal)meta.Total!.Value - meta.Upload!.Value - meta.Download!.Value) / 1073741824m : null;
-        var parts = new List<string>();
-        if (days is < 14) parts.Add($"ещё {days} дн.");
-        if (leftGb is < 5) parts.Add($"осталось {leftGb:0.#} ГБ");
-        var warn = CurrentGroup is { IsSubscription: true } && parts.Count > 0;
+        var state = CurrentSubscription;
+        var warn = state is { HasWarning: true } && state.WarningKey != state.Group.DismissedWarning;
         Home.SubWarn.Visibility = warn ? Visibility.Visible : Visibility.Collapsed;
-        Home.SubWarnText.Text = warn ? "Подписка " + string.Join(" и ", parts) : "";
-        Home.SubWarnRenew.Visibility = RenewUrl is not null ? Visibility.Visible : Visibility.Collapsed;
-        Home.PlanText.SetResourceReference(TextBlock.ForegroundProperty, warn ? "FootWarn" : "Mu2");
-        Home.PlanText.FontWeight = warn ? FontWeights.SemiBold : FontWeights.Normal;
+        Home.SubWarnText.Text = state?.WarningText ?? "";
+        Home.SubWarn.BorderThickness = state?.Critical == true ? new Thickness(2) : new Thickness(0);
+        Home.SubWarn.SetResourceReference(Border.BorderBrushProperty, "EI");
+        Home.SubWarnText.SetResourceReference(TextBlock.ForegroundProperty, state?.Critical == true ? "EI" : "SF");
+        Home.SubWarnRenew.Visibility = state?.RenewUrl is not null ? Visibility.Visible : Visibility.Collapsed;
+        Home.SubWarnRefresh.IsEnabled = operation is null;
+        Home.SubWarnPick.Visibility = groups.Any(g => g.Id != state?.Group.Id && ProfilesOf(g.Id).Any(p => !HiddenServer(p)))
+            ? Visibility.Visible : Visibility.Collapsed;
+        Home.PlanText.SetResourceReference(TextBlock.ForegroundProperty, state?.HasWarning == true ? "FootWarn" : "Mu2");
+        Home.PlanText.FontWeight = state?.HasWarning == true ? FontWeights.SemiBold : FontWeights.Normal;
     }
 }

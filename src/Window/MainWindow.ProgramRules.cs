@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using Microsoft.Win32;
 using Oblachka.Views;
 
@@ -15,6 +15,10 @@ public partial class MainWindow
     private void WireProgramRules()
     {
         Routes.ChooseProgramsButton.Click += (_, _) => OpenAppPicker();
+    }
+
+    private void WirePickerPage()
+    {
         Picker.Closed += CloseAppPicker;
         Picker.FileRequested += ChooseProgramFile;
         Picker.FolderRequested += ChooseProgramFolder;
@@ -32,12 +36,13 @@ public partial class MainWindow
     private void OpenAppPicker()
     {
         Picker.Open(AddedPrograms());
+        if (appCatalog is { } rows) Picker.Load(rows, AddedPrograms());
         LoadAppCatalog();
     }
 
     private void CloseAppPicker()
     {
-        Picker.Visibility = Visibility.Collapsed;
+        HidePage(picker);
         Routes.ChooseProgramsButton.Focus();
     }
 
@@ -48,10 +53,10 @@ public partial class MainWindow
         appCatalogLoading = true;
         try
         {
-            var rows = await Task.Run(() => InstalledApps.Find().Select(a => new AppRow(a, AppIcons.For(a.Path))).ToArray());
+            var rows = await Task.Run(() => InstalledApps.Find().Select(a => new AppRow(a, null, loadIcon: true)).ToArray());
             appCatalog = rows;
             if (closed) return;
-            Picker.Load(rows, AddedPrograms());
+            picker?.Load(rows, AddedPrograms());
             RefreshRules();
         }
         finally { appCatalogLoading = false; }

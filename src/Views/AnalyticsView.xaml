@@ -30,6 +30,7 @@
 
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
       <StackPanel Margin="24,0,24,20">
+        <TextBlock Text="Локальное использование этого устройства · все подписки" TextWrapping="Wrap" Style="{StaticResource Small}" Margin="0,0,0,10"/>
         <DockPanel>
           <TextBlock x:Name="ReportCaption" DockPanel.Dock="Right" Text="Сегодня" Style="{StaticResource Caption}" VerticalAlignment="Center"/>
           <ListBox x:Name="Periods" ItemContainerStyle="{StaticResource ChipItem}" Background="Transparent" BorderThickness="0" Padding="0" SelectedIndex="0" AutomationProperties.Name="Период аналитики">
@@ -103,11 +104,12 @@
           </Border>
           <Border x:Name="PlanCard" Grid.Column="1" Style="{StaticResource Plate}" Margin="5,0,0,0">
             <StackPanel>
-              <TextBlock Text="Подписка" FontSize="{StaticResource FsRowLarge}" FontWeight="SemiBold"/>
+              <TextBlock x:Name="PlanTitle" TextWrapping="Wrap" Text="Подписка" FontSize="{StaticResource FsRowLarge}" FontWeight="SemiBold"/>
               <TextBlock x:Name="PlanText" Text="Нет данных о подписке" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,14,0,0"/>
-              <TextBlock x:Name="PlanRemaining" Style="{StaticResource Small}" Margin="0,5,0,0"/>
+              <TextBlock x:Name="PlanRemaining" TextWrapping="Wrap" Style="{StaticResource Small}" Margin="0,5,0,0"/>
               <v:PixelBars x:Name="PlanBars" Kind="Segments" Count="6" Height="12" Margin="0,16,0,0" Fill="{DynamicResource RouteVpn}" Empty="{DynamicResource Lilac}"/>
-              <TextBlock Text="Сведения приходят из подписки и не зависят от локальной истории." Style="{StaticResource Small}" Margin="0,14,0,0"/>
+              <TextBlock Text="Сведения подписки могут учитывать другие устройства. Локальная история считается отдельно." TextWrapping="Wrap" Style="{StaticResource Small}" Margin="0,10,0,0"/>
+              <TextBlock x:Name="PlanSource" TextWrapping="Wrap" Text="Данные провайдера" Style="{StaticResource Small}" Margin="0,14,0,0"/>
             </StackPanel>
           </Border>
         </Grid>

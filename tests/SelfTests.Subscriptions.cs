@@ -6,6 +6,7 @@ public static partial class SelfTests
 {
     private static async Task SubscriptionChecksAsync(Func<string, Func<Task>, Task> check)
     {
+        await SubscriptionStateChecksAsync(check);
         await check("Subscription metadata uses bounded nonnegative headers and avoids overflow", () => Sync(() =>
         {
             var info = SubscriptionMetadata.Parse(["upload=1073741824; download=1073741824; total=4294967296; expire=1800000000"]);

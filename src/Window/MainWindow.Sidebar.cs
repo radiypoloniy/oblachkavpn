@@ -30,8 +30,8 @@ public partial class MainWindow
     {
         ShowModeMenu(false);
         CloseConnections();
-        Settings.Visibility = Visibility.Collapsed; Servers.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed;
-        Doctor.Visibility = Visibility.Collapsed; SiteCheck.Visibility = Visibility.Collapsed; Analytics.Visibility = Visibility.Collapsed;
+        Settings.Visibility = Visibility.Collapsed; Servers.Visibility = Visibility.Collapsed; HidePage(picker);
+        HidePage(doctor); HidePage(siteCheck); HidePage(analytics);
         if (currentPage is "Servers" or "Diagnostics" or "Analytics") currentPage = "Connection";
         RulesPage.Visibility = Visibility.Visible;
         RefreshRules();

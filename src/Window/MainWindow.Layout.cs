@@ -28,7 +28,7 @@ public partial class MainWindow
             MaximizeButton.SetValue(System.Windows.Automation.AutomationProperties.NameProperty, WindowState == WindowState.Maximized ? "Восстановить" : "Развернуть");
         };
         // Любой экран острова открылся или закрылся — пересчитать раскладку и подсветку пункта.
-        foreach (var page in new UIElement[] { Live, Servers, RulesPage, Settings, Picker, Doctor, SiteCheck, Analytics })
+        foreach (var page in new UIElement[] { Live, Servers, RulesPage, Settings })
             page.IsVisibleChanged += (_, _) => { if (IsLoaded) ApplyLayout(); };
     }
 
@@ -59,13 +59,13 @@ public partial class MainWindow
         Island.Margin = narrow ? new Thickness(10, 44, 10, 10) : new Thickness(0, 44, 10, 10);
         var welcome = Onboarding.Visibility == Visibility.Visible;
         var anyOpen = Live.Visibility == Visibility.Visible || Servers.Visibility == Visibility.Visible || Settings.Visibility == Visibility.Visible || RulesPage.Visibility == Visibility.Visible ||
-            Picker.Visibility == Visibility.Visible || Doctor.Visibility == Visibility.Visible || SiteCheck.Visibility == Visibility.Visible || Analytics.Visibility == Visibility.Visible;
+            picker?.Visibility == Visibility.Visible || doctor?.Visibility == Visibility.Visible || siteCheck?.Visibility == Visibility.Visible || analytics?.Visibility == Visibility.Visible;
         Island.Visibility = welcome || narrow && !(narrowOpen && anyOpen) ? Visibility.Collapsed : Visibility.Visible;
         // «Назад» у разделов нужен только в узком окне: в широком раздел сменяют пунктом панели.
         Live.BackButton.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
         Servers.BackButton.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
         RulesPage.BackButton.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
-        Analytics.BackButton.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
+        if (analytics is not null) analytics.BackButton.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
         // Окно расширили: пустой остров заполняется «Сейчас в сети».
         if (wasNarrow && !narrow && !anyOpen && !welcome) { OpenConnections(focus: false); return; }
         RefreshSideSelection();
@@ -77,12 +77,12 @@ public partial class MainWindow
         var island = Island.Visibility == Visibility.Visible;
         // Поверх раздела могут лежать «Не открывается сайт?», «Сеть Windows», выбор программ:
         // тогда ни один пункт не подсвечен, кроме того, из чьих настроек их открыли.
-        var page = Picker.Visibility == Visibility.Visible || Doctor.Visibility == Visibility.Visible || SiteCheck.Visibility == Visibility.Visible;
+        var page = picker?.Visibility == Visibility.Visible || doctor?.Visibility == Visibility.Visible || siteCheck?.Visibility == Visibility.Visible;
         var settings = island && Settings.Visibility == Visibility.Visible;
         var rules = island && !settings && RulesPage.Visibility == Visibility.Visible;
-        var analytics = island && !page && Analytics.Visibility == Visibility.Visible;
-        Ui.SetSelected(Home.LiveNav, island && !page && !settings && !analytics && (rules || Live.Visibility == Visibility.Visible && Servers.Visibility != Visibility.Visible));
-        Ui.SetSelected(Home.AnalyticsNav, analytics);
+        var analyticsOpen = island && !page && analytics?.Visibility == Visibility.Visible;
+        Ui.SetSelected(Home.LiveNav, island && !page && !settings && !analyticsOpen && (rules || Live.Visibility == Visibility.Visible && Servers.Visibility != Visibility.Visible));
+        Ui.SetSelected(Home.AnalyticsNav, analyticsOpen);
         // Подписки и серверы автовыбора открываются из «Серверов» — подсвечены они; обход блокировок — ничего.
         var shown = settings ? Settings.CurrentPage : -1;
         Ui.SetSelected(Home.AllServersButton, island && (Servers.Visibility == Visibility.Visible && !settings || shown is Views.SettingsPanel.SubscriptionPage or Views.SettingsPanel.AutoPoolPage));

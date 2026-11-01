@@ -15,10 +15,8 @@ public partial class MainWindow
     private enum Notice { ServerSwitched, NetworkClosed, Expiring, BypassBroken, ProtectionRepaired, ProxyRepaired, ProxyLost, PauseEnded, Update, NetworkSecured }
 
     private static readonly TimeSpan NoticeQuiet = TimeSpan.FromMinutes(10);
-    private readonly Dictionary<Notice, DateTimeOffset> noticeShown = new();
+    private readonly Dictionary<string, DateTimeOffset> noticeShown = new();
     private Action? noticeAction;
-    // О каком сроке подписки уже сказали: «2026-12-05|3» — за три дня, «…|1» — за день.
-    private string? expiryNotice;
 
     private void WireNotices() => Settings.Notices.Click += (_, _) => QueueStateSave();
 
@@ -32,29 +30,34 @@ public partial class MainWindow
 
     private bool WindowOnScreen => IsVisible && IsActive && WindowState != WindowState.Minimized;
 
-    private void Notify(Notice kind, string title, string text, Action? onClick = null, bool warning = false)
+    private bool Notify(Notice kind, string title, string text, Action? onClick = null, bool warning = false, string? scope = null)
     {
-        if (closed || vmTestActive || Settings.Notices.IsChecked != true || WindowOnScreen) return;
+        if (closed || vmTestActive || Settings.Notices.IsChecked != true || WindowOnScreen) return false;
         var now = DateTimeOffset.UtcNow;
-        if (noticeShown.TryGetValue(kind, out var last) && now - last < NoticeQuiet) return;
-        noticeShown[kind] = now;
+        if (noticeShown.TryGetValue(kind + "|" + scope, out var last) && now - last < NoticeQuiet) return false;
+        noticeShown[kind + "|" + scope] = now;
         noticeAction = onClick ?? ShowWindow;
         tray.ShowBalloonTip(8000, title, text, warning ? Forms.ToolTipIcon.Warning : Forms.ToolTipIcon.Info);
+        return true;
     }
 
-    // Срок подписки сервиса: за 3 дня и за день — по разу на каждый срок, и после перезапуска тоже.
+    // Отдельный ключ для каждой группы и точного срока; нажатие связано с той же группой.
     private void PollExpiry()
     {
-        if (subscriptionMetadata?.Expires is not { } expires || CurrentGroup is not { IsSubscription: true }) return;
+        if (CurrentSubscription is not { Group: { } group } state || group.Metadata?.Expires is not { } expires) return;
         var left = expires - DateTimeOffset.UtcNow;
-        if (left <= TimeSpan.Zero || left > TimeSpan.FromDays(3)) return;
+        if (left <= TimeSpan.Zero || left > TimeSpan.FromDays(3) || state.WarningKey == group.DismissedWarning) return;
         var stage = left <= TimeSpan.FromDays(1) ? 1 : 3;
-        var key = expires.ToString("yyyy-MM-dd") + "|" + stage;
-        if (expiryNotice == key || WindowOnScreen || Settings.Notices.IsChecked != true) return;
-        expiryNotice = key;
-        QueueStateSave();
-        var when = stage == 1 ? "завтра" : "через " + Math.Max(2, (int)Math.Ceiling(left.TotalDays)) + " дня";
-        Notify(Notice.Expiring, "Подписка кончается " + when, RenewUrl is not null ? "Нажмите, чтобы продлить." : "Продлите её, чтобы VPN не выключился.",
-            RenewUrl is not null ? () => OpenLink(RenewUrl, "страницу продления") : null);
+        var key = expires.ToUnixTimeSeconds() + "|" + stage;
+        if (group.ExpiryNotice == key) return;
+        var url = state.RenewUrl;
+        var when = stage == 1 ? "в течение суток" : "через " + Math.Max(2, (int)Math.Ceiling(left.TotalDays)) + " дня";
+        if (Notify(Notice.Expiring, group.Name + ": срок истекает " + when,
+            url is not null ? "Нажмите, чтобы продлить эту подписку." : "Обновите данные подписки или выберите другой сервер.",
+            url is not null ? () => OpenLink(url, "страницу продления") : null, scope: group.Id))
+        {
+            Replace(group with { ExpiryNotice = key });
+            QueueStateSave();
+        }
     }
 }

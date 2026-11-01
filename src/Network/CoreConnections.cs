@@ -1,6 +1,6 @@
 using System.Net;
 using System.Net.Http;
-using System.Text.Json.Nodes;
+using System.Text.Json;
 
 namespace Oblachka;
 
@@ -27,11 +27,15 @@ public static class CoreConnections
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{entry.Port}/connections");
             request.Headers.Authorization = new("Bearer", entry.Secret);
-            using var response = await Http.SendAsync(request, token).ConfigureAwait(false);
+            using var bodyTimeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+            bodyTimeout.CancelAfter(TimeSpan.FromSeconds(2));
+            using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, bodyTimeout.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode) return null;
-            return Parse(await response.Content.ReadAsStringAsync(token).ConfigureAwait(false));
+            await using var stream = await response.Content.ReadAsStreamAsync(bodyTimeout.Token).ConfigureAwait(false);
+            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: bodyTimeout.Token).ConfigureAwait(false);
+            return Parse(document.RootElement);
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or InvalidOperationException) { return null; }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or IOException or JsonException or InvalidOperationException) { return null; }
     }
 
     // Закрыть соединения программ, чьё правило изменилось: ядро рвёт их и со стороны туннеля, так
@@ -83,20 +87,31 @@ public static class CoreConnections
 
     internal static IReadOnlyList<CoreConnection> Parse(string json)
     {
+        using var document = JsonDocument.Parse(json);
+        return Parse(document.RootElement);
+    }
+
+    private static IReadOnlyList<CoreConnection> Parse(JsonElement root)
+    {
         var result = new List<CoreConnection>();
-        if (JsonNode.Parse(json)?["connections"] is not JsonArray connections) return result;
-        foreach (var node in connections.OfType<JsonObject>())
+        if (Property(root, "connections") is not { ValueKind: JsonValueKind.Array } connections) return result;
+        foreach (var node in connections.EnumerateArray())
         {
-            var meta = node["metadata"] as JsonObject;
-            var chains = (node["chains"] as JsonArray)?.Select(c => c?.GetValue<string>()).OfType<string>().ToArray() ?? [];
-            int.TryParse(meta?["destinationPort"]?.ToString(), out var port);
-            result.Add(new(Text(meta?["processPath"]), string.Equals(Text(meta?["network"]), "udp", StringComparison.OrdinalIgnoreCase),
-                Text(meta?["host"]), Text(meta?["destinationIP"]), port, chains, Text(node["id"]), Bytes(node["upload"]), Bytes(node["download"])));
+            if (node.ValueKind != JsonValueKind.Object) continue;
+            var meta = Property(node, "metadata");
+            var chains = Property(node, "chains") is { ValueKind: JsonValueKind.Array } chain
+                ? chain.EnumerateArray().Select(Text).OfType<string>().ToArray() : [];
+            var portValue = Property(meta, "destinationPort");
+            int.TryParse(portValue.ValueKind is JsonValueKind.Number or JsonValueKind.String ? portValue.ToString() : null, out var port);
+            result.Add(new(Text(Property(meta, "processPath")), string.Equals(Text(Property(meta, "network")), "udp", StringComparison.OrdinalIgnoreCase),
+                Text(Property(meta, "host")), Text(Property(meta, "destinationIP")), port, chains, Text(Property(node, "id")),
+                Bytes(Property(node, "upload")), Bytes(Property(node, "download"))));
         }
         return result;
     }
 
-    private static long Bytes(JsonNode? node) => node is JsonValue value && value.TryGetValue<long>(out var n) && n > 0 ? n : 0;
-
-    private static string? Text(JsonNode? node) => node is JsonValue value && value.TryGetValue<string>(out var text) && text.Length > 0 ? text : null;
+    private static JsonElement Property(JsonElement node, string name) =>
+        node.ValueKind == JsonValueKind.Object && node.TryGetProperty(name, out var value) ? value : default;
+    private static long Bytes(JsonElement node) => node.ValueKind == JsonValueKind.Number && node.TryGetInt64(out var n) && n > 0 ? n : 0;
+    private static string? Text(JsonElement node) => node.ValueKind == JsonValueKind.String && node.GetString() is { Length: > 0 } text ? text : null;
 }

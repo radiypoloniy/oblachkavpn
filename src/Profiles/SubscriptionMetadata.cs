@@ -104,7 +104,7 @@ public sealed record SubscriptionMetadata(long? Upload, long? Download, long? To
     public string Summary(DateTimeOffset now)
     {
         var parts = new List<string>();
-        if (Expires is not null) parts.Add((Expires < now ? "Срок истёк " : "До ") + Expires.Value.ToLocalTime().ToString("dd.MM.yyyy"));
+        parts.Add(Expires is null ? "Срок не сообщён" : (Expires <= now ? "Срок истёк " : "До ") + Expires.Value.ToLocalTime().ToString("dd.MM.yyyy"));
         if (Total is > 0 && Upload is >= 0 && Download is >= 0)
         {
             var remaining = Math.Max(0m, (decimal)Total.Value - Upload.Value - Download.Value);
@@ -129,7 +129,7 @@ public sealed record SubscriptionMetadata(long? Upload, long? Download, long? To
     {
         if (Expires is { } expires)
         {
-            if (expires < now) return "Подписка истекла";
+            if (expires <= now) return "Подписка истекла";
             var left = expires - now;
             if (left < TimeSpan.FromDays(1)) return "Подписка истекает сегодня";
             if (left < TimeSpan.FromDays(14)) return $"Подписка ещё {(int)left.TotalDays} дн.";

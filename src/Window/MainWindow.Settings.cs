@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -24,7 +24,7 @@ public partial class MainWindow
         Settings.Subscription.ChangeKeyButton.Click += SubscriptionClick;
         Settings.Subscription.RefreshListButton.Click += RefreshClick;
         Settings.Subscription.RenewButton.Click += (_, _) => OpenLink(RenewUrl, "страницу продления");
-        Settings.Subscription.SupportButton.Click += (_, _) => OpenLink(subscriptionMetadata?.SupportUrl, "страницу поддержки");
+        Settings.Subscription.SupportButton.Click += (_, _) => OpenLink(CurrentSubscription?.SupportUrl, "страницу поддержки");
         Routes.RuleList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(RuleRowClick));
         Routes.ProgramList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(RuleRowClick));
     }
@@ -58,25 +58,31 @@ public partial class MainWindow
             MarkSegment(button, ThemeManager.Choice == choice);
         RefreshDpi();
 
-        var tab = Settings.Subscription;
-        var meta = subscriptionMetadata;
-        tab.SubscriptionTitle.Text = CurrentGroup?.Name ?? "Подписка";
-        tab.ExpiryText.Text = meta?.Expires is { } expires ? expires.ToLocalTime().ToString("dd.MM.yyyy") : "без срока";
-        tab.TrafficText.Text = meta is { Total: > 0, Upload: >= 0, Download: >= 0 }
-            ? $"{Math.Max(0m, (decimal)meta.Total!.Value - meta.Upload!.Value - meta.Download!.Value) / 1073741824m:0.#} ГБ"
-            : meta is { Total: 0 } ? "без лимита" : "—";
-        // «Продлить» и «Поддержка» — только если панель прислала ссылки: иначе кнопки вели бы в никуда.
-        var renew = RenewUrl is not null;
-        tab.SupportButton.Visibility = meta?.SupportUrl is not null ? Visibility.Visible : Visibility.Collapsed;
-        tab.RenewButton.Visibility = renew ? Visibility.Visible : Visibility.Collapsed;
-        tab.RenewColumn.Width = renew ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
-        tab.RefreshListButton.IsEnabled = groups.Any(g => g.IsSubscription) && operation is null;
-        tab.Remember.IsChecked = rememberConnections;
+        RefreshSubscriptionSettings();
 
         MarkCheck(Diagnostics.CoreOk, engine.ProcessId is not null);
         MarkCheck(Diagnostics.ProbeOk, lastProbe is { Success: true });
     }
 
+
+    private void RefreshSubscriptionSettings()
+    {
+        var tab = Settings.Subscription;
+        var state = CurrentSubscription;
+        tab.ActiveCard.Visibility = state is null ? Visibility.Collapsed : Visibility.Visible;
+        tab.SubscriptionTitle.Text = state?.Group.Name ?? "Подписка";
+        tab.ExpiryText.Text = state?.TermText ?? "Срок не сообщён";
+        tab.TrafficText.Text = state?.TrafficText ?? "Трафик не сообщён";
+        tab.UpdatedText.Text = state?.UpdatedText ?? "";
+        // «Продлить» и «Поддержка» — только если панель прислала ссылки: иначе кнопки вели бы в никуда.
+        var renew = RenewUrl is not null;
+        tab.SupportButton.Visibility = state?.SupportUrl is not null ? Visibility.Visible : Visibility.Collapsed;
+        tab.RenewButton.Visibility = renew ? Visibility.Visible : Visibility.Collapsed;
+        tab.RenewColumn.Width = renew ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+        tab.RefreshListButton.IsEnabled = groups.Any(g => g.IsSubscription) && operation is null;
+        tab.Remember.IsChecked = rememberConnections;
+
+    }
 
     private static void MarkCheck(Ellipse mark, bool ok)
     {
@@ -84,10 +90,7 @@ public partial class MainWindow
         else { mark.Fill = System.Windows.Media.Brushes.Transparent; mark.SetResourceReference(Shape.StrokeProperty, "Ring"); mark.StrokeThickness = 1.5; }
     }
 
-    // Куда ведёт «Продлить»: ссылка продления от панели (premium-url и др., ProviderOptions),
-    // иначе личный кабинет из profile-web-page-url; для сервиса — его постоянный адрес, если он задан.
-    private string? RenewUrl => subscriptionMetadata?.Provider?.RenewUrl ?? subscriptionMetadata?.WebPageUrl ??
-        (ServiceBrand.SupportUrl.Length > 0 && CurrentGroup?.Source == ProfileSource.Service ? ServiceBrand.SupportUrl : null);
+    private string? RenewUrl => CurrentSubscription?.RenewUrl;
 
     private void OpenLink(string? url, string what)
     {

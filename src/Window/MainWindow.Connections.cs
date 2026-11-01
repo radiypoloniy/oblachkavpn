@@ -41,8 +41,8 @@ public partial class MainWindow
     // «Сейчас в сети» — раздел острова: настройки и «Все серверы» уступают ему место.
     private void ShowLiveSection()
     {
-        Settings.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed; Servers.Visibility = Visibility.Collapsed; RulesPage.Visibility = Visibility.Collapsed;
-        Doctor.Visibility = Visibility.Collapsed; SiteCheck.Visibility = Visibility.Collapsed; Analytics.Visibility = Visibility.Collapsed;
+        Settings.Visibility = Visibility.Collapsed; HidePage(picker); Servers.Visibility = Visibility.Collapsed; RulesPage.Visibility = Visibility.Collapsed;
+        HidePage(doctor); HidePage(siteCheck); HidePage(analytics);
         if (currentPage is "Routes" or "Diagnostics" or "Servers" or "Analytics") currentPage = "Connection";
         OpenConnections(focus: true);
         OpenSection();
@@ -80,7 +80,7 @@ public partial class MainWindow
     {
         liveTimer?.Stop();
         Live.Visibility = Visibility.Collapsed;
-        liveFiles.Clear(); liveSites.Clear();
+        ClearLivePresentation();
     }
 
     private async Task RefreshConnectionsAsync()
@@ -95,13 +95,16 @@ public partial class MainWindow
             bool Own(string path) => path.StartsWith(own, StringComparison.OrdinalIgnoreCase);
             // «Весь компьютер»: куда ушло соединение, знает только ядро туннеля — по таблицам Windows
             // любое соединение открыто с адреса туннеля, даже по правилу «напрямую».
-            var core = tunnel && systemTunnel?.Stats is { } stats ? await CoreConnections.ReadAsync(stats, CancellationToken.None) : null;
+            var stats = tunnel ? systemTunnel?.Stats : null;
+            var core = stats is not null ? await coreSamples.ReadAsync(stats, CancellationToken.None) : null;
+            if (closed || Live.Visibility != Visibility.Visible || stats is not null && !ReferenceEquals(stats, systemTunnel?.Stats)) return;
             if (core is not null) RecordCoreConnections(core);
             var apps = core is not null ? LiveApps.FromCore(core, Own, liveSpeed.Measure(core, DateTime.UtcNow))
                 : await Task.Run(() => LiveApps.Group(ConnectionTable.Read(), tunnel, proxy, LivePath, Own));
-            if (closed) return;
+            if (closed || Live.Visibility != Visibility.Visible || !IsVisible || WindowState == WindowState.Minimized) return;
             Live.SetNote(LiveNote);
             var rows = LiveTree(apps);
+            TrimLiveCache(rows);
             Live.Load(rows);
             var online = rows.Count(r => r.Vpn + r.Direct > 0);
             Home.LiveCount.Text = online > 0 ? online.ToString() : "";

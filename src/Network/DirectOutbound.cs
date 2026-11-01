@@ -47,7 +47,8 @@ public static class DirectOutbound
     public static JsonObject?[] Fit(JsonObject?[] outbounds, int budget = LeaseBudget)
     {
         var used = 0;
-        return outbounds.Select(o =>
+        // У многих узлов может быть один IP: лимит адресов аренды не ограничивает число выходов.
+        return outbounds.Take(DirectOutboundPolicy.MaxOutbounds).Select(o =>
         {
             if (o is null) return null;
             var size = System.Text.Encoding.UTF8.GetByteCount(o.ToJsonString());

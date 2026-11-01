@@ -2,30 +2,39 @@ namespace Oblachka;
 
 public partial class MainWindow
 {
-    private readonly SubscriptionSchedule subscriptionSchedule = new();
+    private readonly Dictionary<string, SubscriptionSchedule> subscriptionSchedules = new();
+    private SubscriptionSchedule ScheduleFor(string id)
+    {
+        if (!subscriptionSchedules.TryGetValue(id, out var schedule)) subscriptionSchedules[id] = schedule = new();
+        return schedule;
+    }
     private async void PollSubscription()
     {
         if (closed || vmTestActive || !backgroundWorkEnabled || !groups.Any(g => g.IsSubscription) || operation is not null || recoveryWait is not null ||
-            pendingImport is not null || ForeignConnected || Settings.AutoRefresh.IsChecked != true || !subscriptionSchedule.IsDue(DateTimeOffset.UtcNow)) return;
-        await RefreshAllAsync();
+            Settings.AutoRefresh.IsChecked != true) return;
+        foreach (var group in groups.Where(g => g.IsSubscription).ToArray())
+        {
+            if (closed || operation is not null) return;
+            if (pendingImport?.Group.Id == group.Id || ForeignConnected && group.Source == ProfileSource.Service) continue;
+            if (ScheduleFor(group.Id).IsDue(DateTimeOffset.UtcNow)) await LoadSubscriptionAsync(group.Sources, group.PreferredSource);
+        }
     }
+    private (SubscriptionState? State, int Revision, bool Busy, bool Remember, string? Announce)? subscriptionShown;
     private void UpdateSubscriptionSummary()
     {
-        var now = DateTimeOffset.UtcNow;
-        var summary = subscriptionMetadata?.Summary(now);
-        Settings.SubscriptionDetails.Text = string.IsNullOrWhiteSpace(summary) ? "Сервер не передал срок и остаток трафика." : summary;
-
-        // Срок и остаток — в карточке «сегодня и подписка» внизу боковой колонки.
-        // Без срока заголовок — «Подписка без срока», остаток — второй строкой: иначе «Трафик без
-        // ограничения» повторялся дважды (ShortSummary без срока возвращает ту же строку).
-        var meta = subscriptionMetadata;
-        Home.PlanText.Text = meta is null ? "" : meta.Expires is null ? (meta.Total is null ? "" : "Подписка без срока") : meta.ShortSummary(now);
-        var (left, used) = meta?.Remaining() ?? (null, null);
-        Home.PlanSub.Text = left ?? (meta?.Total == 0 ? "трафик без ограничения" : "");
+        var state = CurrentSubscription;
+        var key = (state, groupRevision, operation is not null, rememberConnections, dismissedAnnounce);
+        if (subscriptionShown == key) return;
+        subscriptionShown = key;
+        Settings.SubscriptionDetails.Text = state?.Summary ?? "Выбран сервер без подписки.";
+        Home.PlanText.Text = state?.TermText ?? "";
+        Home.PlanSub.Text = state?.TrafficText ?? "";
+        var used = state?.Used;
         Home.PlanBars.Visibility = used is null ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;
         Home.PlanBars.Filled = used is { } share ? (int)Math.Round(share * Home.PlanBars.Count) : 0;
-        Home.PlanRow.Visibility = Home.PlanText.Text.Length > 0 ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        Home.PlanRow.Visibility = state is not null ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         ApplySubscriptionWarning();
+        RefreshSubscriptionSettings();
 
         // Объявление панели. Текст чужой, поэтому он уже очищен и обрезан в SubscriptionMetadata,
         // показывается как обычный текст и только при наличии подписки сервиса.

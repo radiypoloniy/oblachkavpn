@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -83,13 +83,31 @@ public partial class AppPicker : UserControl
 }
 
 // Строка списка программ: значок, имя, подпись (файл, «запущена», «уже в правилах»), отметка.
-public sealed class AppRow(InstalledApp app, ImageSource? icon) : INotifyPropertyChanged
+public sealed class AppRow(InstalledApp app, ImageSource? icon, bool loadIcon = false) : INotifyPropertyChanged
 {
     private bool isChecked, added;
     private string note = "";
     public InstalledApp App { get; } = app;
     public string Name => App.Name;
-    public ImageSource? Icon { get; } = icon;
+    private WeakReference<ImageSource>? deferredIcon;
+    private bool iconLoading, iconMissing;
+    public ImageSource? Icon
+    {
+        get
+        {
+            if (icon is not null || !loadIcon) return icon;
+            if (deferredIcon?.TryGetTarget(out var image) == true) return image;
+            if (!iconLoading && !iconMissing) { iconLoading = true; _ = LoadIconAsync(); }
+            return null;
+        }
+    }
+    private async Task LoadIconAsync()
+    {
+        var image = await AppIcons.ForAsync(App.Path);
+        deferredIcon = image is null ? null : new(image);
+        iconMissing = image is null; iconLoading = false;
+        Changed(nameof(Icon)); Changed(nameof(PlaceholderVisibility));
+    }
     public Visibility PlaceholderVisibility => Icon is null ? Visibility.Visible : Visibility.Collapsed;
     public string Initial => Name.Length > 0 ? char.ToUpperInvariant(Name[0]).ToString() : "?";
     public bool Checked { get => isChecked; set { if (isChecked == value) return; isChecked = value; Changed(nameof(Checked)); } }

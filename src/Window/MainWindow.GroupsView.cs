@@ -15,7 +15,7 @@ public partial class MainWindow
         Settings.Subscription.GroupList.ItemsSource = groups.Select(g => new GroupRow
         {
             Group = g, Title = g.Name,
-            Sub = (g.IsManual ? "ссылки, файлы и QR · " : "") + ServerCount(ProfilesOf(g.Id).Count) + Ago(g.Updated)
+            Sub = (g.IsManual ? "ссылки, файлы и QR · " : "") + ServerCount(ProfilesOf(g.Id).Count) + (g.IsSubscription ? " · " + SubscriptionState.For(g, now).Summary : "") + Ago(g.Updated)
         }).ToArray();
         Settings.Subscription.GroupList.IsEnabled = operation is null;
 

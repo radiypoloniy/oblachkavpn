@@ -6,6 +6,8 @@ public static class TestProgram
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Length == 2 && args[0] == "--subscription-self-test")
+            return SelfTests.RunSubscriptionsAsync(args[1]).GetAwaiter().GetResult();
         if (args.Length == 2 && args[0] == "--architecture-self-test")
             return SelfTests.RunArchitectureAsync(args[1]).GetAwaiter().GetResult();
         if (args.Length == 3 && args[0] == "--owner-fixture") return SystemTunnelOwnerLoss.Fixture(args[1], args[2]);

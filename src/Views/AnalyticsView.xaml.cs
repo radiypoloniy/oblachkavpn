@@ -39,7 +39,7 @@ public partial class AnalyticsView : UserControl
         if (focus) Periods.Focus();
     }
 
-    public void Render(AnalyticsReport report, AnalyticsPoint[] speed, long currentUp, long currentDown, string server, SubscriptionMetadata? metadata)
+    public void Render(AnalyticsReport report, AnalyticsPoint[] speed, long currentUp, long currentDown, string server, SubscriptionState? subscription)
     {
         TotalText.Text = TrafficMeter.Size(report.Total); DownloadText.Text = TrafficMeter.Size(report.Download); UploadText.Text = TrafficMeter.Size(report.Upload);
         CurrentDown.Text = TrafficMeter.Rate(currentDown); CurrentUp.Text = TrafficMeter.Rate(currentUp);
@@ -57,10 +57,13 @@ public partial class AnalyticsView : UserControl
         var signature = string.Join("|", rows.Select(r => r.Name + r.Detail + r.Total));
         if (signature != programsShown) { programsShown = signature; ProgramList.ItemsSource = rows; }
         ProgramsEmpty.Visibility = rows.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-        PlanText.Text = metadata?.ShortSummary(DateTimeOffset.Now) ?? "Нет данных о подписке";
-        var (remaining, used) = metadata?.Remaining() ?? (null, null);
-        PlanRemaining.Text = remaining ?? (metadata is null ? "Подписка не добавлена или не сообщает эти сведения." : "Лимит трафика не указан.");
-        PlanBars.Filled = used is { } value ? (int)Math.Ceiling(value * PlanBars.Count) : 0;
+        PlanCard.Visibility = subscription is null ? Visibility.Collapsed : Visibility.Visible;
+        PlanTitle.Text = subscription?.Group.Name ?? "";
+        PlanSource.Text = subscription?.UpdatedText ?? "";
+        PlanText.Text = subscription?.TermText ?? "";
+        PlanRemaining.Text = subscription?.TrafficText ?? "";
+        PlanBars.Visibility = subscription?.Used is null ? Visibility.Collapsed : Visibility.Visible;
+        PlanBars.Filled = subscription?.Used is { } value ? (int)Math.Ceiling(value * PlanBars.Count) : 0;
     }
 
     private void RenderAxis(AnalyticsPoint[] points)

@@ -11,16 +11,32 @@ public partial class MainWindow
     private IReadOnlyList<Profile> ProfilesOf(string id) => groupProfiles.TryGetValue(id, out var list) ? list : Array.Empty<Profile>();
     private ProfileGroup? GroupOf(Profile? item) => item is null ? null : groups.FirstOrDefault(g => g.Id == item.Group);
 
-    // Срок и трафик на экране — подписки выбранного узла; без неё — сервиса или первой подписки.
-    private ProfileGroup? CurrentGroup => GroupOf(profile) is { IsSubscription: true } selected ? selected
-        : ServiceGroup ?? groups.FirstOrDefault(g => g.IsSubscription);
+    private ProfileGroup? CurrentGroup => ProfileGroups.Active(groups, profile, runningProfile, ConnectionActive);
+    private int groupRevision;
+    private ProfileGroup? stateGroup;
+    private long stateTime;
+    private SubscriptionState? subscriptionState;
+    private SubscriptionState? CurrentSubscription
+    {
+        get
+        {
+            var group = CurrentGroup; var now = DateTimeOffset.UtcNow;
+            var time = SubscriptionState.RefreshKey(group, now);
+            if (!ReferenceEquals(group, stateGroup) || time != stateTime)
+            {
+                stateGroup = group; stateTime = time;
+                subscriptionState = group is null ? null : SubscriptionState.For(group, now);
+            }
+            return subscriptionState;
+        }
+    }
 
     private IReadOnlyList<Profile> serviceProfiles
     {
         get => ProfilesOf(ProfileGroup.ServiceId);
         set
         {
-            if (value.Count == 0) { groups.RemoveAll(g => g.Id == ProfileGroup.ServiceId); groupProfiles.Remove(ProfileGroup.ServiceId); }
+            if (value.Count == 0) { groups.RemoveAll(g => g.Id == ProfileGroup.ServiceId); groupProfiles.Remove(ProfileGroup.ServiceId); groupRevision++; }
             else SetGroup(ServiceGroup ?? new(ProfileGroup.ServiceId, ServiceBrand.Name, ProfileSource.Service, Array.Empty<string>()), value);
         }
     }
@@ -30,7 +46,7 @@ public partial class MainWindow
         get => groups.Where(g => g.Source == ProfileSource.External).SelectMany(g => ProfilesOf(g.Id)).ToArray();
         set
         {
-            foreach (var group in groups.Where(g => g.Source == ProfileSource.External).ToArray()) { groups.Remove(group); groupProfiles.Remove(group.Id); }
+            foreach (var group in groups.Where(g => g.Source == ProfileSource.External).ToArray()) { groups.Remove(group); groupProfiles.Remove(group.Id); groupRevision++; }
             if (value.Count > 0) SetGroup(ProfileGroup.Manual, value);
         }
     }
@@ -53,7 +69,7 @@ public partial class MainWindow
     private SubscriptionMetadata? subscriptionMetadata
     {
         get => CurrentGroup?.Metadata;
-        set { if ((ServiceGroup ?? CurrentGroup) is { } group) Replace(group with { Metadata = value }); }
+        set { if (CurrentGroup is { } group) Replace(group with { Metadata = value }); }
     }
 
     private void UpdateService(Func<ProfileGroup, ProfileGroup> change)
@@ -66,7 +82,12 @@ public partial class MainWindow
     private void Replace(ProfileGroup group)
     {
         var index = groups.FindIndex(g => g.Id == group.Id);
-        if (index >= 0) groups[index] = group;
+        if (index < 0) return;
+        var old = SubscriptionState.For(groups[index], DateTimeOffset.UtcNow);
+        var next = SubscriptionState.For(group, DateTimeOffset.UtcNow);
+        if (old.WarningKey != next.WarningKey || next.RemainingBytes > old.RemainingBytes)
+            group = group with { DismissedWarning = null };
+        groups[index] = group; groupRevision++;
     }
 
     // Новая или обновлённая группа целиком. Узлы получают её источник и идентификатор.
@@ -83,7 +104,7 @@ public partial class MainWindow
         var total = groupProfiles.Where(p => p.Key != group.Id).Sum(p => p.Value.Count) + tagged.Length;
         if (total > ProfileGroup.MaxTotalProfiles) throw new UserError($"Вместе подключений больше {ProfileGroup.MaxTotalProfiles}: уберите ненужную подписку.");
         if (exists) Replace(group); else groups.Add(group);
-        groupProfiles[group.Id] = tagged;
+        groupProfiles[group.Id] = tagged; groupRevision++;
         var ordered = ProfileGroups.Ordered(groups);
         groups.Clear(); groups.AddRange(ordered);
     }
@@ -95,7 +116,7 @@ public partial class MainWindow
         if (groups.FirstOrDefault(g => g.Id == id) is { IsSubscription: true }) { removedSubscriptions.Add(id); TrimRemoved(); }
         // Обновление этой подписки, отложенное до отключения, вернуло бы её — выбрасываем.
         if (pendingImport?.Group.Id == id) pendingImport = null;
-        groups.RemoveAll(g => g.Id == id); groupProfiles.Remove(id);
+        groups.RemoveAll(g => g.Id == id); groupProfiles.Remove(id); subscriptionSchedules.Remove(id); groupRevision++;
         if (removingSelected) profile = null;
         ApplyProfiles(!removingSelected);
         RefreshGroups();

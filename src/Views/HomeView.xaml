@@ -84,10 +84,15 @@
 
         <!-- Особые состояния: пока ситуация не разрешится, вместо карточки сервера. -->
         <Border x:Name="SubWarn" Margin="0,10,0,0" Padding="12,10,8,10" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource SB}" Visibility="Collapsed">
-          <DockPanel>
-            <Button x:Name="SubWarnRenew" DockPanel.Dock="Right" Content="Продлить" Style="{StaticResource Plain}" Height="30" Padding="10,0" o:Ui.CornerRadius="{StaticResource RadiusSm}" Background="{DynamicResource SBtn}" Foreground="{DynamicResource SBtnText}" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-            <TextBlock x:Name="SubWarnText" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource SF}" VerticalAlignment="Center" TextWrapping="Wrap"/>
-          </DockPanel>
+          <StackPanel>
+            <TextBlock x:Name="SubWarnText" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource SF}" TextWrapping="Wrap"/>
+            <WrapPanel Margin="0,6,0,0">
+              <Button x:Name="SubWarnRenew" Content="Продлить" Style="{StaticResource BtnGhost}"/>
+              <Button x:Name="SubWarnRefresh" Content="Обновить данные" Style="{StaticResource BtnGhost}"/>
+              <Button x:Name="SubWarnPick" Content="Выбрать другой сервер" Style="{StaticResource BtnGhost}"/>
+              <Button x:Name="SubWarnHide" Content="Скрыть" Style="{StaticResource BtnGhost}"/>
+            </WrapPanel>
+          </StackPanel>
         </Border>
         <Border x:Name="FreeWarn" Margin="0,10,0,0" Padding="12,10" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource WB}" Visibility="Collapsed">
           <TextBlock Text="Чужой сервер. Его владелец видит, какие сайты вы открываете." FontSize="{StaticResource FsNote}" Foreground="{DynamicResource WF}" TextWrapping="Wrap"/>

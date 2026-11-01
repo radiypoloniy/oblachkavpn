@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -48,6 +48,7 @@ public partial class MainWindow
     private void RefreshHome()
     {
         if (!viewsReady) return;
+        UpdateSubscriptionSummary();
         RefreshDirectChip();
         RefreshFreeWarning();
         // В системном режиме ядро окна поднимается раньше туннеля: «Защищено» — только когда

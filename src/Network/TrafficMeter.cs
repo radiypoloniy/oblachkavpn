@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Net.Http;
-using System.Text.Json.Nodes;
+using System.Text.Json;
 
 namespace Oblachka;
 
@@ -60,7 +60,10 @@ public sealed class TrafficMeter : IDisposable
     {
         try
         {
-            if (JsonNode.Parse(line) is JsonObject o && o["up"]?.GetValue<long>() is long u && o["down"]?.GetValue<long>() is long d && u >= 0 && d >= 0)
+            using var document = JsonDocument.Parse(line);
+            var root = document.RootElement;
+            if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("up", out var up) && root.TryGetProperty("down", out var down) &&
+                up.ValueKind == JsonValueKind.Number && down.ValueKind == JsonValueKind.Number && up.TryGetInt64(out var u) && down.TryGetInt64(out var d) && u >= 0 && d >= 0)
                 return (u, d);
         }
         catch (Exception ex) when (ex is System.Text.Json.JsonException or InvalidOperationException or FormatException) { }

@@ -94,7 +94,7 @@ public partial class MainWindow
     private async void SubscriptionClick(object sender, RoutedEventArgs args)
     {
         var url = AppDialog.Ask(this, "Адреса подписки", "Основной и резервные HTTPS-адреса: каждый с новой строки, до пяти.", "https://…", "Загрузить",
-            string.Join("\n", subscriptionSources), "Полные ссылки для каждого адреса. Они хранятся в зашифрованном виде.", multiline: true);
+            string.Join("\n", CurrentGroup?.Sources ?? Array.Empty<string>()), "Полные ссылки для каждого адреса. Они хранятся в зашифрованном виде.", multiline: true);
         if (url is null) return;
         try { await LoadSubscriptionAsync(SubscriptionMirrors.ParseSources(url), 0); }
         catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }
@@ -111,6 +111,10 @@ public partial class MainWindow
         // Через бесплатный чужой узел подписка сервиса не ходит (ForeignGuard): обновим после него.
         if (ForeignConnected && ServiceKey.SourceOf(sources) == ProfileSource.Service)
         { DetailText.Text = "Подписка сервиса обновится после отключения от бесплатного сервера."; return; }
+        var kind = ServiceKey.SourceOf(sources);
+        var previous = groups.FirstOrDefault(g => g.Sources.SequenceEqual(sources)) ?? groups.FirstOrDefault(g => g.Id == ProfileGroup.IdFor(sources, kind));
+        var id = previous?.Id ?? ProfileGroup.IdFor(sources, kind);
+        var subscriptionSchedule = ScheduleFor(id);
         manualStop = false;
         operation = new CancellationTokenSource(); engineOperation = false; UpdateControls();
         DetailText.Text = "Загружаем подписку; при отказе проверим резервные адреса…";
@@ -120,14 +124,11 @@ public partial class MainWindow
             subscriptionSchedule.Complete(DateTimeOffset.UtcNow, true, result.Import.Metadata?.UpdateInterval);
             operation.Token.ThrowIfCancellationRequested();
             if (closed) return;
-            var kind = ServiceKey.SourceOf(sources);
-            // Подписка, переехавшая на новый адрес, остаётся той же группой: id не пересчитывается.
-            var previous = groups.FirstOrDefault(g => g.Sources.SequenceEqual(sources)) ?? groups.FirstOrDefault(g => g.Id == ProfileGroup.IdFor(sources, kind));
-            var id = previous?.Id ?? ProfileGroup.IdFor(sources, kind);
             var metadata = result.Import.Metadata ?? previous?.Metadata;
             var current = result.Sources ?? sources;
             var group = new ProfileGroup(id, ProfileGroup.NameFor(current, metadata, kind), kind, current.ToArray())
-                { PreferredSource = result.SourceIndex, Metadata = metadata, Updated = DateTimeOffset.UtcNow };
+                { PreferredSource = result.SourceIndex, Metadata = metadata, Updated = DateTimeOffset.UtcNow,
+                    DismissedWarning = previous?.DismissedWarning, ExpiryNotice = previous?.ExpiryNotice };
             var imported = result.Import.WithSource(kind);
             // Под работающим подключением новый список виден сразу, подключение не трогается: выбор
             // остаётся на работающем сервере (переименование и смена ключей его не теряют). Новый сервер,
@@ -137,7 +138,9 @@ public partial class MainWindow
             if (engine.State is ConnectionState.Running or ConnectionState.Verified && runningProfile is { } running &&
                 running.Group == id && ProfileSelection.Locate(imported.Profiles, running) < 0)
             {
+                Replace(group);
                 pendingImport = (group, imported);
+                QueueStateSave();
                 DetailText.Text = $"Получено подключений: {result.Import.Profiles.Count}; адрес №{result.SourceIndex + 1}. Сервера, к которому вы подключены, в подписке больше нет: новый список применится после отключения.";
             }
             else

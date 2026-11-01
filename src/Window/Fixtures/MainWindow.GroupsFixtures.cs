@@ -25,6 +25,7 @@ public partial class MainWindow
             throw new InvalidOperationException("Same subscription created a second group");
         checks.Add("Several subscriptions live side by side; the same subscription updates its own group; manual links append");
 
+        CheckIndependentSubscriptions(checks);
         RefreshGroups();
         if (Servers.GroupTabs.Items.Count != 4 || Servers.GroupTabsScroll.Visibility != System.Windows.Visibility.Visible ||
             Settings.Subscription.GroupList.Items.Count != 3)

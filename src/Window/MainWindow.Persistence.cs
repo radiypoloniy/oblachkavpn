@@ -38,7 +38,7 @@ public partial class MainWindow
         SavedGroups.SelectMany(g => ProfilesOf(g.Id)).Select(p => new SavedProfile(p.Name, (System.Text.Json.Nodes.JsonObject)p.Outbound.DeepClone()) { Source = p.Source, Group = p.Group }).ToArray(),
         profile is null || profile.IsFree ? null : Profiles.Fingerprint(profile), subscriptionSources.ToArray(), preferredSource,
         Settings.StayInTray.IsChecked == true, AutoRecover.IsChecked == true)
-        { SelectedName = profile is { IsFree: false } ? profile.Name : null, ExternalSources = externalSources.ToArray(), AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, CloseToTray = Settings.StayInTray.IsChecked == true, SystemTunnel = Settings.SystemTunnel.IsChecked == true, Theme = ThemeManager.Choice, Metadata = ServiceGroup?.Metadata, Groups = SavedGroups.ToArray(), RouteRules = PersistedSet.Sites, ProgramRules = PersistedSet.Programs,
+        { SelectedGroup = profile is { IsFree: false } ? profile.Group : null, SelectedName = profile is { IsFree: false } ? profile.Name : null, ExternalSources = externalSources.ToArray(), AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, CloseToTray = Settings.StayInTray.IsChecked == true, SystemTunnel = Settings.SystemTunnel.IsChecked == true, Theme = ThemeManager.Choice, Metadata = ServiceGroup?.Metadata, Groups = SavedGroups.ToArray(), RouteRules = PersistedSet.Sites, ProgramRules = PersistedSet.Programs,
             Favorites = favorites.Where(f => importedProfiles.Any(p => FavoriteKey(p) == f)).Take(Subscriptions.MaxProfiles).ToArray(),
             HiddenServers = hiddenServers.Take(Subscriptions.MaxProfiles).ToArray(), RemovedSubscriptions = removedSubscriptions.ToArray(),
             Measurements = measurements.Values.Where(m => importedProfiles.Any(p => !p.IsFree && Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
@@ -46,7 +46,7 @@ public partial class MainWindow
             UpdateCheck = AppTab.UpdateAuto.IsChecked == true, UpdatePrerelease = AppTab.UpdatePrerelease.IsChecked == true, DpiBypass = fragmentMode,
             ZapretEnabled = zapretEnabled, SelectiveVpn = selectiveVpn, ZapretChoices = new Dictionary<string, string>(zapretChoices), ZapretVpnGroups = zapretVpnGroups.Order(StringComparer.Ordinal).ToArray(),
             AutoPool = autoPool.Snapshot(importedProfiles),
-            ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected, Notices = Settings.Notices.IsChecked == true, ExpiryNotice = expiryNotice,
+            ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected, Notices = Settings.Notices.IsChecked == true,
             KnownNetworks = knownNetworks.Count == 0 ? null : new(knownNetworks), SecureUnknown = AppTab.SecureUnknown.IsChecked == true, Lockdown = AppTab.Lockdown.IsChecked == true,
             MachinePick = machineMode, MachineMemory = machineMemory.Count == 0 ? null : machineMemory.ToDictionary(p => p.Key, p => new Dictionary<string, string>(p.Value)),
             ServiceHosts = ServiceBrand.LearnedIn(groups.SelectMany(g => g.Sources).Concat(subscriptionSources)), LocalNetwork = Settings.LocalNetwork.IsChecked == true,
@@ -93,7 +93,7 @@ public partial class MainWindow
         var restored = ClientStateStore.RestoreProfiles(snapshot);
         Settings.StayInTray.IsChecked = snapshot.CloseToTray ?? true; AutoRecover.IsChecked = snapshot.AutoRecover;
         Settings.ConnectOnLaunch.IsChecked = snapshot.ConnectOnLaunch; wasConnected = snapshot.WasConnected;
-        Settings.Notices.IsChecked = snapshot.Notices; expiryNotice = snapshot.ExpiryNotice;
+        Settings.Notices.IsChecked = snapshot.Notices;
         RestoreNetworks(snapshot);
         RestoreMachines(snapshot);
         Settings.LocalNetwork.IsChecked = snapshot.LocalNetwork;
@@ -143,7 +143,7 @@ public partial class MainWindow
         RefreshZapret(); RestoreZapret();
         RefreshRouting();
         // Группы из снимка; у снимка до 0.11 их выводим: сервис, одна сторонняя подписка или «Вручную».
-        groups.Clear(); groupProfiles.Clear();
+        groups.Clear(); groupProfiles.Clear(); groupRevision++;
         var legacy = snapshot.Groups is null;
         var restoredGroups = snapshot.Groups ?? ProfileGroups.FromLegacy(snapshot, restored).ToArray();
         foreach (var group in restoredGroups)
@@ -152,8 +152,12 @@ public partial class MainWindow
         ApplyProfiles(false);
         // Сначала имя вместе с отпечатком, потом только отпечаток: переименование узла в
         // панели выбор не теряет, а две строки с одинаковой конфигурацией не подменяют друг друга.
-        var selected = restored.FirstOrDefault(p => p.Name == snapshot.SelectedName && Profiles.Fingerprint(p) == snapshot.SelectedFingerprint)
-            ?? restored.FirstOrDefault(p => Profiles.Fingerprint(p) == snapshot.SelectedFingerprint);
-        if (selected is not null) ProfilePicker.SelectedItem = selected;
+        var candidates = restored.Where(p => snapshot.SelectedGroup is null || p.Group == snapshot.SelectedGroup);
+        var selected = candidates.FirstOrDefault(p => p.Name == snapshot.SelectedName && Profiles.Fingerprint(p) == snapshot.SelectedFingerprint)
+            ?? candidates.FirstOrDefault(p => Profiles.Fingerprint(p) == snapshot.SelectedFingerprint);
+        if (selected is not null)
+        {
+            profile = selected; ShowProfile(); FilterProfiles(); UpdateControls();
+        }
     }
 }

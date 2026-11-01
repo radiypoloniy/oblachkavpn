@@ -17,6 +17,8 @@ public sealed record ProfileGroup(string Id, string Name, ProfileSource Source, 
     public int PreferredSource { get; init; }
     public SubscriptionMetadata? Metadata { get; init; }
     public DateTimeOffset? Updated { get; init; }
+    public string? DismissedWarning { get; init; }
+    public string? ExpiryNotice { get; init; }
     public bool IsManual => Id == ManualId;
     public bool IsSubscription => Sources.Length > 0;
 
@@ -45,6 +47,9 @@ public sealed record ProfileGroup(string Id, string Name, ProfileSource Source, 
 
 public static class ProfileGroups
 {
+    public static ProfileGroup? Active(IEnumerable<ProfileGroup> groups, Profile? selected, Profile? running, bool connected) =>
+        groups.FirstOrDefault(g => g.IsSubscription && g.Id == (connected ? running : selected)?.Group);
+
     // Порядок вкладок: сервис, сторонние подписки в порядке добавления, «Бесплатные», «Вручную» последней.
     public static IReadOnlyList<ProfileGroup> Ordered(IEnumerable<ProfileGroup> groups) =>
         groups.OrderBy(g => g.Id == ProfileGroup.ServiceId ? 0 : g.IsManual ? 3 : g.Source == ProfileSource.Free ? 2 : 1).ToArray();

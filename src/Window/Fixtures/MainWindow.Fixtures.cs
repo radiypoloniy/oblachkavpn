@@ -46,6 +46,7 @@ public partial class MainWindow
             throw new InvalidOperationException("Removing third-party subscriptions did not restore the service-only list");
         checks.Add("Third-party subscriptions can be removed while the service list and a valid selection stay");
 
+        subscriptionSources = new[] { "https://fixture.invalid/sub" };
         // Объявление панели показывается только при наличии подписки сервиса и только как текст.
         subscriptionMetadata = new SubscriptionMetadata(null, null, 0, DateTimeOffset.UtcNow.AddDays(5))
         { Title = "Облачка", Announce = "Доступен обход белых списков" };
@@ -56,7 +57,7 @@ public partial class MainWindow
             throw new InvalidOperationException("Panel announcement or plan is not shown: " + Home.PlanText.Text);
         subscriptionMetadata = null;
         UpdateSubscriptionSummary();
-        if (Home.AnnounceCard.Visibility != Visibility.Collapsed || Home.PlanText.Text != "")
+        if (Home.AnnounceCard.Visibility != Visibility.Collapsed || Home.PlanText.Text != "Срок не сообщён")
             throw new InvalidOperationException("Stale announcement survives an empty subscription");
         checks.Add("Panel announcement and plan appear on the main screen and disappear without subscription data");
 
@@ -70,6 +71,9 @@ public partial class MainWindow
     internal async Task<IReadOnlyList<string>> RunUiFixtureAsync()
     {
         var checks = new List<string>();
+        CheckDeferredViews(checks);
+        CheckLiveCache(checks);
+        CheckAppVirtualization(checks);
         if (vmTestAllowed || Diagnostics.VmTunButton.IsEnabled) throw new InvalidOperationException("Isolated UI fixture can launch elevated TUN");
         if (Settings.SystemTunnel.IsEnabled || Settings.SystemTunnel.IsChecked == true || systemTunnel is not null || helperLifetime is not null)
             throw new InvalidOperationException("Isolated UI fixture can start the privileged system mode");

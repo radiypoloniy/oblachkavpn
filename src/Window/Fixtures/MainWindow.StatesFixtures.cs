@@ -43,6 +43,8 @@ public partial class MainWindow
         if (state == "subscription")
         {
             serviceProfiles = importedProfiles.Select(p => p with { Source = ProfileSource.Service }).ToArray();
+            subscriptionSources = new[] { "https://fixture.invalid/sub" };
+            profile = serviceProfiles[0];
             subscriptionMetadata = new SubscriptionMetadata(0, 3_000_000_000, 6_400_000_000, DateTimeOffset.UtcNow.AddDays(5));
             UpdateSubscriptionSummary();
         }

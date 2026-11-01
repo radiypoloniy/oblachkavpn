@@ -17,7 +17,11 @@ public partial class MainWindow
     private void WireSiteCheck()
     {
         Diagnostics.SiteCheckOpenButton.Click += (_, _) => OpenSiteCheck();
-        SiteCheck.BackButton.Click += (_, _) => { siteCheckCancel?.Cancel(); SiteCheck.Visibility = Visibility.Collapsed; };
+    }
+
+    private void WireSiteCheckPage()
+    {
+        SiteCheck.BackButton.Click += (_, _) => { siteCheckCancel?.Cancel(); HidePage(siteCheck); };
         SiteCheck.CheckButton.Click += async (_, _) => await CheckSiteAsync();
         SiteCheck.SiteInput.KeyDown += async (_, e) => { if (e.Key == Key.Enter) await CheckSiteAsync(); };
         SiteCheck.SuggestButton.Click += async (_, _) => await ApplySiteSuggestionAsync();

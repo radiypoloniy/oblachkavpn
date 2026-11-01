@@ -28,9 +28,10 @@ public static class Program
             catch { return 2; }
         }
 #if TEST_HOOKS
+        if (args.Length == 2 && args[0] == "--ui-memory-check") return MemoryPreview.Run(args[1]);
         // Проверки интерфейса работают с частями MainWindow из *Fixtures.cs: они доступны
         // только в сборке с -p:IncludeTestCode=true и отсутствуют в поставляемом клиенте.
-        if (args.Length > 1 && args[0] == "--ui-self-test")
+        if (args.Length > 1 && args[0] is "--ui-self-test" or "--ui-subscription-self-test")
         {
             FlagImages.AllowNetwork = false;
             var testApp = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
@@ -40,7 +41,7 @@ public static class Program
                 try
                 {
                     window = new MainWindow(persistenceEnabled: false);
-                    var checks = await window.RunUiFixtureAsync();
+                    var checks = args[0] == "--ui-subscription-self-test" ? await window.RunSubscriptionUiFixtureAsync() : await window.RunUiFixtureAsync();
                     File.WriteAllText(args[1], System.Text.Json.JsonSerializer.Serialize(new { Passed = true, Network = "Only local SOCKS startup; no upstream requests", Checks = checks }));
                     testApp.Shutdown(0);
                 }

@@ -11,7 +11,9 @@ $forbiddenSymbols = @(
     'SelfTests',           # отдельный проект проверок
     'LabRunner',           # лабораторный стенд
     'DesignPreview',       # захват превью интерфейса
-    'FixtureTrace'         # сырой поток ядра для синтетических проверок
+    'FixtureTrace',        # сырой поток ядра для синтетических проверок
+    'MemoryPreview',
+    'MeasureMemoryAsync'
 )
 $forbiddenFiles = @('Oblachka.Tests.exe', 'Oblachka.Tests.dll')
 

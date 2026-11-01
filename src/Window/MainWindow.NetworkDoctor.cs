@@ -13,7 +13,11 @@ public partial class MainWindow
     private void WireDoctor()
     {
         Diagnostics.NetworkCheckButton.Click += async (_, _) => { OpenDoctor(); await CheckNetworkAsync(); };
-        Doctor.BackButton.Click += (_, _) => Doctor.Visibility = Visibility.Collapsed;
+    }
+
+    private void WireDoctorPage()
+    {
+        Doctor.BackButton.Click += (_, _) => HidePage(doctor);
         Doctor.RecheckButton.Click += async (_, _) => await CheckNetworkAsync();
         Doctor.FixButton.Click += async (_, _) => await FixNetworkAsync();
         Doctor.UndoButton.Click += async (_, _) =>

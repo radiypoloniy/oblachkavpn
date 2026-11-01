@@ -10,6 +10,10 @@ public partial class MainWindow
     {
         Home.AnalyticsNav.Click += (_, _) => OpenAnalytics();
         Home.TodayCard.Click += (_, _) => OpenAnalytics();
+    }
+
+    private void WireAnalyticsPage()
+    {
         Analytics.Closed += CloseAnalytics;
         Analytics.PeriodChanged += _ => RefreshAnalytics();
         Analytics.ExportRequested += ExportAnalytics;
@@ -19,8 +23,8 @@ public partial class MainWindow
     private void OpenAnalytics()
     {
         ShowModeMenu(false); CloseConnections();
-        Servers.Visibility = Visibility.Collapsed; RulesPage.Visibility = Visibility.Collapsed; Settings.Visibility = Visibility.Collapsed; Picker.Visibility = Visibility.Collapsed;
-        Doctor.Visibility = Visibility.Collapsed; SiteCheck.Visibility = Visibility.Collapsed;
+        Servers.Visibility = Visibility.Collapsed; RulesPage.Visibility = Visibility.Collapsed; Settings.Visibility = Visibility.Collapsed; HidePage(picker);
+        HidePage(doctor); HidePage(siteCheck);
         currentPage = "Analytics";
         Analytics.Show(focus: true); RefreshAnalytics();
         OpenSection();
@@ -28,7 +32,7 @@ public partial class MainWindow
 
     private void CloseAnalytics()
     {
-        Analytics.Visibility = Visibility.Collapsed;
+        HidePage(analytics);
         if (currentPage == "Analytics") currentPage = "Connection";
         ShowDefaultSection();
         Home.AnalyticsNav.Focus();
@@ -36,10 +40,10 @@ public partial class MainWindow
 
     private void RefreshAnalytics()
     {
-        if (!viewsReady || Analytics.Visibility != Visibility.Visible) return;
+        if (!viewsReady || analytics?.Visibility != Visibility.Visible) return;
         var now = DateTime.Now;
         Analytics.Render(trafficHistory.Report(now, Analytics.PeriodDays), speedHistory.Report(now), meter?.Up ?? 0, meter?.Down ?? 0,
-            (runningProfile ?? profile)?.DisplayName ?? "Сервер не выбран", ServiceGroup?.Metadata ?? subscriptionMetadata);
+            (runningProfile ?? profile)?.DisplayName ?? "Сервер не выбран", CurrentSubscription);
     }
 
     private void ExportAnalytics()
