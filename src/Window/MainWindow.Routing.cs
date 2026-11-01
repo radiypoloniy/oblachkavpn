@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 
 namespace Oblachka;
 
@@ -38,7 +38,7 @@ public partial class MainWindow
         if (SelectiveProfile() is { } selective) yield return selective;
         if (RoutingProfile.Custom(advanced.GeoDirect, advanced.GeoProxy, advanced.GeoBlock) is { } custom) yield return custom;
         if (useProviderRouting == true && providerRouting is not null) yield return providerRouting;
-        if (Settings.RussiaDirect.IsChecked == true) yield return RoutingProfile.RussiaDirect;
+        if (preferences.RussiaDirect) yield return RoutingProfile.RussiaDirect;
     }
 
     private bool HasDirectEntry => (engine as Engine)?.DirectEntry is not null;
@@ -153,11 +153,7 @@ public partial class MainWindow
             Home.RoutingOfferText.Text = "«" + provider!.Name + "»: " + Describe(provider) + "." +
                 (size.Length > 0 ? " Для этого скачаем базы адресов (" + size + ")." : "");
         }
-        whereRouting = CurrentRouting();
     }
-
-    // Развёрнутые списки для «Куда пойдёт сайт?»: собираются при смене настроек, не на каждую букву.
-    private CompiledRouting? whereRouting;
 
     // «российские сайты и .ru напрямую, 2 блок…» — коротко о том, что делает набор.
     private static string Describe(RoutingProfile profile)

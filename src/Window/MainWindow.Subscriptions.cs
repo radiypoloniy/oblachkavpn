@@ -11,7 +11,7 @@ public partial class MainWindow
     private async void PollSubscription()
     {
         if (closed || vmTestActive || !backgroundWorkEnabled || !groups.Any(g => g.IsSubscription) || operation is not null || recoveryWait is not null ||
-            Settings.AutoRefresh.IsChecked != true) return;
+            !preferences.AutoRefresh) return;
         foreach (var group in groups.Where(g => g.IsSubscription).ToArray())
         {
             if (closed || operation is not null) return;

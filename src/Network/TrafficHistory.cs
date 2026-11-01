@@ -24,6 +24,7 @@ public sealed class TrafficHistory
 {
     public const int MaxDays = 30;
     public const int MaxPrograms = 256;
+    public const string OtherPrograms = "Другие программы";
     private static readonly CultureInfo Ru = CultureInfo.GetCultureInfo("ru-RU");
     private readonly Dictionary<string, DayState> days = new(StringComparer.Ordinal);
 
@@ -46,7 +47,7 @@ public sealed class TrafficHistory
             if (day.Programs is null || day.UploadHours is not { Length: 24 } || day.DownloadHours is not { Length: 24 }) continue;
             var state = new DayState { Upload = day.Upload, Download = day.Download };
             Array.Copy(day.UploadHours, state.UploadHours, 24); Array.Copy(day.DownloadHours, state.DownloadHours, 24);
-            foreach (var program in day.Programs) state.Programs[program.Path] = (program.Upload, program.Download);
+            foreach (var program in day.Programs) AddProgram(state.Programs, program.Path, program.Upload, program.Download);
             days[day.Day] = state;
         }
         if (days.Count == 0 && legacyDay == Key(now) && legacyBytes > 0)
@@ -77,7 +78,23 @@ public sealed class TrafficHistory
 
     internal void AddProgram(string path, long upload, long download, DateTime now)
     {
-        var programs = Day(now).Programs;
+        AddProgram(Day(now).Programs, path, upload, download);
+    }
+
+    // Предел действует и в памяти. Редкие новые программы сверх него учитываются вместе,
+    // чтобы долгий сеанс не раздувал словарь и не терял суммарный трафик программ.
+    private static void AddProgram(Dictionary<string, (long Upload, long Download)> programs, string path, long upload, long download)
+    {
+        if (!programs.ContainsKey(path) && programs.Count >= MaxPrograms)
+        {
+            if (!programs.ContainsKey(OtherPrograms))
+            {
+                var smallest = programs.MinBy(p => p.Value.Upload + p.Value.Download);
+                programs.Remove(smallest.Key);
+                programs[OtherPrograms] = smallest.Value;
+            }
+            path = OtherPrograms;
+        }
         programs.TryGetValue(path, out var old);
         programs[path] = (old.Upload + upload, old.Download + download);
     }
@@ -152,15 +169,16 @@ public sealed class TrafficHistory
 
 // upload/download у ядра накопительные для каждого соединения. В отчёт идёт только разница
 // между снимками; новый идентификатор после перезапуска ядра начинает свой собственный счётчик.
-public sealed class ProgramTrafficHistory
+public sealed partial class ProgramTrafficHistory
 {
     private sealed record Seen(string Path, long Upload, long Download);
     private readonly Dictionary<string, Seen> active = new(StringComparer.Ordinal);
 
-    public void Reset() => active.Clear();
+    public void Reset() { active.Clear(); programEpoch = null; rebaseNext = false; }
 
     public void Record(IReadOnlyList<CoreConnection> connections, TrafficHistory history, DateTime now)
     {
+        var baselineOnly = rebaseNext; rebaseNext = false;
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var connection in connections)
         {
@@ -171,7 +189,7 @@ public sealed class ProgramTrafficHistory
             var upload = old is null || connection.Upload < old.Upload || !string.Equals(path, old.Path, StringComparison.OrdinalIgnoreCase) ? connection.Upload : connection.Upload - old.Upload;
             var download = old is null || connection.Download < old.Download || !string.Equals(path, old.Path, StringComparison.OrdinalIgnoreCase) ? connection.Download : connection.Download - old.Download;
             active[id] = new(path, Math.Max(0, connection.Upload), Math.Max(0, connection.Download));
-            if (upload > 0 || download > 0) Add(history, path, Math.Max(0, upload), Math.Max(0, download), now);
+            if (!baselineOnly && (upload > 0 || download > 0)) Add(history, path, Math.Max(0, upload), Math.Max(0, download), now);
         }
         foreach (var id in active.Keys.Where(id => !seen.Contains(id)).ToArray()) active.Remove(id);
     }

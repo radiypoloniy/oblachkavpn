@@ -9,14 +9,23 @@ public static class FlagImages
     public static bool AllowNetwork { get; set; }
     private static readonly SemaphoreSlim Slots = new(4);
     private static readonly ConcurrentDictionary<string, Lazy<Task<BitmapImage?>>> Images = new();
+    private static readonly BoundedCache<string, BitmapImage?> LocalImages = new(256, StringComparer.OrdinalIgnoreCase);
     private static readonly HttpClient Client = new(new SocketsHttpHandler { AllowAutoRedirect = false, UseCookies = false })
     { Timeout = TimeSpan.FromSeconds(8) };
 
     public static BitmapImage? Local(string? code)
     {
         if (code is null) return null;
-        try { return new BitmapImage(new Uri($"pack://application:,,,/Oblachka;component/Assets/Flags/{code.ToLowerInvariant()}.png")); }
-        catch (IOException) { return null; }
+        return LocalImages.GetOrAdd(code, static key =>
+        {
+            try
+            {
+                var image = new BitmapImage(new Uri($"pack://application:,,,/Oblachka;component/Assets/Flags/{key.ToLowerInvariant()}.png"));
+                image.Freeze();
+                return image;
+            }
+            catch (IOException) { return null; }
+        });
     }
 
     public static Task<BitmapImage?> LoadAsync(string code) => Images.GetOrAdd(code,

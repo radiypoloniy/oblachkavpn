@@ -10,8 +10,10 @@ namespace Oblachka;
 
 public partial class MainWindow : Window
 {
-    private readonly ITunnelController engine;
-    private Profile? profile;
+    private readonly ClientRuntime runtime;
+    private readonly bool ownsRuntime;
+    private ITunnelController engine => runtime.Engine;
+    private Profile? profile { get => runtime.Profiles.Selected; set => runtime.Profiles.Selected = value; }
     private CancellationTokenSource? operation;
     private bool closed;
     private bool manualStop;
@@ -28,15 +30,18 @@ public partial class MainWindow : Window
     private readonly Forms.ToolStripMenuItem trayConnect;
     private readonly Forms.ToolStripMenuItem trayStop;
     public MainWindow(bool persistenceEnabled = true, ClientStateStore? isolatedStore = null)
+        : this(new ClientRuntime(), true, persistenceEnabled, isolatedStore) { }
+    internal MainWindow(ClientRuntime runtime, bool ownsRuntime = false, bool persistenceEnabled = true, ClientStateStore? isolatedStore = null)
     {
+        this.runtime = runtime; this.ownsRuntime = ownsRuntime;
         stateStore = isolatedStore ?? (persistenceEnabled ? new ClientStateStore(ClientDataPaths.StateFile) : null);
         isolatedPersistence = isolatedStore is not null;
         ThemeManager.EnsureLoaded();
         InitializeComponent();
         // Бывшие настройки «Подключения» живут в разделах острова (Views.SettingsPanel).
         Settings.LiveView = Live; Settings.ServersView = Servers;
+        BindPreferences();
         Height = Math.Min(Height, SystemParameters.WorkArea.Height);
-        engine = new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), Path.Combine(AppContext.BaseDirectory, "data", "runtime"));
         engine.Changed += EngineChanged;
         WireViews();
         viewsReady = true;
@@ -209,7 +214,7 @@ public partial class MainWindow : Window
     private void OnClosing(object? sender, CancelEventArgs args)
     {
         FlushStateSave();
-        if (!exitRequested && Settings.StayInTray.IsChecked == true && !Application.Current.Dispatcher.HasShutdownStarted)
+        if (!exitRequested && preferences.StayInTray && !Application.Current.Dispatcher.HasShutdownStarted)
         { args.Cancel = true; HideToTray(); return; }
         // Штатный выход возвращает обычную сеть: служба потерю окна считает аварией и держит защиту.
         // При выходе из сеанса Windows ждать некогда — тогда сессию снимает служба (NetworkService).
@@ -219,15 +224,16 @@ public partial class MainWindow : Window
         StopZapretOnExit();
         try { vmTestProcess?.CloseMainWindow(); } catch (InvalidOperationException) { }
         presentationTimer.Stop();
+        ReleaseViewResources();
         UnsubscribeLifecycle();
         trayPopup?.Close();
         engine.Changed -= EngineChanged;
         operation?.Cancel();
         recoveryWait?.Cancel();
-        engine.Dispose();
+        ProfilePicker.SelectionChanged -= ProfileSelectionChanged;
+        if (ownsRuntime) runtime.Dispose();
         CloseSystemProxy();
         tray.Visible = false; tray.Dispose();
-        profile = null;
-        groups.Clear(); groupProfiles.Clear(); pendingImport = null;
+        pendingImport = null;
     }
 }

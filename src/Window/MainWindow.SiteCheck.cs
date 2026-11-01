@@ -100,7 +100,8 @@ public partial class MainWindow
         if (siteRules.Where(r => Covers(r.Domain, host)).OrderByDescending(r => r.Domain.Length).FirstOrDefault() is { } rule)
             return (Of(rule.Action), RuleRow.ActionLabel(rule.Action) + " · ваше правило");
         if (ZapretRouting && zapretDomains.Any(d => Covers(d, host))) return (SiteRoute.Zapret, "напрямую · zapret");
-        if (whereRouting?.Decide(host) is { } listed) return (Of(listed), RuleRow.ActionLabel(listed) + " · по спискам");
+        // Списки нужны только для результата проверки: не держим их всё время жизни окна.
+        if (CurrentRouting()?.Decide(host) is { } listed) return (Of(listed), RuleRow.ActionLabel(listed) + " · по спискам");
         return (SiteRoute.Tunnel, "через VPN");
     }
 

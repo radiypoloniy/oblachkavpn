@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 
 namespace Oblachka;
 
@@ -9,6 +9,13 @@ public partial class MainWindow
     private void WireSettingsHome()
     {
         Servers.OpenAutoPool.Click += (_, _) => { RenderAutoPool(); OpenSettings(Views.SettingsPanel.AutoPoolPage); };
+        Settings.AutoPoolList.AddHandler(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, new RoutedEventHandler((_, args) =>
+        {
+            if (args.OriginalSource is not System.Windows.Controls.CheckBox { DataContext: Views.AutoPoolRow row } toggle) return;
+            row.Included = toggle.IsChecked == true;
+            autoPool.Set(row.Profile, row.Included);
+            QueueStateSave(); RenderSheet(); RefreshHome(); RefreshSettingsSummary();
+        }));
         Settings.AutoPool.AutoPoolMeasure.Click += async (_, _) =>
         {
             if (measuring) { measureCancel?.Cancel(); return; }
@@ -54,7 +61,7 @@ public partial class MainWindow
         }
         if (selectiveVpn) { Show("Через VPN только: YouTube, Discord" + (programRules.Concat<object>(siteRules).Any() ? " и ваши правила" : ""), "Aci", "Ac"); return; }
         var parts = new List<string>();
-        if (Settings.RussiaDirect.IsChecked == true) parts.Add("рунет");
+        if (preferences.RussiaDirect) parts.Add("рунет");
         if (zapretEnabled && !zapretBusy) parts.AddRange(zapretActiveGroups.Select(ZapretTitle));
         if (parts.Count == 0) { chip.Visibility = Visibility.Collapsed; return; }
         Show("Напрямую: " + string.Join(", ", parts), "OkB", "OkF");

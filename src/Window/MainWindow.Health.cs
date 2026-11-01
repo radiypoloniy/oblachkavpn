@@ -47,7 +47,7 @@ public partial class MainWindow
     // выбрав его, человек сам попросил, чтобы сервер подбирался без него.
     // Бесплатный чужой узел не восстанавливается сам ни повтором, ни сменой сервера (решение владельца
     // 24.10.2026): упал — человек сам выбирает, к чему подключаться дальше.
-    private bool AutoSwitching => (autoSelect || AutoRecover.IsChecked == true) && (runningProfile ?? profile)?.IsFree != true;
+    private bool AutoSwitching => (autoSelect || preferences.AutoRecover) && (runningProfile ?? profile)?.IsFree != true;
 
     // Проверка связи идёт всегда: без неё чип под тумблером не узнает, что туннель работает.
     // Автовосстановление — отдельное решение: по настройке или при «Автовыборе».

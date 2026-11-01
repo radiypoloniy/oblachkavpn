@@ -16,11 +16,12 @@ public partial class MainWindow
         };
         // «Подобрать лучшее» — MainWindow.Tune; «Автовыбор» подключает по готовым замерам.
         WireTune();
-        System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged += (_, _) => addressChanged = DateTimeOffset.UtcNow.Ticks;
+        System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged += MeasurementAddressChanged;
     }
 
     // Когда сменились адреса (другой Wi-Fi, кабель, наш туннель): тики UTC, 0 — не было.
     private long addressChanged;
+    private void MeasurementAddressChanged(object? sender, EventArgs args) => Interlocked.Exchange(ref addressChanged, DateTimeOffset.UtcNow.Ticks);
     // «Проверить этот сервер»: настоящий HTTPS-запрос через выбранный сервер отдельным ядром,
     // как у «Проверить все», но для одного и любого источника. Подключение не трогает.
     private Profile? checkingServer;
@@ -39,7 +40,7 @@ public partial class MainWindow
             if (!closed) DetailText.Text = result is { Success: true } ? $"{item.DisplayName}: работает, {result.Milliseconds} мс." : $"{item.DisplayName}: не ответил.";
         }
         catch (OperationCanceledException) { if (!closed) DetailText.Text = item.DisplayName + ": проверка не уложилась в 45 секунд."; }
-        finally { checkingServer = null; if (!closed) { RenderSheet(); RefreshHome(); } }
+        finally { checkingServer = null; TrimMeasurements(); if (!closed) { RenderSheet(); RefreshHome(); } }
     }
 
     // Отклики серверов (ServerPing) живут только в этом запуске: они дешёвые и делаются заново
@@ -92,6 +93,7 @@ public partial class MainWindow
         {
             lastPing = DateTimeOffset.UtcNow;
             pinging.Dispose(); pinging = null;
+            TrimMeasurements();
             if (pingQueued && !closed) QueuePing();
         }
     }
@@ -126,8 +128,10 @@ public partial class MainWindow
 
     // Отклики приходят по одному: перестраиваем видимое не чаще раза в 150 мс.
     private bool pingRefreshQueued;
+    private bool sheetMeasurementsDirty;
     private void PingsChanged()
     {
+        sheetMeasurementsDirty = true;
         if (pingRefreshQueued) return;
         pingRefreshQueued = true;
         Dispatcher.BeginInvoke(async () =>
@@ -135,7 +139,8 @@ public partial class MainWindow
             await Task.Delay(150);
             pingRefreshQueued = false;
             if (closed) return;
-            if (Servers.Visibility == System.Windows.Visibility.Visible) FilterProfiles();
+            if (!IsVisible || WindowState == System.Windows.WindowState.Minimized) return;
+            if (Servers.IsVisible) FilterProfiles();
             RefreshHome();
         });
     }

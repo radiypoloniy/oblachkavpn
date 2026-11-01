@@ -60,27 +60,35 @@ public partial class MainWindow
         // Скрытые серверы подписок в список не попадают (MainWindow.ServerRemoval).
         var combined = groups.SelectMany(g => ProfilesOf(g.Id)).Where(p => !HiddenServer(p)).ToArray();
         RefreshGroups();
-        Dispatcher.BeginInvoke(RenderAutoPool);
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (Settings.IsVisible && Settings.CurrentPage == Views.SettingsPanel.AutoPoolPage) RenderAutoPool();
+            else Settings.AutoPoolList.ItemsSource = null;
+        });
         if (combined.Length == 0)
         {
             // Убрали последнюю подписку: список пуст, главный экран снова предлагает ключ.
             ProfilePicker.ItemsSource = importedProfiles = Array.Empty<Profile>();
+            machineProfiles = null; machineIndex.Clear();
             profile = null; ShowProfile(); FilterProfiles(); UpdateSubscriptionSummary(); Navigate(currentPage);
+            TrimMeasurements();
             return;
         }
         var selection = ProfileSelection.Find(combined, preserveSelection ? profile : null);
         ProfilePicker.ItemsSource = combined;
         importedProfiles = combined;
+        machineProfiles = null; machineIndex.Clear();
         Servers.SearchBox.Clear();
         UpdateSubscriptionSummary();
         ProfilePicker.SelectedIndex = selection;
         profile = combined[selection];
+        TrimMeasurements();
         routeAttempts = Array.Empty<RouteAttempt>();
         ShowProfile();
         FilterProfiles();
         QueuePing();
     }
-    private void ProfileSelectionChanged(object sender, SelectionChangedEventArgs args)
+    private void ProfileSelectionChanged(object? sender, EventArgs args)
     {
         if (ProfilePicker.SelectedItem is not Profile selected) return;
         profile = selected; ShowProfile(); UpdateControls(); QueueStateSave();

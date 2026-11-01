@@ -12,8 +12,7 @@ public partial class MainWindow
     private readonly HashSet<string> favorites = new(StringComparer.Ordinal);
 
     // Имя и источник переживают смену ключей панели; значения в файле состояния — хеши.
-    private static string FavoriteKey(Profile item) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
-        System.Text.Encoding.UTF8.GetBytes(item.Source + ":" + item.Name)));
+    private static string FavoriteKey(Profile item) => AutoPool.Key(item);
 
     // «Лучшие сверху»: по той же оценке, что у автовыбора (задержка и скорость); за ними —
     // серверы, у которых есть только отклик входа, по нему; не ответившие и без замера — в конце.
@@ -66,6 +65,7 @@ public partial class MainWindow
     private void RenderSheet()
     {
         if (!viewsReady) return;
+        sheetMeasurementsDirty = false;
         var shown = ProfilePicker.Items.OfType<Profile>().ToArray();
         var items = new List<object>();
         // Автовыбор — закреплённая карточка над списком (AutoCard), выбранный — чернильной рамкой.
@@ -97,12 +97,25 @@ public partial class MainWindow
     {
         foreach (var item in importedProfiles)
         {
-            var label = measurements.TryGetValue(Profiles.Fingerprint(item), out var result)
+            measurements.TryGetValue(Profiles.Fingerprint(item), out var result);
+            var favorite = favorites.Contains(FavoriteKey(item));
+            var stale = result is not null && (result.Time > DateTimeOffset.UtcNow || DateTimeOffset.UtcNow - result.Time >= TimeSpan.FromMinutes(20));
+            var shown = serverLabels.GetValue(item, static _ => new());
+            if (shown.Ready && ReferenceEquals(shown.Measurement, result) && shown.Favorite == favorite && shown.Stale == stale) continue;
+            shown.Ready = true; shown.Measurement = result; shown.Favorite = favorite; shown.Stale = stale;
+            var label = result is not null
                 ? (result.Success ? $"HTTPS: {result.Milliseconds} мс" : "Нет ответа при проверке") +
-                  (result.Time > DateTimeOffset.UtcNow || DateTimeOffset.UtcNow - result.Time >= TimeSpan.FromMinutes(20) ? " · устарело" : "")
+                  (stale ? " · устарело" : "")
                 : "Не проверен";
-            item.SetListStatus((favorites.Contains(FavoriteKey(item)) ? "★ · " : "") + label);
+            item.SetListStatus((favorite ? "★ · " : "") + label);
         }
+    }
+
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<Profile, ServerLabelState> serverLabels = new();
+    private sealed class ServerLabelState
+    {
+        public ServerMeasurement? Measurement;
+        public bool Ready, Favorite, Stale;
     }
 
     private void RefreshServerListControls()

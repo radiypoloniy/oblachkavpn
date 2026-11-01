@@ -5,6 +5,8 @@ using System.Text.Json;
 
 // Сравнивает один и тот же синтетический ответ /connections в двух сборках клиента.
 // Каждая сборка измеряется отдельным процессом; сборка мусора принудительно не запускается.
+if (args.Length == 3 && args[0] == "--programs") return ProgramSummaryProbe.Run(args[1], args[2]);
+if (args.Length == 3 && args[0] == "--core-live") return await CoreLiveProbe.RunAsync(args[1], args[2]);
 if (args.Length != 2) return 1;
 var assembly = Assembly.LoadFrom(Path.GetFullPath(args[0]));
 var method = assembly.GetType("Oblachka.CoreConnections", throwOnError: true)!

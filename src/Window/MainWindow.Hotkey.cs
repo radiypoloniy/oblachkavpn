@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 
@@ -29,7 +29,7 @@ public partial class MainWindow
         var handle = new WindowInteropHelper(this).Handle;
         if (handle == IntPtr.Zero || isolatedPersistence) return;
         if (hotkeyRegistered) UnregisterHotKey(handle, HotkeyId);
-        var wanted = Settings.Hotkey.IsChecked == true;
+        var wanted = preferences.Hotkey;
         hotkeyRegistered = wanted && RegisterHotKey(handle, HotkeyId, ModControl | ModAlt | ModNoRepeat, KeyO);
         Settings.HotkeyNote.Text = wanted && !hotkeyRegistered
             ? "Сочетание занято другой программой — Облачка его не берёт"

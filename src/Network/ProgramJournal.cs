@@ -39,6 +39,27 @@ public sealed class ProgramJournal
         lock (gate) { Trim(now); return entries.Values.OrderByDescending(e => e.LastSeen).ToArray(); }
     }
 
+    internal void Record(CoreProgramSnapshot snapshot, DateTime now)
+    {
+        lock (gate)
+        {
+            foreach (var program in snapshot.Programs)
+            {
+                if (program.Path == TrafficHistory.OtherPrograms) continue;
+                var last = program.LastSeen > now ? now : program.LastSeen;
+                if (now - last > Window) continue;
+                var seen = entries.GetValueOrDefault(program.Path);
+                // Inactive cumulative counters are returned again, but must not
+                // keep an old program alive in the ten-minute journal forever.
+                if (seen is not null && seen.LastSeen >= last) continue;
+                entries[program.Path] = seen is null
+                    ? new(program.Path, last, last, 1, program.Vpn, program.Direct, program.Udp)
+                    : seen with { LastSeen = last, Samples = seen.Samples + 1, Vpn = Math.Max(seen.Vpn, program.Vpn), Direct = Math.Max(seen.Direct, program.Direct), Udp = Math.Max(seen.Udp, program.Udp) };
+            }
+            Trim(now);
+        }
+    }
+
     private void Trim(DateTime now)
     {
         foreach (var old in entries.Values.Where(e => now - e.LastSeen > Window).Select(e => e.Path).ToArray()) entries.Remove(old);

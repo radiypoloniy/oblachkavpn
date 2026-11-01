@@ -47,7 +47,7 @@ public partial class MainWindow
                 measurements[result.Fingerprint] = result;
                 if (closed) return;
                 if (!quiet) DetailText.Text = progress + " Можно остановить.";
-                RenderSheet(); RefreshHome();
+                PingsChanged();
             }
             await ServerMeasurements.MeasureAsync(targets, RouteEngine, result => Measured(result, $"Пинг: {++done} из {targets.Count - skipped}."), measureCancel.Token, MeasureRoute);
             if (throughput)
@@ -64,6 +64,7 @@ public partial class MainWindow
         finally
         {
             measuring = false; measureCancel.Dispose(); measureCancel = null;
+            TrimMeasurements();
             if (!closed) { Servers.MeasureButton.ToolTip = "Обновить пинг"; System.Windows.Automation.AutomationProperties.SetName(Servers.MeasureButton, "Обновить пинг"); }
         }
     }
@@ -76,26 +77,8 @@ public partial class MainWindow
     {
         if (!viewsReady) return;
         var list = Settings.AutoPoolList;
-        list.Children.Clear();
         RefreshSettingsSummary();
         // Бесплатные чужие узлы в пул не входят никогда — и в списке пула их нет.
-        foreach (var item in importedProfiles.Where(p => !p.IsFree))
-        {
-            var toggle = new CheckBox { Style = (Style)FindResource("Toggle"), IsChecked = autoPool.Contains(item), VerticalAlignment = VerticalAlignment.Center };
-            System.Windows.Automation.AutomationProperties.SetName(toggle, "«" + item.DisplayName + "» в автовыборе");
-            toggle.Click += (_, _) =>
-            {
-                autoPool.Set(item, toggle.IsChecked == true);
-                QueueStateSave(); RenderSheet(); RefreshHome(); RefreshSettingsSummary();
-            };
-            var text = new StackPanel();
-            text.Children.Add(new TextBlock { Text = item.DisplayName, FontSize = Tokens.Size("FsRow"), TextTrimming = TextTrimming.CharacterEllipsis });
-            var sub = AutoPool.IsWhitelistBypass(item) ? "обход белых списков" : !item.IsService ? "сторонняя подписка" : null;
-            if (sub is not null) text.Children.Add(new TextBlock { Text = sub, Style = (Style)FindResource("Small") });
-            var row = new DockPanel { Margin = new Thickness(12, 7, 6, 7) };
-            DockPanel.SetDock(toggle, Dock.Right);
-            row.Children.Add(toggle); row.Children.Add(text);
-            list.Children.Add(row);
-        }
+        list.ItemsSource = importedProfiles.Where(p => !p.IsFree).Select(p => new Views.AutoPoolRow(p, autoPool.Contains(p))).ToArray();
     }
 }

@@ -64,8 +64,10 @@ func globalContext() context.Context {
 	RegisterXrayOutbound(outbounds)
 	RegisterAmneziaWGOutbound(outbounds)
 	ctx := service.ContextWith(context.Background(), deprecated.NewStderrManager(log.StdLogger()))
+	services := include.ServiceRegistry()
+	registerProgramService(services)
 	return box.Context(ctx, include.InboundRegistry(), outbounds, include.EndpointRegistry(),
-		include.DNSTransportRegistry(), include.ServiceRegistry(), include.CertificateProviderRegistry())
+		include.DNSTransportRegistry(), services, include.CertificateProviderRegistry())
 }
 
 func readOptions(ctx context.Context) (option.Options, error) {

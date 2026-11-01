@@ -15,7 +15,7 @@ namespace Oblachka;
 // выбор человека важнее: проверка отменяется, переключение ждёт её завершения.
 public partial class MainWindow
 {
-    private Profile? runningProfile;
+    private Profile? runningProfile { get => runtime.Profiles.Running; set => runtime.Profiles.Running = value; }
     private DispatcherTimer? switchTimer;
     // Фоновая проверка связи раз в 45 с не должна гасить список серверов.
     private bool backgroundCheck;

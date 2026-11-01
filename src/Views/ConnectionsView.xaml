@@ -210,9 +210,13 @@
     </StackPanel>
 
     <Grid Grid.Row="2">
-      <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10,0,10,10">
-        <o:AccessibleItems x:Name="AppList" Focusable="False"/>
-      </ScrollViewer>
+      <o:AccessibleItems x:Name="AppList" Focusable="False" Padding="10,0,10,10"
+                         VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel">
+        <o:AccessibleItems.Template><ControlTemplate TargetType="o:AccessibleItems">
+          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="True" Padding="{TemplateBinding Padding}"><ItemsPresenter/></ScrollViewer>
+        </ControlTemplate></o:AccessibleItems.Template>
+        <o:AccessibleItems.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></o:AccessibleItems.ItemsPanel>
+      </o:AccessibleItems>
       <TextBlock x:Name="Empty" FontSize="{StaticResource FsLabel}" Foreground="{DynamicResource Mu2}" HorizontalAlignment="Center" VerticalAlignment="Center"
                  TextAlignment="Center" TextWrapping="Wrap" Margin="32,0"/>
     </Grid>

@@ -27,7 +27,7 @@ public partial class MainWindow
         updateTimer.Tick += async (_, _) =>
         {
             updateTimer.Interval = TimeSpan.FromHours(12);
-            if (AppTab.UpdateAuto.IsChecked == true && stateStore is not null && !isolatedPersistence) await CheckUpdateAsync(manual: false);
+            if (preferences.UpdateAuto && stateStore is not null && !isolatedPersistence) await CheckUpdateAsync(manual: false);
         };
         updateTimer.Start();
         RefreshUpdate();
@@ -42,7 +42,7 @@ public partial class MainWindow
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var release = await AppUpdate.CheckAsync(AppTab.UpdatePrerelease.IsChecked == true, timeout.Token);
+            var release = await AppUpdate.CheckAsync(preferences.UpdatePrerelease, timeout.Token);
             availableUpdate = release is not null && AppUpdate.IsNewer(release) ? release : null;
             if (availableUpdate is { Signature: not null } && !manual && !updateAnnounced)
             {

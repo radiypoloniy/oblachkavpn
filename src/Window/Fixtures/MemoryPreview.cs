@@ -52,6 +52,15 @@ public partial class MainWindow
         for (var i = 0; i < 100; i++) RefreshHome();
         samples.Add(new { Scenario = "home-100-refreshes", AllocatedBytes = GC.GetTotalAllocatedBytes() - allocated });
         OpenAnalytics(); await Sample("analytics");
+        CloseAnalytics();
+        groups.Clear(); groupProfiles.Clear();
+        SetGroup(ProfileGroup.Manual, Enumerable.Range(0, ProfileGroup.MaxTotalProfiles).Select(i => Profiles.Parse(
+            $"vless://{i + 100:x8}-1111-4111-8111-111111111111@node{i}.invalid:443?security=tls&type=tcp#FI%20Server%20{i}")).ToArray());
+        ApplyProfiles(false); Navigate("Connection");
+        await Sample("home-600-profiles");
+        allocated = GC.GetTotalAllocatedBytes();
+        for (var i = 0; i < 100; i++) { RefreshHome(); RefreshServerListControls(); }
+        samples.Add(new { Scenario = "600-profiles-100-refreshes", AllocatedBytes = GC.GetTotalAllocatedBytes() - allocated });
         return samples.ToArray();
     }
 }

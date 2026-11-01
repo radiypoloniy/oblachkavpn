@@ -36,7 +36,7 @@ public partial class MainWindow
         Home.AnnounceClose.Click += (_, _) => { dismissedAnnounce = Home.AnnounceText.Text; Home.AnnounceCard.Visibility = Visibility.Collapsed; };
         Home.QuickList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(QuickRowClick));
         toastTimer.Tick += (_, _) => { toastTimer.Stop(); Toast.Visibility = Visibility.Collapsed; };
-        DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock)).AddValueChanged(ShellFeedback, (_, _) => ShowToast());
+        DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock)).AddValueChanged(ShellFeedback, FeedbackChanged);
         ThemeManager.Changed += RefreshHome;
         WireStates();
         WireSidebar();
@@ -166,7 +166,7 @@ public partial class MainWindow
     private async Task SetModeAsync(bool tunnel)
     {
         ShowModeMenu(false);
-        if (tunnel == SystemTunnelWanted && (tunnel || Settings.SystemProxy.IsChecked == true)) return;
+        if (tunnel == SystemTunnelWanted && (tunnel || preferences.SystemProxy)) return;
         if (tunnel && !Settings.SystemTunnel.IsEnabled) { DetailText.Text = "Системный режим недоступен в этой сборке."; return; }
         var reconnect = ConnectionActive;
         if (reconnect)
@@ -174,8 +174,8 @@ public partial class MainWindow
             manualStop = true; recoveryWait?.Cancel();
             if (systemTunnel is not null) await StopSystemTunnelAsync(); else engine.Stop();
         }
-        Settings.SystemTunnel.IsChecked = tunnel;
-        Settings.SystemProxy.IsChecked = !tunnel;
+        preferences.SystemTunnel = tunnel;
+        preferences.SystemProxy = !tunnel;
         SystemTunnelToggled(this, new RoutedEventArgs());
         SyncSystemProxy(engine.State);
         UpdateModeText();

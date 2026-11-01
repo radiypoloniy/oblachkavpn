@@ -4,8 +4,8 @@ namespace Oblachka;
 // subscriptionMetadata — остались свойствами поверх групп: остальной код и проверки читают их как раньше.
 public partial class MainWindow
 {
-    private readonly List<ProfileGroup> groups = new();
-    private readonly Dictionary<string, IReadOnlyList<Profile>> groupProfiles = new();
+    private List<ProfileGroup> groups => runtime.Profiles.Groups;
+    private Dictionary<string, IReadOnlyList<Profile>> groupProfiles => runtime.Profiles.GroupProfiles;
 
     private ProfileGroup? ServiceGroup => groups.FirstOrDefault(g => g.Id == ProfileGroup.ServiceId);
     private IReadOnlyList<Profile> ProfilesOf(string id) => groupProfiles.TryGetValue(id, out var list) ? list : Array.Empty<Profile>();

@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 
 namespace Oblachka;
 
@@ -10,11 +10,11 @@ namespace Oblachka;
 // SystemTunnelSession.
 public partial class MainWindow
 {
-    private SystemTunnelSession? systemTunnel;
-    private IHelperLifetime? helperLifetime;
+    private SystemTunnelSession? systemTunnel => runtime.Tunnel;
+    private IHelperLifetime? helperLifetime => runtime.Helper;
     private bool systemStopping;
 
-    private bool SystemTunnelWanted => Settings.SystemTunnel.IsChecked == true;
+    private bool SystemTunnelWanted => preferences.SystemTunnel;
     private bool SystemTunnelActive => systemTunnel is not null &&
         systemTunnel.State is not (SystemTunnelState.Idle or SystemTunnelState.Failed);
 
@@ -26,8 +26,8 @@ public partial class MainWindow
         // Установленная служба — значит, системный VPN готов к работе без запроса прав: он и
         // включён по умолчанию. Сохранённый выбор пользователя применяется позже, при загрузке.
         var service = NetworkHelperConnection.ServiceRunning;
-        Settings.SystemTunnel.IsChecked = service;
-        if (service) Settings.SystemProxy.IsChecked = false;
+        preferences.SystemTunnel = service;
+        if (service) preferences.SystemProxy = false;
         Settings.SystemTunnelHint.Text = "Весь трафик компьютера идёт через туннель, включая игры и программы без настроек прокси. " +
             (service ? "Работает через службу Облачков, права администратора не нужны."
                      : "Служба Облачков не установлена: права администратора запрашиваются при каждом включении.");
@@ -77,9 +77,9 @@ public partial class MainWindow
     {
         // Два системных режима сразу не имеют смысла: прокси указывал бы на порт,
         // который уже забрал туннель.
-        if (SystemTunnelWanted && Settings.SystemProxy.IsChecked == true)
+        if (SystemTunnelWanted && preferences.SystemProxy)
         {
-            Settings.SystemProxy.IsChecked = false;
+            preferences.SystemProxy = false;
             SyncSystemProxy(engine.State);
             UpdateModeText();
         }
@@ -105,28 +105,25 @@ public partial class MainWindow
         // узлов не разрешить. Её снимают до подготовки, затем ставят новую.
         if (service && SessionLeft(NetworkService.JournalPath)) await RecoverServiceSessionAsync(token).ConfigureAwait(true);
         var plans = await TunnelEndpoints.PrepareSetAsync(SystemCandidates(profile), token).ConfigureAwait(true);
-        helperLifetime = await NetworkHelperConnection.ConnectAsync(token).ConfigureAwait(true);
-        var session = new SystemTunnelSession(engine, helperLifetime.Client)
-        {
-            // Одно ядро: трафик из туннеля прямо на сервер. Списки «напрямую» (DirectEntry) и обход
-            // DPI фрагментацией исполняет ядро окна — с ними трафик идёт через него, как раньше.
-            DirectAllowed = () => engine is Engine core && (core.DirectEntry is null || tunnelLists is not null) && !core.Fragment
-        };
+        var session = await runtime.CreateTunnelAsync(token).ConfigureAwait(true);
+        // Одно ядро: трафик из туннеля прямо на сервер. Списки «напрямую» (DirectEntry) и обход
+        // DPI фрагментацией исполняет ядро окна — с ними трафик идёт через него, как раньше.
+        session.DirectAllowed = () => engine is Engine core && (core.DirectEntry is null || tunnelLists is not null) && !core.Fragment;
         session.Changed += OnSystemTunnelChanged;
-        session.Tuning = TunnelTuning.From(advanced, ServiceGroup?.Metadata?.Provider, Settings.CompatibleStack.IsChecked == true);
+        session.Tuning = TunnelTuning.From(advanced, ServiceGroup?.Metadata?.Provider, preferences.CompatibleStack);
         session.ProtectionRepaired += () => Dispatcher.BeginInvoke(() =>
         {
+            if (closed || !ReferenceEquals(session, systemTunnel)) return;
             DetailText.Text = "Защиту от утечек кто-то снял (перезапуск службы фильтрации Windows или другая программа) — Облачка поставила её заново.";
             Notify(Notice.ProtectionRepaired, "Защита от утечек снова на месте", "Её снял Windows или другая программа, Облачка поставила заново. Мимо VPN ничего не ушло.", warning: true);
         });
-        systemTunnel = session;
         // Правила сайтов и программ исполняет ядро туннеля у помощника; ядро окна в этом
         // режиме правил не несёт (Engine.SiteRules пуст), иначе «напрямую» шло бы из него.
         foreignSession = profile.IsFree;
         RememberTunnelDirect(); sentRules = new(LeasePrograms().ToArray(), LeaseSites());
-        var lists = await SendTunnelListsAsync(helperLifetime.Client).ConfigureAwait(true);
-        await session.StartWithSparesAsync(plans, token, LeaseSites(), LeasePrograms(), (engine as Engine)?.DirectEntry, selectiveVpn, lists, Settings.LocalNetwork.IsChecked == true,
-            Settings.QuicOverTcp.IsChecked == true, Settings.CompatibleStack.IsChecked == true, foreignSession).ConfigureAwait(true);
+        var lists = await SendTunnelListsAsync(helperLifetime!.Client).ConfigureAwait(true);
+        await session.StartWithSparesAsync(plans, token, LeaseSites(), LeasePrograms(), (engine as Engine)?.DirectEntry, selectiveVpn, lists, preferences.LocalNetwork,
+            preferences.QuicOverTcp, preferences.CompatibleStack, foreignSession).ConfigureAwait(true);
     }
 
     // Выбранный узел первым, затем запасные в том порядке, в каком их переберёт подбор.
@@ -165,25 +162,20 @@ public partial class MainWindow
     private async Task StopSystemTunnelAsync()
     {
         var session = systemTunnel;
-        var lifetime = helperLifetime;
-        systemTunnel = null;
-        helperLifetime = null;
-        if (session is null) return;
         systemStopping = true;
         if (!closed) UpdateControls();
         try
         {
-            await session.StopAsync().ConfigureAwait(true);
-            if (!closed && session.State == SystemTunnelState.Idle && DetailText.Text == "Отключаем VPN…") DetailText.Text = "VPN отключён.";
+            await runtime.StopTunnelAsync().ConfigureAwait(true);
+            if (!closed && session?.State == SystemTunnelState.Idle && DetailText.Text == "Отключаем VPN…") DetailText.Text = "VPN отключён.";
         }
         // Прерванная сессия могла уже потерять канал помощника: закрытый канал — тот же отказ.
         catch (Exception ex) when (ex is UserError or IOException or TimeoutException or ObjectDisposedException)
         { if (!closed) DetailText.Text = "Системный режим остановлен не полностью. Проверьте сетевые настройки."; }
         finally
         {
-            session.Changed -= OnSystemTunnelChanged;
+            if (session is not null) session.Changed -= OnSystemTunnelChanged;
             systemStopping = false; tunnelLists = null;
-            if (lifetime is not null) await lifetime.DisposeAsync().ConfigureAwait(true);
             // Снятая не до конца сессия видна только по журналу: окно должно о ней сказать.
             if (!closed) { UpdateSystemTunnelNote(null); UpdateControls(); }
         }

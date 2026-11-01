@@ -14,8 +14,17 @@ public partial class MainWindow
     private readonly HashSet<string> expandedMachines = new();
     private const int MaxMachinesPerNetwork = 64;
 
-    private IReadOnlyList<Profile> MachineOf(Profile item) =>
-        importedProfiles.Where(p => ServerMachines.Key(p) == ServerMachines.Key(item)).DefaultIfEmpty(item).ToArray();
+    private IReadOnlyList<Profile>? machineProfiles;
+    private Dictionary<string, IReadOnlyList<Profile>> machineIndex = new(StringComparer.Ordinal);
+    private IReadOnlyList<Profile> MachineOf(Profile item)
+    {
+        if (!ReferenceEquals(machineProfiles, importedProfiles))
+        {
+            machineProfiles = importedProfiles;
+            machineIndex = ServerMachines.Group(importedProfiles).ToDictionary(p => ServerMachines.Key(p[0]), p => p, StringComparer.Ordinal);
+        }
+        return machineIndex.TryGetValue(ServerMachines.Key(item), out var members) ? members : [item];
+    }
 
     private Profile MachineBest(IReadOnlyList<Profile> members)
     {
@@ -68,10 +77,16 @@ public partial class MainWindow
             Note = autoSelect && profile is not null ? "сейчас: " + profile.DisplayName : "самый быстрый из пула",
             Icon = TryFindResource("IcoAuto") as Geometry, IconOnAccent = true
         } };
-        var favored = importedProfiles.Where(p => favorites.Contains(FavoriteKey(p))).ToList();
+        IEnumerable<Profile> favored = importedProfiles.Where(p => favorites.Contains(FavoriteKey(p)));
         // Без избранного — первые узлы текущей подписки (сервиса или той, где выбран узел).
-        if (favored.Count == 0) favored = (CurrentGroup is { } current ? ProfilesOf(current.Id) : importedProfiles).ToList();
-        foreach (var machine in ServerMachines.Group(favored).Take(4)) rows.Add(MachineRow(MachineOf(machine[0]), true));
+        if (!favored.Any()) favored = CurrentGroup is { } current ? ProfilesOf(current.Id) : importedProfiles;
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var item in favored)
+        {
+            if (!seen.Add(ServerMachines.Key(item))) continue;
+            rows.Add(MachineRow(MachineOf(item), true));
+            if (rows.Count == 5) break;
+        }
         if (!autoSelect && profile is not null && !rows.Any(r => r.Selected))
         {
             if (rows.Count == 5) rows.RemoveAt(4);

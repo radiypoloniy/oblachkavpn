@@ -98,7 +98,7 @@ public partial class MainWindow
             var stats = tunnel ? systemTunnel?.Stats : null;
             var core = stats is not null ? await coreSamples.ReadAsync(stats, CancellationToken.None) : null;
             if (closed || Live.Visibility != Visibility.Visible || stats is not null && !ReferenceEquals(stats, systemTunnel?.Stats)) return;
-            if (core is not null) RecordCoreConnections(core);
+            if (core is not null && programSamples?.UsesLegacy == true) RecordCoreConnections(core);
             var apps = core is not null ? LiveApps.FromCore(core, Own, liveSpeed.Measure(core, DateTime.UtcNow))
                 : await Task.Run(() => LiveApps.Group(ConnectionTable.Read(), tunnel, proxy, LivePath, Own));
             if (closed || Live.Visibility != Visibility.Visible || !IsVisible || WindowState == WindowState.Minimized) return;

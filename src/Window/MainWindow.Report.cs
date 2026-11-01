@@ -1,4 +1,4 @@
-﻿namespace Oblachka;
+namespace Oblachka;
 
 // «Сообщить о проблеме»: отчёт для поддержки. Кроме состояния подключения в нём настройки,
 // серверы с замерами (без имён и адресов), программы в сети с путём их трафика и правилом,
@@ -17,9 +17,9 @@ public partial class MainWindow
             Windows = Environment.OSVersion.Version.ToString(),
             Settings = new
             {
-                Mode = SystemTunnelWanted ? "SystemTunnel" : "BrowsersAndPrograms", LocalNetwork = Settings.LocalNetwork.IsChecked == true,
-                QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, CompatibleStack = Settings.CompatibleStack.IsChecked == true, RussiaDirect = Settings.RussiaDirect.IsChecked == true,
-                AutoSelect = autoSelect, AutoRecover = AutoRecover.IsChecked == true, SelectiveVpn = selectiveVpn,
+                Mode = SystemTunnelWanted ? "SystemTunnel" : "BrowsersAndPrograms", LocalNetwork = preferences.LocalNetwork,
+                QuicOverTcp = preferences.QuicOverTcp, CompatibleStack = preferences.CompatibleStack, RussiaDirect = preferences.RussiaDirect,
+                AutoSelect = autoSelect, AutoRecover = preferences.AutoRecover, SelectiveVpn = selectiveVpn,
                 ProgramRules = programRules.Count, SiteRules = siteRules.Count,
                 // «Для продвинутых»: что изменено, без значений — в них бывают адреса рабочей сети.
                 Advanced = advanced.Changed()

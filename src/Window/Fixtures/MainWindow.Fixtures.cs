@@ -71,10 +71,12 @@ public partial class MainWindow
     internal async Task<IReadOnlyList<string>> RunUiFixtureAsync()
     {
         var checks = new List<string>();
+        await CheckWindowReleaseAsync(checks);
         CheckDirectDnsRules(checks);
         CheckDeferredViews(checks);
         CheckLiveCache(checks);
         CheckAppVirtualization(checks);
+        CheckResourceBounds(checks);
         if (vmTestAllowed || Diagnostics.VmTunButton.IsEnabled) throw new InvalidOperationException("Isolated UI fixture can launch elevated TUN");
         if (Settings.SystemTunnel.IsEnabled || Settings.SystemTunnel.IsChecked == true || systemTunnel is not null || helperLifetime is not null)
             throw new InvalidOperationException("Isolated UI fixture can start the privileged system mode");

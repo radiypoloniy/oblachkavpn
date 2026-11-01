@@ -8,9 +8,9 @@ public partial class MainWindow
     // который уже забрал туннель. Проверяется, что переключатели гасят друг друга.
     private void CheckSystemModes(List<string> checks)
     {
-        Settings.SystemProxy.IsChecked = true;
+        preferences.SystemProxy = true;
         UpdateModeText();
-        Settings.SystemTunnel.IsChecked = true;
+        preferences.SystemTunnel = true;
         SystemTunnelToggled(this, new RoutedEventArgs());
         if (Settings.SystemProxy.IsChecked == true)
             throw new InvalidOperationException("System VPN left the Windows proxy enabled at the same time");
@@ -40,7 +40,7 @@ public partial class MainWindow
             throw new InvalidOperationException("Running mode claims protection it does not have");
         checks.Add("System mode states and limits are shown plainly, including incomplete rollback");
 
-        Settings.SystemTunnel.IsChecked = false;
+        preferences.SystemTunnel = false;
         SystemTunnelToggled(this, new RoutedEventArgs());
         UpdateSystemTunnelNote(null);
     }

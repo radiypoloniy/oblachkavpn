@@ -20,7 +20,9 @@ public sealed class AutoPool
     public static bool IsWhitelistBypass(Profile profile) => Whitelist.IsMatch(profile.Name);
     public static bool DefaultIn(Profile profile) => !IsWhitelistBypass(profile);
 
-    public static string Key(Profile profile) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(profile.Source + ":" + profile.Name)));
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Profile, string> keys = new();
+    public static string Key(Profile profile) => keys.GetValue(profile, static p =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(p.Source + ":" + p.Name))));
 
     // Бесплатные чужие узлы (FreeServers) не входят в пул никогда, и включить их туда нельзя.
     public bool Contains(Profile profile) => !profile.IsFree && (overrides.TryGetValue(Key(profile), out var chosen) ? chosen : DefaultIn(profile));

@@ -15,6 +15,35 @@ public static class ConnectionTable
     private const int AfInet = 2, AfInet6 = 23, TcpOwnerPidAll = 5, UdpOwnerPid = 1;
     public const int Established = 5, Listening = 2;
 
+    internal static bool SameLoopbackListenerOwner(int primary, int secondary)
+    {
+        if (primary == secondary) return false;
+        var size = 0;
+        for (var attempt = 0; attempt < 4; attempt++)
+        {
+            var buffer = Marshal.AllocHGlobal(Math.Max(size, 4));
+            try
+            {
+                var code = GetExtendedTcpTable(buffer, ref size, false, AfInet, TcpOwnerPidAll, 0);
+                if (code == 122) continue;
+                if (code != 0) return false;
+                int first = 0, second = 0;
+                var count = Math.Min(Marshal.ReadInt32(buffer), Math.Max(0, (size - 4) / 24));
+                for (var i = 0; i < count; i++)
+                {
+                    var row = buffer + 4 + i * 24;
+                    if (Marshal.ReadInt32(row) != Listening || Marshal.ReadInt32(row + 4) != 0x0100007F) continue;
+                    var port = Port(row + 8);
+                    if (port == primary) first = Marshal.ReadInt32(row + 20);
+                    if (port == secondary) second = Marshal.ReadInt32(row + 20);
+                }
+                return first > 0 && first == second;
+            }
+            finally { Marshal.FreeHGlobal(buffer); }
+        }
+        return false;
+    }
+
     public static IReadOnlyList<LiveSocket> Read()
     {
         var result = new List<LiveSocket>();

@@ -32,7 +32,7 @@ public partial class MainWindow
 
     private bool Notify(Notice kind, string title, string text, Action? onClick = null, bool warning = false, string? scope = null)
     {
-        if (closed || vmTestActive || Settings.Notices.IsChecked != true || WindowOnScreen) return false;
+        if (closed || vmTestActive || !preferences.Notices || WindowOnScreen) return false;
         var now = DateTimeOffset.UtcNow;
         if (noticeShown.TryGetValue(kind + "|" + scope, out var last) && now - last < NoticeQuiet) return false;
         noticeShown[kind + "|" + scope] = now;

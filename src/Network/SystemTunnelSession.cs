@@ -16,7 +16,7 @@ public enum SystemTunnelState { Idle, Starting, Running, Holding, Stopping, Reco
 //
 // Потеря помощника — другое дело: сетевую сессию он восстанавливает сам, на своей стороне,
 // и блокировки после этого нет. Об этом сообщает Failed, а не Holding.
-public sealed class SystemTunnelSession : IAsyncDisposable
+public sealed partial class SystemTunnelSession : IAsyncDisposable
 {
     private readonly ITunnelController core;
     private readonly INetworkHelperClient helper;
@@ -41,9 +41,11 @@ public sealed class SystemTunnelSession : IAsyncDisposable
     // Защиту от утечек сняли без нас (служба фильтрации, чужая программа), служба поставила её заново.
     public event Action? ProtectionRepaired;
 
-    public SystemTunnelSession(ITunnelController core, INetworkHelperClient helper)
+    private readonly bool ownsResources;
+    public SystemTunnelSession(ITunnelController core, INetworkHelperClient helper, bool ownsResources = true)
     {
         this.core = core; this.helper = helper;
+        this.ownsResources = ownsResources;
         helper.ConnectionLost += OnHelperLost;
         helper.ProtectionRepaired += OnProtectionRepaired;
         core.Changed += CoreChanged;
@@ -97,17 +99,12 @@ public sealed class SystemTunnelSession : IAsyncDisposable
             {
                 plans = prepared.ToArray(); current = plans[0];
                 var peers = plans.SelectMany(p => p.Peers).Distinct(StringComparer.Ordinal).ToArray();
-                Stats = CoreStatsEntry.Create(Engine.FreePort());
+                Stats = CoreProgramPorts.Create();
                 // Выходы прямо на серверы — по одному на узел плана; у кого перевода нет — ядро окна.
                 direct = DirectAllowed?.Invoke() == true ? DirectOutbound.Fit(plans.Select(p => DirectOutbound.From(p.PinnedProfile)).ToArray()) : null;
                 if (direct is not null && direct.All(o => o is null)) direct = null;
-                selective = directByDefault;
                 // Узел идёт прямо из туннеля — процесс ядра окна не запускается (Engine.Carried).
-                core.CarriedBy = Carries(Choose(current)) ? Stats : null;
-                await core.StartAsync(current.PinnedProfile, token).ConfigureAwait(false);
-                leasePort = core.Port;
-                // Порт ядра закреплён, но в режиме туннеля не занят: совпадение с портом статистики — новый порт.
-                while (leasePort == Stats.Port || Stats.Port == Tuning?.LanPort) Stats = CoreStatsEntry.Create(Engine.FreePort());
+                await StartCoreWithStatsAsync(current, coreDirect, token).ConfigureAwait(false);
                 // Запрос к помощнику не прерывается отменой: отмена посреди него закрывает канал,
                 // служба считает окно погибшим и держит сеть закрытой, а Release уже не дойдёт.
                 // Запрос ограничен своим сроком в канале; отмена проверяется после него, и
@@ -177,10 +174,9 @@ public sealed class SystemTunnelSession : IAsyncDisposable
         return direct is not null && index >= 0 && index < direct.Length && direct[index] is not null && DirectAllowed?.Invoke() == true ? SingBoxTunConfig.DirectTag(index) : "local-core";
     }
 
-    // Ядро окна не нужно, когда трафик идёт прямо из туннеля. «Через VPN только выбранное» — нужно:
-    // там итог туннеля «напрямую», и проверка связи шла бы мимо сервера.
-    private bool Carries(string outbound) => outbound != "local-core" && !selective && Stats is not null;
-    private bool selective;
+    // Проверка связи обращается к именованному VPN-переключателю, поэтому итог
+    // «напрямую» в выборочном режиме не требует второго процесса ядра окна.
+    private bool Carries(string outbound) => outbound != "local-core" && Stats is not null;
 
     private async Task SelectAsync(string name, CancellationToken token)
     {
@@ -225,10 +221,21 @@ public sealed class SystemTunnelSession : IAsyncDisposable
 
     private void Set(SystemTunnelState state) { State = state; Changed?.Invoke(state); }
 
-    public async ValueTask DisposeAsync()
+    private readonly object disposalLock = new();
+    private Task? disposal;
+    public ValueTask DisposeAsync()
+    {
+        lock (disposalLock) return new(disposal ??= DisposeCoreAsync());
+    }
+
+    private async Task DisposeCoreAsync()
     {
         helper.ConnectionLost -= OnHelperLost; helper.ProtectionRepaired -= OnProtectionRepaired; core.Changed -= CoreChanged;
         try { await StopAsync().ConfigureAwait(false); }
-        finally { core.Dispose(); await helper.DisposeAsync().ConfigureAwait(false); }
+        finally
+        {
+            DirectAllowed = null; Changed = null; ProtectionRepaired = null;
+            if (ownsResources) { core.Dispose(); await helper.DisposeAsync().ConfigureAwait(false); }
+        }
     }
 }

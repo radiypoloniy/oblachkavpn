@@ -61,11 +61,11 @@ public partial class MainWindow
         if (Home.Power.State != Views.PowerState.Off || Home.StatusTitle.Text != "Выключено")
             throw new InvalidOperationException("Stopped connection retains running presentation");
         checks.Add("Power switch and statistics track the real process; startup never claims a verified tunnel");
-        Settings.StayInTray.IsChecked = true;
+        preferences.StayInTray = true;
         var closing = new System.ComponentModel.CancelEventArgs();
         OnClosing(this, closing);
         if (!closing.Cancel || closed) throw new InvalidOperationException("Stay-in-tray preference terminated the controller");
-        Settings.StayInTray.IsChecked = false;
+        preferences.StayInTray = false;
         checks.Add("Optional close-to-tray cancels closing while explicit exit remains available");
         var popup = CreateTrayPreview();
         try
@@ -127,7 +127,7 @@ public partial class MainWindow
             var header = "happ://routing/add/" + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
                 "{\"Name\":\"Облачка/рутинг\",\"DirectSites\":[\"domain:.ru\",\"geosite:category-ru\"],\"DirectIp\":[\"10.0.0.0/8\"]}"));
             ReceiveRouting(RoutingProfile.ParseHapp(header)!);
-            if (page == "rules-lists") { useProviderRouting = true; Settings.RussiaDirect.IsChecked = true; RefreshRouting(); SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(Views.SettingsPanel.BypassPage); }
+            if (page == "rules-lists") { useProviderRouting = true; preferences.RussiaDirect = true; RefreshRouting(); SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(Views.SettingsPanel.BypassPage); }
             else Navigate("Connection");
             return;
         }

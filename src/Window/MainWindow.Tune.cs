@@ -8,14 +8,13 @@ namespace Oblachka;
 // поэтому и автовыбор потом сравнивает серверы уже подстроенными.
 public partial class MainWindow
 {
-    private readonly Dictionary<string, ServerTweak> serverTweaks = new(StringComparer.Ordinal);
+    private Dictionary<string, ServerTweak> serverTweaks => runtime.Profiles.Tweaks;
     private CancellationTokenSource? tuning;
     // Что было до последнего подбора — для «Вернуть как было».
     private (string Key, ServerTweak? Previous)? tuneUndo;
 
     private void WireTune()
     {
-        ServerTweak.Lookup = item => serverTweaks.GetValueOrDefault(ServerTweak.Key(item));
         Servers.BestButton.Click += async (_, _) => { if (tuning is not null) { tuning.Cancel(); return; } await TuneAsync(); };
         Servers.Tune.CloseButton.Click += (_, _) => Servers.Tune.Visibility = Visibility.Collapsed;
         Servers.Tune.UndoButton.Click += async (_, _) => await UndoTuneAsync();

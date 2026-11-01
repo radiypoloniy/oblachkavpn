@@ -52,7 +52,7 @@ public partial class MainWindow
         .Select(a => ProgramRoutingPlan.Create(a, SiteAction.Direct))).Take(100).ToArray();
 
     // Для «Браузеры и программы»: список в ядре окна, остальное напрямую.
-    private RoutingProfile? SelectiveProfile() => selectiveVpn && Settings.SystemTunnel.IsChecked != true
+    private RoutingProfile? SelectiveProfile() => selectiveVpn && !preferences.SystemTunnel
         ? new RoutingProfile("Через VPN только YouTube и Discord", [], SelectiveDomains.Select(d => "domain:" + d).ToArray(), [], [], [], []) { GlobalProxy = false }
         : null;
 

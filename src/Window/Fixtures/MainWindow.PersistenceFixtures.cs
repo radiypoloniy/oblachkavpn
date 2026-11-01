@@ -8,20 +8,20 @@ public partial class MainWindow
         LoadServerPreview();
         ProfilePicker.SelectedIndex = 3;
         subscriptionSources = new[] { "https://fixture.invalid/sub/synthetic-token" }; preferredSource = 0;
-        Settings.StayInTray.IsChecked = true; AutoRecover.IsChecked = true; Settings.Hotkey.IsChecked = false;
+        preferences.StayInTray = true; preferences.AutoRecover = true; preferences.Hotkey = false;
         var snapshot = CaptureState();
         var folder = Path.Combine(AppContext.BaseDirectory, "test-data", Guid.NewGuid().ToString("N"));
         var store = new ClientStateStore(Path.Combine(folder, "ui-session.bin"));
         store.Save(snapshot);
         LoadPreviewProfiles();
-        Settings.StayInTray.IsChecked = false; AutoRecover.IsChecked = false; Settings.Hotkey.IsChecked = true;
+        preferences.StayInTray = false; preferences.AutoRecover = false; preferences.Hotkey = true;
         ApplySnapshot(store.Load()!);
         if (ProfilePicker.Items.Count != 26 || profile?.DisplayName != "Рабочий сервер" ||
             profile is null || Profiles.Fingerprint(profile) != snapshot.SelectedFingerprint ||
             !subscriptionSources.SequenceEqual(snapshot.SubscriptionSources) || !RefreshButton.IsEnabled ||
             Settings.StayInTray.IsChecked != true || AutoRecover.IsChecked != true || Settings.Hotkey.IsChecked != false || engine.ProcessId is not null)
             throw new InvalidOperationException("Saved session lost selection, settings or sources, or started a tunnel without consent");
-        Settings.StayInTray.IsChecked = false; Settings.Hotkey.IsChecked = true;
+        preferences.StayInTray = false; preferences.Hotkey = true;
         checks.Add("Explicit encrypted session restoration preserves names, selection, subscription and settings while leaving the tunnel stopped");
         // Резервная копия в файл: тот же снимок туда и обратно; чужой, новый или битый файл — отказ.
         var (copy, saved) = ClientBackup.Read(ClientBackup.Write(snapshot, DateTimeOffset.Now));

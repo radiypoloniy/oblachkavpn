@@ -67,7 +67,7 @@ public partial class MainWindow
     private void ResetAnalytics()
     {
         if (!AppDialog.Confirm(this, "Сбросить статистику?", "Удалим историю трафика и программ за все периоды. Настройки VPN и подписка останутся.", "Сбросить", danger: true)) return;
-        trafficHistory.Reset(); programTraffic.Reset(); speedHistory.Reset();
+        trafficHistory.Reset(); programTraffic.Rebase(); speedHistory.Reset();
         trafficToday = trafficSavedBytes = 0; trafficDay = DateTime.Now.ToString("yyyy-MM-dd"); Array.Clear(trafficHours); todayShown = "";
         meterCountedUp = meter?.TotalUp ?? 0; meterCountedDown = meter?.TotalDown ?? 0;
         QueueStateSave(); RefreshTraffic(); RefreshHome();

@@ -17,7 +17,7 @@ public partial class MainWindow
 
     private void WireNetworks()
     {
-        System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged += (_, _) => Dispatcher.BeginInvoke(() => { networkSettle.Stop(); networkSettle.Start(); });
+        System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged += NetworkAddressChanged;
         networkSettle.Tick += async (_, _) =>
         {
             networkSettle.Stop();
@@ -60,8 +60,8 @@ public partial class MainWindow
     {
         knownNetworks.Clear();
         foreach (var (key, network) in NetworkPolicy.Restore(snapshot.KnownNetworks)) knownNetworks[key] = network;
-        AppTab.SecureUnknown.IsChecked = snapshot.SecureUnknown;
-        AppTab.Lockdown.IsChecked = snapshot.Lockdown;
+        preferences.SecureUnknown = snapshot.SecureUnknown;
+        preferences.Lockdown = snapshot.Lockdown;
         if (snapshot.Lockdown && !isolatedPersistence) Dispatcher.BeginInvoke(async () => await SendLockdownAsync(true));
         RefreshNetworkRow();
     }
@@ -118,7 +118,7 @@ public partial class MainWindow
     {
         if (currentNetwork is not { } net || closed || vmTestActive || profile is null) return;
         var known = knownNetworks.TryGetValue(net.Key, out var choice);
-        if (!NetworkPolicy.ShouldConnect(choice?.Mode ?? NetworkMode.Usual, known, net.Public, AppTab.SecureUnknown.IsChecked == true,
+        if (!NetworkPolicy.ShouldConnect(choice?.Mode ?? NetworkMode.Usual, known, net.Public, preferences.SecureUnknown,
             ConnectionActive || operation is not null, pausedUntil is not null, stoppedOnNetwork == net.Key) || !ConnectButton.IsEnabled) return;
         var why = known ? "в ней всегда VPN" : "это незнакомая общественная сеть";
         DetailText.Text = $"Сеть «{net.Name}»: {why} — включаем.";

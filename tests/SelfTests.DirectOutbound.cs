@@ -100,8 +100,9 @@ public static partial class SelfTests
                 var plan = await TunnelEndpoints.PrepareAsync(Profiles.Parse(ssLink), CancellationToken.None);
                 await session.StartWithSparesAsync([plan], CancellationToken.None, directByDefault: selective);
                 Assert(allowed ? helper.LastRequest!.Direct is [{ }] && session.DirectActive : helper.LastRequest!.Direct is null && !session.DirectActive);
-                // Ядро окна не запускается, когда трафик идёт прямо из туннеля; в выборочном режиме — запускается.
-                Assert(ReferenceEquals(core.CarriedBy, allowed && !selective ? session.Stats : null));
+                // И выборочный режим использует одно ядро: здоровье проверяется
+                // через именованный VPN-переключатель, а не итоговое правило напрямую.
+                Assert(ReferenceEquals(core.CarriedBy, allowed ? session.Stats : null));
             }
         });
         await check("Many subscription nodes on one IP fit the direct outbound limit without losing fallback nodes", async () =>

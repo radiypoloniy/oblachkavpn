@@ -123,11 +123,13 @@ public static partial class SelfTests
         public CoreStatsEntry? CarriedBy { get; set; }
         public string? BoundInterface { get; set; }
         public event Action<ConnectionState, string>? Changed;
+        public int Subscribers => Changed?.GetInvocationList().Length ?? 0;
+        public int Disposals;
         public Task StartAsync(Profile profile, CancellationToken token)
         { calls.Add("core:start"); ProcessId = 42; State = ConnectionState.Running; Changed?.Invoke(State, "fixture"); return Task.CompletedTask; }
         public Task<ProbeResult> ProbeAsync(Uri target, CancellationToken token) => Task.FromResult(new ProbeResult(true, 1, "fixture"));
         public void Stop() { calls.Add("core:stop"); ProcessId = null; State = ConnectionState.Idle; }
-        public void Dispose() => Stop();
+        public void Dispose() { Disposals++; Stop(); }
     }
 
     private sealed class SessionHelper(List<string> calls) : INetworkHelperClient
@@ -136,6 +138,8 @@ public static partial class SelfTests
         public NetworkSessionState ReleaseState = NetworkSessionState.Released;
         public event Action? ConnectionLost;
         public event Action? ProtectionRepaired;
+        public int Subscribers => (ConnectionLost?.GetInvocationList().Length ?? 0) + (ProtectionRepaired?.GetInvocationList().Length ?? 0);
+        public int Disposals;
         public void Lose() => ConnectionLost?.Invoke();
         public void Repaired() => ProtectionRepaired?.Invoke();
         public bool Blocking = true;
@@ -153,6 +157,6 @@ public static partial class SelfTests
         }
         public Task<NetworkSessionState> ReleaseAsync(CancellationToken token)
         { calls.Add("helper:release"); if (pipeLost) throw new IOException("pipe closed"); return Task.FromResult(ReleaseState); }
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        public ValueTask DisposeAsync() { Disposals++; return ValueTask.CompletedTask; }
     }
 }

@@ -30,6 +30,7 @@ public partial class MainWindow
         // Скрытое окно продолжает считать трафик и проверять связь, но не перерисовывает
         // десятки WPF-свойств каждую секунду. Открытый трей обновляется в прежнем темпе.
         if (!onScreen) { FlushStateSave(); return; }
+        if (sheetMeasurementsDirty && Servers.IsVisible) FilterProfiles();
         RefreshHome();
         RefreshRuleApplyStatus();
         Servers.SearchBox.IsEnabled = ProfilePicker.IsEnabled;

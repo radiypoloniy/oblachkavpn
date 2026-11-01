@@ -16,7 +16,7 @@ public sealed record ServerTweak(string? Fingerprint = null, bool Fragment = fal
 
     public static string Key(Profile profile) => profile.Source + ":" + profile.Name;
 
-    // Сохранённые поправки; окно подставляет свой словарь. Без окна (проверки, служба) — никаких.
+    // Сохранённые поправки из модели приложения. Без владельца (проверки, служба) — никаких.
     public static Func<Profile, ServerTweak?> Lookup { get; set; } = _ => null;
 
     // Профиль с поправкой: сохранённый не меняется, его хеш и замеры остаются прежними.

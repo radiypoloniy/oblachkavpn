@@ -15,9 +15,8 @@ public partial class MainWindow
     private readonly Ellipse StatusDot = new();
     private readonly TextBlock ProfileNameText = new();
     private readonly TextBlock TransportText = new();
-    // Модель выбора сервера: прежний список, теперь вне дерева элементов. Его выбор и событие
-    // SelectionChanged ведут смену сервера и сохранение; рисуют список главный экран и панель.
-    private readonly ListBox ProfilePicker = new();
+    // Выбор сервера хранится у приложения; список рисуют главный экран и панель.
+    private ProfilePickerState ProfilePicker => runtime.Profiles.Picker;
     // Правила и помощь теперь вкладки настроек; имена элементов прежние.
     private Views.RulesTab Routes => RulesPage;
     private Views.BypassPage Bypass => Settings.Bypass;

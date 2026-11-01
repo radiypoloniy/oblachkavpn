@@ -48,6 +48,7 @@ public sealed record CoreStatsEntry(
     [property: JsonRequired] int Port,
     [property: JsonRequired] string Secret)
 {
+    [JsonIgnore] public int ProgramsPort => Port < 65535 ? Port + 1 : 0;
     public static CoreStatsEntry Create(int port) => new(port, Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16)));
     public void Validate()
     {

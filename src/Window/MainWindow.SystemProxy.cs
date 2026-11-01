@@ -22,11 +22,11 @@ public partial class MainWindow
     private void SyncSystemProxy(ConnectionState state)
     {
         if (systemProxy is null) return;
-        var wanted = Settings.SystemProxy.IsChecked == true && state is ConnectionState.Running or ConnectionState.Verified && engine.Port > 0;
+        var wanted = preferences.SystemProxy && state is ConnectionState.Running or ConnectionState.Verified && engine.Port > 0;
         if (wanted && systemProxyPort != engine.Port)
             TrySystemProxy(() => { systemProxy.Apply(engine.Port); systemProxyPort = engine.Port; });
         // A crashed core (Failed) keeps the proxy: browsers stop instead of silently going direct until the user stops or recovery restarts it.
-        else if (!wanted && (state == ConnectionState.Idle || Settings.SystemProxy.IsChecked != true) && (systemProxyPort != 0 || systemProxy.IsApplied))
+        else if (!wanted && (state == ConnectionState.Idle || !preferences.SystemProxy) && (systemProxyPort != 0 || systemProxy.IsApplied))
             TrySystemProxy(() => { systemProxy.Restore(); systemProxyPort = 0; });
     }
 
@@ -84,7 +84,7 @@ public partial class MainWindow
     private void UpdateModeText()
     {
         var tunnel = SystemTunnelWanted;
-        var proxy = !tunnel && Settings.SystemProxy.IsChecked == true;
+        var proxy = !tunnel && preferences.SystemProxy;
         Home.ModeText.Text = tunnel ? "Весь компьютер" : proxy ? "Браузеры и программы" : "Только SOCKS";
         MarkRadio(ModeTunRadio, tunnel);
         MarkRadio(ModeProxyRadio, proxy);

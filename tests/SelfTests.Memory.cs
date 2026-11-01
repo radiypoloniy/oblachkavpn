@@ -6,6 +6,22 @@ public static partial class SelfTests
 {
     private static async Task MemoryChecksAsync(Func<string, Func<Task>, Task> check)
     {
+        await check("Program history stays bounded in memory and preserves overflow traffic across saves", () => Sync(() =>
+        {
+            var now = new DateTime(2026, 11, 1, 12, 0, 0);
+            var history = new TrafficHistory();
+            history.AddProgram(@"C:\Apps\browser.exe", 1_000_000, 2_000_000, now);
+            for (var i = 0; i < 5000; i++) history.AddProgram($@"C:\Apps\temporary-{i}.exe", 1, 2, now);
+            var report = history.Report(now, 1);
+            Assert(report.Programs.Length == TrafficHistory.MaxPrograms);
+            Assert(report.Programs.Sum(p => p.Upload) == 1_005_000 && report.Programs.Sum(p => p.Download) == 2_010_000);
+            Assert(report.Programs.Any(p => p.Path == TrafficHistory.OtherPrograms));
+            var saved = history.Snapshot(now); Assert(TrafficHistory.Valid(saved));
+            var restored = new TrafficHistory(); restored.Restore(saved, null, 0, null, now);
+            restored.AddProgram(@"C:\Apps\new.exe", 50, 60, now);
+            var after = restored.Report(now, 1);
+            Assert(after.Programs.Length == TrafficHistory.MaxPrograms && after.Programs.Sum(p => p.Upload) == 1_005_050 && after.Programs.Sum(p => p.Download) == 2_010_060);
+        }));
         await check("Connection samples share one request; caller cancellation and session replacement remain independent", async () =>
         {
             var entry = CoreStatsEntry.Create(23999);

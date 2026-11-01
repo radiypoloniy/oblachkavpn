@@ -20,6 +20,7 @@ public partial class MainWindow
     // Журнал программ для отчёта (ProgramJournal): соединения ядра туннеля раз в 5 с, и в трее тоже.
     private readonly ProgramJournal programJournal = new();
     private readonly CoreConnectionSampler coreSamples = new();
+    private CoreProgramSampler? programSamples;
     private bool journalBusy;
     private DateTime journalAt;
 
@@ -32,7 +33,18 @@ public partial class MainWindow
     private async Task SampleProgramsAsync(CoreStatsEntry stats)
     {
         journalBusy = true; journalAt = DateTime.UtcNow;
-        try { if (await coreSamples.ReadAsync(stats, CancellationToken.None) is { } core && ReferenceEquals(stats, meterEntry)) RecordCoreConnections(core); }
+        try
+        {
+            if (programSamples is null) return;
+            var sample = await programSamples.ReadAsync(stats, CancellationToken.None);
+            if (!ReferenceEquals(stats, meterEntry)) return;
+            if (sample?.Summary is { } summary)
+            {
+                programJournal.Record(summary, DateTime.UtcNow);
+                programTraffic.Record(summary, trafficHistory, DateTime.Now);
+            }
+            else if (sample?.Connections is { } core) RecordCoreConnections(core);
+        }
         finally { journalBusy = false; }
     }
 
@@ -42,6 +54,7 @@ public partial class MainWindow
         if (!ReferenceEquals(stats, meterEntry))
         {
             coreSamples.Reset();
+            programSamples = stats is null ? null : new CoreProgramSampler(coreSamples.ReadAsync);
             meter?.Dispose();
             meter = stats is null ? null : new TrafficMeter(stats);
             meterEntry = stats; meterCountedUp = meterCountedDown = 0; programTraffic.Reset();

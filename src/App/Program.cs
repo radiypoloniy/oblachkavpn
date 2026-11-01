@@ -72,7 +72,8 @@ public static class Program
                 MessageBox.Show("Приложение завершится из-за внутренней ошибки. Перезапустите его; работа ядра будет остановлена.", ServiceBrand.Name);
                 e.Handled = true; app.Shutdown(1);
             };
-            var window = new MainWindow();
+            using var runtime = new ClientRuntime();
+            var window = new MainWindow(runtime);
             if (args.Contains(AppInstance.TrayArgument)) window.StartHiddenInTray();
             app.Exit += (_, _) => window.Close();
             AppInstance.ListenForShow(window.ShowFromSignal);

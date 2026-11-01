@@ -10,7 +10,7 @@ public partial class MainWindow
     private bool viewsReady;
     private bool exitRequested;
     // Общий список для интерфейса: сначала узлы сервиса, затем сторонние.
-    private IReadOnlyList<Profile> importedProfiles = Array.Empty<Profile>();
+    private IReadOnlyList<Profile> importedProfiles { get => runtime.Profiles.Imported; set => runtime.Profiles.Imported = value; }
 
     // Разделы окна 0.16 открываются на острове (MainWindow.Layout): «Сейчас в сети» по умолчанию,
     // «Все серверы», «Правила», настройки с разделами («Помощь» — один из них). Боковая панель

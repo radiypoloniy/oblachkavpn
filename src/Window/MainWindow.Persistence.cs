@@ -37,23 +37,23 @@ public partial class MainWindow
         // Бесплатные чужие узлы (FreeServers) не сохраняются: после перезапуска их нет.
         SavedGroups.SelectMany(g => ProfilesOf(g.Id)).Select(p => new SavedProfile(p.Name, (System.Text.Json.Nodes.JsonObject)p.Outbound.DeepClone()) { Source = p.Source, Group = p.Group }).ToArray(),
         profile is null || profile.IsFree ? null : Profiles.Fingerprint(profile), subscriptionSources.ToArray(), preferredSource,
-        Settings.StayInTray.IsChecked == true, AutoRecover.IsChecked == true)
-        { SelectedGroup = profile is { IsFree: false } ? profile.Group : null, SelectedName = profile is { IsFree: false } ? profile.Name : null, ExternalSources = externalSources.ToArray(), AutoRefresh = Settings.AutoRefresh.IsChecked == true, SystemProxy = Settings.SystemProxy.IsChecked == true, CloseToTray = Settings.StayInTray.IsChecked == true, SystemTunnel = Settings.SystemTunnel.IsChecked == true, Theme = ThemeManager.Choice, Metadata = ServiceGroup?.Metadata, Groups = SavedGroups.ToArray(), RouteRules = PersistedSet.Sites, ProgramRules = PersistedSet.Programs,
+        preferences.StayInTray, preferences.AutoRecover)
+        { SelectedGroup = profile is { IsFree: false } ? profile.Group : null, SelectedName = profile is { IsFree: false } ? profile.Name : null, ExternalSources = externalSources.ToArray(), AutoRefresh = preferences.AutoRefresh, SystemProxy = preferences.SystemProxy, CloseToTray = preferences.StayInTray, SystemTunnel = preferences.SystemTunnel, Theme = ThemeManager.Choice, Metadata = ServiceGroup?.Metadata, Groups = SavedGroups.ToArray(), RouteRules = PersistedSet.Sites, ProgramRules = PersistedSet.Programs,
             Favorites = favorites.Where(f => importedProfiles.Any(p => FavoriteKey(p) == f)).Take(Subscriptions.MaxProfiles).ToArray(),
             HiddenServers = hiddenServers.Take(Subscriptions.MaxProfiles).ToArray(), RemovedSubscriptions = removedSubscriptions.ToArray(),
             Measurements = measurements.Values.Where(m => importedProfiles.Any(p => !p.IsFree && Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
-            ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = Settings.RussiaDirect.IsChecked == true, AutoSelect = autoSelect,
-            UpdateCheck = AppTab.UpdateAuto.IsChecked == true, UpdatePrerelease = AppTab.UpdatePrerelease.IsChecked == true, DpiBypass = fragmentMode,
+            ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = preferences.RussiaDirect, AutoSelect = autoSelect,
+            UpdateCheck = preferences.UpdateAuto, UpdatePrerelease = preferences.UpdatePrerelease, DpiBypass = fragmentMode,
             ZapretEnabled = zapretEnabled, SelectiveVpn = selectiveVpn, ZapretChoices = new Dictionary<string, string>(zapretChoices), ZapretVpnGroups = zapretVpnGroups.Order(StringComparer.Ordinal).ToArray(),
             AutoPool = autoPool.Snapshot(importedProfiles),
-            ConnectOnLaunch = Settings.ConnectOnLaunch.IsChecked == true, WasConnected = wasConnected, Notices = Settings.Notices.IsChecked == true,
-            KnownNetworks = knownNetworks.Count == 0 ? null : new(knownNetworks), SecureUnknown = AppTab.SecureUnknown.IsChecked == true, Lockdown = AppTab.Lockdown.IsChecked == true,
+            ConnectOnLaunch = preferences.ConnectOnLaunch, WasConnected = wasConnected, Notices = preferences.Notices,
+            KnownNetworks = knownNetworks.Count == 0 ? null : new(knownNetworks), SecureUnknown = preferences.SecureUnknown, Lockdown = preferences.Lockdown,
             MachinePick = machineMode, MachineMemory = machineMemory.Count == 0 ? null : machineMemory.ToDictionary(p => p.Key, p => new Dictionary<string, string>(p.Value)),
-            ServiceHosts = ServiceBrand.LearnedIn(groups.SelectMany(g => g.Sources).Concat(subscriptionSources)), LocalNetwork = Settings.LocalNetwork.IsChecked == true,
-            QuicOverTcp = Settings.QuicOverTcp.IsChecked == true, CompatibleStack = Settings.CompatibleStack.IsChecked == true, Advanced = advanced.IsDefault ? null : advanced, ServerTweaks = serverTweaks.Count == 0 ? null : new(serverTweaks),
+            ServiceHosts = ServiceBrand.LearnedIn(groups.SelectMany(g => g.Sources).Concat(subscriptionSources)), LocalNetwork = preferences.LocalNetwork,
+            QuicOverTcp = preferences.QuicOverTcp, CompatibleStack = preferences.CompatibleStack, Advanced = advanced.IsDefault ? null : advanced, ServerTweaks = serverTweaks.Count == 0 ? null : new(serverTweaks),
             RuleSets = ruleSets.Count == 0 ? null : SavedRuleSets().Where(s => s.Name != PersistedSet.Name).ToArray(), RuleSetName = ruleSets.Count == 0 && PersistedSet.Name == MainRuleSet ? null : PersistedSet.Name,
             RuleSetServers = PersistedSet.Servers, TrafficDay = trafficDay, TrafficBytes = trafficToday, TrafficHours = trafficHours.ToArray(), TrafficHistory = trafficHistory.Snapshot(DateTime.Now),
-            Hotkey = Settings.Hotkey.IsChecked == true, FreeConsent = freeConsent, FreeList = freeList.ToString() };
+            Hotkey = preferences.Hotkey, FreeConsent = freeConsent, FreeList = freeList.ToString() };
 
     private IEnumerable<ProfileGroup> SavedGroups => groups.Where(g => g.Source != ProfileSource.Free);
 
@@ -91,14 +91,14 @@ public partial class MainWindow
         // До подписок: по доменам сервиса окно узнаёт свою подписку и шлёт ей идентификатор устройства.
         foreach (var host in snapshot.ServiceHosts ?? []) ServiceBrand.Learn(host);
         var restored = ClientStateStore.RestoreProfiles(snapshot);
-        Settings.StayInTray.IsChecked = snapshot.CloseToTray ?? true; AutoRecover.IsChecked = snapshot.AutoRecover;
-        Settings.ConnectOnLaunch.IsChecked = snapshot.ConnectOnLaunch; wasConnected = snapshot.WasConnected;
-        Settings.Notices.IsChecked = snapshot.Notices;
+        preferences.StayInTray = snapshot.CloseToTray ?? true; preferences.AutoRecover = snapshot.AutoRecover;
+        preferences.ConnectOnLaunch = snapshot.ConnectOnLaunch; wasConnected = snapshot.WasConnected;
+        preferences.Notices = snapshot.Notices;
         RestoreNetworks(snapshot);
         RestoreMachines(snapshot);
-        Settings.LocalNetwork.IsChecked = snapshot.LocalNetwork;
-        Settings.QuicOverTcp.IsChecked = snapshot.QuicOverTcp;
-        Settings.CompatibleStack.IsChecked = snapshot.CompatibleStack;
+        preferences.LocalNetwork = snapshot.LocalNetwork;
+        preferences.QuicOverTcp = snapshot.QuicOverTcp;
+        preferences.CompatibleStack = snapshot.CompatibleStack;
         RestoreAdvanced(snapshot.Advanced);
         RestoreTweaks(snapshot.ServerTweaks);
         RestoreFree(snapshot);
@@ -114,12 +114,12 @@ public partial class MainWindow
             trafficDay = snapshot.TrafficDay ?? ""; trafficToday = trafficSavedBytes = snapshot.TrafficBytes;
             if (snapshot.TrafficHours is { Length: 24 } hours && hours.All(h => h >= 0)) hours.CopyTo(trafficHours, 0);
         }
-        Settings.Hotkey.IsChecked = snapshot.Hotkey; ApplyHotkey();
-        Settings.AutoRefresh.IsChecked = snapshot.AutoRefresh;
+        preferences.Hotkey = snapshot.Hotkey; ApplyHotkey();
+        preferences.AutoRefresh = snapshot.AutoRefresh;
         ThemeManager.Apply(snapshot.Theme ?? ThemeChoice.System);
-        Settings.SystemProxy.IsChecked = snapshot.SystemProxy;
-        if (Settings.SystemTunnel.IsEnabled) Settings.SystemTunnel.IsChecked = snapshot.SystemTunnel ?? NetworkHelperConnection.ServiceRunning;
-        if (Settings.SystemTunnel.IsChecked == true) Settings.SystemProxy.IsChecked = false;
+        preferences.SystemProxy = snapshot.SystemProxy;
+        if (Settings.SystemTunnel.IsEnabled) preferences.SystemTunnel = snapshot.SystemTunnel ?? NetworkHelperConnection.ServiceRunning;
+        if (preferences.SystemTunnel) preferences.SystemProxy = false;
         UpdateModeText();
         siteRules.Clear(); siteRules.AddRange(snapshot.RouteRules); RefreshRules();
         programRules.Clear(); programRules.AddRange(snapshot.ProgramRules); RefreshRules();
@@ -131,10 +131,10 @@ public partial class MainWindow
         autoPool.Load(snapshot.AutoPool);
         // Профиль из файла проверяется так же, как присланный сервисом.
         providerRouting = snapshot.ProviderRouting?.Normalized(); useProviderRouting = snapshot.UseProviderRouting;
-        Settings.RussiaDirect.IsChecked = snapshot.RussiaDirect;
+        preferences.RussiaDirect = snapshot.RussiaDirect;
         autoSelect = snapshot.AutoSelect;
-        AppTab.UpdateAuto.IsChecked = snapshot.UpdateCheck;
-        AppTab.UpdatePrerelease.IsChecked = snapshot.UpdatePrerelease;
+        preferences.UpdateAuto = snapshot.UpdateCheck;
+        preferences.UpdatePrerelease = snapshot.UpdatePrerelease;
         fragmentMode = Enum.IsDefined(snapshot.DpiBypass) ? snapshot.DpiBypass : FragmentMode.Auto;
         zapretEnabled = snapshot.ZapretEnabled;
         selectiveVpn = snapshot.SelectiveVpn; Bypass.SelectiveToggle.IsChecked = selectiveVpn;

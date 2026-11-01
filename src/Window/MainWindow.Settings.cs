@@ -51,7 +51,7 @@ public partial class MainWindow
         var general = Settings.General;
         var tunnel = SystemTunnelWanted;
         MarkSegment(Live.ModeTun, tunnel);
-        MarkSegment(Live.ModeProxy, !tunnel && Settings.SystemProxy.IsChecked == true);
+        MarkSegment(Live.ModeProxy, !tunnel && preferences.SystemProxy);
         Live.ModeTun.IsEnabled = Settings.SystemTunnel.IsEnabled;
         RefreshSettingsSummary();
         foreach (var (button, choice) in new[] { (general.ThemeSystem, ThemeChoice.System), (general.ThemeLight, ThemeChoice.Light), (general.ThemeDark, ThemeChoice.Dark) })
