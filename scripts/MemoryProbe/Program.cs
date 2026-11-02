@@ -8,6 +8,7 @@ using System.Text.Json;
 if (args.Length == 3 && args[0] == "--programs") return ProgramSummaryProbe.Run(args[1], args[2]);
 if (args.Length == 3 && args[0] == "--core-live") return await CoreLiveProbe.RunAsync(args[1], args[2]);
 if (args.Length == 4 && args[0] == "--core-steady") return await CoreLiveProbe.RunAsync(args[1], args[2], int.Parse(args[3]));
+if (args.Length == 4 && args[0] == "--hysteria-cores") return await HysteriaCoreProbe.RunAsync(args[1], args[2], args[3]);
 if (args.Length != 2) return 1;
 var assembly = Assembly.LoadFrom(Path.GetFullPath(args[0]));
 var method = assembly.GetType("Oblachka.CoreConnections", throwOnError: true)!
