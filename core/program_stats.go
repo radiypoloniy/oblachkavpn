@@ -45,11 +45,14 @@ type programState struct {
 // Uses existing byte counters: no extra wrappers or atomics in the packet path.
 // Closed metadata is the bounded (1000 entries) upstream traffic-manager window.
 type programStats struct {
-	mu       sync.Mutex
-	epoch    string
-	programs map[string]*programState
-	closed   map[uuid.UUID]archivedCounters
-	active   map[uuid.UUID]observedCounters
+	mu          sync.Mutex
+	epoch       string
+	programs    map[string]*programState
+	closed      map[uuid.UUID]archivedCounters
+	active      map[uuid.UUID]observedCounters
+	spareClosed map[uuid.UUID]archivedCounters
+	spareActive map[uuid.UUID]observedCounters
+	totals      map[*programState]archivedCounters
 }
 
 func newProgramStats() *programStats {
@@ -117,7 +120,11 @@ func (s *programStats) snapshot(active, closed []*trafficcontrol.TrackerMetadata
 	for _, p := range s.programs {
 		p.VPN, p.Direct, p.UDP = 0, 0, 0
 	}
-	seenClosed := make(map[uuid.UUID]archivedCounters, len(closed))
+	seenClosed := s.spareClosed
+	if seenClosed == nil {
+		seenClosed = make(map[uuid.UUID]archivedCounters, len(closed))
+	}
+	clear(seenClosed)
 	for _, c := range closed {
 		path := statsProcessPath(c)
 		if path == "" || c.OutboundType == C.TypeDNS {
@@ -134,8 +141,16 @@ func (s *programStats) snapshot(active, closed []*trafficcontrol.TrackerMetadata
 			countProgram(p, c)
 		}
 	}
-	totals := make(map[*programState]archivedCounters, len(s.programs))
-	seenActive := make(map[uuid.UUID]observedCounters, len(active))
+	if s.totals == nil {
+		s.totals = make(map[*programState]archivedCounters, maxStatPrograms)
+	}
+	totals := s.totals
+	clear(totals)
+	seenActive := s.spareActive
+	if seenActive == nil {
+		seenActive = make(map[uuid.UUID]observedCounters, len(active))
+	}
+	clear(seenActive)
 	for _, c := range active {
 		if _, closed := seenClosed[c.ID]; closed {
 			continue
@@ -166,7 +181,18 @@ func (s *programStats) snapshot(active, closed []*trafficcontrol.TrackerMetadata
 			p.closedDownload += old.download
 		}
 	}
+	// Double-buffer only bounded scratch maps. Never retain a large connection spike.
+	s.spareActive, s.spareClosed = nil, nil
+	if len(s.active) <= 4096 {
+		clear(s.active)
+		s.spareActive = s.active
+	}
+	if len(s.closed) <= 4096 {
+		clear(s.closed)
+		s.spareClosed = s.closed
+	}
 	s.active, s.closed = seenActive, seenClosed
+	// Result storage must remain owned by this call: HTTP encoding happens after unlocking.
 	result := programSnapshot{Version: 1, Epoch: s.epoch, Programs: make([]programCounters, 0, len(s.programs))}
 	for _, p := range s.programs {
 		// A close racing the two upstream snapshots may temporarily hide a connection.

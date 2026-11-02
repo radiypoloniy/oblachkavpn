@@ -95,6 +95,37 @@ func TestProgramStatsBoundsUnrepresentablePaths(t *testing.T) {
 	}
 }
 
+func TestProgramStatsSnapshotOwnershipAndScratchBound(t *testing.T) {
+	s := newProgramStats()
+	now := time.Now()
+	c := fixtureConnection("browser", 10, 20)
+	first := s.snapshot([]*trafficcontrol.TrackerMetadata{c}, nil, now)
+	for i := 0; i < 5; i++ {
+		c.Upload.Add(1)
+		s.snapshot([]*trafficcontrol.TrackerMetadata{c}, nil, now)
+	}
+	if first.Programs[0].Upload != 10 || first.Programs[0].Download != 20 {
+		t.Fatal("scratch reuse mutated an earlier HTTP response", first)
+	}
+	spike := make([]*trafficcontrol.TrackerMetadata, 4097)
+	for i := range spike {
+		spike[i] = fixtureConnection("browser", 1, 2)
+	}
+	s.snapshot(spike, nil, now)
+	s.snapshot(nil, nil, now)
+	if s.spareActive != nil {
+		t.Fatal("retained active scratch after a large connection spike")
+	}
+	for _, c := range spike {
+		c.ClosedAt = now
+	}
+	s.snapshot(nil, spike, now)
+	s.snapshot(nil, nil, now)
+	if s.spareClosed != nil {
+		t.Fatal("retained closed scratch after a large connection spike")
+	}
+}
+
 // Same JSON shape as the upstream Clash /connections formatter, including
 // nested per-connection maps. No TUN or external server is used by this benchmark.
 type legacyProgramConnection struct {
@@ -134,4 +165,20 @@ func BenchmarkProgramPoll(b *testing.B) {
 			}
 		}
 	})
+}
+
+func BenchmarkOneProgram500(b *testing.B) {
+	active := make([]*trafficcontrol.TrackerMetadata, 500)
+	for i := range active {
+		active[i] = fixtureConnection(`C:\Apps\fixture.exe`, 100, 1000)
+	}
+	s := newProgramStats()
+	now := time.Now()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := json.Marshal(s.snapshot(active, nil, now)); err != nil {
+			b.Fatal(err)
+		}
+	}
 }
