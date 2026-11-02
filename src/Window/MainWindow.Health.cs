@@ -22,6 +22,7 @@ public partial class MainWindow
         runtime.Imports.Start(new DispatcherSynchronizationContext(Dispatcher));
         runtime.Measurements.Start(new DispatcherSynchronizationContext(Dispatcher));
         runtime.Networks.Start(new DispatcherSynchronizationContext(Dispatcher));
+        runtime.Traffic.Start(new DispatcherSynchronizationContext(Dispatcher));
         runtime.Persistence.Start(new DispatcherSynchronizationContext(Dispatcher));
         if (stateStore is not null && !isolatedPersistence) runtime.Updates.Start(new DispatcherSynchronizationContext(Dispatcher));
     }

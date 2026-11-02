@@ -33,7 +33,6 @@ public partial class MainWindow
         toastTimer.Stop();
         liveTimer?.Stop(); switchTimer?.Stop();
         tuning?.Cancel(); siteCheckCancel?.Cancel();
-        meter?.Dispose(); meter = null;
         appCatalogCancel.Cancel(); appCatalogCancel.Dispose();
     }
 }

@@ -19,6 +19,7 @@ public sealed class ClientRuntime : IDisposable
     public ClientMeasurements Measurements { get; }
     public ClientNetworks Networks { get; }
     public ClientRules Rules { get; }
+    public ClientTraffic Traffic { get; }
     internal ClientTray? Tray { get; private set; }
     internal ClientTray EnsureTray(SynchronizationContext context) => Tray ??= new(this, context);
     public ClientHealthMonitor Monitor { get; }
@@ -53,6 +54,7 @@ public sealed class ClientRuntime : IDisposable
         Selection = new(this); Pause = new(this, pauseNow); Imports = new(this, importFetch, importNow);
         Measurements = new(this, measurementBackend, measurementNow);
         Networks = new(this, networkEnvironment); Rules = new(this);
+        Traffic = new(this);
         Preferences.PropertyChanged += PreferencesChanged;
         tunnelHost = host; TunnelPolicy = new(this); Tunnels = new(this, host);
         Monitor = new ClientHealthMonitor(this, path: path);
@@ -104,6 +106,7 @@ public sealed class ClientRuntime : IDisposable
         Preferences.PropertyChanged -= PreferencesChanged;
         Recovery.Dispose();
         Networks.Dispose(); Rules.Dispose();
+        Traffic.Dispose();
         Pause.Dispose();
         Imports.Dispose();
         Measurements.Dispose();

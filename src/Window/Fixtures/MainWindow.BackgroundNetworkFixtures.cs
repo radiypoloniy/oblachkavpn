@@ -43,6 +43,20 @@ public partial class MainWindow
         }
         checks.Add("Application-owned measurement survives closing and collecting its WPF view");
         checks.Add("Coalesced network events connect once after the WPF view closes and is collected");
+        using (var owner = ConnectionOwner(new WindowStartCore(), selected))
+        {
+            owner.Traffic.Start(new DispatcherSynchronizationContext(Dispatcher));
+            var reference = ClosedStartupView(owner);
+            owner.Workspace.TrafficDay = "2000-01-01"; owner.Workspace.TrafficToday = 500;
+            for (var i = 0; i < 5; i++)
+            {
+                await Task.Delay(250); await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+                GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
+            }
+            if (reference.IsAlive || !owner.Traffic.Started || owner.Workspace.TrafficDay != DateTime.Now.ToString("yyyy-MM-dd") || owner.Workspace.TrafficToday != 0)
+                throw new InvalidOperationException("Traffic accounting stopped or retained the view");
+        }
+        checks.Add("Traffic accounting timer survives closing and collecting the WPF view");
     }
     private sealed class BackgroundNetworkFixture : IClientNetworkEnvironment
     {

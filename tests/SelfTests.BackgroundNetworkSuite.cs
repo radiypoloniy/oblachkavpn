@@ -13,6 +13,7 @@ public static partial class SelfTests
             catch (Exception error) { checks.Add(new(name, false, error.ToString())); }
         }
         await ClientMeasurementChecksAsync(CheckAsync); await ClientNetworkChecksAsync(CheckAsync);
+        await ClientTrafficChecksAsync(CheckAsync);
         var wpf = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName().Name)
             .Where(n => n is "PresentationFramework" or "PresentationCore" or "WindowsBase").ToArray();
         checks.Add(new("Background measurement, network and rule operations do not load WPF", wpf.Length == 0, wpf.Length == 0 ? null : string.Join(",", wpf)));
