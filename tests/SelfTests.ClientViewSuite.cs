@@ -16,6 +16,7 @@ public static partial class SelfTests
         await ClientViewChecksAsync(CheckAsync, root);
         await ClientConnectionsChecksAsync(CheckAsync);
         await ClientPauseChecksAsync(CheckAsync);
+        await ClientImportsChecksAsync(CheckAsync);
         await File.WriteAllTextAsync(report, JsonSerializer.Serialize(new { Passed = checks.All(c => c.Passed), Checks = checks }, new JsonSerializerOptions { WriteIndented = true }));
         return checks.All(c => c.Passed) ? 0 : 2;
     }

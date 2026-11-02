@@ -42,6 +42,7 @@ internal static class Program
             owner.Persistence.Start(context);
             owner.Monitor.Start(context);
             owner.Pause.Start(context);
+            owner.Imports.Start(context);
             var proxyStore = new FixtureProxy(); owner.Preferences.SystemProxy = true;
             owner.Proxy.Start(context, new SystemProxy(proxyStore, Path.Combine(root, "proxy.json")), false);
             // Доступ к internal только в диагностике; у рабочего клиента API не расширяется.

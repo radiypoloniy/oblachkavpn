@@ -32,6 +32,13 @@ public sealed class ClientProfiles
         Pings[key] = new(key, DateTimeOffset.UtcNow, milliseconds is not null, Math.Max(1, milliseconds ?? 0));
     }
     public ServerTweak? TweakFor(Profile item) => Tweaks.GetValueOrDefault(ServerTweak.Key(item));
+    public void TrimMeasurements()
+    {
+        var keys = GroupProfiles.Values.SelectMany(p => p).Select(Profiles.Fingerprint).ToHashSet(StringComparer.Ordinal);
+        if (Running is not null) keys.Add(Profiles.Fingerprint(Running));
+        foreach (var cache in new[] { Measurements, Pings })
+            foreach (var key in cache.Keys.Where(k => !keys.Contains(k)).ToArray()) cache.Remove(key);
+    }
 
     public void Clear()
     {

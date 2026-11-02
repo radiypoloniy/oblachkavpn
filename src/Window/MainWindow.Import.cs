@@ -16,10 +16,7 @@ public partial class MainWindow
     {
         try
         {
-            var result = ShareLinks.IsLink(input.Trim()) && !input.Trim().Contains('\n')
-                ? new ImportResult(new[] { Profiles.Parse(input) }, 0, 0) : Subscriptions.Parse(input);
-            // Вставленное добавляется во «Вручную» к прежним; подписки не трогаются.
-            ApplyGroupImport(ProfileGroup.Manual, result.WithSource(ProfileSource.External));
+            runtime.Imports.ImportText(input);
         }
         catch (UserError ex) { DetailText.Text = ex.Message; }
     }
@@ -32,27 +29,23 @@ public partial class MainWindow
     // Подписка заменяет свою группу целиком; «Вручную» пополняется. Остальные группы не трогаются.
     private void ApplyGroupImport(ProfileGroup group, ImportResult result, bool preserveSelection = false)
     {
-        var isNewSubscription = group.Source == ProfileSource.External && !group.IsManual && groups.All(g => g.Id != group.Id);
-        try
-        {
-            SetGroup(group, group.IsManual ? ProfileGroups.Append(ProfilesOf(ProfileGroup.ManualId), result.Profiles) : result.Profiles);
-        }
-        catch (UserError ex) { DetailText.Text = ex.Message; return; }
-        if (result.Metadata?.Routing is { } routing) ReceiveRouting(routing);
-        ApplyProfiles(preserveSelection);
-        // Новая подписка открывается отдельно: её серверы не смешиваются на экране с прежними.
-        if (isNewSubscription && Servers.GroupTabs.Tag is string[] ids && Array.IndexOf(ids, group.Id) is var tab && tab >= 0)
+        try { runtime.Imports.Apply(group, result, preserveSelection); }
+        catch (UserError error) { DetailText.Text = error.Message; }
+    }
+    private void ImportApplied(ClientImportChange change)
+    {
+        if (closed) return;
+        ApplyProfiles(true);
+        if (change.Result.Metadata?.Routing is not null) RefreshRouting();
+        if (change.NewSubscription && Servers.GroupTabs.Tag is string[] ids && Array.IndexOf(ids, change.Group.Id) is var tab && tab >= 0)
             Servers.GroupTabs.SelectedIndex = tab + 1;
-        // Добавленное вручную сразу выбрано: его и собирались подключать.
-        if (group.IsManual && !preserveSelection && result.Profiles.Count > 0 &&
-            importedProfiles.FirstOrDefault(p => p.Group == ProfileGroup.ManualId && p.Name == result.Profiles[0].Name &&
-                Profiles.Fingerprint(p) == Profiles.Fingerprint(result.Profiles[0])) is { } added)
-            SelectProfile(added);
-        DetailText.Text = $"Добавлено подключений: {result.Profiles.Count}.";
-        if (result.Unsupported + result.Invalid > 0) DetailText.Text += $" Пропущено: неподдерживаемых {result.Unsupported}, некорректных {result.Invalid}.";
-        if (result.Reasons.Count > 0) DetailText.Text += " Причины: " + string.Join(" | ", result.Reasons);
         UpdateControls();
-        QueueStateSave();
+    }
+    private void ImportsChanged()
+    {
+        if (closed) return;
+        DetailText.Text = runtime.Imports.Message;
+        UpdateControls();
     }
 
     private void ApplyProfiles(bool preserveSelection)
@@ -112,58 +105,8 @@ public partial class MainWindow
     {
         if (operation is null) await RefreshAllAsync();
     }
-    private async Task LoadSubscriptionAsync(IReadOnlyList<string> sources, int preferred,
-        Func<IReadOnlyList<string>, int, CancellationToken, Task<MirrorResult>>? loader = null)
-    {
-        if (operation is not null) return;
-        // Через бесплатный чужой узел подписка сервиса не ходит (ForeignGuard): обновим после него.
-        if (ForeignConnected && ServiceKey.SourceOf(sources) == ProfileSource.Service)
-        { DetailText.Text = "Подписка сервиса обновится после отключения от бесплатного сервера."; return; }
-        var kind = ServiceKey.SourceOf(sources);
-        var previous = groups.FirstOrDefault(g => g.Sources.SequenceEqual(sources)) ?? groups.FirstOrDefault(g => g.Id == ProfileGroup.IdFor(sources, kind));
-        var id = previous?.Id ?? ProfileGroup.IdFor(sources, kind);
-        var subscriptionSchedule = ScheduleFor(id);
-        manualStop = false;
-        operation = new CancellationTokenSource(); engineOperation = false; UpdateControls();
-        DetailText.Text = "Загружаем подписку; при отказе проверим резервные адреса…";
-        try
-        {
-            var result = await (loader ?? SubscriptionMirrors.FetchAsync)(sources, preferred, operation.Token);
-            subscriptionSchedule.Complete(DateTimeOffset.UtcNow, true, result.Import.Metadata?.UpdateInterval);
-            operation.Token.ThrowIfCancellationRequested();
-            if (closed) return;
-            var metadata = result.Import.Metadata ?? previous?.Metadata;
-            var current = result.Sources ?? sources;
-            var group = new ProfileGroup(id, ProfileGroup.NameFor(current, metadata, kind), kind, current.ToArray())
-                { PreferredSource = result.SourceIndex, Metadata = metadata, Updated = DateTimeOffset.UtcNow,
-                    DismissedWarning = previous?.DismissedWarning, ExpiryNotice = previous?.ExpiryNotice };
-            var imported = result.Import.WithSource(kind);
-            // Под работающим подключением новый список виден сразу, подключение не трогается: выбор
-            // остаётся на работающем сервере (переименование и смена ключей его не теряют). Новый сервер,
-            // не вошедший в защиту при подключении, выбирается с переподключением (SwitchServerAsync).
-            // Ждёт отключения только список, где работающего сервера нет вовсе: иначе выбор перескочил
-            // бы на первый сервер и сам переключил подключение. До 0.21.1 ждал любой список.
-            if (engine.State is ConnectionState.Running or ConnectionState.Verified && runningProfile is { } running &&
-                running.Group == id && ProfileSelection.Locate(imported.Profiles, running) < 0)
-            {
-                Replace(group);
-                pendingImport = (group, imported);
-                QueueStateSave();
-                DetailText.Text = $"Получено подключений: {result.Import.Profiles.Count}; адрес №{result.SourceIndex + 1}. Сервера, к которому вы подключены, в подписке больше нет: новый список применится после отключения.";
-            }
-            else
-            {
-                if (pendingImport?.Group.Id == id) pendingImport = null;
-                ApplyGroupImport(group, imported, true); DetailText.Text += $" Загрузка: адрес №{result.SourceIndex + 1}, попыток {result.Attempts}.";
-            }
-            if (result.Moved) DetailText.Text += " Подписка переехала на новый адрес, прежний оставлен запасным.";
-            if (result.Sources is not null) QueueStateSave();
-        }
-        catch (OperationCanceledException) { subscriptionSchedule.Complete(DateTimeOffset.UtcNow, false); if (!closed) DetailText.Text = "Загрузка отменена. Предыдущий список сохранён."; }
-        catch (SubscriptionAccessDenied ex) { subscriptionSchedule.AccessDenied(); if (!closed) DetailText.Text = ex.Message; }
-        catch (UserError ex) { subscriptionSchedule.Complete(DateTimeOffset.UtcNow, false); if (!closed) DetailText.Text = ex.Message; }
-        finally { if (manualStop) engine.Stop(); operation.Dispose(); operation = null; if (!closed) UpdateControls(); }
-    }
+    private Task LoadSubscriptionAsync(IReadOnlyList<string> sources, int preferred,
+        Func<IReadOnlyList<string>, int, CancellationToken, Task<MirrorResult>>? loader = null) => runtime.Imports.LoadAsync(sources, preferred, loader);
     private void ImportFileClick(object sender, RoutedEventArgs args)
     {
         Servers.AddPopup.IsOpen = false;

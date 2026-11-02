@@ -25,6 +25,7 @@ public partial class MainWindow
         ThemeManager.Changed -= RefreshHome;
         runtime.Persistence.Changed -= PersistenceChanged;
         runtime.Connections.Changed -= ConnectionChanged;
+        runtime.Imports.Applied -= ImportApplied; runtime.Imports.Changed -= ImportsChanged;
         runtime.Pause.Changed -= PauseChanged;
         runtime.Pause.Resuming -= PauseResuming;
         runtime.Pause.Resumed -= PauseResumed;

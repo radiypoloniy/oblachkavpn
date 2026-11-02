@@ -2,23 +2,7 @@ namespace Oblachka;
 
 public partial class MainWindow
 {
-    private readonly Dictionary<string, SubscriptionSchedule> subscriptionSchedules = new();
-    private SubscriptionSchedule ScheduleFor(string id)
-    {
-        if (!subscriptionSchedules.TryGetValue(id, out var schedule)) subscriptionSchedules[id] = schedule = new();
-        return schedule;
-    }
-    private async void PollSubscription()
-    {
-        if (closed || vmTestActive || !backgroundWorkEnabled || !groups.Any(g => g.IsSubscription) || operation is not null || recoveryWait is not null ||
-            !preferences.AutoRefresh) return;
-        foreach (var group in groups.Where(g => g.IsSubscription).ToArray())
-        {
-            if (closed || operation is not null) return;
-            if (pendingImport?.Group.Id == group.Id || ForeignConnected && group.Source == ProfileSource.Service) continue;
-            if (ScheduleFor(group.Id).IsDue(DateTimeOffset.UtcNow)) await LoadSubscriptionAsync(group.Sources, group.PreferredSource);
-        }
-    }
+    private SubscriptionSchedule ScheduleFor(string id) => runtime.Imports.ScheduleFor(id);
     private (SubscriptionState? State, int Revision, bool Busy, bool Remember, string? Announce)? subscriptionShown;
     private void UpdateSubscriptionSummary()
     {

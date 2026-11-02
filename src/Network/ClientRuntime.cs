@@ -15,6 +15,7 @@ public sealed class ClientRuntime : IDisposable
     public ClientConnections Connections { get; }
     public ClientSelection Selection { get; }
     public ClientPause Pause { get; }
+    public ClientImports Imports { get; }
     internal ClientTray? Tray { get; private set; }
     internal ClientTray EnsureTray(SynchronizationContext context) => Tray ??= new(this, context);
     public ClientHealthMonitor Monitor { get; }
@@ -36,14 +37,15 @@ public sealed class ClientRuntime : IDisposable
     public ClientRuntime() : this(new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"),
         Path.Combine(AppContext.BaseDirectory, "data", "runtime"))) { }
     public ClientRuntime(ITunnelController engine) : this(engine, new ClientTunnelHost()) { }
-    internal ClientRuntime(ITunnelController engine, IClientTunnelHost host, ClientPathHealth? path = null, Func<DateTimeOffset>? pauseNow = null)
+    internal ClientRuntime(ITunnelController engine, IClientTunnelHost host, ClientPathHealth? path = null, Func<DateTimeOffset>? pauseNow = null,
+        Func<IReadOnlyList<string>, int, CancellationToken, Task<MirrorResult>>? importFetch = null, Func<DateTimeOffset>? importNow = null)
     {
         Engine = engine;
         Persistence = new(this);
         Proxy = new(this);
         Updates = new(this);
         Connections = new(this);
-        Selection = new(this); Pause = new(this, pauseNow);
+        Selection = new(this); Pause = new(this, pauseNow); Imports = new(this, importFetch, importNow);
         Preferences.PropertyChanged += PreferencesChanged;
         tunnelHost = host; TunnelPolicy = new(this); Tunnels = new(this, host);
         Monitor = new ClientHealthMonitor(this, path: path);
@@ -95,6 +97,7 @@ public sealed class ClientRuntime : IDisposable
         Preferences.PropertyChanged -= PreferencesChanged;
         Recovery.Dispose();
         Pause.Dispose();
+        Imports.Dispose();
         Connections.Dispose();
         Updates.Dispose();
         Persistence.Dispose();

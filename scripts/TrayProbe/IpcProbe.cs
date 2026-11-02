@@ -21,6 +21,12 @@ internal static class IpcProbe
             .Invoke(owner.Pause, new object[] { DateTimeOffset.UtcNow.AddMilliseconds(100) });
         while (owner.Pause.Until is not null || owner.Connections.IsActive) await Task.Delay(25, timeout.Token);
         if (owner.Engine.State != ConnectionState.Running) throw new InvalidOperationException("Headless pause did not resume");
+        Func<IReadOnlyList<string>, int, CancellationToken, Task<MirrorResult>> fetch = (_, _, _) => Task.FromResult(
+            new MirrorResult(new ImportResult(new[] { owner.Profiles.Selected! }, 0, 0), 0, 1));
+        var load = typeof(ClientImports).GetMethods(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            .Single(m => m.Name == "LoadAsync" && m.GetParameters().Length == 3);
+        await (Task)load.Invoke(owner.Imports, new object[] { new[] { "https://fixture.invalid/sub" }, 0, fetch })!;
+        if (!owner.Profiles.Groups.Any(g => g.IsSubscription)) throw new InvalidOperationException("Headless import did not apply");
         owner.Workspace.Favorites.Add(AutoPool.Key(owner.Profiles.Selected!)); owner.Persistence.Queue();
         await Task.Delay(1200, timeout.Token);
         var samples = new List<object> { Sample("before-views", owner) };

@@ -143,6 +143,7 @@ public sealed class SubscriptionSchedule
 {
     private DateTimeOffset due = DateTimeOffset.MinValue;
     private int failures;
+    internal DateTimeOffset Due => due;
     public bool IsDue(DateTimeOffset now) => now >= due;
 
     // Интервал задаёт панель заголовком profile-update-interval; без него — шесть часов.

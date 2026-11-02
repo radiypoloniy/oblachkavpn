@@ -21,7 +21,7 @@ public partial class MainWindow : Window
     // Адреса подписки сервиса (основной и резервные) и адреса сторонней подписки.
     // Разделены, чтобы загрузка одной не стирала адрес другой.
     // Загруженная подписка, отложенная до остановки подключения.
-    private (ProfileGroup Group, ImportResult Result)? pendingImport;
+    private (ProfileGroup Group, ImportResult Result)? pendingImport { get => runtime.Imports.Pending; set => runtime.Imports.Pending = value; }
     private IReadOnlyList<RouteAttempt> routeAttempts = Array.Empty<RouteAttempt>();
     private RecoveryPolicy recovery => runtime.Monitor.Recovery;
     private CancellationTokenSource? recoveryWait { get => runtime.Activity.RecoveryWait; set => runtime.Activity.RecoveryWait = value; }
@@ -48,12 +48,13 @@ public partial class MainWindow : Window
         WireViews();
         viewsReady = true;
         runtime.Connections.Changed += ConnectionChanged;
+        runtime.Imports.Applied += ImportApplied; runtime.Imports.Changed += ImportsChanged;
         runtime.Pause.Changed += PauseChanged;
         runtime.Pause.Resuming += PauseResuming;
         runtime.Pause.Resumed += PauseResumed;
         runtime.Pause.ResumeFailed += PauseResumeFailed;
         Navigate("Connection");
-        presentationTimer.Tick += (_, _) => { RefreshPresentation(background: true); PollSubscription(); PollPing(); PollZapretRouting(); PollZapretWatch(); PollExpiry(); };
+        presentationTimer.Tick += (_, _) => { RefreshPresentation(background: true); PollPing(); PollZapretRouting(); PollZapretWatch(); PollExpiry(); };
         presentationTimer.Start();
         SubscribeLifecycle(persistenceEnabled && !isolatedPersistence);
         if (stateStore is not null) runtime.Persistence.Start(new System.Windows.Threading.DispatcherSynchronizationContext(Dispatcher));
@@ -100,12 +101,7 @@ public partial class MainWindow : Window
     }
     private void UpdateControls()
     {
-        if (pendingImport is not null && operation is null && engine.State == ConnectionState.Idle)
-        {
-            var pending = pendingImport.Value; pendingImport = null;
-            // Подписку убрали, пока её обновление ждало отключения, — не возвращать.
-            if (!removedSubscriptions.Contains(pending.Group.Id)) { ApplyGroupImport(pending.Group, pending.Result, true); return; }
-        }
+        runtime.Imports.TryApplyPending();
         var active = engine.State is not ConnectionState.Idle;
         ConnectButton.IsEnabled = profile is not null && !active && operation is null && !runtime.Connections.IsStopping;
         // Пока системный режим снимается, повторное нажатие ничего не ускорит.
@@ -224,11 +220,10 @@ public partial class MainWindow : Window
         UnsubscribeLifecycle();
         trayPopup?.Close();
         engine.Changed -= EngineChanged;
-        if (!runtime.Connections.IsActive) operation?.Cancel();
+        if (!runtime.Connections.IsActive && !runtime.Imports.IsActive) operation?.Cancel();
         recoveryWait?.Cancel();
         ProfilePicker.SelectionChanged -= ProfileSelectionChanged;
         runtime.Tray?.Detach(this);
         if (ownsRuntime) runtime.Dispose();
-        pendingImport = null;
     }
 }

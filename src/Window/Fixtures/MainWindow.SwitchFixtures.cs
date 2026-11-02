@@ -18,11 +18,14 @@ public partial class MainWindow
 
         var target = (Profile)ProfilePicker.Items[1];
         ProfilePicker.SelectedIndex = 1;
-        await Task.Delay(1500);
+        // Запуск процесса после debounce может занять больше 800 мс под нагрузкой сборки.
+        var until = DateTimeOffset.UtcNow.AddSeconds(5);
+        while (DateTimeOffset.UtcNow < until && (engine.State != ConnectionState.Running || engine.ProcessId == before ||
+            runningProfile is null || Profiles.Fingerprint(runningProfile) != Profiles.Fingerprint(target))) await Task.Delay(50);
         await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ContextIdle);
         if (engine.State != ConnectionState.Running || engine.ProcessId is null || engine.ProcessId == before ||
             runningProfile is null || Profiles.Fingerprint(runningProfile) != Profiles.Fingerprint(target))
-            throw new InvalidOperationException("Selecting another server while connected did not switch to it");
+            throw new InvalidOperationException($"Selecting another server while connected did not switch to it: state={engine.State}, before={before}, pid={engine.ProcessId}, selected={profile?.Name}, target={target.Name}, running={runningProfile?.Name}, busy={operation is not null}, result={runtime.Connections.LastResult}, detail={DetailText.Text}");
 
         // Повторный выбор того же сервера ничего не перезапускает.
         var switched = engine.ProcessId;

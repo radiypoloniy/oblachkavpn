@@ -12,7 +12,7 @@ public partial class MainWindow
     private ProfileGroup? GroupOf(Profile? item) => item is null ? null : groups.FirstOrDefault(g => g.Id == item.Group);
 
     private ProfileGroup? CurrentGroup => ProfileGroups.Active(groups, profile, runningProfile, ConnectionActive);
-    private int groupRevision;
+    private int groupRevision { get => runtime.Imports.Revision; set => runtime.Imports.Revision = value; }
     private ProfileGroup? stateGroup;
     private long stateTime;
     private SubscriptionState? subscriptionState;
@@ -81,13 +81,7 @@ public partial class MainWindow
 
     private void Replace(ProfileGroup group)
     {
-        var index = groups.FindIndex(g => g.Id == group.Id);
-        if (index < 0) return;
-        var old = SubscriptionState.For(groups[index], DateTimeOffset.UtcNow);
-        var next = SubscriptionState.For(group, DateTimeOffset.UtcNow);
-        if (old.WarningKey != next.WarningKey || next.RemainingBytes > old.RemainingBytes)
-            group = group with { DismissedWarning = null };
-        groups[index] = group; groupRevision++;
+        runtime.Imports.Replace(group);
     }
 
     // Новая или обновлённая группа целиком. Узлы получают её источник и идентификатор.
@@ -97,28 +91,14 @@ public partial class MainWindow
 
     private void SetGroup(ProfileGroup group, IReadOnlyList<Profile> profiles)
     {
-        removedSubscriptions.Remove(group.Id);
-        var tagged = profiles.Select(p => p with { Source = group.Source, Group = group.Id }).ToArray();
-        var exists = groups.Any(g => g.Id == group.Id);
-        if (!exists && groups.Count >= ProfileGroup.MaxGroups) throw new UserError($"Не больше {ProfileGroup.MaxGroups} подписок: уберите ненужную в «Настройки → Подписки и ключ».");
-        var total = groupProfiles.Where(p => p.Key != group.Id).Sum(p => p.Value.Count) + tagged.Length;
-        if (total > ProfileGroup.MaxTotalProfiles) throw new UserError($"Вместе подключений больше {ProfileGroup.MaxTotalProfiles}: уберите ненужную подписку.");
-        if (exists) Replace(group); else groups.Add(group);
-        groupProfiles[group.Id] = tagged; groupRevision++;
-        var ordered = ProfileGroups.Ordered(groups);
-        groups.Clear(); groups.AddRange(ordered);
+        runtime.Imports.SetGroup(group, profiles);
     }
 
     private void RemoveGroup(string id)
     {
         if (operation is not null) return;
-        var removingSelected = profile?.Group == id;
-        if (groups.FirstOrDefault(g => g.Id == id) is { IsSubscription: true }) { removedSubscriptions.Add(id); TrimRemoved(); }
-        // Обновление этой подписки, отложенное до отключения, вернуло бы её — выбрасываем.
-        if (pendingImport?.Group.Id == id) pendingImport = null;
-        groups.RemoveAll(g => g.Id == id); groupProfiles.Remove(id); subscriptionSchedules.Remove(id); groupRevision++;
-        if (removingSelected) profile = null;
-        ApplyProfiles(!removingSelected);
+        runtime.Imports.Remove(id);
+        ApplyProfiles(true);
         RefreshGroups();
         UpdateControls();
         QueueStateSave(); FlushStateSave();
@@ -127,11 +107,7 @@ public partial class MainWindow
     // Обновить все подписки: сервис первым, затем сторонние. «Вручную» не обновляется.
     private async Task RefreshAllAsync()
     {
-        foreach (var group in groups.Where(g => g.IsSubscription).ToArray())
-        {
-            if (closed || operation is not null) return;
-            await LoadSubscriptionAsync(group.Sources, group.PreferredSource);
-        }
+        await runtime.Imports.RefreshAllAsync();
     }
 
     // Подпись узла в списке: у сторонних — имя его подписки.
