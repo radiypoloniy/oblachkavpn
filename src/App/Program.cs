@@ -28,6 +28,7 @@ public static class Program
             catch { return 2; }
         }
 #if TEST_HOOKS
+        if (args.Length == 2 && args[0] == "--ui-tray-memory-check") return TrayMemoryPreview.Run(args[1]);
         if (args.Length == 2 && args[0] == "--ui-memory-check") return MemoryPreview.Run(args[1]);
         // Проверки интерфейса работают с частями MainWindow из *Fixtures.cs: они доступны
         // только в сборке с -p:IncludeTestCode=true и отсутствуют в поставляемом клиенте.
