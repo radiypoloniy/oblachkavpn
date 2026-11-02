@@ -28,14 +28,22 @@ public partial class MainWindow
         // Окно в фоне — список реже: каждое обновление перерисовывает строки, а смотрят на него редко.
         Activated += (_, _) => LivePace();
         Deactivated += (_, _) => LivePace();
+        StateChanged += (_, _) => LivePace();
+        Live.IsVisibleChanged += (_, _) =>
+        {
+            LivePace();
+            if (Live.IsVisible) _ = RefreshConnectionsAsync();
+        };
     }
 
     // После правила или «Закрыть» — дважды в секунду, пока соединения переезжают (StartLiveBurst).
     private void LivePace()
     {
         if (liveTimer is null) return;
+        if (closed || !Live.IsVisible || !IsVisible || WindowState == WindowState.Minimized) { liveTimer.Stop(); return; }
         var next = TimeSpan.FromSeconds(DateTime.UtcNow < liveBurstUntil ? 0.5 : IsActive ? 2 : 6);
         if (liveTimer.Interval != next) liveTimer.Interval = next;
+        if (!liveTimer.IsEnabled) liveTimer.Start();
     }
 
     // «Сейчас в сети» — раздел острова: настройки и «Все серверы» уступают ему место.
@@ -69,10 +77,8 @@ public partial class MainWindow
     private void OpenConnections(bool focus)
     {
         Live.Show(focus, LiveNote);
-        LoadAppCatalog();
         liveTimer ??= new DispatcherTimer(TimeSpan.FromSeconds(2), DispatcherPriority.Background, async (_, _) => await RefreshConnectionsAsync(), Dispatcher);
         LivePace();
-        liveTimer.Start();
         _ = RefreshConnectionsAsync();
     }
 
@@ -90,6 +96,7 @@ public partial class MainWindow
         liveBusy = true;
         try
         {
+            LoadAppCatalog();
             var own = Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory) + "\\";
             var tunnel = SystemTunnelActive; var proxy = engine.Port;
             bool Own(string path) => path.StartsWith(own, StringComparison.OrdinalIgnoreCase);

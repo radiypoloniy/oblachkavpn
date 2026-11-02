@@ -16,13 +16,17 @@ public partial class MainWindow
 
     private IReadOnlyList<Profile>? machineProfiles;
     private Dictionary<string, IReadOnlyList<Profile>> machineIndex = new(StringComparer.Ordinal);
-    private IReadOnlyList<Profile> MachineOf(Profile item)
+    private void EnsureMachineIndex()
     {
         if (!ReferenceEquals(machineProfiles, importedProfiles))
         {
             machineProfiles = importedProfiles;
             machineIndex = ServerMachines.Group(importedProfiles).ToDictionary(p => ServerMachines.Key(p[0]), p => p, StringComparer.Ordinal);
         }
+    }
+    private IReadOnlyList<Profile> MachineOf(Profile item)
+    {
+        EnsureMachineIndex();
         return machineIndex.TryGetValue(ServerMachines.Key(item), out var members) ? members : [item];
     }
 

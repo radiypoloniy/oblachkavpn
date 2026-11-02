@@ -33,7 +33,7 @@ public partial class MainWindow
         RefreshHome();
         RefreshRuleApplyStatus();
         Servers.SearchBox.IsEnabled = ProfilePicker.IsEnabled;
-        RefreshServerListControls();
+        if (Servers.IsVisible) RefreshServerListControls();
         Diagnostics.CoreState.Text = pid is null ? "Не запущен" : "Готов";
         Diagnostics.NetworkNote.Text = SystemTunnelActive
             ? "Включён системный режим. Запрос ниже проверяет связь через локальное ядро; проверка DNS, IPv6 и блокировки обхода выполняется отдельно."
@@ -49,7 +49,7 @@ public partial class MainWindow
         if (profile is not null && Onboarding.Visibility == Visibility.Visible) Navigate("Connection");
         else if (Onboarding.Visibility == Visibility.Visible) FindForeignClients();
         RefreshTrayPopup();
-        RefreshMeasurement();
+        if (Servers.IsVisible) RefreshMeasurement();
     }
 
     private void RecordProbe(ProbeResult result)

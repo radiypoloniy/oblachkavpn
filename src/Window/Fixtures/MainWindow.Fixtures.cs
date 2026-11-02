@@ -76,6 +76,7 @@ public partial class MainWindow
         await CheckOwnedConnectionAsync(checks);
         await CheckOwnedImportAsync(checks);
         await CheckOwnedMeasurementsAsync(checks);
+        await CheckLiveVisibilityAsync(checks);
         CheckDirectDnsRules(checks);
         CheckDeferredViews(checks);
         CheckLiveCache(checks);
