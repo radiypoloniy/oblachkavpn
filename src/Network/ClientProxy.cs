@@ -60,7 +60,11 @@ public sealed class ClientProxy : IDisposable
         if (disposed || context is null) return;
         if (Port == 0 || GaveUp) { timer?.Change(Timeout.Infinite, Timeout.Infinite); return; }
         timer ??= new Timer(_ => context.Post(_ => Poll(), null), null, Timeout.Infinite, Timeout.Infinite);
-        timer.Change(TimeSpan.FromSeconds(5), Timeout.InfiniteTimeSpan);
+        // Timer может разбудить чуть раньше срока: ждём остаток, а не ещё полные пять секунд.
+        var delay = next == default ? TimeSpan.FromSeconds(5) : next - now();
+        if (delay < TimeSpan.FromMilliseconds(1)) delay = TimeSpan.FromMilliseconds(1);
+        if (delay > TimeSpan.FromSeconds(5)) delay = TimeSpan.FromSeconds(5);
+        timer.Change(delay, Timeout.InfiniteTimeSpan);
     }
     public void Poll()
     {

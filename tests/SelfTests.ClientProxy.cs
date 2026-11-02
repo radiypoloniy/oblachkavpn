@@ -46,5 +46,23 @@ public static partial class SelfTests
             owner.Preferences.SystemTunnel = true; owner.Proxy.Sync();
             Assert(store.Current == original && owner.Proxy.Port == 0);
         });
+        await check("An early proxy guard callback waits the remaining interval instead of another five seconds", async () =>
+        {
+            var core = new RecoveryCore(); using var owner = new ClientRuntime(core);
+            await core.StartAsync(Profiles.Parse(link), CancellationToken.None);
+            var started = DateTimeOffset.UtcNow; long elapsed = 0;
+            using var proxy = new ClientProxy(owner, () => started.AddMilliseconds(Interlocked.Read(ref elapsed)));
+            var store = new FakeProxyStore(original); owner.Preferences.SystemProxy = true;
+            proxy.Start(new SynchronizationContext(), new SystemProxy(store, Path.Combine(root, "client-proxy-early", "backup.json")), false);
+            proxy.Poll(); // Следующий срок — 5000 мс по управляемым часам.
+            store.Current = new(0, null, null, null);
+            Interlocked.Exchange(ref elapsed, 4900);
+            var repaired = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            proxy.Changed += change => { if (change.Kind == ProxyChangeKind.Repaired) repaired.TrySetResult(); };
+            proxy.Poll(); // Ранний вызов должен назначить остаток 100 мс, а не 5 секунд.
+            Interlocked.Exchange(ref elapsed, 5100);
+            await repaired.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            Assert(store.Current.ProxyServer == "127.0.0.1:10808");
+        });
     }
 }
