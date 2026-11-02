@@ -20,8 +20,10 @@ internal sealed class ClientDesktop : IDisposable
         return window;
     }
     private void ViewRequested() { if (!disposed && !app.Dispatcher.HasShutdownStarted) Window().Show(); }
-    public void Start(bool hidden, string? link)
+    public void Start(bool hidden, string? link, bool hardwareRendering = false)
     {
+        System.Windows.Media.RenderOptions.ProcessRenderMode = hardwareRendering
+            ? System.Windows.Interop.RenderMode.Default : System.Windows.Interop.RenderMode.SoftwareOnly;
         var window = Window();
         if (hidden) window.StartHiddenInTray();
         if (link is not null) window.QueueDeepLink(link);

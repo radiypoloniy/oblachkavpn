@@ -35,6 +35,7 @@ public static class Program
         // только в сборке с -p:IncludeTestCode=true и отсутствуют в поставляемом клиенте.
         if (args.Length > 1 && args[0] is "--ui-self-test" or "--ui-subscription-self-test")
         {
+            RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
             FlagImages.AllowNetwork = false;
             var testApp = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             testApp.Startup += async (_, _) =>
@@ -78,7 +79,7 @@ public static class Program
             using var desktop = new ClientDesktop(app, runtime);
             app.Exit += (_, _) => desktop.Close();
             AppInstance.ListenForShow(desktop.ShowFromSignal);
-            desktop.Start(args.Contains(AppInstance.TrayArgument), link);
+            desktop.Start(args.Contains(AppInstance.TrayArgument), link, args.Contains("--hardware-rendering"));
             return app.Run();
         }
         catch

@@ -13,6 +13,8 @@ internal static class TrayMemoryPreview
 {
     internal static int Run(string report)
     {
+        if (Environment.GetEnvironmentVariable("OBLACHKA_PROBE_SOFTWARE") == "1")
+            System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
         FlagImages.AllowNetwork = false;
         var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         app.Startup += async (_, _) =>
@@ -27,6 +29,7 @@ internal static class TrayMemoryPreview
                 var samples = new List<object>();
                 view = Open(owner);
                 await Task.Delay(4000);
+                var exercise = await Exercise(view);
                 samples.Add(Sample("visible", view, owner, false));
                 ChangeView(view, release: false);
                 await Task.Delay(4000);
@@ -41,7 +44,7 @@ internal static class TrayMemoryPreview
                 if (view.TryGetTarget(out _)) throw new InvalidOperationException("Released window remains rooted");
                 File.WriteAllText(report, JsonSerializer.Serialize(new { Passed = true,
                     Network = "Synthetic core; no VPN, system proxy, real subscriptions or external requests",
-                    Samples = samples }, new JsonSerializerOptions { WriteIndented = true }));
+                    Exercise = exercise, Samples = samples }, new JsonSerializerOptions { WriteIndented = true }));
                 app.Shutdown(0);
             }
             catch (Exception error)
@@ -52,6 +55,19 @@ internal static class TrayMemoryPreview
             finally { if (view is not null) ChangeView(view, release: true); }
         };
         return app.Run();
+    }
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static async Task<object> Exercise(WeakReference<MainWindow> view)
+    {
+        using var process = Process.GetCurrentProcess();
+        var cpu = process.TotalProcessorTime; var clock = Stopwatch.StartNew();
+        for (var i = 0; i < 40; i++)
+        {
+            if (view.TryGetTarget(out var current)) current.ExerciseMemoryNavigation(i % 2 == 0);
+            current = null;
+            await Task.Delay(16);
+        }
+        return new { CpuMilliseconds = (process.TotalProcessorTime - cpu).TotalMilliseconds, ElapsedMilliseconds = clock.Elapsed.TotalMilliseconds };
     }
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static WeakReference<MainWindow> Open(ClientRuntime owner)
@@ -111,4 +127,5 @@ internal static class TrayMemoryPreview
 public partial class MainWindow
 {
     internal void PrepareTrayMemoryFixture() { OpenAnalytics(); CloseAnalytics(); Navigate("Connection"); }
+    internal void ExerciseMemoryNavigation(bool servers) => Navigate(servers ? "Servers" : "Connection");
 }
