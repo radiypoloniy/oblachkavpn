@@ -45,9 +45,9 @@ public partial class MainWindow
         checks.Add("Coalesced network events connect once after the WPF view closes and is collected");
         using (var owner = ConnectionOwner(new WindowStartCore(), selected))
         {
+            owner.Workspace.TrafficDay = "2000-01-01"; owner.Workspace.TrafficToday = 500;
             owner.Traffic.Start(new DispatcherSynchronizationContext(Dispatcher));
             var reference = ClosedStartupView(owner);
-            owner.Workspace.TrafficDay = "2000-01-01"; owner.Workspace.TrafficToday = 500;
             for (var i = 0; i < 5; i++)
             {
                 await Task.Delay(250); await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
@@ -71,7 +71,7 @@ public partial class MainWindow
         public bool Metered() => true;
         public Task PingAsync(IReadOnlyList<Profile> targets, Action<Profile, long?> result, CancellationToken token) => Task.CompletedTask;
         public async Task MeasureAsync(IReadOnlyList<Profile> targets, bool physical, Action<ServerMeasurement> result,
-            Func<Profile, Profile?> route, bool throughput, CancellationToken token)
+            Func<Profile, Profile?> route, bool throughput, CancellationToken token, int parallelism = ServerMeasurements.Parallel, Action<Profile>? starting = null)
         {
             await Release.Task.WaitAsync(token);
             foreach (var p in targets) result(new(Profiles.Fingerprint(p), DateTimeOffset.UtcNow, true, 5));

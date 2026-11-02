@@ -32,20 +32,28 @@ public partial class MainWindow
     // Трафик за сегодня по часам (облик 0.20): 12 столбиков по два часа, последний — «сейчас».
     private long[] trafficHours => runtime.Workspace.TrafficHours;
     private string todayShown = "";
+    private readonly long[] todayPairs = new long[12];
+    private DateTime todayShownDay;
+    private int todayShownHour = -1;
 
     private void RefreshTodayCard()
     {
         var text = TrafficMeter.Size(trafficToday);
-        var pairs = Enumerable.Range(0, 12).Select(i => trafficHours[i * 2] + trafficHours[i * 2 + 1]).ToArray();
-        var now = DateTime.Now.Hour / 2;
-        var key = text + "|" + now + "|" + string.Join(',', pairs);
-        if (key == todayShown) return;
-        todayShown = key;
+        var clock = DateTime.Now; var now = clock.Hour / 2;
+        var changed = text != todayShown || now != todayShownHour || clock.Date != todayShownDay;
+        for (var i = 0; i < todayPairs.Length; i++)
+        {
+            var pair = trafficHours[i * 2] + trafficHours[i * 2 + 1];
+            if (pair != todayPairs[i]) { todayPairs[i] = pair; changed = true; }
+        }
+        if (!changed) return;
+        todayShown = text; todayShownHour = now; todayShownDay = clock.Date;
         Home.TrafficToday.Text = text;
         // Последние 12 столбиков по два часа, последний — текущий; до полуночи — пусто (счёт с начала суток).
-        var window = Enumerable.Range(now - 11, 12).Select(i => i >= 0 ? pairs[i] : 0L).ToArray();
-        var max = Math.Max(1, window.Max());
-        Home.TrafficBars.Values = window.Select(v => (double)v / max).ToArray();
+        var window = new double[12]; var max = 1d;
+        for (var i = 0; i < window.Length; i++) { var hour = now - 11 + i; window[i] = hour >= 0 ? todayPairs[hour] : 0; max = Math.Max(max, window[i]); }
+        for (var i = 0; i < window.Length; i++) window[i] /= max;
+        Home.TrafficBars.Values = window;
     }
 
     // Строка под статусом: имя сервера и так в карточке ниже, а скорость с ним в боковую панель не влезала.

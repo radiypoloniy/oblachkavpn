@@ -4,6 +4,35 @@ public static partial class SelfTests
 {
     private static async Task ClientMeasurementChecksAsync(Func<string, Func<Task>, Task> check)
     {
+        await check("Background batches use one worker and continue through every server before sleeping", async () =>
+        {
+            var time = DateTimeOffset.UtcNow; var backend = new MeasurementBackend { IsMetered = true };
+            var profiles = Enumerable.Range(0, 20).Select(i => Profiles.Parse(link.Replace("example.com", $"node{i}.invalid"))).ToArray();
+            using var owner = MeasurementOwner(backend, profiles, () => time); owner.Measurements.Enabled = true;
+            await owner.Measurements.PollAsync(); Assert(backend.Measured.Count == 8 && owner.Measurements.NextDelay() == TimeSpan.FromSeconds(15));
+            time = time.AddSeconds(16); await owner.Measurements.PollAsync(); Assert(backend.Measured.Count == 16);
+            time = time.AddSeconds(16); await owner.Measurements.PollAsync();
+            Assert(backend.Measured.Count == 20 && backend.Measured.Distinct().Count() == 20 && backend.Parallelism.All(n => n == 1));
+            Assert(owner.Measurements.NextDelay() > TimeSpan.FromMinutes(9));
+        });
+        await check("Idle measurements schedule the next actual deadline instead of polling every 30 seconds", async () =>
+        {
+            var time = DateTimeOffset.UtcNow; var backend = new MeasurementBackend { IsMetered = true };
+            using var owner = MeasurementOwner(backend, [Profiles.Parse(link)], () => time); owner.Measurements.Enabled = true;
+            await owner.Measurements.PollAsync(); Assert(owner.Measurements.NextDelay() == TimeSpan.FromMinutes(10));
+            time = time.AddMinutes(3); Assert(owner.Measurements.NextDelay() == TimeSpan.FromMinutes(7));
+        });
+        await check("Interrupted background batches resume after the attempted server without starving the queue", async () =>
+        {
+            var time = DateTimeOffset.UtcNow; var backend = new MeasurementBackend { IsMetered = true };
+            var profiles = Enumerable.Range(0, 10).Select(i => Profiles.Parse(link.Replace("example.com", $"node{i}.invalid"))).ToArray();
+            using var owner = MeasurementOwner(backend, profiles, () => time); owner.Measurements.Enabled = true;
+            var attempted = new List<Profile>();
+            backend.Starting = p => { attempted.Add(p); owner.Measurements.CancelMeasure(); };
+            for (var i = 0; i < profiles.Length; i++) { await owner.Measurements.PollAsync(); time = time.AddSeconds(16); }
+            Assert(attempted.SequenceEqual(profiles) && backend.Measured.Count == 0);
+            await owner.Measurements.PollAsync(); Assert(attempted.Count == profiles.Length);
+        });
         var a = Profiles.Parse(link); var b = Profiles.Parse(link.Replace("example.com", "second.invalid").Replace("#Test", "#Second"));
         await check("Background measurement retains speed between latency rounds and measures throughput only every three hours", async () =>
         {
@@ -19,7 +48,7 @@ public static partial class SelfTests
             var backend = new MeasurementBackend { IsMetered = true };
             using var owner = MeasurementOwner(backend, a); owner.Measurements.Enabled = true;
             await owner.Measurements.PollAsync(); Assert(backend.Rounds.All(r => !r.Speed));
-            await owner.Measurements.MeasureAsync([a], false); Assert(backend.Rounds.Any(r => r.Speed));
+            await owner.Measurements.MeasureAsync([a], false); Assert(backend.Rounds.Any(r => r.Speed) && backend.Parallelism.Last() == ServerMeasurements.Parallel);
         });
         await check("A cancelled measurement rejects late results even if its backend ignores cancellation", async () =>
         {
@@ -83,20 +112,26 @@ public static partial class SelfTests
         public bool IsMetered, IgnoreCancel;
         public TaskCompletionSource? Gate, PingGate;
         public List<(bool Speed, bool Physical)> Rounds { get; } = new();
+        public List<int> Parallelism { get; } = new();
         public List<Profile> Measured { get; } = new();
         public Func<DateTimeOffset> Now = () => DateTimeOffset.UtcNow;
+        public Action<Profile>? Starting;
         public string? Network() => "fixture-network";
         public bool Metered() => IsMetered;
         public async Task PingAsync(IReadOnlyList<Profile> targets, Action<Profile, long?> result, CancellationToken token)
         { if (PingGate is not null) await PingGate.Task; foreach (var p in targets) result(p, 1); }
         public async Task MeasureAsync(IReadOnlyList<Profile> targets, bool physical, Action<ServerMeasurement> result,
-            Func<Profile, Profile?> route, bool throughput, CancellationToken token)
+            Func<Profile, Profile?> route, bool throughput, CancellationToken token, int parallelism = ServerMeasurements.Parallel, Action<Profile>? starting = null)
         {
-            Rounds.Add((throughput, physical)); if (Gate is not null) await Gate.Task;
+            Parallelism.Add(parallelism); Rounds.Add((throughput, physical)); if (Gate is not null) await Gate.Task;
             if (!IgnoreCancel) token.ThrowIfCancellationRequested();
             foreach (var p in targets)
+            {
+                starting?.Invoke(p);
+                Starting?.Invoke(p); if (!IgnoreCancel) token.ThrowIfCancellationRequested();
                 if (route(p) is { } routed)
                 { Measured.Add(p); result(new(Profiles.Fingerprint(p), Now(), true, 10) { Throughput = throughput ? 5000 : 0 }); }
+            }
         }
     }
 }

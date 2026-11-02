@@ -6,7 +6,7 @@ internal interface IClientMeasurementBackend
     bool Metered();
     Task PingAsync(IReadOnlyList<Profile> targets, Action<Profile, long?> result, CancellationToken token);
     Task MeasureAsync(IReadOnlyList<Profile> targets, bool physical, Action<ServerMeasurement> result,
-        Func<Profile, Profile?> route, bool throughput, CancellationToken token);
+        Func<Profile, Profile?> route, bool throughput, CancellationToken token, int parallelism = ServerMeasurements.Parallel, Action<Profile>? starting = null);
 }
 internal sealed class ClientMeasurementBackend : IClientMeasurementBackend
 {
@@ -14,8 +14,8 @@ internal sealed class ClientMeasurementBackend : IClientMeasurementBackend
     public bool Metered() => NetworkCost.Metered();
     public Task PingAsync(IReadOnlyList<Profile> targets, Action<Profile, long?> result, CancellationToken token) => ServerPing.PingAllAsync(targets, result, token);
     public Task MeasureAsync(IReadOnlyList<Profile> targets, bool physical, Action<ServerMeasurement> result,
-        Func<Profile, Profile?> route, bool throughput, CancellationToken token) => ServerMeasurements.MeasureAsync(targets,
-            () => new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), "") { Physical = physical }, result, token, route, throughput);
+        Func<Profile, Profile?> route, bool throughput, CancellationToken token, int parallelism = ServerMeasurements.Parallel, Action<Profile>? starting = null) => ServerMeasurements.MeasureAsync(targets,
+            () => new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"), "") { Physical = physical }, result, token, route, throughput, parallelism, starting);
 }
 
 // Результаты и задачи принадлежат владельцу. Окно подписывается только на изменения.
@@ -76,20 +76,22 @@ public sealed partial class ClientMeasurements : IDisposable
         {
             LastPing = now(); pinging = null; owner.Profiles.TrimMeasurements();
             if (pingQueued && !disposed) QueuePing();
+            if (!disposed) Schedule(NextDelay());
         }
     }
     public Task MeasureAsync(IReadOnlyList<Profile> targets, bool quiet, CancellationToken token = default)
     {
         if (disposed || IsMeasuring || targets.Count == 0) return Task.CompletedTask;
-        return MeasureTask = MeasureCoreAsync(targets.ToArray(), quiet, token);
+        return MeasureTask = MeasureCoreAsync(targets.ToArray(), quiet, token, false, null);
     }
-    private async Task MeasureCoreAsync(IReadOnlyList<Profile> targets, bool quiet, CancellationToken token)
+    private async Task MeasureCoreAsync(IReadOnlyList<Profile> targets, bool quiet, CancellationToken token, bool background, Action<Profile>? starting)
     {
         using var cancel = CancellationTokenSource.CreateLinkedTokenSource(token); measuring = cancel; Quiet = quiet; LastMeasure = now();
+        if (background) cancel.CancelAfter(TimeSpan.FromSeconds(30));
+        else { nextMeasurement = now().AddMinutes(10); backgroundQueue = null; }
         var epoch = ++measureEpoch; var network = backend.Network(); var session = owner.Tunnel;
         Profile? Route(Profile p) => session is null ? p : session.PinnedFor(p);
         var throughput = !quiet || (network != throughputNetwork || now() - lastThroughput > TimeSpan.FromHours(3)) && !backend.Metered();
-        if (throughput) { lastThroughput = now(); throughputNetwork = network; }
         var done = 0; var speedDone = 0;
         var skipped = targets.Count(t => Route(t) is null);
         void Measured(ServerMeasurement result, bool speed)
@@ -104,12 +106,13 @@ public sealed partial class ClientMeasurements : IDisposable
         Changed?.Invoke();
         try
         {
-            await backend.MeasureAsync(targets, session is not null, r => Measured(r, false), Route, false, cancel.Token);
+            await backend.MeasureAsync(targets, session is not null, r => Measured(r, false), Route, false, cancel.Token, background ? 1 : ServerMeasurements.Parallel, starting);
             cancel.Token.ThrowIfCancellationRequested();
             if (throughput && ReferenceEquals(session, owner.Tunnel))
             {
                 var fastest = ServerMeasurements.ThroughputTargets(targets, owner.Profiles.Measurements, now(), owner.Profiles.Running ?? owner.Profiles.Selected);
-                await backend.MeasureAsync(fastest, session is not null, r => Measured(r, true), Route, true, cancel.Token);
+                if (fastest.Count > 0) { lastThroughput = now(); throughputNetwork = network; }
+                await backend.MeasureAsync(fastest, session is not null, r => Measured(r, true), Route, true, cancel.Token, background ? 1 : ServerMeasurements.Parallel);
             }
             Message = "Пинг обновлён: задержка через каждый сервер." + (skipped > 0 ? $" {skipped} не проверить, пока включён «Весь компьютер»: их адреса закрыты защитой." : "");
         }
@@ -118,14 +121,14 @@ public sealed partial class ClientMeasurements : IDisposable
         finally
         {
             measuring = null; owner.Profiles.TrimMeasurements(); owner.Persistence.Queue();
-            if (!disposed) Changed?.Invoke();
+            if (!disposed) { Changed?.Invoke(); Schedule(NextDelay()); }
         }
     }
     public void CancelMeasure() { measureEpoch++; measuring?.Cancel(); }
     public void InvalidateNetwork()
     {
         pingEpoch++; measureEpoch++; pinging?.Cancel(); measuring?.Cancel();
-        LastMeasure = DateTimeOffset.MinValue;
+        LastMeasure = DateTimeOffset.MinValue; nextMeasurement = now().AddSeconds(15); backgroundQueue = null; scheduleEpoch++;
         Schedule(TimeSpan.FromSeconds(15));
     }
     public void PrepareTunnel() { pingEpoch++; pinging?.Cancel(); CancelMeasure(); }

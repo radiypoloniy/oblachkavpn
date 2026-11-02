@@ -4,6 +4,12 @@ public static partial class SelfTests
 {
     private static async Task ClientTrafficChecksAsync(Func<string, Func<Task>, Task> check)
     {
+        await check("Idle traffic timer sleeps until local midnight instead of waking once per second", () => Sync(() =>
+        {
+            using var owner = new ClientRuntime(new ConnectionCore());
+            Assert(owner.Traffic.NextDelay(new DateTime(2026, 11, 2, 12, 0, 0)) == TimeSpan.FromHours(12));
+            Assert(owner.Traffic.NextDelay(new DateTime(2026, 11, 2, 23, 59, 59)) == TimeSpan.FromSeconds(1));
+        }));
         await check("Application traffic accounting rolls over the local day without a window", () => Sync(() =>
         {
             using var owner = new ClientRuntime(new ConnectionCore());
