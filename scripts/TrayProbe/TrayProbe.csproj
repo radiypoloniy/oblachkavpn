@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms><UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable><ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup><Reference Include="Oblachka"><HintPath>../../out/app/Oblachka.dll</HintPath></Reference></ItemGroup>
+  <!-- Старый pack URI ищет файл в entry assembly стенда; это тот же исходный значок. -->
+  <ItemGroup><Resource Include="../../src/Assets/app.ico" Link="Assets/app.ico"/></ItemGroup>
+</Project>
