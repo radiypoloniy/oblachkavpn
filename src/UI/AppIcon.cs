@@ -14,6 +14,6 @@ public static class AppIcon
             if (stream is not null) using (stream) return new System.Drawing.Icon(stream, System.Windows.Forms.SystemInformation.SmallIconSize);
         }
         catch (Exception ex) when (ex is IOException or ArgumentException or InvalidOperationException) { }
-        return System.Drawing.SystemIcons.Application;
+        return (System.Drawing.Icon)System.Drawing.SystemIcons.Application.Clone();
     }
 }

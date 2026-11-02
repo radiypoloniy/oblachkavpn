@@ -26,32 +26,35 @@ public partial class MainWindow : Window
     private RecoveryPolicy recovery => runtime.Monitor.Recovery;
     private CancellationTokenSource? recoveryWait { get => runtime.Activity.RecoveryWait; set => runtime.Activity.RecoveryWait = value; }
     private readonly List<ClientEvent> events = new();
-    private readonly Forms.NotifyIcon tray;
-    private readonly Forms.ToolStripMenuItem trayConnect;
-    private readonly Forms.ToolStripMenuItem trayStop;
+    private Forms.NotifyIcon tray => runtime.Tray!.Icon;
+    private Forms.ToolStripMenuItem trayConnect => runtime.Tray!.Connect;
+    private Forms.ToolStripMenuItem trayStop => runtime.Tray!.Stop;
     public MainWindow(bool persistenceEnabled = true, ClientStateStore? isolatedStore = null)
         : this(new ClientRuntime(), true, persistenceEnabled, isolatedStore) { }
     internal MainWindow(ClientRuntime runtime, bool ownsRuntime = false, bool persistenceEnabled = true, ClientStateStore? isolatedStore = null)
     {
         this.runtime = runtime; this.ownsRuntime = ownsRuntime;
-        stateStore = isolatedStore ?? (persistenceEnabled ? new ClientStateStore(ClientDataPaths.StateFile) : null);
-        isolatedPersistence = isolatedStore is not null;
+        runtime.Persistence.Configure(isolatedStore ?? (persistenceEnabled ? new ClientStateStore(ClientDataPaths.StateFile) : null), isolatedStore is not null);
+        isolatedPersistence = runtime.Persistence.Isolated;
         ThemeManager.EnsureLoaded();
         InitializeComponent();
         // Бывшие настройки «Подключения» живут в разделах острова (Views.SettingsPanel).
         Settings.LiveView = Live; Settings.ServersView = Servers;
         BindPreferences();
+        runtime.EnsureTray(new System.Windows.Threading.DispatcherSynchronizationContext(Dispatcher)).Attach(this);
         Height = Math.Min(Height, SystemParameters.WorkArea.Height);
         engine.Changed += EngineChanged;
+        runtime.Persistence.Changed += PersistenceChanged;
         WireViews();
         viewsReady = true;
         Navigate("Connection");
         presentationTimer.Tick += (_, _) => { RefreshPresentation(background: true); PollSubscription(); PollPing(); PollZapretRouting(); PollZapretWatch(); PollPause(); PollExpiry(); PollProxyGuard(); };
         presentationTimer.Start();
-        SubscribeLifecycle(persistenceEnabled && isolatedStore is null);
-        InitSystemProxy(persistenceEnabled && isolatedStore is null);
-        InitSystemTunnel(persistenceEnabled && isolatedStore is null);
-        InitStartup(persistenceEnabled && isolatedStore is null);
+        SubscribeLifecycle(persistenceEnabled && !isolatedPersistence);
+        if (stateStore is not null) runtime.Persistence.Start(new System.Windows.Threading.DispatcherSynchronizationContext(Dispatcher));
+        InitSystemProxy(persistenceEnabled && !isolatedPersistence);
+        InitSystemTunnel(persistenceEnabled && !isolatedPersistence);
+        InitStartup(persistenceEnabled && !isolatedPersistence);
         InitLaunch();
         InitHotkey();
         InitBackup();
@@ -63,18 +66,6 @@ public partial class MainWindow : Window
         Settings.DeviceIdText.Text = device.Length > 10 ? device[..4] + "…" + device[^4..] : device;
         Settings.DeviceIdText.ToolTip = device;
         Closing += OnClosing;
-        trayConnect = new Forms.ToolStripMenuItem("Подключить");
-        trayStop = new Forms.ToolStripMenuItem("Остановить");
-        var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add("Открыть", null, (_, _) => Dispatcher.Invoke(ShowWindow));
-        menu.Items.Add(trayConnect); menu.Items.Add(trayStop); menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("Завершить", null, (_, _) => Dispatcher.Invoke(ExitApplication));
-        trayConnect.Click += (_, _) => Dispatcher.Invoke(() => ConnectClick(this, new RoutedEventArgs()));
-        trayStop.Click += (_, _) => Dispatcher.Invoke(() => StopClick(this, new RoutedEventArgs()));
-        tray = new Forms.NotifyIcon { Icon = AppIcon.Small(), Text = ServiceBrand.Name + " — отключено", ContextMenuStrip = menu };
-        tray.DoubleClick += (_, _) => Dispatcher.Invoke(ShowWindow);
-        tray.BalloonTipClicked += (_, _) => Dispatcher.Invoke(NoticeClicked);
-        tray.MouseUp += (_, args) => { if (args.Button == Forms.MouseButtons.Left && args.Clicks < 2) Dispatcher.Invoke(ShowTrayPopup); };
         Loaded += (_, _) => { tray.Visible = true; RestoreSavedState(); UpdateControls(); _ = ConnectAtLaunchAsync(); };
         StateChanged += (_, _) => { if (WindowState != WindowState.Minimized) lastWindowState = WindowState; };
     }
@@ -231,9 +222,9 @@ public partial class MainWindow : Window
         operation?.Cancel();
         recoveryWait?.Cancel();
         ProfilePicker.SelectionChanged -= ProfileSelectionChanged;
+        runtime.Tray?.Detach(this);
         if (ownsRuntime) runtime.Dispose();
         CloseSystemProxy();
-        tray.Visible = false; tray.Dispose();
         pendingImport = null;
     }
 }

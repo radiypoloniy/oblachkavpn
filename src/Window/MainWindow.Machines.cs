@@ -1,4 +1,4 @@
-﻿using System.Windows.Media;
+using System.Windows.Media;
 
 namespace Oblachka;
 
@@ -10,7 +10,7 @@ public partial class MainWindow
 {
     private bool machineMode { get => runtime.Profiles.MachineMode; set => runtime.Profiles.MachineMode = value; }
     // Сеть (NetworkPolicy.Key) → машина (ServerMachines.Hash) → отпечаток записи, что в ней работала.
-    private readonly Dictionary<string, Dictionary<string, string>> machineMemory = new();
+    private Dictionary<string, Dictionary<string, string>> machineMemory => runtime.Workspace.MachineMemory;
     private readonly HashSet<string> expandedMachines = new();
     private const int MaxMachinesPerNetwork = 64;
 

@@ -12,13 +12,13 @@ public sealed record RuleSet(string Name, SiteRule[] Sites, ProgramRule[] Progra
 
 public partial class MainWindow
 {
-    public const string MainRuleSet = "Основной";
+    public const string MainRuleSet = ClientWorkspace.MainRuleSet;
     public const int MaxRuleSets = 8;
-    private readonly List<RuleSet> ruleSets = new();
-    private string ruleSetName = MainRuleSet;
+    private List<RuleSet> ruleSets => runtime.Workspace.RuleSets;
+    private string ruleSetName { get => runtime.Workspace.RuleSetName; set => runtime.Workspace.RuleSetName = value; }
     // Черновик нового набора (0.21): правила с чистого листа, имя — при сохранении. draftBase — набор,
     // что был включён до черновика: в состоянии остаётся он, «Отмена» возвращает его.
-    private RuleSet? draftBase;
+    private RuleSet? draftBase { get => runtime.Workspace.DraftBase; set => runtime.Workspace.DraftBase = value; }
 
     private void WireRuleSets()
     {
@@ -49,12 +49,8 @@ public partial class MainWindow
     internal static bool ValidName(string name) => name.Trim().Length is >= 1 and <= 24 && name == name.Trim();
 
     // Все наборы для сохранения: текущий — из списка правил. В черновике текущих правил в наборах нет.
-    private RuleSet[] SavedRuleSets() => draftBase is not null ? ruleSets.ToArray() :
-        ruleSets.Where(s => s.Name != ruleSetName).Append(new RuleSet(ruleSetName, siteRules.ToArray(), programRules.ToArray(), ruleSetServers?.ToArray()))
-            .OrderBy(s => s.Name == MainRuleSet ? 0 : 1).ToArray();
-
-    // Что пишется в состояние как «текущий набор»: в черновике — набор до него, черновик не сохраняется.
-    private RuleSet PersistedSet => draftBase ?? new RuleSet(ruleSetName, siteRules.ToArray(), programRules.ToArray(), ruleSetServers?.ToArray());
+    private RuleSet[] SavedRuleSets() => runtime.Workspace.SavedRuleSets(runtime);
+    private RuleSet PersistedSet => runtime.Workspace.PersistedSet(runtime);
 
     private void SwitchRuleSet(string name)
     {

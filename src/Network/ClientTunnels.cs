@@ -44,6 +44,7 @@ public sealed class ClientTunnels
                 catch (Exception ex) when (!token.IsCancellationRequested && ex is UserError or IOException or OperationCanceledException or TimeoutException) { }
                 token.ThrowIfCancellationRequested();
                 Applied = settings; owner.Profiles.Running = selected;
+                owner.Workspace.WasConnected = true; owner.Persistence.Queue();
                 owner.Monitor.ObserveProcess(); owner.Monitor.StartedFresh();
             }
             catch

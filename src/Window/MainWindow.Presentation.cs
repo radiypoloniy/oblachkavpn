@@ -28,7 +28,7 @@ public partial class MainWindow
         RefreshTraffic(onScreen);
         // Скрытое окно продолжает считать трафик и проверять связь, но не перерисовывает
         // десятки WPF-свойств каждую секунду. Открытый трей обновляется в прежнем темпе.
-        if (!onScreen) { FlushStateSave(); return; }
+        if (!onScreen) return;
         if (sheetMeasurementsDirty && Servers.IsVisible) FilterProfiles();
         RefreshHome();
         RefreshRuleApplyStatus();
@@ -50,7 +50,6 @@ public partial class MainWindow
         else if (Onboarding.Visibility == Visibility.Visible) FindForeignClients();
         RefreshTrayPopup();
         RefreshMeasurement();
-        FlushStateSave();
     }
 
     private void RecordProbe(ProbeResult result)

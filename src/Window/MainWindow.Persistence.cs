@@ -4,56 +4,24 @@ namespace Oblachka;
 
 public partial class MainWindow
 {
-    private readonly ClientStateStore? stateStore;
-    private bool stateRestored;
-    private bool restoringState;
-    private bool stateDirty;
-    private bool rememberConnections = true;
+    private ClientStateStore? stateStore => runtime.Persistence.Store;
+    private bool stateRestored { get => runtime.Persistence.Restored; set => runtime.Persistence.Restored = value; }
+    private bool restoringState { get => runtime.Persistence.Restoring; set => runtime.Persistence.Restoring = value; }
+    private bool stateDirty { get => runtime.Persistence.Dirty; set => runtime.Persistence.Dirty = value; }
+    private bool rememberConnections { get => runtime.Persistence.Remember; set => runtime.Persistence.Remember = value; }
     private readonly bool isolatedPersistence;
 
-    private void QueueStateSave()
+    private void QueueStateSave() => runtime.Persistence.Queue();
+    private void FlushStateSave() => runtime.Persistence.Flush();
+    private void PersistenceChanged()
     {
-        // Без выбранного сервера тоже: убранная последняя подписка должна сохраниться пустым списком.
-        if (stateStore is not null && !restoringState && rememberConnections && (stateRestored || profile is not null)) stateDirty = true;
+        if (closed) return;
+        var error = runtime.Persistence.LastError;
+        Settings.StorageStatus.Text = error ?? "Подписка и изменения запоминаются автоматически в зашифрованном виде.";
+        if (error is not null) DetailText.Text = error;
     }
 
-    private void FlushStateSave()
-    {
-        // Отложенное обновление подписки (оно ждёт отключения) сохранению не мешает: сохраняется то,
-        // что сейчас в списке. Раньше из-за него за всю подключённую сессию не сохранялось ничего —
-        // и убранная подписка возвращалась после перезапуска.
-        if (!stateDirty || restoringState || stateStore is null || !rememberConnections || !(stateRestored || profile is not null) || operation is not null) return;
-        stateDirty = false;
-        try
-        {
-            stateStore.Save(CaptureState());
-            Settings.StorageStatus.Text = "Подписка и изменения запоминаются автоматически в зашифрованном виде.";
-        }
-        catch (UserError ex) { Settings.StorageStatus.Text = ex.Message; DetailText.Text = ex.Message; }
-    }
-
-    private ClientSnapshot CaptureState() => new(1,
-        // Все серверы групп, со скрытыми: иначе после перезапуска их нечем было бы вернуть.
-        // Бесплатные чужие узлы (FreeServers) не сохраняются: после перезапуска их нет.
-        SavedGroups.SelectMany(g => ProfilesOf(g.Id)).Select(p => new SavedProfile(p.Name, (System.Text.Json.Nodes.JsonObject)p.Outbound.DeepClone()) { Source = p.Source, Group = p.Group }).ToArray(),
-        profile is null || profile.IsFree ? null : Profiles.Fingerprint(profile), subscriptionSources.ToArray(), preferredSource,
-        preferences.StayInTray, preferences.AutoRecover)
-        { SelectedGroup = profile is { IsFree: false } ? profile.Group : null, SelectedName = profile is { IsFree: false } ? profile.Name : null, ExternalSources = externalSources.ToArray(), AutoRefresh = preferences.AutoRefresh, SystemProxy = preferences.SystemProxy, CloseToTray = preferences.StayInTray, SystemTunnel = preferences.SystemTunnel, Theme = ThemeManager.Choice, Metadata = ServiceGroup?.Metadata, Groups = SavedGroups.ToArray(), RouteRules = PersistedSet.Sites, ProgramRules = PersistedSet.Programs,
-            Favorites = favorites.Where(f => importedProfiles.Any(p => FavoriteKey(p) == f)).Take(Subscriptions.MaxProfiles).ToArray(),
-            HiddenServers = hiddenServers.Take(Subscriptions.MaxProfiles).ToArray(), RemovedSubscriptions = removedSubscriptions.ToArray(),
-            Measurements = measurements.Values.Where(m => importedProfiles.Any(p => !p.IsFree && Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
-            ProviderRouting = providerRouting, UseProviderRouting = useProviderRouting, RussiaDirect = preferences.RussiaDirect, AutoSelect = autoSelect,
-            UpdateCheck = preferences.UpdateAuto, UpdatePrerelease = preferences.UpdatePrerelease, DpiBypass = fragmentMode,
-            ZapretEnabled = zapretEnabled, SelectiveVpn = selectiveVpn, ZapretChoices = new Dictionary<string, string>(zapretChoices), ZapretVpnGroups = zapretVpnGroups.Order(StringComparer.Ordinal).ToArray(),
-            AutoPool = autoPool.Snapshot(importedProfiles),
-            ConnectOnLaunch = preferences.ConnectOnLaunch, WasConnected = wasConnected, Notices = preferences.Notices,
-            KnownNetworks = knownNetworks.Count == 0 ? null : new(knownNetworks), SecureUnknown = preferences.SecureUnknown, Lockdown = preferences.Lockdown,
-            MachinePick = machineMode, MachineMemory = machineMemory.Count == 0 ? null : machineMemory.ToDictionary(p => p.Key, p => new Dictionary<string, string>(p.Value)),
-            ServiceHosts = ServiceBrand.LearnedIn(groups.SelectMany(g => g.Sources).Concat(subscriptionSources)), LocalNetwork = preferences.LocalNetwork,
-            QuicOverTcp = preferences.QuicOverTcp, CompatibleStack = preferences.CompatibleStack, Advanced = advanced.IsDefault ? null : advanced, ServerTweaks = serverTweaks.Count == 0 ? null : new(serverTweaks),
-            RuleSets = ruleSets.Count == 0 ? null : SavedRuleSets().Where(s => s.Name != PersistedSet.Name).ToArray(), RuleSetName = ruleSets.Count == 0 && PersistedSet.Name == MainRuleSet ? null : PersistedSet.Name,
-            RuleSetServers = PersistedSet.Servers, TrafficDay = trafficDay, TrafficBytes = trafficToday, TrafficHours = trafficHours.ToArray(), TrafficHistory = trafficHistory.Snapshot(DateTime.Now),
-            Hotkey = preferences.Hotkey, FreeConsent = freeConsent, FreeList = freeList.ToString() };
+    private ClientSnapshot CaptureState() => runtime.Persistence.Capture();
 
     private IEnumerable<ProfileGroup> SavedGroups => groups.Where(g => g.Source != ProfileSource.Free);
 
@@ -62,8 +30,7 @@ public partial class MainWindow
         if (stateStore is null || profile is null || operation is not null) return;
         try
         {
-            stateStore.Save(CaptureState());
-            stateDirty = false;
+            runtime.Persistence.SaveNow();
             Settings.StorageStatus.Text = "Подключения и настройки сохранены для текущей учётной записи Windows.";
             DetailText.Text = "Сохранено на этом компьютере в зашифрованном виде.";
         }
@@ -73,10 +40,9 @@ public partial class MainWindow
     private void RestoreSavedState()
     {
         if (stateRestored || stateStore is null) return;
-        stateRestored = true;
         try
         {
-            var snapshot = stateStore.LoadWithMigration(isolatedPersistence ? Array.Empty<string>() : ClientDataPaths.LegacyFiles);
+            var snapshot = runtime.Persistence.LoadOnce();
             if (snapshot is null) return;
             restoringState = true;
             try { ApplySnapshot(snapshot); } finally { restoringState = false; }

@@ -23,11 +23,11 @@ public partial class MainWindow
     private void ReleaseViewResources()
     {
         ThemeManager.Changed -= RefreshHome;
+        runtime.Persistence.Changed -= PersistenceChanged;
         runtime.TunnelChanged -= OnSystemTunnelChanged;
         runtime.ProtectionRepaired -= OnProtectionRepaired;
         System.ComponentModel.DependencyPropertyDescriptor.FromProperty(System.Windows.Controls.TextBlock.TextProperty,
             typeof(System.Windows.Controls.TextBlock)).RemoveValueChanged(ShellFeedback, FeedbackChanged);
-        tray.ContextMenuStrip?.Dispose();
         System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged -= MeasurementAddressChanged;
         System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged -= NetworkAddressChanged;
         updateTimer.Stop(); networkSettle.Stop(); toastTimer.Stop();

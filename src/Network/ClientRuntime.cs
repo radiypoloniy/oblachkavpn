@@ -7,6 +7,10 @@ public sealed class ClientRuntime : IDisposable
     public ClientProfiles Profiles { get; } = new();
     public ClientPreferences Preferences { get; } = new();
     public ClientActivity Activity { get; } = new();
+    public ClientWorkspace Workspace { get; } = new();
+    public ClientPersistence Persistence { get; }
+    internal ClientTray? Tray { get; private set; }
+    internal ClientTray EnsureTray(SynchronizationContext context) => Tray ??= new(this, context);
     public ClientHealthMonitor Monitor { get; }
     public ClientRecovery Recovery { get; }
     public ClientTunnelPolicy TunnelPolicy { get; }
@@ -29,6 +33,8 @@ public sealed class ClientRuntime : IDisposable
     internal ClientRuntime(ITunnelController engine, IClientTunnelHost host, ClientPathHealth? path = null)
     {
         Engine = engine;
+        Persistence = new(this);
+        Preferences.PropertyChanged += PreferencesChanged;
         tunnelHost = host; TunnelPolicy = new(this); Tunnels = new(this, host);
         Monitor = new ClientHealthMonitor(this, path: path);
         Recovery = new ClientRecovery(this);
@@ -48,6 +54,7 @@ public sealed class ClientRuntime : IDisposable
         return Tunnel;
     }
     private bool AllowsDirect() => Engine is Engine core && (core.DirectEntry is null || RoutingLists is not null) && !core.Fragment;
+    private void PreferencesChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args) => Persistence.Queue();
     private void TunnelStateChanged(SystemTunnelState state)
     {
         TunnelChanged?.Invoke(state);
@@ -75,7 +82,10 @@ public sealed class ClientRuntime : IDisposable
     {
         if (disposed) return;
         disposed = true;
+        Preferences.PropertyChanged -= PreferencesChanged;
         Recovery.Dispose();
+        Persistence.Dispose();
+        Tray?.Dispose(); Tray = null;
         Monitor.Dispose();
         TunnelChanged = null; ProtectionRepaired = null;
         if (ServerTweak.Lookup == lookup) ServerTweak.Lookup = previousLookup;

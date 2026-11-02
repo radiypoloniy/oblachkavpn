@@ -10,7 +10,7 @@ namespace Oblachka;
 // сам — в этой сети больше сами не включаем, пока он не включит его снова.
 public partial class MainWindow
 {
-    private readonly Dictionary<string, KnownNetwork> knownNetworks = new();
+    private Dictionary<string, KnownNetwork> knownNetworks => runtime.Workspace.KnownNetworks;
     private (string Key, string Name, bool Public)? currentNetwork;
     private string? stoppedOnNetwork;
     private readonly DispatcherTimer networkSettle = new() { Interval = TimeSpan.FromSeconds(3) };

@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
@@ -9,7 +9,7 @@ namespace Oblachka;
 // (модель вне дерева), клик по строке подключает так же, как на главном экране.
 public partial class MainWindow
 {
-    private readonly HashSet<string> favorites = new(StringComparer.Ordinal);
+    private HashSet<string> favorites => runtime.Workspace.Favorites;
 
     // Имя и источник переживают смену ключей панели; значения в файле состояния — хеши.
     private static string FavoriteKey(Profile item) => AutoPool.Key(item);

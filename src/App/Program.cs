@@ -73,12 +73,11 @@ public static class Program
                 e.Handled = true; app.Shutdown(1);
             };
             using var runtime = new ClientRuntime();
-            var window = new MainWindow(runtime);
-            if (args.Contains(AppInstance.TrayArgument)) window.StartHiddenInTray();
-            app.Exit += (_, _) => window.Close();
-            AppInstance.ListenForShow(window.ShowFromSignal);
-            if (link is not null) window.QueueDeepLink(link);
-            return app.Run(window);
+            using var desktop = new ClientDesktop(app, runtime);
+            app.Exit += (_, _) => desktop.Close();
+            AppInstance.ListenForShow(desktop.ShowFromSignal);
+            desktop.Start(args.Contains(AppInstance.TrayArgument), link);
+            return app.Run();
         }
         catch
         { MessageBox.Show("Не удалось открыть приложение. Папка сборки должна быть доступна для записи.", ServiceBrand.Name); return 1; }

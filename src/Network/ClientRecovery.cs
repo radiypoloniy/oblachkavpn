@@ -104,6 +104,8 @@ public sealed partial class ClientRecovery : IDisposable
             LastOutcome = result; Message = result.Message ?? "";
             if (result.Kind is RecoveryOutcomeKind.NotFound or RecoveryOutcomeKind.Exhausted) NetworkClosed = TunnelActive;
             else if (result.Kind is RecoveryOutcomeKind.Recovered or RecoveryOutcomeKind.Restarted or RecoveryOutcomeKind.Rebuilt) NetworkClosed = false;
+            if (result.Kind is RecoveryOutcomeKind.Recovered or RecoveryOutcomeKind.Restarted or RecoveryOutcomeKind.Rebuilt)
+            { owner.Workspace.WasConnected = true; owner.Persistence.Queue(); }
         }
     }
     private void Publish(RecoveryOutcome? before)

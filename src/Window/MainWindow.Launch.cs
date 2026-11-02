@@ -5,7 +5,7 @@ namespace Oblachka;
 // Здесь же — подключение заново, когда «Весь компьютер» прервался не по воле человека.
 public partial class MainWindow
 {
-    private bool wasConnected;
+    private bool wasConnected { get => runtime.Workspace.WasConnected; set => runtime.Workspace.WasConnected = value; }
     // Подбор zapret отложен до подключения (RestoreZapret).
     private bool zapretAfterConnect;
 

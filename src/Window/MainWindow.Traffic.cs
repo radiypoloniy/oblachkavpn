@@ -10,10 +10,10 @@ public partial class MainWindow
     private TrafficMeter? meter;
     private CoreStatsEntry? meterEntry;
     private long meterCountedUp, meterCountedDown, trafficSavedBytes;
-    private string trafficDay = "";
-    private long trafficToday;
+    private string trafficDay { get => runtime.Workspace.TrafficDay; set => runtime.Workspace.TrafficDay = value; }
+    private long trafficToday { get => runtime.Workspace.TrafficToday; set => runtime.Workspace.TrafficToday = value; }
     private DateTime trafficSavedAt;
-    private readonly TrafficHistory trafficHistory = new();
+    private TrafficHistory trafficHistory => runtime.Workspace.TrafficHistory;
     private readonly ProgramTrafficHistory programTraffic = new();
     private readonly SpeedHistory speedHistory = new();
 
@@ -102,7 +102,7 @@ public partial class MainWindow
     }
 
     // Трафик за сегодня по часам (облик 0.20): 12 столбиков по два часа, последний — «сейчас».
-    private readonly long[] trafficHours = new long[24];
+    private long[] trafficHours => runtime.Workspace.TrafficHours;
     private string todayShown = "";
 
     private void RefreshTodayCard()

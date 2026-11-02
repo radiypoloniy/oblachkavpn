@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Windows;
 namespace Oblachka;
 
@@ -11,7 +11,7 @@ public partial class MainWindow
     private bool zapretBusy;
     private ZapretStatus? zapretStatus;
     // Сеть (NetworkIdentity) → выбор «стратегия|группы» (ZapretPlan.Encode); стратегия «-» — без обхода.
-    private readonly Dictionary<string, string> zapretChoices = new(StringComparer.Ordinal);
+    private Dictionary<string, string> zapretChoices => runtime.Workspace.ZapretChoices;
     // Домены групп, которые идут напрямую (ZapretPlan).
     private string[] zapretDomains = Array.Empty<string>();
     private string zapretTag = "";
@@ -20,7 +20,7 @@ public partial class MainWindow
     private string zapretNote = "";
     private CancellationTokenSource? zapretCancel;
     // Группы, которые человек сам оставил в VPN («YouTube — через VPN»): их подбор не проверяет.
-    private readonly HashSet<string> zapretVpnGroups = new(StringComparer.Ordinal);
+    private HashSet<string> zapretVpnGroups => runtime.Workspace.ZapretVpnGroups;
     // Подбор в этом запуске уже прошёл (с любым итогом). Нет — карточка не пишет «не помог».
     private bool zapretTried;
 

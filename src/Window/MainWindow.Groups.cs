@@ -92,7 +92,7 @@ public partial class MainWindow
 
     // Новая или обновлённая группа целиком. Узлы получают её источник и идентификатор.
     // Убранные подписки (идентификаторы групп): ссылка oblachka:// на такую спрашивает отдельно.
-    private readonly HashSet<string> removedSubscriptions = new(StringComparer.Ordinal);
+    private HashSet<string> removedSubscriptions => runtime.Workspace.RemovedSubscriptions;
     private void TrimRemoved() { while (removedSubscriptions.Count > 32) removedSubscriptions.Remove(removedSubscriptions.First()); }
 
     private void SetGroup(ProfileGroup group, IReadOnlyList<Profile> profiles)

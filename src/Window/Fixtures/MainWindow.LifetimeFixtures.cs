@@ -9,10 +9,14 @@ public partial class MainWindow
     {
         var core = new ViewLifetimeCore();
         using var owner = new ClientRuntime(core);
-        var profile = Profiles.Parse("vless://11111111-1111-4111-8111-111111111111@example.invalid:443?security=tls&type=tcp#Lifetime");
+        var profile = Profiles.Parse("vless://11111111-1111-4111-8111-111111111111@example.invalid:443?security=tls&type=tcp#Lifetime") with { Group = ProfileGroup.ManualId };
         owner.Profiles.Imported = [profile]; owner.Profiles.Selected = profile;
         owner.Profiles.Picker.ItemsSource = owner.Profiles.Imported;
         owner.Profiles.Picker.SelectedItem = profile;
+        owner.Profiles.Groups.Add(ProfileGroup.Manual);
+        owner.Profiles.GroupProfiles[ProfileGroup.ManualId] = [profile];
+        var statePath = Path.Combine(AppContext.BaseDirectory, "test-data", "view-life-" + Guid.NewGuid().ToString("N"), "state.bin");
+        owner.Persistence.Configure(new ClientStateStore(statePath), isolated: true);
         owner.Preferences.Notices = false;
         owner.Preferences.QuicOverTcp = true;
         owner.TunnelPolicy.Advanced = AdvancedOptions.Default with { Mtu = 1300 };
@@ -34,12 +38,30 @@ public partial class MainWindow
         if (owner.TunnelPolicy.Advanced.Mtu != 1300) throw new InvalidOperationException("Creating a view reset application TUN tuning");
         if (core.Disposed || core.State != ConnectionState.Running)
             throw new InvalidOperationException("Closing a view stopped the application-owned core");
+        if (owner.Tray is null || !owner.Tray.Icon.Visible) throw new InvalidOperationException("Closing a view disposed the application tray");
+        var sink = new TrayCommandSink(); owner.Tray.Attach(sink);
+        foreach (var command in Enum.GetValues<TrayCommand>()) owner.Tray.Request(command);
+        await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+        if (!sink.Commands.SequenceEqual(Enum.GetValues<TrayCommand>())) throw new InvalidOperationException("Tray lost command dispatch after closing its view");
+        owner.Tray.Detach(sink);
+        var requested = false;
+        void RequestView() { requested = true; owner.Tray.Attach(sink); }
+        owner.Tray.ViewRequested += RequestView; owner.Tray.Request(TrayCommand.Open);
+        await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+        owner.Tray.ViewRequested -= RequestView;
+        if (!requested || sink.Commands[^1] != TrayCommand.Open) throw new InvalidOperationException("Tray did not request a missing view");
+        var saved = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        owner.Persistence.Changed += () => { if (!owner.Persistence.Dirty && owner.Persistence.LastError is null) saved.TrySetResult(); };
+        owner.Workspace.Favorites.Add(AutoPool.Key(profile)); owner.Persistence.Queue();
+        await saved.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        if (owner.Persistence.Store!.Load()?.Favorites.Length != 1) throw new InvalidOperationException("Application state was not saved after view collection");
         var completed = new TaskCompletionSource<HealthObservation>();
         owner.Monitor.Completed += result => completed.TrySetResult(result);
         owner.Monitor.NextCheck = DateTimeOffset.MinValue;
         var observation = await completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
         if (!observation.Round.Verified) throw new InvalidOperationException("Application monitor stopped with the closed view");
         checks.Add("Closed WPF window is collectible while application runtime, monitor, simulated core and selected profile remain alive");
+        checks.Add("Application tray dispatches commands and encrypted autosave continues after its WPF view is collected");
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -73,5 +95,11 @@ public partial class MainWindow
         public Task<ProbeResult> ProbeAsync(Uri target, CancellationToken token) => Task.FromResult(new ProbeResult(true, 1, "fixture"));
         public void Stop() => State = ConnectionState.Idle;
         public void Dispose() { Disposed = true; Stop(); }
+    }
+    private sealed class TrayCommandSink : IClientTrayView
+    {
+        public bool Closed => false;
+        public List<TrayCommand> Commands { get; } = new();
+        public void Handle(TrayCommand command) => Commands.Add(command);
     }
 }

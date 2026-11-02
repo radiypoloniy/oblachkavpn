@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace Oblachka;
@@ -8,7 +8,7 @@ namespace Oblachka;
 // прислала бы его снова. «Вернуть скрытые» у заголовка подписки показывает их обратно.
 public partial class MainWindow
 {
-    private readonly HashSet<string> hiddenServers = new(StringComparer.Ordinal);
+    private HashSet<string> hiddenServers => runtime.Workspace.HiddenServers;
 
     private bool HiddenServer(Profile item) => hiddenServers.Contains(FavoriteKey(item));
     private int HiddenIn(string groupId) => ProfilesOf(groupId).Count(HiddenServer);

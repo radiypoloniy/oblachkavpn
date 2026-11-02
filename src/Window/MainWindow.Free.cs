@@ -9,9 +9,9 @@ public partial class MainWindow
 {
     // Версия текста согласия: новый текст — спросить заново (ClientSnapshot.FreeConsent).
     private const int FreeConsentVersion = 1;
-    private int freeConsent;
+    private int freeConsent { get => runtime.Workspace.FreeConsent; set => runtime.Workspace.FreeConsent = value; }
     // null — выключены.
-    private FreeList? freeList;
+    private FreeList? freeList { get => runtime.Workspace.FreeList; set => runtime.Workspace.FreeList = value; }
     private DateTimeOffset freeLoadedAt;
     private bool freeLoading;
 
