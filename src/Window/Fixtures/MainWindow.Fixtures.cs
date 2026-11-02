@@ -73,6 +73,7 @@ public partial class MainWindow
         var checks = new List<string>();
         await CheckWindowReleaseAsync(checks);
         await CheckDesktopHostAsync(checks);
+        await CheckOwnedConnectionAsync(checks);
         CheckDirectDnsRules(checks);
         CheckDeferredViews(checks);
         CheckLiveCache(checks);

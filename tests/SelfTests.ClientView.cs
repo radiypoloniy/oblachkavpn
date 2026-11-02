@@ -14,9 +14,9 @@ public static partial class SelfTests
             foreach (var json in new[] { "{}", "{\"Version\":1,\"Version\":1}",
                 "{\"Version\":1,\"RequestId\":\"00000000-0000-0000-0000-000000000001\",\"InstanceId\":\"00000000-0000-0000-0000-000000000000\",\"Operation\":\"Stop\",\"Run\":\"cmd\"}" })
                 ExpectUserError(() => HelperProtocol.Parse<ClientViewRequest>(Encoding.UTF8.GetBytes(json)));
-            ExpectUserError(() => ClientViewProtocol.Validate(new ClientViewRequest(1, Guid.NewGuid(), Guid.Empty, ClientViewOperation.Stop)));
-            ExpectUserError(() => ClientViewProtocol.Validate(new ClientViewRequest(2, Guid.NewGuid(), Guid.Empty, ClientViewOperation.ReadState)));
-            ExpectUserError(() => ClientViewProtocol.Validate(new ClientViewReply(1, Guid.NewGuid(), ClientViewFailure.None, null), Guid.NewGuid()));
+            ExpectUserError(() => ClientViewProtocol.Validate(new ClientViewRequest(ClientViewProtocol.Version, Guid.NewGuid(), Guid.Empty, ClientViewOperation.Stop)));
+            ExpectUserError(() => ClientViewProtocol.Validate(new ClientViewRequest(ClientViewProtocol.Version + 1, Guid.NewGuid(), Guid.Empty, ClientViewOperation.ReadState)));
+            ExpectUserError(() => ClientViewProtocol.Validate(new ClientViewReply(ClientViewProtocol.Version, Guid.NewGuid(), ClientViewFailure.None, null), Guid.NewGuid()));
         }));
         await check("View pipe reads, probes, reconnects and stops without owning the application runtime", async () =>
         {
@@ -50,10 +50,10 @@ public static partial class SelfTests
             await using (var pipe = new NamedPipeClientStream(".", endpoint.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous))
             {
                 await pipe.ConnectAsync(timeout.Token);
-                await HelperProtocol.WriteAsync(pipe, new ClientViewRequest(1, Guid.NewGuid(), Guid.NewGuid(), ClientViewOperation.Stop), timeout.Token);
+                await HelperProtocol.WriteAsync(pipe, new ClientViewRequest(ClientViewProtocol.Version, Guid.NewGuid(), Guid.NewGuid(), ClientViewOperation.Stop), timeout.Token);
                 Assert((await HelperProtocol.ReadAsync<ClientViewReply>(pipe, timeout.Token)).Failure == ClientViewFailure.OwnerChanged);
                 Assert(core.Stops == 0);
-                var request = new ClientViewRequest(1, Guid.NewGuid(), owner.InstanceId, ClientViewOperation.Probe);
+                var request = new ClientViewRequest(ClientViewProtocol.Version, Guid.NewGuid(), owner.InstanceId, ClientViewOperation.Probe);
                 await HelperProtocol.WriteAsync(pipe, request, timeout.Token);
                 Assert((await HelperProtocol.ReadAsync<ClientViewReply>(pipe, timeout.Token)).Failure == ClientViewFailure.None);
                 var probes = core.Probes;

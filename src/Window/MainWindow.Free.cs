@@ -8,7 +8,7 @@ namespace Oblachka;
 public partial class MainWindow
 {
     // Версия текста согласия: новый текст — спросить заново (ClientSnapshot.FreeConsent).
-    private const int FreeConsentVersion = 1;
+    private const int FreeConsentVersion = FreeServers.ConsentVersion;
     private int freeConsent { get => runtime.Workspace.FreeConsent; set => runtime.Workspace.FreeConsent = value; }
     // null — выключены.
     private FreeList? freeList { get => runtime.Workspace.FreeList; set => runtime.Workspace.FreeList = value; }

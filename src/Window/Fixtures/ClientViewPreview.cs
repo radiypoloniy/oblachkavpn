@@ -13,8 +13,10 @@ internal static class ClientViewPreview
         var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         var text = new TextBlock { Margin = new Thickness(12) };
         var stop = new Button { Content = "Остановить", Margin = new Thickness(12) };
-        var panel = new StackPanel(); panel.Children.Add(text); panel.Children.Add(stop);
-        var window = new Window { Title = "Изолированная проверка канала интерфейса", Width = 360, Height = 180,
+        var connect = new Button { Content = "Подключить", Margin = new Thickness(12) };
+        var servers = new ComboBox { DisplayMemberPath = nameof(ClientServerChoice.Name), Margin = new Thickness(12) };
+        var panel = new StackPanel(); panel.Children.Add(text); panel.Children.Add(servers); panel.Children.Add(connect); panel.Children.Add(stop);
+        var window = new Window { Title = "Изолированная проверка канала интерфейса", Width = 360, Height = 260,
             ShowInTaskbar = false, ShowActivated = false, Left = -32000, Top = -32000, Content = panel };
         window.Loaded += async (_, _) =>
         {
@@ -25,6 +27,40 @@ internal static class ClientViewPreview
                 using var owner = Process.GetProcessById(ownerPid);
                 client = await ClientViewClient.ConnectAsync(pipe, owner, timeout.Token);
                 var initial = await client.SendAsync(ClientViewOperation.ReadState, timeout.Token);
+                if (mode is "connect" or "start-crash")
+                {
+                    var listed = await client.SendAsync(ClientViewOperation.ListServers, timeout.Token);
+                    var choices = listed.Servers?.Items ?? [];
+                    if (choices.Length == 0) throw new UserError("Нет серверов для проверки.");
+                    servers.ItemsSource = choices; servers.SelectedIndex = 0;
+                    var clicked = new TaskCompletionSource<ClientViewReply>(TaskCreationOptions.RunContinuationsAsynchronously);
+                    connect.Click += async (_, _) =>
+                    {
+                        try { clicked.TrySetResult(await client.SendAsync(ClientViewOperation.Connect, timeout.Token, serverId: choices[0].Id)); }
+                        catch (Exception error) { clicked.TrySetException(error); }
+                    };
+                    connect.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    if ((await clicked.Task.WaitAsync(timeout.Token)).Failure != ClientViewFailure.None) throw new UserError("Запуск отклонён.");
+                    if (mode == "start-crash")
+                    {
+                        File.WriteAllText(report, JsonSerializer.Serialize(new { Passed = true, InstanceId = initial.State!.InstanceId, WindowLoaded = window.IsLoaded, StartAccepted = true }));
+                        Environment.Exit(23);
+                    }
+                    await WaitForServerAsync(client, choices[0].Id, timeout.Token);
+                    if (choices.Length > 1)
+                    {
+                        var selected = new TaskCompletionSource<ClientViewReply>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        servers.SelectionChanged += async (_, _) =>
+                        {
+                            try { selected.TrySetResult(await client.SendAsync(ClientViewOperation.SelectServer, timeout.Token, serverId: choices[^1].Id)); }
+                            catch (Exception error) { selected.TrySetException(error); }
+                        };
+                        servers.SelectedIndex = choices.Length - 1;
+                        if ((await selected.Task.WaitAsync(timeout.Token)).Failure != ClientViewFailure.None) throw new UserError("Выбор сервера отклонён.");
+                        await WaitForServerAsync(client, choices[^1].Id, timeout.Token);
+                    }
+                    initial = await client.SendAsync(ClientViewOperation.ReadState, timeout.Token);
+                }
                 if (initial.State?.Connection is not (ConnectionState.Running or ConnectionState.Verified)) throw new UserError("Стенд не подключён.");
                 text.Text = initial.State.ServerName + " — " + initial.State.Connection;
                 var probe = await client.SendAsync(ClientViewOperation.Probe, timeout.Token);
@@ -43,7 +79,7 @@ internal static class ClientViewPreview
                     if (stopped.State?.Connection != ConnectionState.Idle || stopped.State.StopRequested != true)
                         throw new UserError("Команда остановки не применилась.");
                 }
-                else if (mode is not ("close" or "crash")) throw new UserError("Неизвестный режим стенда.");
+                else if (mode is not ("close" or "crash" or "connect")) throw new UserError("Неизвестный режим стенда.");
                 File.WriteAllText(report, JsonSerializer.Serialize(new { Passed = true, InstanceId = initial.State.InstanceId,
                     WindowLoaded = window.IsLoaded, ProbeVerified = probe.State.Verified, Stopped = stopped?.State?.StopRequested == true }));
                 if (mode == "crash") Environment.Exit(23); // Обрыв процесса без Dispose: владелец должен пережить его.
@@ -58,5 +94,15 @@ internal static class ClientViewPreview
         };
         app.Startup += (_, _) => window.Show();
         return app.Run();
+    }
+    private static async Task WaitForServerAsync(ClientViewClient client, string id, CancellationToken token)
+    {
+        while (true)
+        {
+            var reply = await client.SendAsync(ClientViewOperation.ReadState, token);
+            if (reply.State is { Busy: false, ConnectionResult: ClientConnectionResult.Failed or ClientConnectionResult.Cancelled }) throw new UserError("Запуск не завершился.");
+            if (reply.State is { Busy: false, Connection: ConnectionState.Running or ConnectionState.Verified } state && state.RunningServerId == id) return;
+            await Task.Delay(25, token);
+        }
     }
 }

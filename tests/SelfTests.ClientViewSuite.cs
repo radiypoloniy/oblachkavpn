@@ -14,6 +14,7 @@ public static partial class SelfTests
             catch (Exception error) { checks.Add(new(name, false, error.ToString())); }
         }
         await ClientViewChecksAsync(CheckAsync, root);
+        await ClientConnectionsChecksAsync(CheckAsync);
         await File.WriteAllTextAsync(report, JsonSerializer.Serialize(new { Passed = checks.All(c => c.Passed), Checks = checks }, new JsonSerializerOptions { WriteIndented = true }));
         return checks.All(c => c.Passed) ? 0 : 2;
     }

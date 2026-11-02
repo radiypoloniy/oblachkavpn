@@ -85,7 +85,7 @@ public static partial class SelfTests
         {
             await child.WaitForExitAsync(token);
             await serving;
-            if (child.ExitCode != (mode == "crash" ? 23 : 0)) throw new InvalidOperationException("WPF view failed: " + await File.ReadAllTextAsync(report));
+            if (child.ExitCode != (mode is "crash" or "start-crash" ? 23 : 0)) throw new InvalidOperationException("WPF view failed: " + await File.ReadAllTextAsync(report));
         }
         finally
         {

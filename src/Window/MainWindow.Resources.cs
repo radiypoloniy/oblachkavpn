@@ -24,6 +24,7 @@ public partial class MainWindow
     {
         ThemeManager.Changed -= RefreshHome;
         runtime.Persistence.Changed -= PersistenceChanged;
+        runtime.Connections.Changed -= ConnectionChanged;
         runtime.Proxy.Changed -= ProxyChanged;
         runtime.Updates.Changed -= UpdatesChanged;
         runtime.Updates.AvailableInBackground -= BackgroundUpdateAvailable;

@@ -36,6 +36,7 @@ internal static class Program
             var profile = Profiles.Parse("vless://11111111-1111-4111-8111-111111111111@example.invalid:443?security=tls&type=tcp#Background")
                 with { Group = ProfileGroup.ManualId };
             owner.Profiles.Imported = new[] { profile }; owner.Profiles.Selected = owner.Profiles.Running = profile;
+            if (views) owner.Profiles.Imported = new[] { profile, Profiles.Parse("vless://22222222-2222-4222-8222-222222222222@second.invalid:443?security=tls&type=tcp#Second") with { Group = ProfileGroup.ManualId } };
             owner.Profiles.Groups.Add(ProfileGroup.Manual); owner.Profiles.GroupProfiles[ProfileGroup.ManualId] = owner.Profiles.Imported;
             owner.Persistence.Configure(new ClientStateStore(Path.Combine(root, "state.bin")), isolated: true);
             owner.Persistence.Start(context);

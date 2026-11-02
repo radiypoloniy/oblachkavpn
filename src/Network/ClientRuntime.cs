@@ -12,6 +12,7 @@ public sealed class ClientRuntime : IDisposable
     public ClientPersistence Persistence { get; }
     public ClientProxy Proxy { get; }
     public ClientUpdates Updates { get; }
+    public ClientConnections Connections { get; }
     internal ClientTray? Tray { get; private set; }
     internal ClientTray EnsureTray(SynchronizationContext context) => Tray ??= new(this, context);
     public ClientHealthMonitor Monitor { get; }
@@ -39,6 +40,7 @@ public sealed class ClientRuntime : IDisposable
         Persistence = new(this);
         Proxy = new(this);
         Updates = new(this);
+        Connections = new(this);
         Preferences.PropertyChanged += PreferencesChanged;
         tunnelHost = host; TunnelPolicy = new(this); Tunnels = new(this, host);
         Monitor = new ClientHealthMonitor(this, path: path);
@@ -89,6 +91,7 @@ public sealed class ClientRuntime : IDisposable
         disposed = true;
         Preferences.PropertyChanged -= PreferencesChanged;
         Recovery.Dispose();
+        Connections.Dispose();
         Updates.Dispose();
         Persistence.Dispose();
         Tray?.Dispose(); Tray = null;

@@ -47,6 +47,7 @@ public partial class MainWindow : Window
         runtime.Persistence.Changed += PersistenceChanged;
         WireViews();
         viewsReady = true;
+        runtime.Connections.Changed += ConnectionChanged;
         Navigate("Connection");
         presentationTimer.Tick += (_, _) => { RefreshPresentation(background: true); PollSubscription(); PollPing(); PollZapretRouting(); PollZapretWatch(); PollPause(); PollExpiry(); };
         presentationTimer.Start();
@@ -102,7 +103,7 @@ public partial class MainWindow : Window
             if (!removedSubscriptions.Contains(pending.Group.Id)) { ApplyGroupImport(pending.Group, pending.Result, true); return; }
         }
         var active = engine.State is not ConnectionState.Idle;
-        ConnectButton.IsEnabled = profile is not null && !active && operation is null;
+        ConnectButton.IsEnabled = profile is not null && !active && operation is null && !runtime.Connections.IsStopping;
         // Пока системный режим снимается, повторное нажатие ничего не ускорит.
         StopButton.IsEnabled = (active || operation is not null) && !systemStopping;
         // Добавлять можно и при подключении: подписка применится после остановки (pendingImport),
@@ -219,7 +220,7 @@ public partial class MainWindow : Window
         UnsubscribeLifecycle();
         trayPopup?.Close();
         engine.Changed -= EngineChanged;
-        operation?.Cancel();
+        if (!runtime.Connections.IsActive) operation?.Cancel();
         recoveryWait?.Cancel();
         ProfilePicker.SelectionChanged -= ProfileSelectionChanged;
         runtime.Tray?.Detach(this);

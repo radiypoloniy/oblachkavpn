@@ -96,6 +96,7 @@ public static partial class SelfTests
         await ClientProxyChecksAsync(CheckAsync, root);
         await ClientUpdatesChecksAsync(CheckAsync);
         await ClientViewChecksAsync(CheckAsync, root);
+        await ClientConnectionsChecksAsync(CheckAsync);
         await CoreProgramChecksAsync(CheckAsync);
         await ClientBlockChecksAsync(CheckAsync, root);
         await HelperLifetimeChecksAsync(CheckAsync, root);

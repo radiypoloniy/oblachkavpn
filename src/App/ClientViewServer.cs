@@ -35,7 +35,7 @@ public sealed class ClientViewServer(ClientRuntime owner, SynchronizationContext
                     deadline.CancelAfter(TimeSpan.FromSeconds(60));
                     reply = await DispatchAsync(request, deadline.Token).ConfigureAwait(false);
                 }
-                catch (UserError) { reply = new(1, request.RequestId, ClientViewFailure.InvalidRequest, null); }
+                catch (UserError) { reply = new(ClientViewProtocol.Version, request.RequestId, ClientViewFailure.InvalidRequest, null); }
                 using var write = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
                 write.CancelAfter(TimeSpan.FromSeconds(5));
                 await HelperProtocol.WriteAsync(pipe, reply, write.Token).ConfigureAwait(false);
@@ -51,41 +51,45 @@ public sealed class ClientViewServer(ClientRuntime owner, SynchronizationContext
             if (token.IsCancellationRequested) { result.TrySetCanceled(token); return; }
             try { result.TrySetResult(await HandleAsync(request)); }
             catch (Exception error) when (error is UserError or IOException or OperationCanceledException or ObjectDisposedException or TimeoutException)
-            { result.TrySetResult(new(1, request.RequestId, ClientViewFailure.OperationFailed, null)); }
+            { result.TrySetResult(new(ClientViewProtocol.Version, request.RequestId, ClientViewFailure.OperationFailed, null)); }
             catch (Exception error) { result.TrySetException(error); }
         }, null);
         return result.Task.WaitAsync(token);
     }
     private async Task<ClientViewReply> HandleAsync(ClientViewRequest request)
     {
-        ClientViewReply Fail(ClientViewFailure failure) => new(1, request.RequestId, failure, null);
+        ClientViewReply Fail(ClientViewFailure failure) => new(ClientViewProtocol.Version, request.RequestId, failure, null);
         if (request.InstanceId != Guid.Empty && request.InstanceId != owner.InstanceId) return Fail(ClientViewFailure.OwnerChanged);
         var activity = owner.Activity;
         if (request.Operation == ClientViewOperation.Probe)
         {
-            if (activity.Operation is not null || activity.RecoveryWait is not null) return Fail(ClientViewFailure.Busy);
+            if (activity.Operation is not null || activity.RecoveryWait is not null || owner.Connections.IsActive || owner.Connections.IsStopping) return Fail(ClientViewFailure.Busy);
             if (owner.Engine.ProcessId is null || activity.ManualStop) return Fail(ClientViewFailure.NotConnected);
             owner.Monitor.NextCheck = DateTimeOffset.MinValue;
             _ = ObserveProbeAsync(owner.Monitor.PollAsync());
         }
-        else if (request.Operation == ClientViewOperation.Stop)
+        else if (request.Operation == ClientViewOperation.Stop) await owner.Connections.StopAsync();
+        else if (request.Operation is ClientViewOperation.SelectServer or ClientViewOperation.Connect)
         {
-            var checking = activity.BackgroundCheck ? owner.Monitor.PendingCheck : null;
-            activity.ManualStop = true; activity.RecoveryWait?.Cancel(); activity.Operation?.Cancel();
-            owner.Workspace.WasConnected = false;
-            if (checking is not null) await ObserveProbeAsync(checking);
-            await owner.StopTunnelAsync();
-            // Запускающая операция сама остановит ядро в finally после отмены.
-            if (activity.Operation is null || !activity.EngineOperation) owner.Engine.Stop();
-            if (owner.Engine.State == ConnectionState.Idle) owner.Profiles.Running = null;
-            owner.Proxy.Sync(); owner.Persistence.Queue();
+            var target = request.ServerId is { } id ? ClientServerCatalog.Find(owner, id) : owner.Profiles.Selected;
+            if (target is null) return Fail(ClientViewFailure.InvalidRequest);
+            if (owner.Connections.IsStopping || activity.Operation is not null && !activity.BackgroundCheck && !owner.Connections.IsActive)
+                return Fail(ClientViewFailure.Busy);
+            var connects = request.Operation == ClientViewOperation.Connect || owner.Connections.IsActive || owner.Engine.State != ConnectionState.Idle || owner.Tunnel is not null;
+            if (connects && target.IsFree && owner.Workspace.FreeConsent != FreeServers.ConsentVersion) return Fail(ClientViewFailure.ConsentRequired);
+            if (connects && owner.Preferences.SystemTunnel && owner.Tunnel is { State: not (SystemTunnelState.Idle or SystemTunnelState.Failed) } tunnel &&
+                !tunnel.CanSwitchTo(target) && !request.AllowReconnect) return Fail(ClientViewFailure.RequiresReconnect);
+            _ = ObserveProbeAsync(request.Operation == ClientViewOperation.Connect
+                ? owner.Connections.StartAsync(target, request.AllowReconnect) : owner.Connections.SelectAsync(target, request.AllowReconnect));
         }
         var name = (owner.Profiles.Running ?? owner.Profiles.Selected)?.DisplayName;
         if (name?.Length > 256) name = name[..256];
-        return new(1, request.RequestId, ClientViewFailure.None, new(owner.InstanceId, owner.Engine.State,
-            owner.Tunnel?.State, activity.Operation is not null || activity.RecoveryWait is not null,
+        return new(ClientViewProtocol.Version, request.RequestId, ClientViewFailure.None, new(owner.InstanceId, owner.Engine.State,
+            owner.Tunnel?.State, activity.Operation is not null || activity.RecoveryWait is not null || owner.Connections.IsActive || owner.Connections.IsStopping,
             activity.ManualStop, name, owner.Profiles.Imported.Count, owner.Engine.Port,
-            owner.Engine.ProcessId is null ? null : owner.Monitor.LastProbe?.Success));
+            owner.Engine.ProcessId is null || !owner.Monitor.VerifiedSinceStart ? null : owner.Monitor.LastProbe?.Success,
+            ClientServerCatalog.Id(owner.Profiles.Selected), ClientServerCatalog.Id(owner.Profiles.Running), owner.Connections.LastResult),
+            request.Operation == ClientViewOperation.ListServers ? ClientServerCatalog.Page(owner, request.Offset) : null);
     }
     public void Dispose()
     { if (Interlocked.Exchange(ref disposed, 1) == 0) { shutdown.Cancel(); shutdown.Dispose(); } }

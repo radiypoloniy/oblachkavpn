@@ -11,6 +11,7 @@ public enum FreeList { Regular, Mobile, Whitelist }
 // запасные они не входят никогда (AutoPool, RouteCandidates), заслоны — ForeignGuard.
 public static class FreeServers
 {
+    public const int ConsentVersion = 1;
     public const string GroupId = "free";
     public const string GroupName = "Бесплатные";
     // Показываются лучшие по задержке из ответивших.

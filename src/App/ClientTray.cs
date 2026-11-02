@@ -39,6 +39,7 @@ internal sealed class ClientTray : IDisposable
         owner.Engine.Changed += EngineChanged;
         owner.Monitor.StateChanged += Refresh;
         owner.Recovery.StateChanged += Refresh;
+        owner.Connections.Changed += Refresh;
         owner.Updates.AvailableInBackground += UpdateAvailable;
         Refresh();
     }
@@ -67,17 +68,18 @@ internal sealed class ClientTray : IDisposable
     private void Refresh()
     {
         if (disposed) return;
-        var busy = owner.Activity.Operation is not null;
+        var busy = owner.Activity.Operation is not null || owner.Connections.IsActive || owner.Connections.IsStopping;
         var running = owner.Engine.State is ConnectionState.Running or ConnectionState.Verified;
         var tunnel = owner.Tunnel is { State: not (SystemTunnelState.Idle or SystemTunnelState.Failed) };
         Connect.Enabled = !busy && !running && !tunnel && owner.Profiles.Selected is not null;
         Stop.Enabled = busy || running || tunnel || owner.Engine.State == ConnectionState.Failed;
-        Icon.Text = ServiceBrand.Name + " — " + (running ? tunnel ? "VPN включён" : "Прокси запущен" : busy ? "Подключаемся" : "Отключено");
+        Icon.Text = ServiceBrand.Name + " — " + (owner.Connections.IsStopping ? "Отключаемся" : running ? tunnel ? "VPN включён" : "Прокси запущен" : busy ? "Подключаемся" : "Отключено");
     }
     public void Dispose()
     {
         if (disposed) return; disposed = true;
         owner.Engine.Changed -= EngineChanged; owner.Monitor.StateChanged -= Refresh; owner.Recovery.StateChanged -= Refresh;
+        owner.Connections.Changed -= Refresh;
         owner.Updates.AvailableInBackground -= UpdateAvailable;
         view = null; ViewRequested = null;
         Icon.Visible = false; Icon.ContextMenuStrip?.Dispose(); Icon.Dispose(); icon.Dispose();

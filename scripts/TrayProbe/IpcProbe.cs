@@ -17,7 +17,7 @@ internal static class IpcProbe
         owner.Workspace.Favorites.Add(AutoPool.Key(owner.Profiles.Selected!)); owner.Persistence.Queue();
         await Task.Delay(1200, timeout.Token);
         var samples = new List<object> { Sample("before-views", owner) };
-        foreach (var mode in new[] { "close", "crash", "close", "stop" })
+        foreach (var mode in new[] { "connect", "close", "crash", "close", "stop" })
         {
             var viewReport = report + ".view-" + samples.Count + ".json";
             using var endpoint = new ClientViewServer(owner, context);

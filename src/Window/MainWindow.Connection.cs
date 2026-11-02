@@ -15,69 +15,50 @@ public partial class MainWindow
         await PickBestBeforeConnectAsync();
         await ConnectCoreAsync();
     }
+    private void ConnectionChanged() { if (!closed) UpdateControls(); }
     private async Task ConnectCoreAsync()
     {
-        if (vmTestActive || profile is null || operation is not null) return;
-        // Что запускаем, фиксируется сразу: выбор в списке может смениться, пока идёт запуск,
-        // и тогда переключение на новый выбор выполнится следом (QueueServerSwitch).
-        var target = profile;
-        manualStop = false;
-        // Правила сайтов: в обычном режиме — у ядра подключения, в системном — у ядра туннеля.
-        if (engine is Engine core)
-        {
-            core.SiteRules = SystemTunnelWanted ? Array.Empty<SiteRule>() : siteRules.ToArray();
-            core.Fragment = FragmentWanted; core.FragmentShape = advanced.Fragment(ProviderFragment is { Enabled: true } shape ? shape : null);
-            // Списки у ядра туннеля (TunnelLists) — ядру окна под той же сессией они не нужны.
-            core.Routing = TunnelListsActive ? null : CurrentRouting();
-            core.Physical = SystemTunnelWanted;
-            coreZapretKey = DesiredZapretKey; appliedZapretDomains = ZapretRouting ? zapretDomains : [];
-            // Новый вход прямого трафика — только на новую сессию «Весь компьютер»; перезапуск ядра
-            // под действующей сессией сохраняет её вход.
-            if (!(SystemTunnelWanted && SystemTunnelActive))
-                // С zapret вход нужен заранее: его сайты включаются в «напрямую» без переподключения туннеля.
-                core.DirectEntry = SystemTunnelWanted && (core.Routing?.HasDirect == true || zapretEnabled) ? CoreDirectEntry.Create(Engine.FreePort()) : null;
-        }
-        operation = new CancellationTokenSource();
-        engineOperation = true;
-        UpdateControls();
+        if (vmTestActive || profile is null || operation is not null || runtime.Connections.IsStopping) return;
+        var target = profile; var previous = systemTunnel;
+        runtime.TunnelPolicy.ZapretProfiles = ZapretRoutingProfiles().ToArray();
+        coreZapretKey = DesiredZapretKey; appliedZapretDomains = ZapretRouting ? zapretDomains : [];
         try
         {
-            // В системном режиме порядок запуска держит SystemTunnelSession: сначала ядро,
-            // затем туннель у привилегированного помощника. Окно само ядро не стартует.
-            // Сессия уже держит туннель и блокировку: повторный запуск — это перезапуск
-            // ядра под защитой, а не второй туннель и не второй запрос прав.
-            if (SystemTunnelWanted && SystemTunnelActive && systemTunnel is { } session)
+            if (SystemTunnelWanted && !SystemTunnelActive)
             {
-                await session.SwitchAsync(profile, operation.Token);
-                _ = SyncDirectDnsAsync();
-                StartedFresh();
-                runningProfile = target;
-                if (!closed) DetailText.Text = "Подключено к " + profile.DisplayName + ". Блокировка не снималась.";
+                foreignVpn = ForeignTunnel.Find();
+                if (foreignVpn is { } foreign) throw new UserError(ForeignTunnel.Explain(foreign));
+                DetailText.Text = "Готовим системный режим.";
             }
-            else if (SystemTunnelWanted)
+            await runtime.Connections.StartAsync(target);
+            if (closed) return;
+            if (SystemTunnelWanted)
             {
-                await StartSystemTunnelAsync(operation.Token);
-                sentDirectDns = null; _ = SyncDirectDnsAsync();
-                StartedFresh();
-                runningProfile = target;
-                if (!closed) DetailText.Text = "Системный режим запущен: весь трафик идёт через туннель.";
-                _ = WarnEarlyGamesAsync();
+                RememberTunnelDirect(); _ = SyncDirectDnsAsync();
+                DetailText.Text = ReferenceEquals(previous, systemTunnel)
+                    ? "Подключено к " + target.DisplayName + ". Блокировка не снималась."
+                    : "Системный режим запущен: весь трафик идёт через туннель.";
+                if (!ReferenceEquals(previous, systemTunnel)) _ = WarnEarlyGamesAsync();
             }
-            else
-            {
-                await engine.StartAsync(profile, operation.Token);
-                StartedFresh();
-                runningProfile = target;
-                if (!closed) DetailText.Text = "Подключение запущено. Проверьте туннель в диагностике.";
-            }
-            if (!closed) Connected();
+            else DetailText.Text = "Подключение запущено. Проверьте туннель в диагностике.";
+            Connected();
         }
         catch (OperationCanceledException) { if (!closed) DetailText.Text = "Запуск отменён или истёк срок ожидания. Можно попробовать снова."; }
         catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }
-        // Служба оборвала канал посреди запуска (на стенде — первое подключение сразу после установки):
-        // сессию уже свернул StartWithSparesAsync, окно не должно падать.
         catch (IOException) { if (!closed) DetailText.Text = "Служба Облачки оборвала связь при запуске. Попробуйте подключиться ещё раз."; }
-        finally { if (manualStop) engine.Stop(); operation.Dispose(); operation = null; engineOperation = false; if (!closed) { UpdateControls(); if (engine.State == ConnectionState.Failed) ScheduleRecovery(); else QueueServerSwitch(); } }
+        finally
+        {
+            if (!closed) { UpdateControls(); if (engine.State == ConnectionState.Failed) ScheduleRecovery(); else QueueServerSwitch(); }
+        }
+    }
+    private async Task StopOwnedConnectionAsync()
+    {
+        systemStopping = true; UpdateControls();
+        StatusText.Text = "Отключаемся…"; DetailText.Text = "Отключаем VPN…";
+        try { await runtime.Connections.StopAsync(); if (!closed) DetailText.Text = "Подключение остановлено."; }
+        catch (Exception error) when (error is UserError or IOException or TimeoutException or ObjectDisposedException)
+        { if (!closed) DetailText.Text = "Остановить подключение полностью не удалось. Проверьте сетевые настройки."; }
+        finally { systemStopping = false; if (!closed) { UpdateSystemTunnelNote(systemTunnel?.State); UpdateControls(); } }
     }
     private void StopClick(object sender, RoutedEventArgs args)
     {
@@ -87,6 +68,7 @@ public partial class MainWindow
         recoveryWait?.Cancel();
         ResetSystemPath();
         operation?.Cancel();
+        if (runtime.Connections.IsActive) { _ = StopOwnedConnectionAsync(); return; }
         // Системный режим снимает туннель и только потом ядро: иначе маршруты остались бы
         // указывать на мёртвый локальный порт.
         if (systemTunnel is not null) { _ = StopSystemTunnelAsync(); StatusText.Text = "Отключаемся…"; DetailText.Text = "Отключаем VPN…"; return; }

@@ -93,16 +93,6 @@ public partial class MainWindow
         QueueStateSave();
     }
 
-    private async Task StartSystemTunnelAsync(CancellationToken token)
-    {
-        if (profile is null) throw new UserError("Сначала выберите сервер.");
-        if (ForeignTunnel.Find() is { } foreign) { foreignVpn = foreign; throw new UserError(ForeignTunnel.Explain(foreign)); }
-        foreignVpn = null;
-        DetailText.Text = "Готовим системный режим.";
-        await runtime.Tunnels.StartAsync(profile, token);
-        RememberTunnelDirect();
-    }
-
     private Profile[] SystemCandidates(Profile selected) => runtime.Tunnels.Candidates(selected);
 
     // В системном режиме подбор не трогает ядро напрямую: переключение идёт через сессию,
