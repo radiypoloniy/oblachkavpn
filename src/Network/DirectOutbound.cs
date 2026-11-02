@@ -79,7 +79,7 @@ public static class DirectOutbound
         // Профиль sing-box (ss://, JSON sing-box) уже в нужном виде: его поля проверит политика.
         if (pinned.Core == CoreKind.SingBox)
         {
-            if (Text(pinned.Outbound["type"]) is not ("vless" or "trojan" or "shadowsocks" or "amneziawg")) return null;
+            if (Text(pinned.Outbound["type"]) is not ("vless" or "trojan" or "shadowsocks" or "amneziawg" or "hysteria2")) return null;
             var copy = (JsonObject)pinned.Outbound.DeepClone();
             copy.Remove("tag");
             return copy;

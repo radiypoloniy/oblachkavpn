@@ -79,6 +79,7 @@ public static partial class SelfTests
         await LiveSiteRuleChecksAsync(CheckAsync);
         await LiveDnsChecksAsync(CheckAsync);
         await DirectOutboundChecksAsync(CheckAsync);
+        await HysteriaDirectChecksAsync(CheckAsync);
         await TunnelListsChecksAsync(CheckAsync);
         await XrayBridgeChecksAsync(CheckAsync);
         await SystemSessionChecksAsync(CheckAsync);

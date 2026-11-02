@@ -5,11 +5,11 @@ namespace Oblachka;
 
 // Проверка выхода «прямо на сервер» в службе. Служба работает от SYSTEM, а outbound приходит от окна,
 // поэтому ничего не берётся как есть: выход собирается заново из проверенных значений. Разрешены
-// только VLESS, Trojan, Shadowsocks (и они же в формате Xray — XrayOutboundPolicy) и AmneziaWG; сервер — точный IP из адресов аренды (их же разрешает защита
+// только VLESS, Trojan, Shadowsocks (и они же в формате Xray — XrayOutboundPolicy), AmneziaWG и Hysteria2; сервер — точный IP из адресов аренды (их же разрешает защита
 // WFP); проверка сертификата не отключается; нет путей к файлам, detour, привязки к интерфейсу и
 // прочих полей, которыми ядро от SYSTEM можно было бы направить на что-то кроме сервера.
 // Ключи живут только в памяти: в журнал сессии и в отчёты они не попадают.
-public static class DirectOutboundPolicy
+public static partial class DirectOutboundPolicy
 {
     public const int MaxOutbounds = 16;
 
@@ -27,7 +27,8 @@ public static class DirectOutboundPolicy
             "vless" => new[] { "type", "server", "server_port", "uuid", "flow", "packet_encoding", "tls", "transport" },
             "trojan" => new[] { "type", "server", "server_port", "password", "tls", "transport" },
             "shadowsocks" => new[] { "type", "server", "server_port", "method", "password" },
-            _ => throw new UserError("Служба принимает выход только VLESS, Trojan, Shadowsocks или AmneziaWG.")
+            "hysteria2" => new[] { "type", "server", "server_port", "password", "tls", "up_mbps", "down_mbps", "obfs", "network" },
+            _ => throw new UserError("Служба принимает выход только VLESS, Trojan, Shadowsocks, AmneziaWG или Hysteria2.")
         };
         Only(outbound, allowed);
         var server = Text(outbound, "server");
@@ -55,6 +56,10 @@ public static class DirectOutboundPolicy
             case "trojan":
                 result["password"] = Secret(outbound, "password");
                 break;
+            case "hysteria2":
+                result["password"] = Secret(outbound, "password");
+                Hysteria(outbound, result);
+                break;
             default:
                 var method = Text(outbound, "method");
                 if (method is null || !XrayProtocols.ShadowsocksMethods.Contains(method)) throw new UserError("Неподдерживаемый метод Shadowsocks.");
@@ -62,7 +67,7 @@ public static class DirectOutboundPolicy
                 break;
         }
         if (outbound["tls"] is JsonObject tls) result["tls"] = Tls(tls);
-        else if (outbound["tls"] is not null || type == "trojan") throw new UserError("Выходу Trojan нужен TLS.");
+        else if (outbound["tls"] is not null || type is "trojan" or "hysteria2") throw new UserError("Выходу " + type + " нужен TLS.");
         if (outbound["transport"] is JsonObject transport) result["transport"] = Transport(transport);
         else if (outbound["transport"] is not null) throw new UserError("Неверный транспорт выхода.");
         if (result["flow"] is not null && (result["tls"] is null || result["transport"] is not null))
