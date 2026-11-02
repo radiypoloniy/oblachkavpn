@@ -17,6 +17,7 @@ public partial class MainWindow : IClientTrayView
             case TrayCommand.Exit: ExitApplication(); break;
             case TrayCommand.Popup: ShowTrayPopup(); break;
             case TrayCommand.Notice: NoticeClicked(); break;
+            case TrayCommand.Update: ShowWindow(); OpenSettings(Views.SettingsPanel.AppPage); break;
         }
     }
 }

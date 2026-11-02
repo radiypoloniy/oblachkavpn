@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Threading;
 
 namespace Oblachka;
 
@@ -7,62 +6,36 @@ namespace Oblachka;
 // установка по нажатию. О найденной версии сообщаем один раз за запуск.
 public partial class MainWindow
 {
-    private AppRelease? availableUpdate;
-    private bool updateBusy, updateAnnounced;
-    private readonly DispatcherTimer updateTimer = new() { Interval = TimeSpan.FromSeconds(30) };
-
+    private AppRelease? availableUpdate => runtime.Updates.Available;
+    private bool updateBusy { get => runtime.Updates.Busy; set => runtime.Updates.Installing = value; }
+    private string? updateError => runtime.Updates.Error;
+    private bool updateChecked => runtime.Updates.Checked;
     private void WireUpdates()
     {
-        AppUpdate.CleanUp();
+        runtime.Updates.Changed += UpdatesChanged;
+        runtime.Updates.AvailableInBackground += BackgroundUpdateAvailable;
         AppTab.UpdateButton.Click += async (_, _) =>
         {
-            // Ждёт подписи — кнопка проверяет снова: подпись прикладывают вскоре после выпуска.
             if (availableUpdate is not { Signature: not null }) await CheckUpdateAsync(manual: true);
             else await InstallUpdateAsync();
         };
         AppTab.UpdateAuto.Click += (_, _) => QueueStateSave();
-        // Сменился канал — найденная раньше версия могла быть не из него.
-        AppTab.UpdatePrerelease.Click += (_, _) => { availableUpdate = null; updateChecked = false; QueueStateSave(); RefreshUpdate(); };
-        // Первая проверка — через полминуты после запуска, чтобы не мешать подключению.
-        updateTimer.Tick += async (_, _) =>
-        {
-            updateTimer.Interval = TimeSpan.FromHours(12);
-            if (preferences.UpdateAuto && stateStore is not null && !isolatedPersistence) await CheckUpdateAsync(manual: false);
-        };
-        updateTimer.Start();
+        AppTab.UpdatePrerelease.Click += (_, _) => { QueueStateSave(); RefreshUpdate(); };
         RefreshUpdate();
     }
-
     private async Task CheckUpdateAsync(bool manual)
     {
-        if (updateBusy || closed) return;
-        updateBusy = true;
+        if (closed || updateBusy) return;
         if (manual) AppTab.UpdateText.Text = "Проверяем…";
-        RefreshUpdate();
-        try
-        {
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var release = await AppUpdate.CheckAsync(preferences.UpdatePrerelease, timeout.Token);
-            availableUpdate = release is not null && AppUpdate.IsNewer(release) ? release : null;
-            if (availableUpdate is { Signature: not null } && !manual && !updateAnnounced)
-            {
-                updateAnnounced = true;
-                DetailText.Text = $"Доступна {ReleaseName(availableUpdate)}. Обновить: «Приложение → Обновления».";
-                Notify(Notice.Update, "Вышла " + ReleaseName(availableUpdate), "Нажмите, чтобы обновить.", () => { ShowWindow(); OpenSettings(Views.SettingsPanel.AppPage); });
-            }
-            updateError = null; updateChecked = true;
-        }
-        catch (Exception ex) when (ex is UserError or HttpRequestException or OperationCanceledException or IOException or System.Text.Json.JsonException)
-        {
-            // Без сети автоматическая проверка молчит; по кнопке — объясняем.
-            updateError = ex is UserError ? ex.Message : "Не удалось связаться с GitHub. Проверьте интернет и попробуйте ещё раз.";
-            if (!manual) updateError = null;
-        }
-        finally { updateBusy = false; if (!closed) RefreshUpdate(); }
+        await runtime.Updates.CheckAsync(manual);
     }
-
-    private string? updateError;
-    private bool updateChecked;
+    private void UpdatesChanged() { if (!closed) RefreshUpdate(); }
+    private void BackgroundUpdateAvailable(AppRelease release)
+    {
+        if (closed) return;
+        DetailText.Text = $"Доступна {ReleaseName(release)}. Обновить: «Приложение → Обновления».";
+        Notify(Notice.Update, "Вышла " + ReleaseName(release), "Нажмите, чтобы обновить.", () => { ShowWindow(); OpenSettings(Views.SettingsPanel.AppPage); });
+    }
 
     private void RefreshUpdate()
     {

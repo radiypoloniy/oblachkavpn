@@ -9,6 +9,8 @@ public sealed class ClientRuntime : IDisposable
     public ClientActivity Activity { get; } = new();
     public ClientWorkspace Workspace { get; } = new();
     public ClientPersistence Persistence { get; }
+    public ClientProxy Proxy { get; }
+    public ClientUpdates Updates { get; }
     internal ClientTray? Tray { get; private set; }
     internal ClientTray EnsureTray(SynchronizationContext context) => Tray ??= new(this, context);
     public ClientHealthMonitor Monitor { get; }
@@ -34,6 +36,8 @@ public sealed class ClientRuntime : IDisposable
     {
         Engine = engine;
         Persistence = new(this);
+        Proxy = new(this);
+        Updates = new(this);
         Preferences.PropertyChanged += PreferencesChanged;
         tunnelHost = host; TunnelPolicy = new(this); Tunnels = new(this, host);
         Monitor = new ClientHealthMonitor(this, path: path);
@@ -84,9 +88,11 @@ public sealed class ClientRuntime : IDisposable
         disposed = true;
         Preferences.PropertyChanged -= PreferencesChanged;
         Recovery.Dispose();
+        Updates.Dispose();
         Persistence.Dispose();
         Tray?.Dispose(); Tray = null;
         Monitor.Dispose();
+        Proxy.Dispose();
         TunnelChanged = null; ProtectionRepaired = null;
         if (ServerTweak.Lookup == lookup) ServerTweak.Lookup = previousLookup;
         Engine.Dispose(); Profiles.Clear();

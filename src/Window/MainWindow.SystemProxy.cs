@@ -1,83 +1,30 @@
-using Microsoft.Win32;
-
 namespace Oblachka;
 
 // Optional per-user Windows proxy pointing at the running core's local port (SOCKS5 + HTTP on one port).
 public partial class MainWindow
 {
-    private SystemProxy? systemProxy;
-    private int systemProxyPort;
-
+    private int systemProxyPort => runtime.Proxy.Port;
     private void InitSystemProxy(bool enabled)
     {
         Settings.SystemProxy.Click += (_, _) => { QueueStateSave(); UpdateModeText(); SyncSystemProxy(engine.State); };
+        runtime.Proxy.Changed += ProxyChanged;
         UpdateModeText();
         if (!enabled) { Settings.SystemProxy.IsEnabled = false; return; }
-        systemProxy = SystemProxy.ForCurrentUser();
-        // Undo a proxy left behind by a crash or power loss before anything else runs.
-        TrySystemProxy(() => { if (systemProxy.Restore()) DetailText.Text = "Восстановлены прежние настройки прокси Windows после прошлого запуска."; });
-        SystemEvents.SessionEnding += SessionEndingRestore;
+        runtime.Proxy.Start(new System.Windows.Threading.DispatcherSynchronizationContext(Dispatcher));
     }
-
-    private void SyncSystemProxy(ConnectionState state)
+    private void SyncSystemProxy(ConnectionState state) => runtime.Proxy.Sync();
+    private void ProxyChanged(ProxyChange change)
     {
-        if (systemProxy is null) return;
-        var wanted = preferences.SystemProxy && state is ConnectionState.Running or ConnectionState.Verified && engine.Port > 0;
-        if (wanted && systemProxyPort != engine.Port)
-            TrySystemProxy(() => { systemProxy.Apply(engine.Port); systemProxyPort = engine.Port; });
-        // A crashed core (Failed) keeps the proxy: browsers stop instead of silently going direct until the user stops or recovery restarts it.
-        else if (!wanted && (state == ConnectionState.Idle || !preferences.SystemProxy) && (systemProxyPort != 0 || systemProxy.IsApplied))
-            TrySystemProxy(() => { systemProxy.Restore(); systemProxyPort = 0; });
-    }
-
-    // Стражник (как у Clash Verge): раз в 5 с сверяет прокси Windows с нашим и возвращает свой.
-    // С другой программой, которая упорно ставит своё, не спорим: три раза за 10 минут — и только говорим.
-    private DateTimeOffset nextProxyGuard;
-    private readonly Queue<DateTimeOffset> proxyRepairs = new();
-    private bool proxyGuardGaveUp;
-
-    private void PollProxyGuard()
-    {
-        var now = DateTimeOffset.UtcNow;
-        if (systemProxy is null || systemProxyPort == 0) { proxyGuardGaveUp = false; return; }
-        if (now < nextProxyGuard || proxyGuardGaveUp) return;
-        nextProxyGuard = now.AddSeconds(5);
-        bool overwritten;
-        try { overwritten = systemProxy.Overwritten(); }
-        catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException or System.Security.SecurityException) { return; }
-        if (!overwritten) return;
-        while (proxyRepairs.Count > 0 && now - proxyRepairs.Peek() > TimeSpan.FromMinutes(10)) proxyRepairs.Dequeue();
-        if (proxyRepairs.Count >= 3)
+        if (closed) return;
+        Dispatcher.BeginInvoke(() =>
         {
-            proxyGuardGaveUp = true;
-            DetailText.Text = "Другая программа раз за разом меняет прокси Windows — браузеры идут мимо VPN. Закройте её или включите «Весь компьютер».";
-            Notify(Notice.ProxyLost, "Браузеры идут мимо VPN", "Другая программа раз за разом меняет прокси Windows. Закройте её или включите «Весь компьютер».", warning: true);
-            return;
-        }
-        proxyRepairs.Enqueue(now);
-        var port = systemProxyPort;
-        TrySystemProxy(() => systemProxy.Apply(port));
-        DetailText.Text = "Прокси Windows поменяла другая программа — Облачка вернула свой, иначе браузеры шли бы мимо VPN.";
-        Notify(Notice.ProxyRepaired, "Прокси снова через VPN", "Другая программа поменяла прокси Windows, Облачка вернула свой.");
-    }
-
-    private void CloseSystemProxy()
-    {
-        SystemEvents.SessionEnding -= SessionEndingRestore;
-        if (systemProxy is not null) TrySystemProxy(() => systemProxy.Restore());
-        systemProxyPort = 0;
-    }
-
-    private void SessionEndingRestore(object? sender, SessionEndingEventArgs args)
-    {
-        try { systemProxy?.Restore(); } catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException or System.Security.SecurityException) { }
-    }
-
-    private void TrySystemProxy(Action action)
-    {
-        try { action(); }
-        catch (Exception ex) when (ex is UserError or IOException or UnauthorizedAccessException or System.Security.SecurityException)
-        { DetailText.Text = ex is UserError ? ex.Message : "Не удалось изменить настройки прокси Windows. Проверьте их вручную: Параметры → Сеть и Интернет → Прокси."; }
+            if (closed) return;
+            DetailText.Text = change.Message;
+            if (change.Kind == ProxyChangeKind.Repaired)
+                Notify(Notice.ProxyRepaired, "Прокси снова через VPN", "Другая программа поменяла прокси Windows, Облачка вернула свой.");
+            else if (change.Kind == ProxyChangeKind.Lost)
+                Notify(Notice.ProxyLost, "Браузеры идут мимо VPN", "Другая программа меняет прокси Windows. Закройте её или включите «Весь компьютер».", warning: true);
+        });
     }
 
     // Режим в подвале главного экрана и отметки в его меню.

@@ -17,6 +17,8 @@ public partial class MainWindow
         owner.Profiles.GroupProfiles[ProfileGroup.ManualId] = [profile];
         var statePath = Path.Combine(AppContext.BaseDirectory, "test-data", "view-life-" + Guid.NewGuid().ToString("N"), "state.bin");
         owner.Persistence.Configure(new ClientStateStore(statePath), isolated: true);
+        var proxyStore = new ViewProxyStore(); owner.Preferences.SystemProxy = true;
+        owner.Proxy.Start(new DispatcherSynchronizationContext(Dispatcher), new SystemProxy(proxyStore, statePath + ".proxy.json"), false);
         owner.Preferences.Notices = false;
         owner.Preferences.QuicOverTcp = true;
         owner.TunnelPolicy.Advanced = AdvancedOptions.Default with { Mtu = 1300 };
@@ -30,7 +32,7 @@ public partial class MainWindow
         }
         if (reference.Target is MainWindow retained) throw new InvalidOperationException(
             $"Closed view remains rooted: closed={retained.closed}, windows={System.Windows.Application.Current.Windows.Count}, " +
-            $"visible={retained.IsVisible}, update={retained.updateTimer.IsEnabled}, presentation={retained.presentationTimer.IsEnabled}");
+            $"visible={retained.IsVisible}, presentation={retained.presentationTimer.IsEnabled}");
         if (!ReferenceEquals(owner.Profiles.Selected, profile) || owner.Profiles.Imported.Count != 1)
             throw new InvalidOperationException("Closing a view cleared application profile state");
         if (owner.Preferences.Notices || owner.Preferences.QuicOverTcp)
@@ -39,6 +41,9 @@ public partial class MainWindow
         if (core.Disposed || core.State != ConnectionState.Running)
             throw new InvalidOperationException("Closing a view stopped the application-owned core");
         if (owner.Tray is null || !owner.Tray.Icon.Visible) throw new InvalidOperationException("Closing a view disposed the application tray");
+        if (proxyStore.Current.ProxyServer != "127.0.0.1:10808") throw new InvalidOperationException("Closing a view restored the application proxy");
+        proxyStore.Current = new(0, null, null, null); owner.Proxy.Poll();
+        if (proxyStore.Current.ProxyServer != "127.0.0.1:10808") throw new InvalidOperationException("Proxy guard stopped with its view");
         var sink = new TrayCommandSink(); owner.Tray.Attach(sink);
         foreach (var command in Enum.GetValues<TrayCommand>()) owner.Tray.Request(command);
         await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
@@ -62,6 +67,7 @@ public partial class MainWindow
         if (!observation.Round.Verified) throw new InvalidOperationException("Application monitor stopped with the closed view");
         checks.Add("Closed WPF window is collectible while application runtime, monitor, simulated core and selected profile remain alive");
         checks.Add("Application tray dispatches commands and encrypted autosave continues after its WPF view is collected");
+        checks.Add("Application system proxy remains applied and repairs overwrites after its WPF view is collected");
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -101,5 +107,11 @@ public partial class MainWindow
         public bool Closed => false;
         public List<TrayCommand> Commands { get; } = new();
         public void Handle(TrayCommand command) => Commands.Add(command);
+    }
+    private sealed class ViewProxyStore : IProxySettingsStore
+    {
+        public ProxySettings Current = new(0, null, null, null);
+        public ProxySettings Read() => Current;
+        public void Write(ProxySettings settings) => Current = settings;
     }
 }

@@ -24,13 +24,16 @@ public partial class MainWindow
     {
         ThemeManager.Changed -= RefreshHome;
         runtime.Persistence.Changed -= PersistenceChanged;
+        runtime.Proxy.Changed -= ProxyChanged;
+        runtime.Updates.Changed -= UpdatesChanged;
+        runtime.Updates.AvailableInBackground -= BackgroundUpdateAvailable;
         runtime.TunnelChanged -= OnSystemTunnelChanged;
         runtime.ProtectionRepaired -= OnProtectionRepaired;
         System.ComponentModel.DependencyPropertyDescriptor.FromProperty(System.Windows.Controls.TextBlock.TextProperty,
             typeof(System.Windows.Controls.TextBlock)).RemoveValueChanged(ShellFeedback, FeedbackChanged);
         System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged -= MeasurementAddressChanged;
         System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged -= NetworkAddressChanged;
-        updateTimer.Stop(); networkSettle.Stop(); toastTimer.Stop();
+        networkSettle.Stop(); toastTimer.Stop();
         liveTimer?.Stop(); switchTimer?.Stop();
         measureCancel?.Cancel(); pinging?.Cancel(); tuning?.Cancel(); siteCheckCancel?.Cancel();
         meter?.Dispose(); meter = null;

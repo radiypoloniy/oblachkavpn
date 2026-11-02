@@ -48,7 +48,7 @@ public partial class MainWindow : Window
         WireViews();
         viewsReady = true;
         Navigate("Connection");
-        presentationTimer.Tick += (_, _) => { RefreshPresentation(background: true); PollSubscription(); PollPing(); PollZapretRouting(); PollZapretWatch(); PollPause(); PollExpiry(); PollProxyGuard(); };
+        presentationTimer.Tick += (_, _) => { RefreshPresentation(background: true); PollSubscription(); PollPing(); PollZapretRouting(); PollZapretWatch(); PollPause(); PollExpiry(); };
         presentationTimer.Start();
         SubscribeLifecycle(persistenceEnabled && !isolatedPersistence);
         if (stateStore is not null) runtime.Persistence.Start(new System.Windows.Threading.DispatcherSynchronizationContext(Dispatcher));
@@ -224,7 +224,6 @@ public partial class MainWindow : Window
         ProfilePicker.SelectionChanged -= ProfileSelectionChanged;
         runtime.Tray?.Detach(this);
         if (ownsRuntime) runtime.Dispose();
-        CloseSystemProxy();
         pendingImport = null;
     }
 }
