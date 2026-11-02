@@ -40,7 +40,7 @@ func TestSelectorProbeIgnoresDirectFinalRoute(t *testing.T) {
 		return p
 	}
 	apiPort, deadPort := port(), port()
-	secret := "fixture-secret-123456789"
+	secret := fixtureSecret(t)
 	certificate := string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: target.Certificate().Raw}))
 	config, _ := json.Marshal(map[string]any{
 		"log":         map[string]any{"disabled": true},

@@ -4,3 +4,6 @@
 # Тот же тест в прежней локальной истории; там же старый verify-package.ps1 с SHA256 ядра.
 d8b31889fea42db2c36cc077ed8be3bb2199529b:tests/SelfTests.Advanced.cs:generic-api-key:172
 e8014342688df5dc3894202d358d705718a2347a:verify-package.ps1:jfrog-identity-token:27
+# Фиксированные заглушки авторизации локальных Go-тестов; теперь генерируются для каждого запуска.
+4c5c38db38160d26f7cbf9a1e41188dd4de7f75b:core/program_service_test.go:generic-api-key:13
+4c5c38db38160d26f7cbf9a1e41188dd4de7f75b:core/selector_probe_test.go:generic-api-key:43

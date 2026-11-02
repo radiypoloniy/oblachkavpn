@@ -6,17 +6,28 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gofrs/uuid/v5"
 	"github.com/sagernet/sing-box/log"
 )
 
+func fixtureSecret(t *testing.T) string {
+	t.Helper()
+	id, err := uuid.NewV4()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return id.String()
+}
+
 func TestProgramServiceAuthenticationAndMethods(t *testing.T) {
-	s := &programService{options: programServiceOptions{Secret: "fixture-secret-123456"}}
+	secret := fixtureSecret(t)
+	s := &programService{options: programServiceOptions{Secret: secret}}
 	for _, test := range []struct {
 		auth, method, path string
 		status             int
 	}{
 		{"", "GET", "/programs", 401}, {"Bearer wrong", "GET", "/programs", 401},
-		{"Bearer fixture-secret-123456", "POST", "/programs", 404}, {"Bearer fixture-secret-123456", "GET", "/other", 404},
+		{"Bearer " + secret, "POST", "/programs", 404}, {"Bearer " + secret, "GET", "/other", 404},
 	} {
 		r := httptest.NewRequest(test.method, test.path, nil)
 		r.Header.Set("Authorization", test.auth)
