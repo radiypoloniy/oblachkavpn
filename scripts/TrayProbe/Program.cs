@@ -15,8 +15,9 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length != 1 && !(args.Length == 2 && args[0] == "--wpf-baseline")) return 1;
-        var baseline = args.Length == 2;
+        var baseline = args.Length == 2 && args[0] == "--wpf-baseline";
+        var views = args.Length == 3 && args[0] == "--views";
+        if (args.Length != 1 && !baseline && !views) return 1;
         var report = Path.GetFullPath(args[^1]);
         var root = Path.Combine(Path.GetDirectoryName(report)!, "state-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -45,6 +46,17 @@ internal static class Program
             var tray = typeof(ClientRuntime).GetMethod("EnsureTray", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(owner, new object[] { context })!;
             var icon = (Forms.NotifyIcon)tray.GetType().GetProperty("Icon")!.GetValue(tray)!;
             icon.Visible = true;
+            if (views)
+            {
+                var result = 2;
+                context.Post(async _ =>
+                {
+                    try { await IpcProbe.RunAsync(owner, context, Path.GetFullPath(args[1]), report); result = 0; }
+                    catch (Exception error) { File.WriteAllText(report, JsonSerializer.Serialize(new { Passed = false, Error = error.ToString() })); }
+                    finally { loop.ExitThread(); }
+                }, null);
+                Forms.Application.Run(loop); return result;
+            }
             var changed = false; var done = false; var exitCode = 2;
             using var timer = new Forms.Timer { Interval = 1000 };
             var started = DateTime.UtcNow;
@@ -89,14 +101,17 @@ internal static class Program
     }
     private sealed class FixtureCore : ITunnelController
     {
+        private readonly int ownerThread = Environment.CurrentManagedThreadId;
+        private void CheckThread()
+        { if (Environment.CurrentManagedThreadId != ownerThread) throw new InvalidOperationException("Command left the owner context"); }
         public int Port => 10808;
-        public int? ProcessId => 42;
-        public ConnectionState State => ConnectionState.Running;
+        public int? ProcessId => State == ConnectionState.Running ? 42 : null;
+        public ConnectionState State { get; private set; } = ConnectionState.Running;
         public string CoreLabel => "background-fixture";
         public event Action<ConnectionState, string>? Changed { add { } remove { } }
-        public Task StartAsync(Profile profile, CancellationToken token) => Task.CompletedTask;
-        public Task<ProbeResult> ProbeAsync(Uri target, CancellationToken token) => Task.FromResult(new ProbeResult(true, 1, "fixture"));
-        public void Stop() { }
+        public Task StartAsync(Profile profile, CancellationToken token) { CheckThread(); State = ConnectionState.Running; return Task.CompletedTask; }
+        public Task<ProbeResult> ProbeAsync(Uri target, CancellationToken token) { CheckThread(); return Task.FromResult(new ProbeResult(true, 1, "fixture")); }
+        public void Stop() { CheckThread(); State = ConnectionState.Idle; }
         public void Dispose() { }
     }
     private sealed class FixtureProxy : IProxySettingsStore

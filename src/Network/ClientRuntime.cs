@@ -3,6 +3,7 @@ namespace Oblachka;
 // Сетевые ресурсы приложения не принадлежат WPF-окну. Штатное закрытие сначала снимает туннель.
 public sealed class ClientRuntime : IDisposable
 {
+    public Guid InstanceId { get; } = Guid.NewGuid();
     public ITunnelController Engine { get; }
     public ClientProfiles Profiles { get; } = new();
     public ClientPreferences Preferences { get; } = new();

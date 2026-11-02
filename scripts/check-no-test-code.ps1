@@ -13,6 +13,7 @@ $forbiddenSymbols = @(
     'DesignPreview',       # захват превью интерфейса
     'FixtureTrace',        # сырой поток ядра для синтетических проверок
     'MemoryPreview',
+    'ClientViewPreview',
     'MeasureMemoryAsync'
 )
 $forbiddenFiles = @('Oblachka.Tests.exe', 'Oblachka.Tests.dll')

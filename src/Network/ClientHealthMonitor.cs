@@ -20,6 +20,7 @@ public sealed partial class ClientHealthMonitor : IDisposable
     private int? observedPid;
     private int generation;
     private bool polling;
+    public Task? PendingCheck { get; private set; }
     private volatile bool disposed;
     private CancellationTokenSource? probing;
     public event Action? StateChanged;
@@ -41,7 +42,12 @@ public sealed partial class ClientHealthMonitor : IDisposable
         if (observedPid is not null) NextCheck = now().AddSeconds(3);
     }
 
-    public async Task PollAsync()
+    public Task PollAsync()
+    {
+        if (PendingCheck is { IsCompleted: false }) return Task.CompletedTask;
+        return PendingCheck = PollCoreAsync();
+    }
+    private async Task PollCoreAsync()
     {
         var activity = owner.Activity;
         if (disposed || polling || activity.VmTestActive || activity.ManualStop || activity.Operation is not null || activity.RecoveryWait is not null ||
