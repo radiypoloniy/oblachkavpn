@@ -11,24 +11,11 @@ namespace Oblachka;
 public partial class MainWindow
 {
     private Dictionary<string, KnownNetwork> knownNetworks => runtime.Workspace.KnownNetworks;
-    private (string Key, string Name, bool Public)? currentNetwork;
-    private string? stoppedOnNetwork;
-    private readonly DispatcherTimer networkSettle = new() { Interval = TimeSpan.FromSeconds(3) };
+    private (string Key, string Name, bool Public)? currentNetwork { get => runtime.Networks.Current; set => runtime.Networks.Current = value; }
+    private string? stoppedOnNetwork { get => runtime.Networks.StoppedOnNetwork; set => runtime.Networks.StoppedOnNetwork = value; }
 
     private void WireNetworks()
     {
-        System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged += NetworkAddressChanged;
-        networkSettle.Tick += async (_, _) =>
-        {
-            networkSettle.Stop();
-            _ = FollowNetworkAsync();
-            var before = currentNetwork?.Key;
-            ReadNetwork();
-            // «Выключил сам» не сбрасываем: Wi-Fi моргнул и вернулся в ту же сеть — VPN по-прежнему выключен.
-            if (currentNetwork?.Key == before) return;
-            ApplyNetworkRuleSet();
-            await ApplyNetworkAsync();
-        };
         AppTab.NetUsual.Click += (_, _) => SetNetworkMode(NetworkMode.Usual);
         AppTab.NetVpn.Click += (_, _) => SetNetworkMode(NetworkMode.Vpn);
         AppTab.NetTrusted.Click += (_, _) => SetNetworkMode(NetworkMode.Trusted);
@@ -70,10 +57,13 @@ public partial class MainWindow
 
     private void ReadNetwork()
     {
-        currentNetwork = NetworkCost.Network() is { } n ? (NetworkPolicy.Key(n.Id), NetworkPolicy.CleanName(n.Name), n.Public) : null;
-        runtime.Selection.NetworkKey = currentNetwork?.Key;
+        runtime.Networks.Read();
         RefreshNetworkRow();
     }
+    private void NetworksChanged()
+    { if (!closed) { RefreshNetworkRow(); if (runtime.Networks.Message.Length > 0) DetailText.Text = runtime.Networks.Message; } }
+    private void NetworkSecuring(string message) { if (!closed) Notify(Notice.NetworkSecured, "VPN включается", message); }
+    private void NetworkConnected() { if (!closed) { Connected(); UpdateControls(); } }
 
     private void SetNetworkMode(NetworkMode mode)
     {
@@ -90,7 +80,7 @@ public partial class MainWindow
         if (currentNetwork is not { } net) return;
         if (!Remember(net, new(net.Name, knownNetworks.GetValueOrDefault(net.Key)?.Mode ?? NetworkMode.Usual, name))) return;
         QueueStateSave(); RefreshNetworkRow();
-        ApplyNetworkRuleSet();
+        _ = ApplyNetworkRuleSetAsync();
     }
 
     // «Обычная» без набора — то же, что ничего не решать: сеть из списка уходит.
@@ -106,35 +96,8 @@ public partial class MainWindow
         return true;
     }
 
-    // Набор правил этой сети — на ходу, как переключение кнопкой «Набор». Удалённый набор не включается.
-    private void ApplyNetworkRuleSet()
-    {
-        if (currentNetwork is not { } net || !knownNetworks.TryGetValue(net.Key, out var known) || known.RuleSet is not { } name ||
-            name == ruleSetName || SavedRuleSets().All(s => s.Name != name)) return;
-        SwitchRuleSet(name);
-        DetailText.Text = $"Сеть «{net.Name}»: включён набор правил «{name}».";
-    }
-
-    private async Task ApplyNetworkAsync()
-    {
-        if (currentNetwork is not { } net || closed || vmTestActive || profile is null) return;
-        var known = knownNetworks.TryGetValue(net.Key, out var choice);
-        if (!NetworkPolicy.ShouldConnect(choice?.Mode ?? NetworkMode.Usual, known, net.Public, preferences.SecureUnknown,
-            ConnectionActive || operation is not null, pausedUntil is not null, stoppedOnNetwork == net.Key) || !ConnectButton.IsEnabled) return;
-        var why = known ? "в ней всегда VPN" : "это незнакомая общественная сеть";
-        DetailText.Text = $"Сеть «{net.Name}»: {why} — включаем.";
-        Notify(Notice.NetworkSecured, "VPN включается", $"Сеть «{net.Name}»: {why}.");
-        await ConnectFreshAsync();
-    }
-
-    // Xray окна под «Весь компьютер» привязан к интерфейсу, который был при запуске (PhysicalBinding):
-    // сменился основной интерфейс — ядро перезапускается на том же сервере, туннель и защита остаются.
-    private async Task FollowNetworkAsync()
-    {
-        if (closed || operation is not null || systemTunnel is not { } session || !session.NetworkMoved()) return;
-        await ConnectCoreAsync();
-    }
-
+    private Task ApplyNetworkRuleSetAsync() => runtime.Networks.ApplyRuleSetAsync();
+    private Task ApplyNetworkAsync() => runtime.Networks.ApplyAsync();
     private void RefreshNetworkRow()
     {
         if (!viewsReady) return;

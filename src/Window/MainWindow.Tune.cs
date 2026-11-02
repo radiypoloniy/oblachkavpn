@@ -33,12 +33,13 @@ public partial class MainWindow
         var pool = autoPool.Members(importedProfiles.ToArray()).Where(p => MeasureRoute(p) is not null).ToArray();
         if (pool.Length == 0) { DetailText.Text = "Подбирать не из чего: в автовыборе нет серверов, которые сейчас можно проверить."; return; }
         tuning = new CancellationTokenSource(TimeSpan.FromMinutes(8));
+        runtime.Activity.MeasuringTrial = true;
         Servers.BestButton.Content = "Остановить"; UpdateControls();
         ShowTune("Подбираем лучшее…", "Сначала — пинг всех серверов", "Около двух минут. Подключение не трогаем, пока не найдём лучшее.");
         try
         {
             // Свежая задержка всех: от неё зависит, у кого пробовать поправки.
-            await MeasureServersAsync(pool, quiet: true);
+            await runtime.Measurements.MeasureAsync(pool, true, tuning.Token);
             tuning.Token.ThrowIfCancellationRequested();
             var now = DateTimeOffset.UtcNow;
             var known = EffectiveMeasurements();
@@ -55,7 +56,7 @@ public partial class MainWindow
             await ApplyTuneAsync(result);
         }
         catch (OperationCanceledException) { if (!closed) ShowTune("Подбор остановлен", "Ничего не поменялось.", ""); }
-        finally { tuning.Dispose(); tuning = null; if (!closed) { Servers.BestButton.Content = "Подобрать лучшее"; UpdateControls(); } }
+        finally { tuning.Dispose(); tuning = null; runtime.Activity.MeasuringTrial = false; if (!closed) { Servers.BestButton.Content = "Подобрать лучшее"; UpdateControls(); } }
     }
 
     // Один вариант: отдельное ядро с пробной поправкой, задержка и скорость.

@@ -48,13 +48,16 @@ public partial class MainWindow : Window
         WireViews();
         viewsReady = true;
         runtime.Connections.Changed += ConnectionChanged;
+        runtime.Measurements.Changed += MeasurementsChanged;
+        runtime.Rules.Changed += RulesChanged; runtime.Networks.Changed += NetworksChanged;
+        runtime.Networks.Securing += NetworkSecuring; runtime.Networks.Connected += NetworkConnected;
         runtime.Imports.Applied += ImportApplied; runtime.Imports.Changed += ImportsChanged;
         runtime.Pause.Changed += PauseChanged;
         runtime.Pause.Resuming += PauseResuming;
         runtime.Pause.Resumed += PauseResumed;
         runtime.Pause.ResumeFailed += PauseResumeFailed;
         Navigate("Connection");
-        presentationTimer.Tick += (_, _) => { RefreshPresentation(background: true); PollPing(); PollZapretRouting(); PollZapretWatch(); PollExpiry(); };
+        presentationTimer.Tick += (_, _) => { RefreshPresentation(background: true); PollZapretRouting(); PollZapretWatch(); PollExpiry(); };
         presentationTimer.Start();
         SubscribeLifecycle(persistenceEnabled && !isolatedPersistence);
         if (stateStore is not null) runtime.Persistence.Start(new System.Windows.Threading.DispatcherSynchronizationContext(Dispatcher));

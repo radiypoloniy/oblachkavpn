@@ -7,7 +7,7 @@ public static partial class SelfTests
         public bool IsService => true;
         public bool Foreign, FailLists, FailAcquire, FailRecover;
         public int Connects, Disposes;
-        public Func<CancellationToken, Task>? Preparing, Listing, Dns;
+        public Func<CancellationToken, Task>? Preparing, Listing, Dns, Ruling;
         public readonly List<string> Calls = new();
         public readonly List<NetworkLeaseRequest> Requests = new();
         public readonly List<CompiledRouting> Lists = new();
@@ -34,6 +34,7 @@ public static partial class SelfTests
             public FixtureLink(TunnelHostFixture host) { this.host = host; Fixture = new(host); }
             public INetworkHelperClient Client => Fixture;
             public IHelperLifetime? Lifetime => null;
+            public async Task SendRulesAsync(SentRules rules, CancellationToken token) { host.Calls.Add("rules"); if (host.Ruling is not null) await host.Ruling(token); }
             public async Task SendListsAsync(CompiledRouting routing, CancellationToken token)
             {
                 host.Calls.Add("lists"); if (host.FailLists) throw new UserError("fixture: old helper");

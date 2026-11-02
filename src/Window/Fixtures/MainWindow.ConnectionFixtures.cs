@@ -64,9 +64,9 @@ public partial class MainWindow
         }
         checks.Add("Application pause timer resumes VPN after its WPF view closes and is collected");
     }
-    private static ClientRuntime ConnectionOwner(WindowStartCore core, Profile selected)
+    private static ClientRuntime ConnectionOwner(WindowStartCore core, Profile selected, IClientMeasurementBackend? backend = null, IClientNetworkEnvironment? network = null)
     {
-        var owner = new ClientRuntime(core); owner.Persistence.Configure(null, isolated: true);
+        var owner = new ClientRuntime(core, new ClientTunnelHost(), measurementBackend: backend, networkEnvironment: network); owner.Persistence.Configure(null, isolated: true);
         owner.Profiles.Imported = [selected]; owner.Profiles.Selected = selected;
         owner.Profiles.Picker.ItemsSource = owner.Profiles.Imported; owner.Profiles.Picker.SelectedItem = selected;
         owner.Profiles.Groups.Add(ProfileGroup.Manual); owner.Profiles.GroupProfiles[ProfileGroup.ManualId] = [selected];

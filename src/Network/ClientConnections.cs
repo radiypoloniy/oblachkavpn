@@ -23,6 +23,8 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
         if (!IsActive && owner.Activity.Operation is not null && !owner.Activity.BackgroundCheck)
             throw new UserError("Дождитесь завершения текущей операции.");
         owner.Pause.Cancel(rememberDisconnected: false);
+        owner.Networks.StoppedOnNetwork = null;
+        if (owner.Preferences.SystemTunnel) owner.Measurements.PrepareTunnel();
         requested = target; rebuild = allowReconnect;
         owner.Profiles.Selected = target; owner.Persistence.Queue();
         if (IsActive) { Changed?.Invoke(); return Pending!; }
@@ -71,7 +73,9 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
             {
                 var allowReconnect = rebuild; requested = null;
                 Validate(target, allowReconnect); cancel.Token.ThrowIfCancellationRequested();
+                var previousTunnel = owner.Tunnel;
                 await StartOneAsync(target, allowReconnect, cancel.Token);
+                if (!ReferenceEquals(previousTunnel, owner.Tunnel)) owner.Rules.Remember();
                 cancel.Token.ThrowIfCancellationRequested();
                 owner.Profiles.Running = target; owner.Workspace.WasConnected = true;
                 owner.Monitor.ObserveProcess(); owner.Monitor.StartedFresh();
@@ -109,6 +113,7 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
     private async Task StopCoreAsync()
     {
         requested = null; owner.Activity.ManualStop = true; owner.Activity.RecoveryWait?.Cancel();
+        owner.Networks.StoppedOnNetwork = owner.Networks.Current?.Key;
         var checking = owner.Activity.BackgroundCheck ? owner.Monitor.PendingCheck : null;
         owner.Activity.Operation?.Cancel(); active?.Cancel();
         owner.Workspace.WasConnected = false;

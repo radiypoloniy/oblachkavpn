@@ -4,8 +4,8 @@ namespace Oblachka;
 
 public partial class MainWindow
 {
-    private string? ruleApplyProblem;
-    private SentRules? pendingRulesBefore;
+    private string? ruleApplyProblem { get => runtime.Rules.Problem; set => runtime.Rules.Problem = value; }
+    private SentRules? pendingRulesBefore { get => runtime.Rules.PendingBefore; set => runtime.Rules.PendingBefore = value; }
 
     private void WireRuleApplyStatus()
     {

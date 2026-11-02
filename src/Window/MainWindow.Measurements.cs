@@ -10,18 +10,14 @@ public partial class MainWindow
         // Идёт подключение — подписка обновится по расписанию, пинг меряется сразу.
         Servers.MeasureButton.Click += async (_, _) =>
         {
-            if (measuring) { measureCancel?.Cancel(); return; }
+            if (measuring) { runtime.Measurements.CancelMeasure(); return; }
             if (operation is null) await RefreshAllAsync();
             if (!closed) await MeasureServersAsync(importedProfiles.ToArray(), quiet: false);
         };
         // «Подобрать лучшее» — MainWindow.Tune; «Автовыбор» подключает по готовым замерам.
         WireTune();
-        System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged += MeasurementAddressChanged;
     }
 
-    // Когда сменились адреса (другой Wi-Fi, кабель, наш туннель): тики UTC, 0 — не было.
-    private long addressChanged;
-    private void MeasurementAddressChanged(object? sender, EventArgs args) => Interlocked.Exchange(ref addressChanged, DateTimeOffset.UtcNow.Ticks);
     // «Проверить этот сервер»: настоящий HTTPS-запрос через выбранный сервер отдельным ядром,
     // как у «Проверить все», но для одного и любого источника. Подключение не трогает.
     private Profile? checkingServer;
@@ -46,83 +42,15 @@ public partial class MainWindow
     // Отклики серверов (ServerPing) живут только в этом запуске: они дешёвые и делаются заново
     // при каждом старте, после загрузки подписки и при открытии «Всех серверов».
     private Dictionary<string, ServerMeasurement> pings => runtime.Profiles.Pings;
-    private CancellationTokenSource? pinging;
-    private bool pingQueued;
-    private DateTimeOffset lastPing = DateTimeOffset.MinValue;
-
-    // Под «Весь компьютер» соединения окна либо закрыты защитой, либо уходят в туннель
-    // и меряли бы его, а не сервер. Тогда отклики не обновляем, видны прежние.
-    // Окна проверок и превью (без сохранения состояния) в сеть не ходят.
-    private bool CanPing => systemTunnel is null && !closed && importedProfiles.Count > 0 && stateStore is not null && !isolatedPersistence;
-
-    private Task pingTask = Task.CompletedTask;
-
-    private void QueuePing()
-    {
-        if (pinging is not null) { pingQueued = true; return; }
-        if (!CanPing) return;
-        pingTask = PingServersAsync();
-    }
-
-    private async Task WaitForPingsAsync()
-    {
-        if (pinging is null && pings.Count > 0) return;
-        if (pinging is null) QueuePing();
-        await Task.WhenAny(pingTask, Task.Delay(TimeSpan.FromSeconds(3)));
-    }
-
-    private async Task PingServersAsync()
-    {
-        pinging = new CancellationTokenSource(TimeSpan.FromSeconds(20)); pingQueued = false;
-        var token = pinging.Token;
-        var targets = importedProfiles.ToArray();
-        try
-        {
-            await ServerPing.PingAllAsync(targets, (item, milliseconds) => Dispatcher.BeginInvoke(() =>
-            {
-                // Подключение в режиме «Весь компьютер» началось во время замера: ответы, пришедшие
-                // после этого, мерили бы туннель или упирались бы в защиту.
-                if (closed || token.IsCancellationRequested || !CanPing) return;
-                var key = Profiles.Fingerprint(item);
-                pings[key] = new(key, DateTimeOffset.UtcNow, milliseconds is not null, milliseconds ?? 0) { Handshake = true };
-                PingsChanged();
-            }), token);
-        }
-        catch (OperationCanceledException) { }
-        finally
-        {
-            lastPing = DateTimeOffset.UtcNow;
-            pinging.Dispose(); pinging = null;
-            TrimMeasurements();
-            if (pingQueued && !closed) QueuePing();
-        }
-    }
+    private DateTimeOffset lastPing => runtime.Measurements.LastPing;
+    private void QueuePing() => runtime.Measurements.QueuePing();
+    private Task WaitForPingsAsync() => runtime.Measurements.WaitForPingsAsync();
 
     // Итог проверки узла в работе (подбор, автовосстановление): null — не ответил.
     private void MarkMeasured(Profile item, long? milliseconds)
     {
         runtime.Profiles.MarkMeasured(item, milliseconds);
         PingsChanged();
-    }
-
-    // Пока окно открыто, отклики обновляются раз в 10 минут; после выключения режима
-    // «Весь компьютер» это же обновляет устаревшие. Задержка через серверы пула автовыбора —
-    // тоже раз в 10 минут и при любом режиме: по ней работает «Автовыбор».
-    private void PollPing()
-    {
-        var age = DateTimeOffset.UtcNow - lastPing;
-        // Откликов нет совсем (замер оборвало подключение «Весь компьютер») — повтор вскоре после выключения.
-        if (IsVisible && (age > TimeSpan.FromMinutes(10) || pings.Count == 0 && age > TimeSpan.FromSeconds(30))) QueuePing();
-        // Сеть сменилась — замер через 15 секунд, когда она устоится, а не через час.
-        // Свой туннель адреса тоже меняет, но NetworkIdentity его не считает: сеть та же.
-        if (Interlocked.Read(ref addressChanged) is var changed and > 0 && DateTimeOffset.UtcNow.Ticks - changed > TimeSpan.TicksPerSecond * 15 && !measuring)
-        {
-            Interlocked.CompareExchange(ref addressChanged, 0, changed);
-            if (throughputNetwork is not null && NetworkIdentity.Current() is { } now && now != throughputNetwork) lastMeasure = DateTimeOffset.MinValue;
-        }
-        if (!measuring && tuning is null && operation is null && importedProfiles.Count > 0 && stateStore is not null && !isolatedPersistence &&
-            DateTimeOffset.UtcNow - lastMeasure > TimeSpan.FromMinutes(10))
-            _ = MeasureServersAsync(autoPool.Members(importedProfiles.ToArray()), quiet: true);
     }
 
     // Отклики приходят по одному: перестраиваем видимое не чаще раза в 150 мс.

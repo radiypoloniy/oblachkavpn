@@ -75,6 +75,7 @@ public partial class MainWindow
         await CheckDesktopHostAsync(checks);
         await CheckOwnedConnectionAsync(checks);
         await CheckOwnedImportAsync(checks);
+        await CheckOwnedMeasurementsAsync(checks);
         CheckDirectDnsRules(checks);
         CheckDeferredViews(checks);
         CheckLiveCache(checks);

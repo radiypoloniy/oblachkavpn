@@ -5,6 +5,7 @@ internal interface IClientTunnelLink : IAsyncDisposable
     INetworkHelperClient Client { get; }
     IHelperLifetime? Lifetime { get; }
     Task SendListsAsync(CompiledRouting routing, CancellationToken token);
+    Task SendRulesAsync(SentRules rules, CancellationToken token);
     Task<bool> SyncDnsAsync(string[] domains, CoreStatsEntry? stats, CancellationToken token);
 }
 internal interface IClientTunnelHost
@@ -41,6 +42,7 @@ internal sealed class ClientTunnelHost : IClientTunnelHost
         public INetworkHelperClient Client => helper.Client;
         public IHelperLifetime Lifetime => helper;
         public Task SendListsAsync(CompiledRouting routing, CancellationToken token) => helper.Client.RoutingListsAsync(routing, token);
+        public Task SendRulesAsync(SentRules rules, CancellationToken token) => helper.Client.ProgramRulesAsync(rules.Programs, rules.Sites, token);
         public async Task<bool> SyncDnsAsync(string[] domains, CoreStatsEntry? stats, CancellationToken token)
         {
             await helper.Client.DirectDnsAsync(domains, token);

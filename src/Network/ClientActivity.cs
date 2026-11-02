@@ -10,4 +10,5 @@ public sealed class ClientActivity
     public bool ManualStop { get; set; }
     public bool VmTestActive { get; set; }
     public bool FindingRoute { get; set; }
+    public bool MeasuringTrial { get; set; }
 }

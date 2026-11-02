@@ -20,6 +20,8 @@ public partial class MainWindow
         runtime.Monitor.Start(new DispatcherSynchronizationContext(Dispatcher));
         runtime.Pause.Start(new DispatcherSynchronizationContext(Dispatcher));
         runtime.Imports.Start(new DispatcherSynchronizationContext(Dispatcher));
+        runtime.Measurements.Start(new DispatcherSynchronizationContext(Dispatcher));
+        runtime.Networks.Start(new DispatcherSynchronizationContext(Dispatcher));
         runtime.Persistence.Start(new DispatcherSynchronizationContext(Dispatcher));
         if (stateStore is not null && !isolatedPersistence) runtime.Updates.Start(new DispatcherSynchronizationContext(Dispatcher));
     }

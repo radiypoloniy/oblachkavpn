@@ -35,5 +35,15 @@ Write-Host ('Проверки интерфейса: ' + $uiReport.Checks.Count +
 Write-Host ('Отчёт: ' + $uiReportPath)
 if ($uiProcess.ExitCode -ne 0 -or -not $uiReport.Passed) { throw 'Проверки интерфейса не прошли.' }
 
+# Отдельный процесс нужен, чтобы проверить отсутствие WPF после фоновых сетевых операций.
+$backgroundReportPath = Join-Path $testDirectory ('background-network-' + [guid]::NewGuid().ToString('N') + '.json')
+$backgroundProcess = Start-Process -FilePath (Join-Path $testDirectory 'Oblachka.Tests.exe') -ArgumentList @('--background-network-self-test', ('"' + $backgroundReportPath + '"')) -WorkingDirectory $testDirectory -WindowStyle Hidden -PassThru -Wait
+$backgroundReport = Get-Content -LiteralPath $backgroundReportPath -Raw | ConvertFrom-Json
+Write-Host ('Фоновые проверки без WPF: ' + $backgroundReport.Checks.Count + '. Успех: ' + $backgroundReport.Passed)
+if ($backgroundProcess.ExitCode -ne 0 -or -not $backgroundReport.Passed) {
+    $backgroundReport.Checks | Where-Object { -not $_.Passed } | Select-Object Name, Error | Format-List
+    throw 'Фоновые проверки не прошли.'
+}
+
 # Поставляемая сборка не должна содержать тестовых символов.
 & (Join-Path $projectRoot 'scripts\check-no-test-code.ps1') -Directory $verified

@@ -18,7 +18,7 @@ public partial class MainWindow
         }));
         Settings.AutoPool.AutoPoolMeasure.Click += async (_, _) =>
         {
-            if (measuring) { measureCancel?.Cancel(); return; }
+            if (measuring) { runtime.Measurements.CancelMeasure(); return; }
             await MeasureServersAsync(autoPool.Members(importedProfiles.ToArray()), quiet: false);
         };
     }

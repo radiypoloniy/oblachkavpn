@@ -10,21 +10,14 @@ public partial class MainWindow
         DetailText.Text = "Защиту от утечек кто-то снял — Облачка поставила её заново.";
         Notify(Notice.ProtectionRepaired, "Защита от утечек снова на месте", "Её снял Windows или другая программа, Облачка поставила заново. Мимо VPN ничего не ушло.", warning: true);
     });
-    private void NetworkAddressChanged(object? sender, EventArgs args)
-    {
-        if (closed || Dispatcher.HasShutdownStarted) return;
-        Dispatcher.BeginInvoke(() =>
-        {
-            if (closed) return;
-            networkSettle.Stop(); networkSettle.Start();
-        });
-    }
-
     private void ReleaseViewResources()
     {
         ThemeManager.Changed -= RefreshHome;
         runtime.Persistence.Changed -= PersistenceChanged;
         runtime.Connections.Changed -= ConnectionChanged;
+        runtime.Measurements.Changed -= MeasurementsChanged;
+        runtime.Rules.Changed -= RulesChanged; runtime.Networks.Changed -= NetworksChanged;
+        runtime.Networks.Securing -= NetworkSecuring; runtime.Networks.Connected -= NetworkConnected;
         runtime.Imports.Applied -= ImportApplied; runtime.Imports.Changed -= ImportsChanged;
         runtime.Pause.Changed -= PauseChanged;
         runtime.Pause.Resuming -= PauseResuming;
@@ -37,11 +30,9 @@ public partial class MainWindow
         runtime.ProtectionRepaired -= OnProtectionRepaired;
         System.ComponentModel.DependencyPropertyDescriptor.FromProperty(System.Windows.Controls.TextBlock.TextProperty,
             typeof(System.Windows.Controls.TextBlock)).RemoveValueChanged(ShellFeedback, FeedbackChanged);
-        System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged -= MeasurementAddressChanged;
-        System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged -= NetworkAddressChanged;
-        networkSettle.Stop(); toastTimer.Stop();
+        toastTimer.Stop();
         liveTimer?.Stop(); switchTimer?.Stop();
-        measureCancel?.Cancel(); pinging?.Cancel(); tuning?.Cancel(); siteCheckCancel?.Cancel();
+        tuning?.Cancel(); siteCheckCancel?.Cancel();
         meter?.Dispose(); meter = null;
         appCatalogCancel.Cancel(); appCatalogCancel.Dispose();
     }

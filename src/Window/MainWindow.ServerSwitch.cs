@@ -20,7 +20,7 @@ public partial class MainWindow
     // Фоновая проверка связи раз в 45 с не должна гасить список серверов.
     private bool backgroundCheck { get => runtime.Activity.BackgroundCheck; set => runtime.Activity.BackgroundCheck = value; }
     // Идёт замер задержки через серверы (MeasureServersAsync).
-    private bool measuring;
+    private bool measuring => runtime.Measurements.IsMeasuring;
 
     private bool ConnectionActive => engine.State is not ConnectionState.Idle || SystemTunnelActive;
     private bool SwitchPending => profile is not null && runningProfile is not null &&
@@ -28,7 +28,7 @@ public partial class MainWindow
 
     private void QueueServerSwitch()
     {
-        if (restoringState || closed || !ConnectionActive) return;
+        if (manualStop || restoringState || closed || !ConnectionActive) return;
         // Подбор сам меняет выбор, это не просьба человека переключиться.
         if (findingRoute) return;
         switchTimer ??= CreateSwitchTimer();
@@ -53,7 +53,7 @@ public partial class MainWindow
 
     private async Task SwitchServerAsync()
     {
-        if (operation is not null || closed || profile is null || !ConnectionActive || !SwitchPending) return;
+        if (manualStop || operation is not null || closed || profile is null || !ConnectionActive || !SwitchPending) return;
         recoveryWait?.Cancel(); recovery.Reset(); health.Reset(); manualStop = false;
         if (SystemTunnelActive && systemTunnel is { } session)
         {
