@@ -9,7 +9,7 @@ namespace Oblachka;
 
 // Диагностика гипотезы освобождения окна. Принудительный GC — отдельный диагностический образец,
 // не поведение клиента и не результат оптимизации. Реальных ядер, подписок и системных изменений нет.
-internal static class TrayMemoryPreview
+internal static partial class TrayMemoryPreview
 {
     internal static int Run(string report)
     {
@@ -91,6 +91,7 @@ internal static class TrayMemoryPreview
             throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
         var memory = GC.GetGCMemoryInfo();
         return new { Phase = phase, ForcedGc = forcedGc, WindowAlive = view.TryGetTarget(out _),
+            Utc = DateTimeOffset.UtcNow, CpuMilliseconds = process.TotalProcessorTime.TotalMilliseconds, AllocatedBytes = GC.GetTotalAllocatedBytes(),
             Windows = Application.Current.Windows.Count, Profiles = owner.Profiles.Imported.Count,
             TrayAlive = owner.Tray?.Icon.Visible == true, PrivateBytes = process.PrivateMemorySize64,
             PrivateWorkingSet = (long)counters.PrivateWorkingSetSize,

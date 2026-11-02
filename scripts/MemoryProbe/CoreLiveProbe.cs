@@ -7,8 +7,9 @@ using System.Text.Json;
 
 internal static class CoreLiveProbe
 {
-    internal static async Task<int> RunAsync(string executable, string report)
+    internal static async Task<int> RunAsync(string executable, string report, int steadySeconds = 0)
     {
+        if (steadySeconds != 0 && steadySeconds is < 10 or > 1800) return 2;
         static int Port() { var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start(); var p = ((IPEndPoint)listener.LocalEndpoint).Port; listener.Stop(); return p; }
         int apiPort;
         while (true)
@@ -38,7 +39,7 @@ internal static class CoreLiveProbe
         http.DefaultRequestHeaders.Authorization = new("Bearer", secret);
         var source = new TcpListener(IPAddress.Loopback, 0); source.Start();
         using var stop = new CancellationTokenSource();
-        stop.CancelAfter(TimeSpan.FromMinutes(1));
+        stop.CancelAfter(TimeSpan.FromSeconds(60 + 2 * steadySeconds));
         var sockets = new List<TcpClient>(); var peers = new List<TcpClient>();
         var echoTasks = new List<Task>(); var samples = new List<object>(); var batches = new List<object>();
         async Task Echo(TcpClient peer)
@@ -87,7 +88,9 @@ internal static class CoreLiveProbe
             await Sample("500-open-connections");
             foreach (var endpoint in new[] { $"http://127.0.0.1:{apiPort}/connections", $"http://127.0.0.1:{apiPort + 1}/programs" })
                 for (var i = 0; i < 5; i++) await http.GetByteArrayAsync(endpoint);
-            for (var round = 0; round < 3; round++)
+            if (steadySeconds > 0)
+                await CoreSteadyProbe.RunAsync(core, http, apiPort + 1, sockets, steadySeconds, Sample, batches);
+            else for (var round = 0; round < 3; round++)
             {
                 foreach (var (name, endpoint) in new[] { ("FullConnections", $"http://127.0.0.1:{apiPort}/connections"), ("CompactPrograms", $"http://127.0.0.1:{apiPort + 1}/programs") })
                 {

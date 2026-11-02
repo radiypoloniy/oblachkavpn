@@ -28,6 +28,7 @@ public static class Program
             catch { return 2; }
         }
 #if TEST_HOOKS
+        if (args.Length == 4 && args[0] == "--ui-resource-check") return TrayMemoryPreview.RunResources(args[1], int.Parse(args[2]), int.Parse(args[3]));
         if (args.Length == 5 && args[0] == "--view-channel-fixture") return ClientViewPreview.Run(args[1], int.Parse(args[2]), args[3], args[4]);
         if (args.Length == 2 && args[0] == "--ui-tray-memory-check") return TrayMemoryPreview.Run(args[1]);
         if (args.Length == 2 && args[0] == "--ui-memory-check") return MemoryPreview.Run(args[1]);

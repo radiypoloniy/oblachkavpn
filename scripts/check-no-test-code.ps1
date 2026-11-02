@@ -14,7 +14,9 @@ $forbiddenSymbols = @(
     'FixtureTrace',        # сырой поток ядра для синтетических проверок
     'MemoryPreview',
     'ClientViewPreview',
-    'MeasureMemoryAsync'
+    'MeasureMemoryAsync',
+    'PrepareResourceProfiles',
+    'ResourceRefreshBenchmark'
 )
 $forbiddenFiles = @('Oblachka.Tests.exe', 'Oblachka.Tests.dll')
 
