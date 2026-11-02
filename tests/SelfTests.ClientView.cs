@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
+using System.Security.AccessControl;
+using System.Security.Principal;
 
 namespace Oblachka;
 
@@ -9,6 +11,15 @@ public static partial class SelfTests
 {
     private static async Task ClientViewChecksAsync(Func<string, Func<Task>, Task> check, string root)
     {
+        await check("Private IPC ACL permits its owner and explicitly denies network logons", () => Sync(() =>
+        {
+            using var pipe = HelperPipeIdentity.CreateServer(HelperPipeIdentity.NewPipeName());
+            using var user = System.Security.Principal.WindowsIdentity.GetCurrent();
+            var rules = pipe.GetAccessControl().GetAccessRules(true, false, typeof(SecurityIdentifier)).Cast<PipeAccessRule>().ToArray();
+            Assert(rules.Any(r => r.IdentityReference.Equals(user.User) && r.AccessControlType == AccessControlType.Allow));
+            Assert(rules.Any(r => r.IdentityReference.Equals(new SecurityIdentifier(WellKnownSidType.NetworkSid, null)) &&
+                r.AccessControlType == AccessControlType.Deny && r.PipeAccessRights.HasFlag(PipeAccessRights.FullControl)));
+        }));
         await check("View messages reject executable payloads and snapshots contain no server credentials", () => Sync(() =>
         {
             foreach (var json in new[] { "{}", "{\"Version\":1,\"Version\":1}",

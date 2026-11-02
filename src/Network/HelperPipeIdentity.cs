@@ -16,6 +16,8 @@ public static class HelperPipeIdentity
         var user = identity.User ?? throw new UserError("Не удалось определить владельца helper.");
         var security = new PipeSecurity();
         security.SetAccessRuleProtection(true, false); security.SetOwner(user);
+        security.AddAccessRule(new PipeAccessRule(new SecurityIdentifier(WellKnownSidType.NetworkSid, null),
+            PipeAccessRights.FullControl, AccessControlType.Deny));
         security.AddAccessRule(new PipeAccessRule(user, PipeAccessRights.FullControl, AccessControlType.Allow));
         return NamedPipeServerStreamAcl.Create(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
             PipeOptions.Asynchronous | PipeOptions.FirstPipeInstance, 8192, 8192, security);
