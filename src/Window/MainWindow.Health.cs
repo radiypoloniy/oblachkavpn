@@ -18,6 +18,7 @@ public partial class MainWindow
         runtime.Recovery.StateChanged += RecoveryStateChanged;
         runtime.Recovery.Completed += RecoveryCompleted;
         runtime.Monitor.Start(new DispatcherSynchronizationContext(Dispatcher));
+        runtime.Pause.Start(new DispatcherSynchronizationContext(Dispatcher));
         runtime.Persistence.Start(new DispatcherSynchronizationContext(Dispatcher));
         if (stateStore is not null && !isolatedPersistence) runtime.Updates.Start(new DispatcherSynchronizationContext(Dispatcher));
     }

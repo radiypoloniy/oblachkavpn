@@ -13,6 +13,8 @@ public sealed class ClientRuntime : IDisposable
     public ClientProxy Proxy { get; }
     public ClientUpdates Updates { get; }
     public ClientConnections Connections { get; }
+    public ClientSelection Selection { get; }
+    public ClientPause Pause { get; }
     internal ClientTray? Tray { get; private set; }
     internal ClientTray EnsureTray(SynchronizationContext context) => Tray ??= new(this, context);
     public ClientHealthMonitor Monitor { get; }
@@ -34,13 +36,14 @@ public sealed class ClientRuntime : IDisposable
     public ClientRuntime() : this(new Engine(Path.Combine(AppContext.BaseDirectory, "tools", "xray.exe"),
         Path.Combine(AppContext.BaseDirectory, "data", "runtime"))) { }
     public ClientRuntime(ITunnelController engine) : this(engine, new ClientTunnelHost()) { }
-    internal ClientRuntime(ITunnelController engine, IClientTunnelHost host, ClientPathHealth? path = null)
+    internal ClientRuntime(ITunnelController engine, IClientTunnelHost host, ClientPathHealth? path = null, Func<DateTimeOffset>? pauseNow = null)
     {
         Engine = engine;
         Persistence = new(this);
         Proxy = new(this);
         Updates = new(this);
         Connections = new(this);
+        Selection = new(this); Pause = new(this, pauseNow);
         Preferences.PropertyChanged += PreferencesChanged;
         tunnelHost = host; TunnelPolicy = new(this); Tunnels = new(this, host);
         Monitor = new ClientHealthMonitor(this, path: path);
@@ -91,6 +94,7 @@ public sealed class ClientRuntime : IDisposable
         disposed = true;
         Preferences.PropertyChanged -= PreferencesChanged;
         Recovery.Dispose();
+        Pause.Dispose();
         Connections.Dispose();
         Updates.Dispose();
         Persistence.Dispose();

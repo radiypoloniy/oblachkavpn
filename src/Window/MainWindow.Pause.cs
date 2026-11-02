@@ -5,11 +5,11 @@ namespace Oblachka;
 
 // Пауза VPN (как у NordVPN и Surfshark): выключить на 5, 15 или 60 минут — для банка или сайта,
 // который не пускает из-за границы, — и не забыть включить. Срок — по часам, а не по таймеру:
-// после сна компьютера просроченная пауза кончается при первой же секунде обновления окна.
+// после сна компьютера просроченную паузу завершает владелец приложения, даже без окна.
 // Тумблер во время паузы включает VPN сразу; «Не включать сам» оставляет его выключенным.
 public partial class MainWindow
 {
-    private DateTimeOffset? pausedUntil;
+    private DateTimeOffset? pausedUntil => runtime.Pause.Until;
     private static readonly (int Minutes, string Title)[] PauseChoices = [(5, "На 5 минут"), (15, "На 15 минут"), (60, "На час")];
 
     private void WirePause() => Home.PauseButton.Click += (_, _) =>
@@ -27,41 +27,40 @@ public partial class MainWindow
 
     private void RefreshPauseButton()
     {
-        var offered = pausedUntil is not null || ConnectionActive && StopButton.IsEnabled && !systemStopping;
+        var offered = pausedUntil is not null || ConnectionActive && StopButton.IsEnabled && operation is null && !systemStopping;
         Home.PauseButton.Visibility = offered ? Visibility.Visible : Visibility.Collapsed;
         Home.PauseText.Text = pausedUntil is null ? "Пауза" : "Не включать сам";
         Home.PauseIcon.SetResourceReference(System.Windows.Shapes.Path.DataProperty, pausedUntil is null ? "IcoPause" : "IcoClose");
     }
 
-    private void StartPause(int minutes)
+    private async void StartPause(int minutes)
     {
-        if (!ConnectionActive || !StopButton.IsEnabled) return;
-        StopClick(this, new RoutedEventArgs());
-        // Перезагрузка во время паузы — VPN включится при запуске, как будто паузы не было.
-        RememberConnected(true);
-        pausedUntil = DateTimeOffset.UtcNow.AddMinutes(minutes);
-        DetailText.Text = "Пауза: VPN включится сам в " + PauseEnd + ".";
-        RefreshHome();
+        if (!ConnectionActive || !StopButton.IsEnabled || operation is not null) return;
+        stoppedOnNetwork = currentNetwork?.Key;
+        try { await runtime.Pause.PauseAsync(minutes); if (!closed && pausedUntil is not null) DetailText.Text = "Пауза: VPN включится сам в " + PauseEnd + "."; }
+        catch (Exception error) when (error is UserError or IOException or TimeoutException or ObjectDisposedException)
+        { if (!closed) DetailText.Text = "Приостановить VPN полностью не удалось. Проверьте состояние подключения."; }
+        finally { if (!closed) UpdateControls(); }
     }
 
     private void CancelPause()
     {
-        pausedUntil = null;
-        RememberConnected(false);
+        runtime.Pause.Cancel();
         DetailText.Text = "Пауза снята: VPN останется выключенным.";
         RefreshHome();
     }
 
     private string PauseEnd => pausedUntil?.ToLocalTime().ToString("HH:mm") ?? "";
 
-    // Каждую секунду (presentationTimer). Пока сессия ещё снимается, ждём следующей секунды.
-    private void PollPause()
+    private void PauseChanged() { if (!closed) UpdateControls(); }
+    private void PauseResuming()
     {
-        if (pausedUntil is not { } until || DateTimeOffset.UtcNow < until) return;
-        if (ConnectionActive) { pausedUntil = null; return; }
-        if (!ConnectButton.IsEnabled) return;
-        pausedUntil = null;
+        if (closed) return;
+        stoppedOnNetwork = null;
         Notify(Notice.PauseEnded, "Пауза кончилась", "VPN снова включается.");
-        ConnectClick(this, new RoutedEventArgs());
     }
+    private void PauseResumed()
+    { if (!closed) { SelectProfile(profile!); Connected(); DetailText.Text = "Пауза кончилась: подключение запущено."; } }
+    private void PauseResumeFailed()
+    { if (!closed) { DetailText.Text = "Пауза кончилась, но подключиться не удалось. Попробуйте снова."; ScheduleRecovery(); } }
 }

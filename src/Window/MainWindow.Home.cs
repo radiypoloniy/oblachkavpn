@@ -125,18 +125,11 @@ public partial class MainWindow
     {
         if (!autoSelect && !machineMode || ConnectionActive) return;
         await WaitForPingsAsync();
-        var best = autoSelect ? BestProfile() : profile is null ? null : MachineBest(MachineOf(profile));
+        var best = runtime.Selection.BeforeConnect();
         if (best is not null && (profile is null || ProfileSelection.Identity(best) != ProfileSelection.Identity(profile))) SelectProfile(best);
     }
 
-    private Profile? BestProfile()
-    {
-        var all = importedProfiles.ToArray();
-        // Только пул автовыбора: серверы обхода белых списков и исключённые вручную не берутся.
-        var pool = autoPool.Members(all).Where(InRuleSet).ToArray() is { Length: > 0 } inSet ? inSet : autoPool.Members(all);
-        return ServerMeasurements.Best(pool, EffectiveMeasurements(), DateTimeOffset.UtcNow, profile) is int best ? pool[best]
-            : profile is { IsService: true } && autoPool.Contains(profile) ? profile : pool.FirstOrDefault(p => p.IsService) ?? pool.FirstOrDefault() ?? profile;
-    }
+    private Profile? BestProfile() => runtime.Selection.BestAuto();
 
     // Выбор идёт через прежний список (Servers.ProfilePicker): от его события зависят смена
     // сервера на ходу и сохранение. Поиск сбрасывается, иначе нужной строки в нём может не быть.

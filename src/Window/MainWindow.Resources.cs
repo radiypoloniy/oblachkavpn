@@ -25,6 +25,10 @@ public partial class MainWindow
         ThemeManager.Changed -= RefreshHome;
         runtime.Persistence.Changed -= PersistenceChanged;
         runtime.Connections.Changed -= ConnectionChanged;
+        runtime.Pause.Changed -= PauseChanged;
+        runtime.Pause.Resuming -= PauseResuming;
+        runtime.Pause.Resumed -= PauseResumed;
+        runtime.Pause.ResumeFailed -= PauseResumeFailed;
         runtime.Proxy.Changed -= ProxyChanged;
         runtime.Updates.Changed -= UpdatesChanged;
         runtime.Updates.AvailableInBackground -= BackgroundUpdateAvailable;

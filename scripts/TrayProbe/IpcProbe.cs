@@ -14,6 +14,13 @@ internal static class IpcProbe
     internal static async Task RunAsync(ClientRuntime owner, SynchronizationContext context, string viewExecutable, string report)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        owner.Profiles.AutoSelect = true;
+        await owner.Pause.PauseAsync(5);
+        // Только диагностический стенд сокращает пять минут до 100 мс.
+        typeof(ClientPause).GetMethod("SetDeadline", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .Invoke(owner.Pause, new object[] { DateTimeOffset.UtcNow.AddMilliseconds(100) });
+        while (owner.Pause.Until is not null || owner.Connections.IsActive) await Task.Delay(25, timeout.Token);
+        if (owner.Engine.State != ConnectionState.Running) throw new InvalidOperationException("Headless pause did not resume");
         owner.Workspace.Favorites.Add(AutoPool.Key(owner.Profiles.Selected!)); owner.Persistence.Queue();
         await Task.Delay(1200, timeout.Token);
         var samples = new List<object> { Sample("before-views", owner) };

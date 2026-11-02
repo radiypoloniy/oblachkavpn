@@ -28,8 +28,8 @@ public partial class MainWindow
 
     private Profile MachineBest(IReadOnlyList<Profile> members)
     {
-        var remembered = currentNetwork is { } net && machineMemory.TryGetValue(net.Key, out var known) && known.TryGetValue(ServerMachines.Hash(members[0]), out var print) ? print : null;
-        return ServerMachines.Best(members, LatestMeasurement, remembered, DateTimeOffset.UtcNow);
+        runtime.Selection.NetworkKey = currentNetwork?.Key;
+        return runtime.Selection.BestMachine(members);
     }
 
     // Связь через запись проверена — в этой сети машина работает этим протоколом.

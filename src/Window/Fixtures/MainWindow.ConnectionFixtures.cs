@@ -42,6 +42,27 @@ public partial class MainWindow
         }
         checks.Add("Main WPF window delegates connection startup and closing it does not cancel runtime-owned work");
         checks.Add("Closed WPF view is collectible while application-owned connection startup remains pending");
+        using (var owner = ConnectionOwner(new WindowStartCore(), selected))
+        {
+            ((WindowStartCore)owner.Engine).Release.SetResult();
+            await owner.Connections.StartAsync(selected);
+            await owner.Pause.PauseAsync(5);
+            var reference = ClosedStartupView(owner);
+            var resumed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            owner.Pause.Resumed += () => resumed.TrySetResult();
+            owner.Pause.Start(new DispatcherSynchronizationContext(Dispatcher));
+            owner.Pause.SetDeadline(DateTimeOffset.UtcNow.AddSeconds(2));
+            for (var i = 0; i < 3; i++)
+            {
+                await Task.Delay(100); await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+                GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
+            }
+            if (reference.IsAlive) throw new InvalidOperationException("Pause retains a closed view");
+            await resumed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            if (owner.Engine.State != ConnectionState.Running || owner.Pause.Until is not null) throw new InvalidOperationException("Pause did not resume without the view");
+            await owner.Connections.StopAsync();
+        }
+        checks.Add("Application pause timer resumes VPN after its WPF view closes and is collected");
     }
     private static ClientRuntime ConnectionOwner(WindowStartCore core, Profile selected)
     {

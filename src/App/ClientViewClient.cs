@@ -23,7 +23,7 @@ public sealed class ClientViewClient : IAsyncDisposable
         }
         catch { await pipe.DisposeAsync().ConfigureAwait(false); throw; }
     }
-    public async Task<ClientViewReply> SendAsync(ClientViewOperation operation, CancellationToken token, string? serverId = null, int offset = 0, bool allowReconnect = false)
+    public async Task<ClientViewReply> SendAsync(ClientViewOperation operation, CancellationToken token, string? serverId = null, int offset = 0, bool allowReconnect = false, int pauseMinutes = 0)
     {
         if (!Enum.IsDefined(operation)) throw new UserError("Неизвестная команда интерфейса.");
         await gate.WaitAsync(token).ConfigureAwait(false);
@@ -34,15 +34,15 @@ public sealed class ClientViewClient : IAsyncDisposable
                 var initial = await ExchangeAsync(ClientViewOperation.ReadState, token).ConfigureAwait(false);
                 if (initial.Failure != ClientViewFailure.None) return initial;
             }
-            return await ExchangeAsync(operation, token, serverId, offset, allowReconnect).ConfigureAwait(false);
+            return await ExchangeAsync(operation, token, serverId, offset, allowReconnect, pauseMinutes).ConfigureAwait(false);
         }
         catch { await pipe.DisposeAsync().ConfigureAwait(false); throw; }
         finally { gate.Release(); }
     }
-    private async Task<ClientViewReply> ExchangeAsync(ClientViewOperation operation, CancellationToken token, string? serverId = null, int offset = 0, bool allowReconnect = false)
+    private async Task<ClientViewReply> ExchangeAsync(ClientViewOperation operation, CancellationToken token, string? serverId = null, int offset = 0, bool allowReconnect = false, int pauseMinutes = 0)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(TimeSpan.FromSeconds(65));
-        var request = new ClientViewRequest(ClientViewProtocol.Version, Guid.NewGuid(), InstanceId, operation, serverId, offset, allowReconnect);
+        var request = new ClientViewRequest(ClientViewProtocol.Version, Guid.NewGuid(), InstanceId, operation, serverId, offset, allowReconnect, pauseMinutes);
         ClientViewProtocol.Validate(request);
         await HelperProtocol.WriteAsync(pipe, request, deadline.Token).ConfigureAwait(false);
         var reply = await HelperProtocol.ReadAsync<ClientViewReply>(pipe, deadline.Token).ConfigureAwait(false);

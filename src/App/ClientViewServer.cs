@@ -69,6 +69,8 @@ public sealed class ClientViewServer(ClientRuntime owner, SynchronizationContext
             _ = ObserveProbeAsync(owner.Monitor.PollAsync());
         }
         else if (request.Operation == ClientViewOperation.Stop) await owner.Connections.StopAsync();
+        else if (request.Operation == ClientViewOperation.Pause) await owner.Pause.PauseAsync(request.PauseMinutes);
+        else if (request.Operation == ClientViewOperation.CancelPause) owner.Pause.Cancel();
         else if (request.Operation is ClientViewOperation.SelectServer or ClientViewOperation.Connect)
         {
             var target = request.ServerId is { } id ? ClientServerCatalog.Find(owner, id) : owner.Profiles.Selected;
@@ -88,7 +90,7 @@ public sealed class ClientViewServer(ClientRuntime owner, SynchronizationContext
             owner.Tunnel?.State, activity.Operation is not null || activity.RecoveryWait is not null || owner.Connections.IsActive || owner.Connections.IsStopping,
             activity.ManualStop, name, owner.Profiles.Imported.Count, owner.Engine.Port,
             owner.Engine.ProcessId is null || !owner.Monitor.VerifiedSinceStart ? null : owner.Monitor.LastProbe?.Success,
-            ClientServerCatalog.Id(owner.Profiles.Selected), ClientServerCatalog.Id(owner.Profiles.Running), owner.Connections.LastResult),
+            ClientServerCatalog.Id(owner.Profiles.Selected), ClientServerCatalog.Id(owner.Profiles.Running), owner.Connections.LastResult, owner.Pause.Until),
             request.Operation == ClientViewOperation.ListServers ? ClientServerCatalog.Page(owner, request.Offset) : null);
     }
     public void Dispose()

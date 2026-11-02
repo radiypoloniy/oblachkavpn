@@ -2,6 +2,8 @@
 
 Дата: 2 ноября 2026 года. Продолжение [проверки IPC](background-view-ipc.md).
 
+Следующий этап и оставшийся план: [пауза и выбор сервера](background-pause-and-selection.md).
+
 ## Изменения
 
 Основной MainWindow передаёт запуск и переключение в ClientRuntime.Connections.

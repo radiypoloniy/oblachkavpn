@@ -22,6 +22,7 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
         Validate(target, allowReconnect);
         if (!IsActive && owner.Activity.Operation is not null && !owner.Activity.BackgroundCheck)
             throw new UserError("Дождитесь завершения текущей операции.");
+        owner.Pause.Cancel(rememberDisconnected: false);
         requested = target; rebuild = allowReconnect;
         owner.Profiles.Selected = target; owner.Persistence.Queue();
         if (IsActive) { Changed?.Invoke(); return Pending!; }
@@ -94,8 +95,10 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
             active = null; cancel.Dispose(); owner.Proxy.Sync();
         }
     }
-    public Task StopAsync()
+    public Task StopAsync() => StopAsync(preservePause: false);
+    internal Task StopAsync(bool preservePause)
     {
+        if (!preservePause) owner.Pause.Cancel();
         if (IsStopping) return Stopping!;
         var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         Stopping = completed.Task;

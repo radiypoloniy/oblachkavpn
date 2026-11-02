@@ -3,14 +3,14 @@ using System.Text.Json.Serialization;
 namespace Oblachka;
 
 // Узкий канал представления. Здесь нет конфигураций, ключей, URI для запросов или имён методов.
-public enum ClientViewOperation { ReadState, Probe, Stop, ListServers, SelectServer, Connect }
+public enum ClientViewOperation { ReadState, Probe, Stop, ListServers, SelectServer, Connect, Pause, CancelPause }
 public enum ClientViewFailure { None, InvalidRequest, OwnerChanged, Busy, NotConnected, OperationFailed, RequiresReconnect, ConsentRequired }
 public sealed record ClientViewRequest(
     [property: JsonRequired] int Version,
     [property: JsonRequired] Guid RequestId,
     [property: JsonRequired] Guid InstanceId,
     [property: JsonRequired] ClientViewOperation Operation,
-    string? ServerId = null, int Offset = 0, bool AllowReconnect = false);
+    string? ServerId = null, int Offset = 0, bool AllowReconnect = false, int PauseMinutes = 0);
 public sealed record ClientViewState(
     [property: JsonRequired] Guid InstanceId,
     [property: JsonRequired] ConnectionState Connection,
@@ -23,7 +23,8 @@ public sealed record ClientViewState(
     [property: JsonRequired] bool? Verified,
     [property: JsonRequired] string? SelectedServerId = null,
     [property: JsonRequired] string? RunningServerId = null,
-    [property: JsonRequired] ClientConnectionResult ConnectionResult = ClientConnectionResult.None);
+    [property: JsonRequired] ClientConnectionResult ConnectionResult = ClientConnectionResult.None,
+    [property: JsonRequired] DateTimeOffset? PausedUntil = null);
 public sealed record ClientViewReply(
     [property: JsonRequired] int Version,
     [property: JsonRequired] Guid RequestId,
@@ -33,7 +34,7 @@ public sealed record ClientViewReply(
 
 internal static class ClientViewProtocol
 {
-    internal const int Version = 2;
+    internal const int Version = 3;
     internal static void Validate(ClientViewRequest request)
     {
         if (request.Version != Version || request.RequestId == Guid.Empty || !Enum.IsDefined(request.Operation) ||
@@ -45,6 +46,8 @@ internal static class ClientViewProtocol
             request.Offset is < 0 or > ProfileGroup.MaxTotalProfiles || request.Operation != ClientViewOperation.ListServers && request.Offset != 0 ||
             request.AllowReconnect && request.Operation is not (ClientViewOperation.SelectServer or ClientViewOperation.Connect))
             throw new UserError("Неверные параметры команды интерфейса.");
+        if (request.Operation == ClientViewOperation.Pause ? request.PauseMinutes is not (5 or 15 or 60) : request.PauseMinutes != 0)
+            throw new UserError("Неверный срок паузы.");
     }
     internal static void Validate(ClientViewReply reply, Guid requestId)
     {

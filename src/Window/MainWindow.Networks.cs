@@ -71,6 +71,7 @@ public partial class MainWindow
     private void ReadNetwork()
     {
         currentNetwork = NetworkCost.Network() is { } n ? (NetworkPolicy.Key(n.Id), NetworkPolicy.CleanName(n.Name), n.Public) : null;
+        runtime.Selection.NetworkKey = currentNetwork?.Key;
         RefreshNetworkRow();
     }
 

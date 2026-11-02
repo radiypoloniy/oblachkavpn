@@ -12,7 +12,7 @@ public partial class MainWindow
     // Сервис может попросить подключаться при каждом запуске (subscription-autoconnect) — «Сразу подключаться»
     // по-прежнему решает человек: выключил её — не подключаемся.
     private string? ServiceAutoConnect => ServiceGroup?.Metadata?.Provider?.AutoConnect;
-    private bool ConnectAtLaunchPlanned => preferences.ConnectOnLaunch && (wasConnected || ServiceAutoConnect is not null) && !isolatedPersistence && !vmTestActive &&
+    private bool ConnectAtLaunchPlanned => pausedUntil is null && preferences.ConnectOnLaunch && (wasConnected || ServiceAutoConnect is not null) && !isolatedPersistence && !vmTestActive &&
         CurrentNetworkMode != NetworkMode.Trusted;
 
     private void InitLaunch()
