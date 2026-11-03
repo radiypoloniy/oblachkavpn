@@ -17,7 +17,15 @@ $token = ($credential | Where-Object { $_ -like 'password=*' } | Select-Object -
 if (-not $token) { throw 'git не хранит токен GitHub для этого компьютера.' }
 $headers = @{ Authorization = 'Bearer ' + $token; Accept = 'application/vnd.github+json'; 'User-Agent' = 'oblachka-release' }
 
-$release = Invoke-RestMethod -Headers $headers -Uri ('https://api.github.com/repos/' + $repo + '/releases/tags/' + $Tag)
+$releases = 'https://api.github.com/repos/' + $repo + '/releases'
+try { $release = Invoke-RestMethod -Headers $headers -Uri ($releases + '/tags/' + $Tag) }
+catch {
+    if ([int]$_.Exception.Response.StatusCode -ne 404) { throw }
+    # Точка /tags видит опубликованные релизы. Черновик виден владельцу в списке.
+    $release = (Invoke-RestMethod -Headers $headers -Uri ($releases + '?per_page=100')) |
+        Where-Object { $_.draft -and $_.tag_name -eq $Tag } | Select-Object -First 1
+    if (-not $release) { throw "Релиз или доступный черновик $Tag не найден." }
+}
 $asset = @($release.assets | Where-Object { $_.name -match '^Oblachka-setup-.+\.exe$' })
 if ($asset.Count -ne 1) { throw 'В релизе должен быть ровно один установщик.' }
 $asset = $asset[0]
