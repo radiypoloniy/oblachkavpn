@@ -1,6 +1,6 @@
 name: Сборка и релиз
 
-# Тег vX.Y.Z — сборка, проверки, установщик и релиз на GitHub с описанием из CHANGELOG.md.
+# Тег vX.Y.Z — сборка, проверки и черновик релиза на GitHub до загрузки подписи обновления.
 # Тег vX.Y.Z-rc.N — то же, но пробная версия (pre-release): обновлялка её не видит
 # (AppUpdate берёт releases/latest), ставится вручную. Проверили — тот же коммит тегом vX.Y.Z.
 # Ручной запуск (Actions → Run workflow) — то же без релиза: установщик остаётся артефактом.
@@ -74,6 +74,6 @@ jobs:
           if ($tag -match '-rc\.(\d+)$') {
             gh release create $tag $setup.FullName --title ('Облачка ' + ($version -split '-')[0] + ' — проба ' + $Matches[1]) --notes-file notes.md --prerelease
           } else {
-            gh release create $tag $setup.FullName --title ('Облачка ' + $version) --notes-file notes.md
+            gh release create $tag $setup.FullName --title ('Облачка ' + $version) --notes-file notes.md --draft
           }
           if ($LASTEXITCODE -ne 0) { throw 'Релиз не создан.' }

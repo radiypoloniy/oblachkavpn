@@ -5,10 +5,21 @@ namespace Oblachka;
 // Связь окна с zapret в службе: команды, маршруты, восстановление при запуске, остановка при выходе.
 public partial class MainWindow
 {
+    private bool zapretEnabled
+    {
+        get => runtime.TunnelPolicy.Zapret;
+        set { runtime.TunnelPolicy.Zapret = value; UpdatePresentationInterval(); }
+    }
+
     // С каким набором сайтов zapret ядро запущено на самом деле — его ставит ConnectCoreAsync,
     // когда собирает маршруты. Раньше флаг ставился при запросе: если ядро в ту секунду было
     // занято, перезапуск молча пропускался, и YouTube с Discord оставались «напрямую» без обхода.
-    private string coreZapretKey = "";
+    private string appliedZapretKey = "";
+    private string coreZapretKey
+    {
+        get => appliedZapretKey;
+        set { appliedZapretKey = value; UpdatePresentationInterval(); }
+    }
     private bool zapretRoutingRetry;
     private DateTimeOffset zapretRoutingTried = DateTimeOffset.MinValue;
 

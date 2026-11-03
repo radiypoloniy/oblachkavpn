@@ -57,8 +57,7 @@ public partial class MainWindow : Window
         runtime.Pause.Resumed += PauseResumed;
         runtime.Pause.ResumeFailed += PauseResumeFailed;
         Navigate("Connection");
-        presentationTimer.Tick += (_, _) => { RefreshPresentation(background: true); PollZapretRouting(); PollZapretWatch(); PollExpiry(); };
-        presentationTimer.Start();
+        WirePresentation();
         SubscribeLifecycle(persistenceEnabled && !isolatedPersistence);
         if (stateStore is not null) runtime.Persistence.Start(new System.Windows.Threading.DispatcherSynchronizationContext(Dispatcher));
         InitSystemProxy(persistenceEnabled && !isolatedPersistence);

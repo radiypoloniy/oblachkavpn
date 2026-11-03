@@ -1,5 +1,6 @@
 ﻿# Подписать релиз ключом разработчика и приложить <установщик>.sig. Пока подписи нет, Облачка 0.21+
-# пишет «вышла, ждёт подписи» и не ставит её. Запуск после того, как сборка на GitHub создала релиз:
+# пишет «вышла, ждёт подписи» и не ставит её. Стабильный выпуск остаётся черновиком до подписи.
+# Запуск после того, как сборка на GitHub создала релиз:
 #   .\scripts\sign-release.ps1 -Tag v0.21.0              — ключ, сохранённый на этом компьютере (release-key.cs protect)
 #   .\scripts\sign-release.ps1 -Tag v0.21.0 -Key E:\k    — файл ключа, пароль с клавиатуры
 # Доступ к GitHub — токен, который git уже хранит для этого репозитория (git credential); GitHub CLI не нужен.
@@ -27,7 +28,13 @@ New-Item -ItemType Directory $work | Out-Null
 try {
     $file = Join-Path $work $asset.name
     $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $file -UseBasicParsing
+    if ($release.draft) {
+        $assetHeaders = $headers.Clone()
+        $assetHeaders.Accept = 'application/octet-stream'
+        Invoke-WebRequest -Uri $asset.url -Headers $assetHeaders -OutFile $file -UseBasicParsing
+    } else {
+        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $file -UseBasicParsing
+    }
     $sha = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
     if ($asset.digest -ne ('sha256:' + $sha.ToLowerInvariant())) { throw ('SHA256 скачанного файла не совпал с digest GitHub: ' + $asset.digest) }
 

@@ -7,7 +7,6 @@ namespace Oblachka;
 // Нет рабочей стратегии — эти сайты остаются в VPN: обход не должен ломать то, что работало.
 public partial class MainWindow
 {
-    private bool zapretEnabled { get => runtime.TunnelPolicy.Zapret; set => runtime.TunnelPolicy.Zapret = value; }
     private bool zapretBusy;
     private ZapretStatus? zapretStatus;
     // Сеть (NetworkIdentity) → выбор «стратегия|группы» (ZapretPlan.Encode); стратегия «-» — без обхода.
