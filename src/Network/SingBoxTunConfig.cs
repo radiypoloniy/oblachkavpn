@@ -3,7 +3,7 @@ using System.Text.Json.Nodes;
 namespace Oblachka;
 
 // Prepared for the isolated VM stage only. Validation invokes `check`, never starts the TUN.
-public static class SingBoxTunConfig
+public static partial class SingBoxTunConfig
 {
     // Адреса самого туннеля. Их же разрешает kill switch, чтобы трафик, уходящий
     // в туннель, проходил при закрытом исходящем действии брандмауэра. Расхождение
@@ -88,7 +88,7 @@ public static class SingBoxTunConfig
                 // молча не срабатывают. С файлами правил он нужен всегда: правило может появиться
                 // на ходу, а включается поиск только при запуске ядра. На стенде скорости его
                 // цена в пределах шума. Прямой трафик ядра окна узнаётся по своему входу core-direct.
-                ["find_process"] = programSets is not null || lease.ProgramRules.Count > 0,
+                ["find_process"] = programSets is not null || lease.ProgramRules.Count > 0 || lease.ServiceRoutes.Any(r => r.Files.Length > 0),
                 // Порядок важен: DNS перехватывается первым правилом и уходит на DoH внутри
                 // туннеля. Остальной UDP идёт в туннель наравне с TCP.
                 ["rules"] = new JsonArray(
@@ -98,6 +98,7 @@ public static class SingBoxTunConfig
         AddServers(config, lease);
         TunnelTuning.Apply(config, lease.Tuning, tunnel);
         AddRules(config, lease, programSets, tunnel);
+        AddServiceRoutes(config, lease.ServiceRoutes);
         AddLists(config, lease, listsFolder, tunnel);
         if (lease.HasDirect && localDns is not null && ruleSet is not null) AddDirectDns(config, localDns, ruleSet);
         if (lease.DirectByDefault && localDns is not null && ruleSet is not null) DnsByDefaultDirect(config, lease);
@@ -210,7 +211,8 @@ public static class SingBoxTunConfig
         if (lease.ForeignNode) rules.Add(ForeignGuard.SingBoxHttpRule());
         // Имя сайта ядро узнаёт из TLS/QUIC. С файлами правил сайт может появиться в правилах на ходу,
         // поэтому имя нужно всегда, а не только когда правила сайтов были при подключении.
-        if (lease.SiteRules.Count > 0 || lease.Lists is not null || programSets is not null) rules.Add(new JsonObject { ["action"] = "sniff" });
+        if (lease.SiteRules.Count > 0 || lease.ServiceRoutes.Any(r => r.Domains.Length > 0) || lease.Lists is not null || programSets is not null)
+            rules.Add(new JsonObject { ["action"] = "sniff" });
         // Прямой выход разрешён защитой, только если «напрямую» было при подключении. Правило
         // «напрямую», добавленное на ходу без него, блокирует программу: мимо VPN без разрешения
         // она не уйдёт, а окно попросит переподключиться.

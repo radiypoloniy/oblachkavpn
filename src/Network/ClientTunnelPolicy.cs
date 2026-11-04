@@ -2,7 +2,10 @@ namespace Oblachka;
 
 public sealed record ClientTunnelSettings(SiteRule[] Sites, ProgramRule[] Programs, RoutingProfile[] Routing,
     TunnelTuning? Tuning, bool DirectByDefault, bool LocalNetwork, bool QuicOverTcp, bool CompatibleStack,
-    bool ForeignNode, bool Fragment, ProviderFragment? FragmentShape, bool Zapret);
+    bool ForeignNode, bool Fragment, ProviderFragment? FragmentShape, bool Zapret)
+{
+    public ServiceRoute[] ServiceRoutes { get; init; } = [];
+}
 
 // Источник текущей конфигурации; снимок строится непосредственно перед запуском новой сессии.
 public sealed class ClientTunnelPolicy
@@ -11,6 +14,7 @@ public sealed class ClientTunnelPolicy
     public ClientTunnelPolicy(ClientRuntime owner) { this.owner = owner; }
     public List<SiteRule> Sites { get; } = new();
     public List<ProgramRule> Programs { get; } = new();
+    public List<ServiceRoute> ServiceRoutes { get; } = new();
     public AdvancedOptions Advanced { get; set; } = AdvancedOptions.Default;
     public bool Selective { get; set; }
     public bool Zapret { get; set; }
@@ -52,7 +56,8 @@ public sealed class ClientTunnelPolicy
         return new(LeaseSites(selected.IsFree), LeasePrograms(), RoutingProfiles().ToArray(),
             TunnelTuning.From(Advanced, Provider, preferences.CompatibleStack), Selective, preferences.LocalNetwork,
             preferences.QuicOverTcp, preferences.CompatibleStack, selected.IsFree, fragment,
-            Advanced.Fragment(Provider?.Fragment is { Enabled: true } shape ? shape : null), Zapret);
+            Advanced.Fragment(Provider?.Fragment is { Enabled: true } shape ? shape : null), Zapret)
+        { ServiceRoutes = ServiceRoutes.ToArray() };
     }
     public static string[] DirectDomains(CompiledRouting? routing, IEnumerable<SiteRule> rules)
     {

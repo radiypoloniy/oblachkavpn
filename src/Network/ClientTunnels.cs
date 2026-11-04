@@ -30,7 +30,8 @@ public sealed class ClientTunnels
                 var (settings, routing) = await ConfigureAsync(selected, session, token);
                 token.ThrowIfCancellationRequested();
                 await session.StartWithSparesAsync(plans, token, settings.Sites, settings.Programs, (owner.Engine as Engine)?.DirectEntry,
-                    settings.DirectByDefault, owner.RoutingLists, settings.LocalNetwork, settings.QuicOverTcp, settings.CompatibleStack, settings.ForeignNode);
+                    settings.DirectByDefault, owner.RoutingLists, settings.LocalNetwork, settings.QuicOverTcp, settings.CompatibleStack, settings.ForeignNode,
+                    settings.ServiceRoutes, ServiceProfileAllowed);
                 ForeignSession = settings.ForeignNode;
                 DirectAllowed = settings.DirectByDefault || (owner.Engine as Engine)?.DirectEntry is not null ||
                     settings.Sites.Any(r => r.Action == SiteAction.Direct) || settings.Programs.Any(r => r.Action == SiteAction.Direct);
@@ -89,6 +90,21 @@ public sealed class ClientTunnels
         throw new UserError("Настройки меняются во время запуска. Повторите подключение после изменения правил.");
     }
     public Profile[] Candidates(Profile selected)
+    {
+        var ordinary = OrdinaryCandidates(selected);
+        var services = owner.TunnelPolicy.ServiceRoutes;
+        if (selected.IsFree || services.Count == 0) return ordinary;
+        ServiceRoutePlan.Validate(services);
+        var available = owner.Profiles.Imported.Where(ServiceProfileAllowed)
+            .DistinctBy(ClientServerCatalog.Id).ToDictionary(p => ClientServerCatalog.Id(p)!, StringComparer.OrdinalIgnoreCase);
+        var reserved = services.Select(s => available.GetValueOrDefault(s.ProfileId)).OfType<Profile>();
+        return new[] { selected }.Concat(reserved).Concat(ordinary).DistinctBy(ProfileSelection.Identity).ToArray();
+    }
+
+    private bool ServiceProfileAllowed(Profile profile) => !profile.IsFree &&
+        (owner.Profiles.RuleSetServers is not { } servers || servers.Contains(ServerMachines.Hash(profile)));
+
+    private Profile[] OrdinaryCandidates(Profile selected)
     {
         if (selected.IsFree) return [selected];
         var data = owner.Profiles; var profiles = data.Imported.Where(p => !p.IsFree).ToArray();

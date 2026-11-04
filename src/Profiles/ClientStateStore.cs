@@ -13,7 +13,7 @@ public sealed record SavedProfile(string Name, JsonObject Outbound)
     // Группа появилась в 0.11; в прежних снимках её выводит ProfileGroups.FromLegacy.
     public string? Group { get; init; }
 }
-public sealed record ClientSnapshot(int Version, SavedProfile[] Profiles, string? SelectedFingerprint,
+public sealed partial record ClientSnapshot(int Version, SavedProfile[] Profiles, string? SelectedFingerprint,
     string[] SubscriptionSources, int PreferredSource, bool StayInTray, bool AutoRecover)
 {
     // Имя выбранной записи рядом с её отпечатком: конфигурация может совпадать у двух
@@ -225,6 +225,7 @@ public sealed class ClientStateStore(string path)
             throw new UserError("Сохранённый список убранных подписок повреждён.");
         RoutingPlan.Validate(snapshot.RouteRules);
         ProgramRoutingPlan.Validate(snapshot.ProgramRules);
+        ServiceRoutePlan.Validate(snapshot.ServiceRoutes ?? []);
         if (snapshot.Measurements is null || snapshot.Measurements.Length > Subscriptions.MaxProfiles || snapshot.Measurements.Any(m => m is null ||
             m.Fingerprint is null || m.Fingerprint.Length != 64 || m.Fingerprint.Any(c => !char.IsAsciiHexDigit(c)) || m.Milliseconds < 0))
             throw new UserError("Сохранённые измерения повреждены.");

@@ -89,6 +89,8 @@ public partial class MainWindow
         UpdateModeText();
         siteRules.Clear(); siteRules.AddRange(snapshot.RouteRules); RefreshRules();
         programRules.Clear(); programRules.AddRange(snapshot.ProgramRules); RefreshRules();
+        runtime.TunnelPolicy.ServiceRoutes.Clear();
+        runtime.TunnelPolicy.ServiceRoutes.AddRange(snapshot.ServiceRoutes ?? []);
         RestoreRuleSets(snapshot.RuleSets, snapshot.RuleSetName, snapshot.RuleSetServers);
         measurements.Clear(); foreach (var measurement in snapshot.Measurements) measurements[measurement.Fingerprint] = measurement;
         favorites.Clear(); foreach (var favorite in snapshot.Favorites) favorites.Add(favorite);

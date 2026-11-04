@@ -39,7 +39,11 @@ public sealed record NetworkLeaseRequest(
     // Бесплатный чужой узел (ForeignGuard): TCP 80 в туннеле отклоняется. Домены сервиса закрывают правила сайтов.
     bool ForeignNode = false,
     // «Для продвинутых»: стек и MTU, свой DNS, подсети мимо туннеля (TunnelTuning). null — как без настройки.
-    TunnelTuning? Tuning = null);
+    TunnelTuning? Tuning = null)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PinnedServiceRoute[]? ServiceRoutes { get; init; }
+}
 
 // Локальный интерфейс соединений ядра туннеля (clash API sing-box) на 127.0.0.1 с секретом сессии.
 // Окно читает по нему, через какой выход ушло соединение программы: по таблицам Windows этого не
@@ -78,6 +82,7 @@ public sealed record ValidatedNetworkLease(Guid LeaseId, NetworkLeaseAction Acti
     CoreStatsEntry? Stats = null, IReadOnlyList<System.Text.Json.Nodes.JsonObject?>? Direct = null, RoutingListsEntry? Lists = null, bool LocalNetwork = false,
     bool QuicOverTcp = false, bool CompatibleStack = false, bool ForeignNode = false, TunnelTuning? Tuning = null)
 {
+    public IReadOnlyList<PinnedServiceRoute> ServiceRoutes { get; init; } = [];
     public IReadOnlyList<SiteRule> SiteRules => Sites ?? Array.Empty<SiteRule>();
     public IReadOnlyList<ProgramRule> ProgramRules => Programs ?? Array.Empty<ProgramRule>();
     // Есть ли трафик, который пользователь сам отправил мимо туннеля.
@@ -121,7 +126,7 @@ public static class NetworkHelperContracts
             throw new UserError("Неверная версия или идентификатор сетевой сессии.");
         if (request.Action == NetworkLeaseAction.Release)
         {
-            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 } || request.CoreDirect is not null || request.DirectByDefault || request.Stats is not null || request.Direct is not null || request.Lists is not null || request.LocalNetwork || request.QuicOverTcp || request.CompatibleStack || request.ForeignNode || request.Tuning is not null)
+            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 } || request.CoreDirect is not null || request.DirectByDefault || request.Stats is not null || request.Direct is not null || request.Lists is not null || request.LocalNetwork || request.QuicOverTcp || request.CompatibleStack || request.ForeignNode || request.Tuning is not null || request.ServiceRoutes is not null)
                 throw new UserError("Завершение сессии не принимает сетевые параметры.");
             return new(request.LeaseId, request.Action, 0, Array.Empty<IPAddress>());
         }
@@ -162,10 +167,13 @@ public static class NetworkHelperContracts
             direct = outbounds.Select(o => o is null ? null : DirectOutboundPolicy.Validate(o, peers)).ToArray();
         }
         request.Lists?.Validate();
+        var services = request.ServiceRoutes ?? [];
+        ServiceRoutePlan.Validate(services, direct);
         request.Tuning?.Validate();
         // Порт прокси для локальной сети на всех адресах занял бы локальные порты ядер.
         if (request.Tuning?.LanPort is { } lan && (lan == request.LoopbackPort || lan == request.Stats?.Port || lan == request.CoreDirect?.Port))
             throw new UserError("Порт прокси для локальной сети занят ядром.");
-        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs, request.CoreDirect, request.DirectByDefault, request.Stats, direct, request.Lists, request.LocalNetwork, request.QuicOverTcp, request.CompatibleStack, request.ForeignNode, request.Tuning);
+        return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs, request.CoreDirect, request.DirectByDefault, request.Stats, direct, request.Lists, request.LocalNetwork, request.QuicOverTcp, request.CompatibleStack, request.ForeignNode, request.Tuning)
+        { ServiceRoutes = services };
     }
 }

@@ -34,6 +34,7 @@ public static class ClientSnapshotBuilder
             QuicOverTcp = preferences.QuicOverTcp, CompatibleStack = preferences.CompatibleStack, Advanced = policy.Advanced.IsDefault ? null : policy.Advanced, ServerTweaks = profiles.Tweaks.Count == 0 ? null : new(profiles.Tweaks),
             RuleSets = data.RuleSets.Count == 0 ? null : data.SavedRuleSets(owner).Where(s => s.Name != persistedSet.Name).ToArray(), RuleSetName = data.RuleSets.Count == 0 && persistedSet.Name == ClientWorkspace.MainRuleSet ? null : persistedSet.Name,
             RuleSetServers = persistedSet.Servers, TrafficDay = data.TrafficDay, TrafficBytes = data.TrafficToday, TrafficHours = data.TrafficHours.ToArray(), TrafficHistory = data.TrafficHistory.Snapshot(DateTime.Now),
+            ServiceRoutes = policy.ServiceRoutes.Count == 0 ? null : policy.ServiceRoutes.ToArray(),
             Hotkey = preferences.Hotkey, FreeConsent = data.FreeConsent, FreeList = data.FreeList.ToString() };
     }
 }

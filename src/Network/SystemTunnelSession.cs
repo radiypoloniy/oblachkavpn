@@ -54,15 +54,6 @@ public sealed partial class SystemTunnelSession : IAsyncDisposable
     // Узлы, на которые можно переключиться без снятия блокировки.
     public bool CanSwitchTo(Profile profile) => Find(profile) is not null;
 
-    internal TrafficSource? TrafficSourceAt(int index)
-    {
-        var candidates = plans;
-        var exits = direct;
-        if (index < 0 || index >= candidates.Count || exits is null || index >= exits.Length || exits[index] is null) return null;
-        var profile = candidates[index].Source;
-        return new(ClientServerCatalog.Id(profile)!, ClientServerCatalog.Title(profile));
-    }
-
     private void CoreChanged(ConnectionState state, string message) { if (state == ConnectionState.Failed) _ = CoreLostAsync(); }
 
     private async Task CoreLostAsync()
@@ -96,7 +87,8 @@ public sealed partial class SystemTunnelSession : IAsyncDisposable
     // Первый план запускается, остальные только разрешаются: их адреса входят в аренду.
     public async Task StartWithSparesAsync(IReadOnlyList<TunnelEndpointPlan> prepared, CancellationToken token,
         IReadOnlyList<SiteRule>? sites = null, IReadOnlyList<ProgramRule>? programs = null, CoreDirectEntry? coreDirect = null, bool directByDefault = false,
-        RoutingListsEntry? lists = null, bool localNetwork = false, bool quicOverTcp = false, bool compatibleStack = false, bool foreignNode = false)
+        RoutingListsEntry? lists = null, bool localNetwork = false, bool quicOverTcp = false, bool compatibleStack = false, bool foreignNode = false,
+        IReadOnlyList<ServiceRoute>? services = null, Func<Profile, bool>? serviceProfileAllowed = null)
     {
         if (prepared.Count == 0) throw new UserError("Нет подготовленного сервера для системного режима.");
         await operations.WaitAsync(token).ConfigureAwait(false);
@@ -112,6 +104,7 @@ public sealed partial class SystemTunnelSession : IAsyncDisposable
                 // Выходы прямо на серверы — по одному на узел плана; у кого перевода нет — ядро окна.
                 direct = DirectAllowed?.Invoke() == true ? DirectOutbound.Fit(plans.Select(p => DirectOutbound.From(p.PinnedProfile)).ToArray()) : null;
                 if (direct is not null && direct.All(o => o is null)) direct = null;
+                var pinned = services is { Count: > 0 } ? ServiceRoutePlan.Bind(services, plans, direct, serviceProfileAllowed) : null;
                 // Узел идёт прямо из туннеля — процесс ядра окна не запускается (Engine.Carried).
                 await StartCoreWithStatsAsync(current, coreDirect, token).ConfigureAwait(false);
                 // Запрос к помощнику не прерывается отменой: отмена посреди него закрывает канал,
@@ -119,7 +112,8 @@ public sealed partial class SystemTunnelSession : IAsyncDisposable
                 // Запрос ограничен своим сроком в канале; отмена проверяется после него, и
                 // сессия снимается обычным Release.
                 BlocksBypass = await helper.AcquireAsync(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, leasePort, peers,
-                    sites?.ToArray(), programs?.ToArray(), coreDirect, directByDefault, Stats, direct, lists, localNetwork, quicOverTcp, compatibleStack, foreignNode, Tuning), CancellationToken.None).ConfigureAwait(false);
+                    sites?.ToArray(), programs?.ToArray(), coreDirect, directByDefault, Stats, direct, lists, localNetwork, quicOverTcp, compatibleStack, foreignNode, Tuning)
+                    { ServiceRoutes = pinned }, CancellationToken.None).ConfigureAwait(false);
                 DirectActive = direct?[0] is not null;
                 token.ThrowIfCancellationRequested();
                 Set(SystemTunnelState.Running);
