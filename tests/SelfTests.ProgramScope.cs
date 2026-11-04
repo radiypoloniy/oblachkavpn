@@ -87,7 +87,7 @@ public static partial class SelfTests
             ExpectUserError(() => HelperProtocol.Validate(request with { Operation = HelperOperation.Heartbeat }));
             ExpectUserError(() => HelperProtocol.Validate(request with { Programs = new([steam with { Folder = @"C:\" }]) }));
         });
-        await check("Live connections group by program, tell tunnel from direct and find the rule the core applies", () => Sync(() =>
+        await check("Windows connection tables group by program without guessing the tunnel exit", () => Sync(() =>
         {
             var tun = System.Net.IPAddress.Parse(SingBoxTunConfig.TunHost4);
             var lan = System.Net.IPAddress.Parse("192.168.1.10");
@@ -106,7 +106,9 @@ public static partial class SelfTests
             ];
             var paths = new Dictionary<int, string?> { [10] = @"C:\Apps\Chrome\chrome.exe", [11] = @"C:\Apps\Chrome\chrome.exe", [20] = @"D:\Games\Game\game.exe", [30] = @"C:\Apps\Tool\tool.exe", [40] = @"C:\Program Files\Oblachka\tools\sing-box.exe" };
             var apps = LiveApps.Group(sockets, true, 0, pid => paths.GetValueOrDefault(pid), p => p.StartsWith(@"C:\Program Files\Oblachka\", StringComparison.OrdinalIgnoreCase));
-            Assert(apps.Count == 2 && apps[0] is { Vpn: 2, Direct: 1 } && apps[0].Path.EndsWith("chrome.exe") && apps[1] is { Vpn: 0, Direct: 1, Udp: 1 });
+            Assert(apps.Count == 2 && apps[0] is { Vpn: 0, Direct: 0, Unknown: 3, Total: 3 } && apps[0].Path.EndsWith("chrome.exe") &&
+                apps[1] is { Vpn: 0, Direct: 0, Unknown: 1, Udp: 1 });
+            Assert(apps[0].Sites.All(s => s.Unknown > 0 && s.Ids.Length == 0));
             // Без туннеля через VPN только то, что идёт в прокси Облачки.
             var proxy = LiveApps.Group(sockets, false, 10808, pid => paths.GetValueOrDefault(pid), _ => false);
             Assert(proxy.Single(a => a.Path.EndsWith("tool.exe")).Vpn == 1 && proxy.Single(a => a.Path.EndsWith("chrome.exe")).Direct == 3);

@@ -20,8 +20,37 @@ public partial class MainWindow
             window.appCatalog = [];
             window.Show(); await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
             if (window.liveTimer?.IsEnabled != true) throw new InvalidOperationException("Visible live view did not start polling");
+            if (window.presentationTimer.Interval != VisiblePresentationInterval)
+                throw new InvalidOperationException("Visible presentation did not use its normal cadence");
+            const string game = @"C:\Games\game.exe";
+            CoreConnection[] core = [new(game, false, "voice.example.net", "192.0.2.1", 443, [SingBoxTunConfig.UserDirect], "voice")];
+            var live = window.LiveRow(LiveApps.FromCore(core, _ => false).Single());
+            live.Expanded = true;
+            live.Sites.Single().Expanded = true;
+            window.liveObservation = new(new DateTime(2026, 10, 21, 12, 30, 0), core);
+            window.RefreshLiveDetails();
+            if (!live.Observation.Contains("Ядро туннеля") || !live.Sites.Single().Evidence.Contains("Ядро наблюдало — прямой выход"))
+                throw new InvalidOperationException("Expanded connection details lost the snapshot source or route");
+            window.liveObservation = new(new DateTime(2026, 10, 21, 12, 30, 1), null);
+            live.ShowRoute(0, 0, 1);
+            window.RefreshLiveDetails();
+            if (!live.Observation.Contains("Таблицы Windows") || !live.Observation.Contains("Маршрут неизвестен") || live.Sites.Single().Evidence.Length != 0)
+                throw new InvalidOperationException("Windows fallback reused the previous core observation");
             window.Hide();
             if (window.liveTimer?.IsEnabled != false) throw new InvalidOperationException("Hidden live view retained its timer");
+            if (window.liveObservation is not null) throw new InvalidOperationException("Hidden live view retained its observation");
+            if (window.presentationTimer.Interval != HiddenPresentationInterval)
+                throw new InvalidOperationException("Hidden window retained its frequent presentation cadence");
+            window.zapretEnabled = true;
+            if (window.presentationTimer.Interval != VisiblePresentationInterval)
+                throw new InvalidOperationException("Hidden window slowed the zapret watch");
+            window.coreZapretKey = "active";
+            window.zapretEnabled = false;
+            if (window.presentationTimer.Interval != VisiblePresentationInterval)
+                throw new InvalidOperationException("Disabling zapret slowed retries while the previous route was still active");
+            window.coreZapretKey = "";
+            if (window.presentationTimer.Interval != HiddenPresentationInterval)
+                throw new InvalidOperationException("Presentation did not slow down after the last zapret route was removed");
             window.Show(); await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
             if (window.liveTimer?.IsEnabled != true) throw new InvalidOperationException("Returning from tray did not resume connection polling");
             window.WindowState = WindowState.Minimized;
@@ -29,6 +58,8 @@ public partial class MainWindow
             window.WindowState = WindowState.Normal;
             if (window.liveTimer?.IsEnabled != true) throw new InvalidOperationException("Restoring the window did not resume connection polling");
             checks.Add("Connection polling stops in tray/minimized windows, resumes on restore and does not scan apps before showing");
+            checks.Add("Expanded connection details distinguish core observations from Windows fallback and release the snapshot on hide");
+            checks.Add("Hidden presentation slows down while zapret watch and route retries retain their normal cadence");
             var nodes = window.importedProfiles;
             var second = Profiles.Parse("vless://22222222-2222-4222-8222-222222222222@node0.invalid:443?security=tls&type=tcp#Second");
             window.SetGroup(ProfileGroup.Manual, [nodes[0], second]); window.ApplyProfiles(false); window.RefreshHome();

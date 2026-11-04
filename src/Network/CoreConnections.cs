@@ -41,20 +41,27 @@ public static class CoreConnections
     // Закрыть соединения программ, чьё правило изменилось: ядро рвёт их и со стороны туннеля, так
     // что программа переподключается уже по новому правилу. В отличие от сброса TCP службой
     // (ConnectionReset), так закрываются и UDP (голос, игры, Steam), и IPv6.
-    // Сравнивается путь каждого соединения целиком — программа и сайт (RouteDecision): правило
-    // «YouTube напрямую» закрывает соединения с YouTube, а не всю программу.
+    // Сравниваются правила для программы и назначения (домен, IP, порт).
     public static Task<int> CloseChangedAsync(CoreStatsEntry entry, SentRules before, SentRules after, CancellationToken token) =>
-        CloseAsync(entry, c => Changed(c, before, after), token);
-
-    private static bool Changed(CoreConnection c, SentRules before, SentRules after) =>
-        (c.ProcessPath is not null || c.Host is not null) && before.Of(c.ProcessPath, c.Host) != after.Of(c.ProcessPath, c.Host);
+        CloseAsync(entry, RuleChangeFilter(before, after, onlyMismatched: false), token);
 
     // Второй проход после смены правил: закрыть только соединения, что всё ещё идут не туда, куда
     // велит новое правило. Первый проход мог успеть раньше, чем ядро перечитало правила, а свежие
     // соединения, открытые уже по новому правилу, трогать незачем.
     public static Task<int> CloseMismatchedAsync(CoreStatsEntry entry, SentRules before, SentRules after, CancellationToken token) =>
-        CloseAsync(entry, c => Changed(c, before, after) && after.Of(c.ProcessPath, c.Host) is { } action &&
-            (action == SiteAction.Block || (action == SiteAction.Direct) != c.Direct), token);
+        CloseAsync(entry, RuleChangeFilter(before, after, onlyMismatched: true), token);
+
+    internal static Func<CoreConnection, bool> RuleChangeFilter(SentRules before, SentRules after, bool onlyMismatched)
+    {
+        var oldPolicy = before.Compile();
+        var newPolicy = after.Compile();
+        return connection =>
+        {
+            var next = newPolicy.Of(connection);
+            return oldPolicy.Of(connection) != next && (!onlyMismatched ||
+                next is { } action && (action == SiteAction.Block || (action == SiteAction.Direct) != connection.Direct));
+        };
+    }
 
     // Закрыть выбранные соединения: «Закрыть» у сайта или программы в «Сейчас в сети».
     public static Task<int> CloseIdsAsync(CoreStatsEntry entry, IReadOnlyCollection<string> ids, CancellationToken token) =>

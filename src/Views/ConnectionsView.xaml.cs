@@ -18,6 +18,7 @@ public partial class ConnectionsView : UserControl
     public event Action<IReadOnlyCollection<string>>? CloseChosen;
     // Правило на сайт: app — только в этой программе, иначе для всех программ; null — убрать.
     public event Action<SiteRow, bool, SiteAction?>? SiteActionChosen;
+    public event Action? DetailsChanged;
     public event Action? Closed;
 
     public ConnectionsView()
@@ -101,7 +102,7 @@ public partial class ConnectionsView : UserControl
         if (source is Button { Tag: string siteTag } && source.DataContext is SiteRow site)
         {
             if (siteTag == "site-close") CloseChosen?.Invoke(site.Ids);
-            else if (siteTag == "site") site.Expanded = !site.Expanded;
+            else if (siteTag == "site") { site.Expanded = !site.Expanded; DetailsChanged?.Invoke(); }
             else if (siteTag.Split('-') is [var scope and ("app" or "all"), var verb])
                 SiteActionChosen?.Invoke(site, scope == "app", verb switch { "vpn" => SiteAction.Tunnel, "direct" => SiteAction.Direct, "block" => SiteAction.Block, _ => null });
             return;
@@ -123,6 +124,7 @@ public partial class ConnectionsView : UserControl
         var open = !row.Expanded;
         foreach (var other in rows) other.Expanded = false;
         row.Expanded = open;
+        if (open) DetailsChanged?.Invoke();
     }
 }
 
@@ -131,7 +133,7 @@ public partial class ConnectionsView : UserControl
 public sealed class ConnectionRow(string path) : LiveRouteRow
 {
     private bool expanded, foldersShown;
-    private string name = "", summary = "", remotes = "", scope = "", ruleText = "", pending = "";
+    private string name = "", summary = "", remotes = "", scope = "", ruleText = "", pending = "", observation = "";
     private string[] folders = [];
     private FileRow[] files = [];
     private SiteRow[] sites = [];
@@ -141,6 +143,7 @@ public sealed class ConnectionRow(string path) : LiveRouteRow
     public string Name { get => name; set => Set(ref name, value, nameof(Name), nameof(Initial)); }
     // «23 соединения · 3,1 МБ/с» — под именем.
     public string Summary { get => summary; set => Set(ref summary, value, nameof(Summary)); }
+    public string Observation { get => observation; set => Set(ref observation, value, nameof(Observation)); }
     public string Remotes { get => remotes; set => Set(ref remotes, value, nameof(Remotes)); }
     // Что возьмёт правило одной строкой: «Правило возьмёт Steam целиком · 3 папки».
     public string Scope { get => scope; set => Set(ref scope, value, nameof(Scope)); }

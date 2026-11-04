@@ -15,23 +15,29 @@ public abstract class LiveRouteRow : INotifyPropertyChanged
     private SiteAction? switchTo;
     private DateTime switchUntil;
     public string Route { get => route; set => Set(ref route, value, nameof(Route)); }
-    // vpn, direct, mix, block и switch — смена пути после правила.
+    // vpn, direct, mix, unknown, idle и switch — смена пути после правила.
     public string RouteKind { get => routeKind; set => Set(ref routeKind, value, nameof(RouteKind)); }
     public int Vpn { get; set; }
     public int Direct { get; set; }
+    public int Unknown { get; private set; }
+    public string ObservedRoute { get; private set; } = "";
 
     public void SwitchTo(SiteAction action)
     {
         switchTo = action; switchUntil = DateTime.UtcNow.AddSeconds(8);
-        ShowRoute(Vpn, Direct);
+        ShowRoute(Vpn, Direct, Unknown);
     }
 
-    public void ShowRoute(int vpn, int direct)
+    public void ShowRoute(int vpn, int direct, int unknown = 0)
     {
-        Vpn = vpn; Direct = direct;
-        if (switchTo is { } target && (DateTime.UtcNow > switchUntil || Arrived(target, vpn, direct))) switchTo = null;
-        (Route, RouteKind) = switchTo is { } next ? ("→ " + Label(next) + "…", "switch")
-            : vpn + direct == 0 ? ("заблокирована", "block") : direct == 0 ? ("через VPN", "vpn") : vpn == 0 ? ("напрямую", "direct") : ($"VPN {vpn} · напрямую {direct}", "mix");
+        Vpn = vpn; Direct = direct; Unknown = unknown;
+        if (switchTo is { } target && (DateTime.UtcNow > switchUntil || unknown == 0 && Arrived(target, vpn, direct))) switchTo = null;
+        var (observed, kind) = vpn + direct == 0
+            ? (unknown > 0 ? ("Маршрут неизвестен", "unknown") : ("Нет активных соединений", "idle"))
+            : unknown > 0 ? ($"VPN {vpn} · напрямую {direct} · неизвестно {unknown}", "mix")
+            : direct == 0 ? ("через VPN", "vpn") : vpn == 0 ? ("напрямую", "direct") : ($"VPN {vpn} · напрямую {direct}", "mix");
+        ObservedRoute = observed;
+        (Route, RouteKind) = switchTo is { } next ? ("→ " + Label(next) + "…", "switch") : (observed, kind);
     }
 
     private static bool Arrived(SiteAction target, int vpn, int direct) => target switch
@@ -89,7 +95,7 @@ public sealed class FileRow(string path) : LiveRouteRow
 // Domain — сайт для правила; у адреса без имени его нет, и правил у такой строки нет.
 public sealed class SiteRow(string name) : LiveRouteRow
 {
-    private string detail = "", appLabel = "", note = "";
+    private string detail = "", appLabel = "", note = "", evidence = "";
     private string[] ids = [];
     private bool expanded;
     private SiteAction? appRule, allRule;
@@ -98,12 +104,14 @@ public sealed class SiteRow(string name) : LiveRouteRow
     public string OwnerPath { get; set; } = "";
     public bool AppConfigurable { get; set; }
     public string Detail { get => detail; set => Set(ref detail, value, nameof(Detail)); }
+    public string Evidence { get => evidence; set => Set(ref evidence, value, nameof(Evidence), nameof(EvidenceVisibility)); }
     // «Только в Google Chrome»
     public string AppLabel { get => appLabel; set => Set(ref appLabel, value, nameof(AppLabel)); }
     // Почему правило для всех программ здесь может не сработать: правило программы сильнее.
     public string Note { get => note; set => Set(ref note, value, nameof(Note), nameof(NoteVisibility)); }
     public string[] Ids { get => ids; set { ids = value; Changed(nameof(CloseVisibility)); } }
-    public bool Expanded { get => expanded; set { if (expanded == value) return; expanded = value; Changed(nameof(RulesVisibility)); Changed(nameof(AppRulesVisibility)); } }
+    public bool Expanded { get => expanded; set { if (expanded == value) return; expanded = value; Changed(nameof(RulesVisibility)); Changed(nameof(AppRulesVisibility)); Changed(nameof(EvidenceVisibility)); } }
+    public Visibility EvidenceVisibility => expanded && evidence.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     public SiteAction? AppRule { get => appRule; set { if (appRule == value) return; appRule = value; foreach (var n in new[] { nameof(AppVpn), nameof(AppDirect), nameof(AppBlock), nameof(AppRemoveVisibility), nameof(RuleTagVisibility) }) Changed(n); } }
     public SiteAction? AllRule { get => allRule; set { if (allRule == value) return; allRule = value; foreach (var n in new[] { nameof(AllVpn), nameof(AllDirect), nameof(AllBlock), nameof(AllRemoveVisibility), nameof(RuleTagVisibility) }) Changed(n); } }
     public bool AppVpn => appRule == SiteAction.Tunnel;

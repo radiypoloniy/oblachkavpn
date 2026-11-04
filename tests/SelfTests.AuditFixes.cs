@@ -51,6 +51,14 @@ public static partial class SelfTests
             Assert(row.RouteKind == "switch");
             row.ShowRoute(2, 0);
             Assert(row.RouteKind == "vpn");
+            row.ShowRoute(0, 0, 1);
+            Assert(row.RouteKind == "unknown" && row.Unknown == 1);
+            row.SwitchTo(SiteAction.Block);
+            Assert(row.RouteKind == "switch" && row.ObservedRoute == "Маршрут неизвестен");
+            row.ShowRoute(0, 0);
+            Assert(row.RouteKind == "idle" && row.ObservedRoute == "Нет активных соединений");
+            var unknown = LiveApps.FromCore([first[0] with { Chains = [] }], _ => false).Single();
+            Assert(unknown is { Total: 1, Vpn: 0, Direct: 0, Unknown: 1 } && unknown.Sites.Single().Unknown == 1);
         }));
     }
 }

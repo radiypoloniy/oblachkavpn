@@ -8,7 +8,8 @@ namespace Oblachka;
 // Speed — байт в секунду (только по данным ядра туннеля), Sites — с кем программа на связи.
 public sealed record LiveApp(string Path, int Vpn, int Direct, int Udp, string[] Remotes)
 {
-    public int Total => Vpn + Direct;
+    public int Total => Vpn + Direct + Unknown;
+    public int Unknown { get; init; }
     public long Speed { get; init; }
     public IReadOnlyList<LiveSite> Sites { get; init; } = [];
 }
@@ -17,16 +18,16 @@ public sealed record LiveApp(string Path, int Vpn, int Direct, int Udp, string[]
 // для «Закрыть»; по таблицам Windows их нет.
 public sealed record LiveSite(string Name, int Vpn, int Direct, long Speed, string[] Ids)
 {
-    public int Total => Vpn + Direct;
+    public int Total => Vpn + Direct + Unknown;
+    public int Unknown { get; init; }
 }
 
 public static class LiveApps
 {
-    // tunnel — «Весь компьютер»: через VPN то, что открыто с адреса туннеля. Иначе через VPN —
-    // только соединения с прокси Облачки на proxyPort (браузеры и программы, что его слушают).
+    // В режиме «Весь компьютер» таблицы Windows не показывают выход ядра.
+    // В режиме прокси они показывают соединения с локальным прокси Облачки.
     public static IReadOnlyList<LiveApp> Group(IReadOnlyList<LiveSocket> sockets, bool tunnel, int proxyPort, Func<int, string?> pathOf, Func<string, bool> hidden)
     {
-        var tunnelHosts = new[] { IPAddress.Parse(SingBoxTunConfig.TunHost4), IPAddress.Parse(SingBoxTunConfig.TunHost6) };
         var paths = new Dictionary<int, string?>();
         var groups = new Dictionary<string, Tally>(StringComparer.OrdinalIgnoreCase);
         foreach (var socket in sockets)
@@ -39,11 +40,11 @@ public static class LiveApps
             {
                 var viaProxy = IPAddress.IsLoopback(remote) && socket.RemotePort == proxyPort;
                 if (IPAddress.IsLoopback(remote) && !viaProxy) continue;
-                var vpn = tunnel ? tunnelHosts.Contains(Plain(socket.Local)) : viaProxy;
+                bool? vpn = tunnel ? null : viaProxy;
                 group.Add(viaProxy ? "через прокси Облачки" : Plain(remote) + ":" + socket.RemotePort, vpn, 0, null);
             }
         }
-        return Apps(groups.Where(g => g.Value.Vpn + g.Value.Direct > 0));
+        return Apps(groups.Where(g => g.Value.Vpn + g.Value.Direct + g.Value.Unknown > 0));
     }
 
     // «Весь компьютер» по данным ядра туннеля (CoreConnections): напрямую — то, что ушло в его
@@ -63,7 +64,8 @@ public static class LiveApps
             if (!groups.TryGetValue(path, out var group)) groups[path] = group = new Tally();
             if (c.Udp) group.Udp++;
             var bytes = c.Id is { } id && speed?.GetValueOrDefault(id) is { } s ? s : 0;
-            group.Add(c.Host ?? c.Address ?? "?", !(c.Direct || Keys(c).Any(listed.Contains)), bytes, c.Id, c.Port);
+            bool? vpn = c.Chains.Count == 0 ? null : !(c.Direct || Keys(c).Any(listed.Contains));
+            group.Add(c.Host ?? c.Address ?? "?", vpn, bytes, c.Id, c.Port);
         }
         return Apps(groups);
     }
@@ -72,7 +74,8 @@ public static class LiveApps
         .Select(g => new LiveApp(g.Key, g.Value.Vpn, g.Value.Direct, g.Value.Udp, g.Value.Remotes.ToArray())
         {
             Speed = g.Value.Speed,
-            Sites = g.Value.Sites.Select(s => new LiveSite(s.Key, s.Value.Vpn, s.Value.Direct, s.Value.Speed, s.Value.Ids.ToArray()))
+            Unknown = g.Value.Unknown,
+            Sites = g.Value.Sites.Select(s => new LiveSite(s.Key, s.Value.Vpn, s.Value.Direct, s.Value.Speed, s.Value.Ids.ToArray()) { Unknown = s.Value.Unknown })
                 .OrderByDescending(s => s.Speed).ThenByDescending(s => s.Total).ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase).ToArray()
         })
         .OrderByDescending(a => a.Total).ThenBy(a => System.IO.Path.GetFileName(a.Path), StringComparer.OrdinalIgnoreCase).ToArray();
@@ -82,28 +85,28 @@ public static class LiveApps
 
     private sealed class Tally
     {
-        public int Vpn, Direct, Udp;
+        public int Vpn, Direct, Unknown, Udp;
         public long Speed;
         public readonly List<string> Remotes = new();
         public readonly Dictionary<string, SiteTally> Sites = new(StringComparer.OrdinalIgnoreCase);
 
         // port — для строки «с кем на связи»; сайт в списке сайтов — без порта.
-        public void Add(string site, bool vpn, long speed, string? id, int port = 0)
+        public void Add(string site, bool? vpn, long speed, string? id, int port = 0)
         {
-            if (vpn) Vpn++; else Direct++;
+            if (vpn == true) Vpn++; else if (vpn == false) Direct++; else Unknown++;
             Speed += speed;
             var endpoint = port > 0 ? site + ":" + port : site;
             if (Remotes.Count < 3 && !Remotes.Contains(endpoint)) Remotes.Add(endpoint);
             // Сайты — по основному домену: десяток rr3---sn-….googlevideo.com — одна строка googlevideo.com.
             site = MainDomain(site) ?? site;
             if (!Sites.TryGetValue(site, out var tally)) Sites[site] = tally = new SiteTally();
-            if (vpn) tally.Vpn++; else tally.Direct++;
+            if (vpn == true) tally.Vpn++; else if (vpn == false) tally.Direct++; else tally.Unknown++;
             tally.Speed += speed;
             if (id is not null) tally.Ids.Add(id);
         }
     }
 
-    private sealed class SiteTally { public int Vpn, Direct; public long Speed; public readonly List<string> Ids = new(); }
+    private sealed class SiteTally { public int Vpn, Direct, Unknown; public long Speed; public readonly List<string> Ids = new(); }
 
     // Основной домен: последние две части имени, а у доменов вида bbc.co.uk и mail.com.ru — три.
     // Адрес без имени (IP, «IP:порт») — null.

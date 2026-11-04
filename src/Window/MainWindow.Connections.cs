@@ -24,6 +24,7 @@ public partial class MainWindow
         Live.ActionChosen += ApplyLiveRule;
         Live.FileActionChosen += ApplyFileRule;
         Live.CloseChosen += ids => _ = CloseLiveAsync(ids);
+        Live.DetailsChanged += RefreshLiveDetails;
         WireLiveSites();
         // Окно в фоне — список реже: каждое обновление перерисовывает строки, а смотрят на него редко.
         Activated += (_, _) => LivePace();
@@ -40,7 +41,7 @@ public partial class MainWindow
     private void LivePace()
     {
         if (liveTimer is null) return;
-        if (closed || !Live.IsVisible || !IsVisible || WindowState == WindowState.Minimized) { liveTimer.Stop(); return; }
+        if (closed || !Live.IsVisible || !IsVisible || WindowState == WindowState.Minimized) { liveTimer.Stop(); liveObservation = null; return; }
         var next = TimeSpan.FromSeconds(DateTime.UtcNow < liveBurstUntil ? 0.5 : IsActive ? 2 : 6);
         if (liveTimer.Interval != next) liveTimer.Interval = next;
         if (!liveTimer.IsEnabled) liveTimer.Start();
@@ -102,22 +103,26 @@ public partial class MainWindow
             bool Own(string path) => path.StartsWith(own, StringComparison.OrdinalIgnoreCase);
             // «Весь компьютер»: куда ушло соединение, знает только ядро туннеля — по таблицам Windows
             // любое соединение открыто с адреса туннеля, даже по правилу «напрямую».
-            var stats = tunnel ? systemTunnel?.Stats : null;
+            var session = tunnel ? systemTunnel : null;
+            var stats = session?.Stats;
             var core = stats is not null ? await coreSamples.ReadAsync(stats, CancellationToken.None) : null;
             if (closed || Live.Visibility != Visibility.Visible || stats is not null && !ReferenceEquals(stats, systemTunnel?.Stats)) return;
             if (core is not null && programSamples?.UsesLegacy == true) RecordCoreConnections(core);
             var apps = core is not null ? LiveApps.FromCore(core, Own, liveSpeed.Measure(core, DateTime.UtcNow))
                 : await Task.Run(() => LiveApps.Group(ConnectionTable.Read(), tunnel, proxy, LivePath, Own));
-            if (closed || Live.Visibility != Visibility.Visible || !IsVisible || WindowState == WindowState.Minimized) return;
+            if (closed || Live.Visibility != Visibility.Visible || !IsVisible || WindowState == WindowState.Minimized ||
+                tunnel != SystemTunnelActive || tunnel && !ReferenceEquals(session, systemTunnel)) return;
+            liveObservation = new(DateTime.Now, core);
             Live.SetNote(LiveNote);
             var rows = LiveTree(apps);
             TrimLiveCache(rows);
+            RefreshLiveDetails();
             Live.Load(rows);
-            var online = rows.Count(r => r.Vpn + r.Direct > 0);
+            var online = rows.Count(r => r.Vpn + r.Direct + r.Unknown > 0);
             Home.LiveCount.Text = online > 0 ? online.ToString() : "";
         }
         // Список — справочный: сбой чтения таблиц или одной строки не должен ронять окно.
-        catch (Exception ex) when (ex is not OutOfMemoryException) { Live.Load([]); }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { liveObservation = null; Live.Load([]); }
         finally { liveBusy = false; LivePace(); }
     }
 

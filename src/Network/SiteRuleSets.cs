@@ -19,6 +19,9 @@ public static class SiteRuleSets
     public static string NextTo(string programs) => Path.Combine(programs, "sites");
     public static string Tag(int level, SiteAction action) => "sites-" + level + "-" + action.ToString().ToLowerInvariant();
 
+    internal static IEnumerable<SiteRule> InRouteOrder(IReadOnlyList<SiteRule> rules) => Place(rules)
+        .OrderBy(p => p.Level).ThenBy(p => Array.IndexOf(Actions, p.Rule.Action)).Select(p => p.Rule);
+
     // Все файлы есть всегда, пустые — с заглушкой: ядро не запускается со ссылкой на отсутствующий файл.
     public static void Write(string folder, IReadOnlyList<SiteRule> rules)
     {

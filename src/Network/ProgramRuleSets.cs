@@ -30,6 +30,9 @@ public static class ProgramRuleSets
     public static string Folder => NetworkHelperHost.DataPath("programs");
     public static string Tag(int level, SiteAction action) => "programs-" + level + "-" + action.ToString().ToLowerInvariant();
 
+    internal static IEnumerable<ProgramRule> InRouteOrder(IReadOnlyList<ProgramRule> rules) => Place(rules)
+        .OrderBy(p => p.Level).ThenBy(p => Array.IndexOf(Actions, p.Rule.Action)).Select(p => p.Rule);
+
     // Правила, которые сейчас в файлах: с ними сравнивается новый набор (ConnectionReset),
     // по ним защита пропускает программы «напрямую» (WfpDirectApps).
     private static ProgramRule[] current = [];

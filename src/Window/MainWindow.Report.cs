@@ -85,7 +85,7 @@ public partial class MainWindow
                 Apps = apps.OrderByDescending(a => a.Total + a.Udp).Take(60).Select(a => new
                 {
                     File = Path.GetFileName(a.Path), Folder = DiagnosticReport.SafePath(Path.GetDirectoryName(a.Path) ?? ""),
-                    a.Vpn, a.Direct, a.Udp, Rule = RuleOf(a.Path), RuleTarget = TargetOf(a.Path)
+                    a.Vpn, a.Direct, a.Unknown, a.Udp, Rule = RuleOf(a.Path), RuleTarget = TargetOf(a.Path)
                 }).ToArray(),
                 // За 10 минут, раз в 5 с: и те, что выходят в сеть ненадолго (античит, лаунчер).
                 Recent = programJournal.Recent(now).Where(e => !Own(e.Path)).Take(60).Select(e => new

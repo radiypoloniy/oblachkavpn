@@ -50,14 +50,15 @@ public partial class MainWindow
 
     private void UpdateLiveRow(ConnectionRow row, LiveApp[] parts)
     {
-        int vpn = parts.Sum(p => p.Vpn), direct = parts.Sum(p => p.Direct), total = vpn + direct;
-        row.ShowRoute(vpn, direct);
-        row.Summary = total == 0 ? "в сеть не выходит" : Joined(LiveRouteRow.Count(total), LiveRouteRow.Speed(parts.Sum(p => p.Speed)));
-        row.Remotes = string.Join(" · ", parts.SelectMany(p => p.Remotes).Distinct().Take(3));
+        int vpn = parts.Sum(p => p.Vpn), direct = parts.Sum(p => p.Direct), unknown = parts.Sum(p => p.Unknown), total = vpn + direct + unknown;
+        row.ShowRoute(vpn, direct, unknown);
         ShowLiveRule(row);
+        row.Summary = total == 0 ? (row.Rule == SiteAction.Block ? "правило блокировки" : "")
+            : Joined(LiveRouteRow.Count(total), LiveRouteRow.Speed(parts.Sum(p => p.Speed)));
+        row.Remotes = string.Join(" · ", parts.SelectMany(p => p.Remotes).Distinct().Take(3));
         // Правило меняет только новые соединения: уже открытые идут прежним путём, пока не закроются.
         row.Pending = SystemTunnelActive && row.RouteKind != "switch" && row.Rule is { } action &&
-            (action == SiteAction.Direct ? vpn : action == SiteAction.Tunnel ? direct : total) > 0
+            (action == SiteAction.Direct ? vpn : action == SiteAction.Tunnel ? direct : vpn + direct) > 0
             ? "Соединения, открытые до правила, Облачка обрывает — программа переподключится уже по правилу. Голос и видео (UDP) переходят, когда звонок закончится." : "";
         var scope = SystemFile(row.Path) ? null : TryScope(row.Path);
         row.Scope = SystemFile(row.Path) ? "Системные программы Windows правилами не настраиваются: правило задело бы службы самой системы."
@@ -66,9 +67,10 @@ public partial class MainWindow
         row.Folders = scope?.Rules is { } rules && rules.All(r => r.AllInFolder) ? rules.Select(r => r.Folder!).ToArray() : [];
         row.Files = parts.Length > 1 ? parts.OrderByDescending(p => p.Total).Select(LiveFile).ToArray() : [];
         row.Sites = parts.SelectMany(p => p.Sites).GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(g => (Name: g.Key, Vpn: g.Sum(s => s.Vpn), Direct: g.Sum(s => s.Direct), Speed: g.Sum(s => s.Speed), Ids: g.SelectMany(s => s.Ids).ToArray()))
-            .OrderByDescending(s => s.Speed).ThenByDescending(s => s.Vpn + s.Direct).ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
-            .Take(LiveSitesShown).Select(s => LiveSite(row, s.Name, s.Vpn, s.Direct, s.Speed, s.Ids)).ToArray();
+            .Select(g => (Name: g.Key, Vpn: g.Sum(s => s.Vpn), Direct: g.Sum(s => s.Direct), Unknown: g.Sum(s => s.Unknown),
+                Speed: g.Sum(s => s.Speed), Ids: g.SelectMany(s => s.Ids).ToArray()))
+            .OrderByDescending(s => s.Speed).ThenByDescending(s => s.Vpn + s.Direct + s.Unknown).ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
+            .Take(LiveSitesShown).Select(s => LiveSite(row, s.Name, s.Vpn, s.Direct, s.Unknown, s.Speed, s.Ids)).ToArray();
         foreach (var site in row.Sites) ShowSiteRules(row, site);
     }
 
@@ -81,18 +83,19 @@ public partial class MainWindow
             catch (UserError) { configurable = false; }
             liveFiles[part.Path] = file = new FileRow(part.Path) { Name = Path.GetFileName(part.Path), Configurable = configurable };
         }
-        file.ShowRoute(part.Vpn, part.Direct);
+        file.ShowRoute(part.Vpn, part.Direct, part.Unknown);
         file.Rule = FileRule(part.Path)?.Action;
         file.Summary = Joined(LiveRouteRow.Count(part.Total), file.Route, LiveRouteRow.Speed(part.Speed), file.Rule is not null ? "своё правило" : "");
         return file;
     }
 
-    private SiteRow LiveSite(ConnectionRow row, string name, int vpn, int direct, long speed, string[] ids)
+    private SiteRow LiveSite(ConnectionRow row, string name, int vpn, int direct, int unknown, long speed, string[] ids)
     {
         var key = row.Path + "|" + name;
         if (!liveSites.TryGetValue(key, out var site)) liveSites[key] = site = new SiteRow(name);
-        site.ShowRoute(vpn, direct);
-        site.Detail = Joined(vpn + direct > 1 ? "×" + (vpn + direct) : "", site.Route, LiveRouteRow.Speed(speed));
+        site.ShowRoute(vpn, direct, unknown);
+        var total = vpn + direct + unknown;
+        site.Detail = Joined(total > 1 ? "×" + total : "", site.Route, LiveRouteRow.Speed(speed));
         site.Ids = ids;
         return site;
     }
