@@ -25,6 +25,20 @@ public partial class MainWindow
             var program = (Views.AnalyticsProgramRow)Analytics.ProgramList.Items[0];
             if (program.Icon is null || program.PlaceholderVisibility != Visibility.Collapsed)
                 throw new InvalidOperationException("Analytics did not load the program icon");
+            for (var i = 0; i < 26; i++) trafficHistory.AddProgram($@"C:\Fixture\test-{i:00}.exe", 1, 2, DateTime.Now);
+            RefreshAnalytics();
+            if (Analytics.ProgramList.Items.Count != 5)
+                throw new InvalidOperationException("Analytics preview lost its five-row limit");
+            Analytics.MorePrograms.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            if (Analytics.ProgramList.Items.Count != 25)
+                throw new InvalidOperationException("Full program list is not paginated");
+            Analytics.MorePrograms.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            if (Analytics.ProgramList.Items.Count != 2)
+                throw new InvalidOperationException("The end of the program list is inaccessible");
+            Analytics.ProgramSearch.Text = "test-25";
+            if (Analytics.ProgramList.Items.Count != 1 || ((Views.AnalyticsProgramRow)Analytics.ProgramList.Items[0]).Name != "test-25")
+                throw new InvalidOperationException("Analytics search did not search the full report");
+            Analytics.ProgramSearch.Text = "";
             DesignPreview.Render(this, Path.Combine(AppContext.BaseDirectory, "preview-analytics.png"));
             Navigate("Servers");
             if (Analytics.Visibility != Visibility.Collapsed || Servers.Visibility != Visibility.Visible)

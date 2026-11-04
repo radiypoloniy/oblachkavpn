@@ -98,7 +98,12 @@
             <StackPanel>
               <TextBlock Text="Программы" FontSize="{StaticResource FsRowLarge}" FontWeight="SemiBold"/>
               <TextBlock Text="Наибольший трафик за выбранный период" Style="{StaticResource Small}" Margin="0,3,0,8"/>
+              <TextBox x:Name="ProgramSearch" AutomationProperties.Name="Найти программу" Visibility="Collapsed" Margin="0,0,0,6"/>
               <ItemsControl x:Name="ProgramList" Focusable="False"/>
+              <WrapPanel Margin="0,8,0,0">
+                <Button x:Name="PreviousPrograms" Content="Назад" Style="{StaticResource BtnSecondary}" Margin="0,0,6,0" Visibility="Collapsed"/>
+                <Button x:Name="MorePrograms" Content="Все программы" Style="{StaticResource BtnSecondary}" Visibility="Collapsed"/>
+              </WrapPanel>
               <TextBlock x:Name="ProgramsEmpty" Text="Данные появятся после подключения в режиме «Весь компьютер»." Style="{StaticResource Small}" Margin="0,10,0,4"/>
             </StackPanel>
           </Border>
