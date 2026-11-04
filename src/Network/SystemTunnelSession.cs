@@ -54,6 +54,15 @@ public sealed partial class SystemTunnelSession : IAsyncDisposable
     // Узлы, на которые можно переключиться без снятия блокировки.
     public bool CanSwitchTo(Profile profile) => Find(profile) is not null;
 
+    internal TrafficSource? TrafficSourceAt(int index)
+    {
+        var candidates = plans;
+        var exits = direct;
+        if (index < 0 || index >= candidates.Count || exits is null || index >= exits.Length || exits[index] is null) return null;
+        var profile = candidates[index].Source;
+        return new(ClientServerCatalog.Id(profile)!, ClientServerCatalog.Title(profile));
+    }
+
     private void CoreChanged(ConnectionState state, string message) { if (state == ConnectionState.Failed) _ = CoreLostAsync(); }
 
     private async Task CoreLostAsync()

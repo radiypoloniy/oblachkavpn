@@ -14,6 +14,7 @@ import (
 )
 
 const maxStatPrograms = 256
+const maxStatSources = 16
 const otherStatPrograms = "Другие программы"
 
 type programCounters struct {
@@ -34,9 +35,15 @@ type programSnapshot struct {
 	Version  int               `json:"version"`
 	Epoch    string            `json:"epoch"`
 	Programs []programCounters `json:"programs"`
+	Sources  []sourceCounters  `json:"sources,omitempty"`
 }
 
 type archivedCounters struct{ upload, download int64 }
+type sourceCounters struct {
+	Index    int   `json:"index"`
+	Upload   int64 `json:"upload"`
+	Download int64 `json:"download"`
+}
 type trafficRoute uint8
 
 const (
@@ -55,6 +62,7 @@ func (r *routeCounters) add(route trafficRoute, upload, download int64) {
 type observedCounters struct {
 	program *programState
 	route   trafficRoute
+	source  int
 	archivedCounters
 }
 type programState struct {
@@ -66,14 +74,15 @@ type programState struct {
 // Uses existing byte counters: no extra wrappers or atomics in the packet path.
 // Closed metadata is the bounded (1000 entries) upstream traffic-manager window.
 type programStats struct {
-	mu          sync.Mutex
-	epoch       string
-	programs    map[string]*programState
-	closed      map[uuid.UUID]archivedCounters
-	active      map[uuid.UUID]observedCounters
-	spareClosed map[uuid.UUID]archivedCounters
-	spareActive map[uuid.UUID]observedCounters
-	totals      map[*programState]routeCounters
+	mu                           sync.Mutex
+	epoch                        string
+	programs                     map[string]*programState
+	closed                       map[uuid.UUID]archivedCounters
+	active                       map[uuid.UUID]observedCounters
+	spareClosed                  map[uuid.UUID]archivedCounters
+	spareActive                  map[uuid.UUID]observedCounters
+	totals                       map[*programState]routeCounters
+	sourceClosed, sourceObserved [maxStatSources]archivedCounters
 }
 
 func newProgramStats() *programStats {
@@ -135,21 +144,24 @@ func countProgram(p *programState, c *trafficcontrol.TrackerMetadata) {
 	}
 }
 
-func programRoute(c *trafficcontrol.TrackerMetadata) trafficRoute {
+func programRoute(c *trafficcontrol.TrackerMetadata) (trafficRoute, int) {
 	// The bridge may carry traffic already counted at system-tun. Leave its
 	// bytes unclassified and keep the legacy program totals.
 	if c.Metadata.Inbound != "system-tun" {
-		return routeUnknown
+		return routeUnknown, -1
 	}
 	if slices.Contains(c.Chain, "user-direct") {
-		return routeDirect
+		return routeDirect, -1
 	}
 	// The fallback SOCKS core can in turn forward traffic directly. Only
 	// attribute an actual integrated VPN leaf to VPN.
-	if c.Outbound != "local-core" && slices.ContainsFunc(c.Chain, func(tag string) bool { return strings.HasPrefix(tag, "direct-") }) {
-		return routeVPN
+	if tag, ok := strings.CutPrefix(c.Outbound, "direct-"); ok {
+		index, err := strconv.Atoi(tag)
+		if err == nil && index >= 0 && index < maxStatSources && strconv.Itoa(index) == tag {
+			return routeVPN, index
+		}
 	}
-	return routeUnknown
+	return routeUnknown, -1
 }
 
 func (s *programStats) snapshot(active, closed []*trafficcontrol.TrackerMetadata, now time.Time) programSnapshot {
@@ -171,7 +183,13 @@ func (s *programStats) snapshot(active, closed []*trafficcontrol.TrackerMetadata
 		p := s.program(path)
 		u, d := c.Upload.Load(), c.Download.Load()
 		old, known := s.closed[c.ID]
-		p.closed.add(programRoute(c), max(0, u-old.upload), max(0, d-old.download))
+		route, source := programRoute(c)
+		deltaUp, deltaDown := max(0, u-old.upload), max(0, d-old.download)
+		p.closed.add(route, deltaUp, deltaDown)
+		if source >= 0 {
+			s.sourceClosed[source].upload += deltaUp
+			s.sourceClosed[source].download += deltaDown
+		}
 		seenClosed[c.ID] = archivedCounters{u, d}
 		p.LastSeen = max(p.LastSeen, c.ClosedAt.UnixMilli())
 		if !known {
@@ -188,6 +206,7 @@ func (s *programStats) snapshot(active, closed []*trafficcontrol.TrackerMetadata
 		seenActive = make(map[uuid.UUID]observedCounters, len(active))
 	}
 	clear(seenActive)
+	var sourceActive [maxStatSources]archivedCounters
 	for _, c := range active {
 		if _, closed := seenClosed[c.ID]; closed {
 			continue
@@ -199,10 +218,14 @@ func (s *programStats) snapshot(active, closed []*trafficcontrol.TrackerMetadata
 		p := s.program(path)
 		total := totals[p]
 		u, d := max(0, c.Upload.Load()), max(0, c.Download.Load())
-		route := programRoute(c)
+		route, source := programRoute(c)
 		total.add(route, u, d)
 		totals[p] = total
-		seenActive[c.ID] = observedCounters{p, route, archivedCounters{u, d}}
+		if source >= 0 {
+			sourceActive[source].upload += u
+			sourceActive[source].download += d
+		}
+		seenActive[c.ID] = observedCounters{p, route, source, archivedCounters{u, d}}
 		p.LastSeen = now.UnixMilli()
 		countProgram(p, c)
 	}
@@ -214,6 +237,10 @@ func (s *programStats) snapshot(active, closed []*trafficcontrol.TrackerMetadata
 			// Already observed connection evicted from upstream's closed window:
 			// preserve at least its observed bytes, as the legacy client did.
 			old.program.closed.add(old.route, old.upload, old.download)
+			if old.source >= 0 {
+				s.sourceClosed[old.source].upload += old.upload
+				s.sourceClosed[old.source].download += old.download
+			}
 		}
 	}
 	// Double-buffer only bounded scratch maps. Never retain a large connection spike.
@@ -244,6 +271,14 @@ func (s *programStats) snapshot(active, closed []*trafficcontrol.TrackerMetadata
 		p.VPNUpload, p.VPNDownload = p.observed[routeVPN].upload, p.observed[routeVPN].download
 		p.DirectUpload, p.DirectDownload = p.observed[routeDirect].upload, p.observed[routeDirect].download
 		result.Programs = append(result.Programs, p.programCounters)
+	}
+	for index, active := range sourceActive {
+		observed := &s.sourceObserved[index]
+		observed.upload = max(observed.upload, s.sourceClosed[index].upload+active.upload)
+		observed.download = max(observed.download, s.sourceClosed[index].download+active.download)
+		if observed.upload > 0 || observed.download > 0 {
+			result.Sources = append(result.Sources, sourceCounters{index, observed.upload, observed.download})
+		}
 	}
 	return result
 }

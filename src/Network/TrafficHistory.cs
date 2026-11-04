@@ -8,7 +8,11 @@ public sealed record TrafficProgramStats(string Path, long Upload, long Download
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public TrafficRouteBytes Routes { get; init; }
 }
-public sealed record TrafficDayStats(string Day, long Upload, long Download, long[] UploadHours, long[] DownloadHours, TrafficProgramStats[] Programs);
+public sealed record TrafficDayStats(string Day, long Upload, long Download, long[] UploadHours, long[] DownloadHours, TrafficProgramStats[] Programs)
+{
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public TrafficSourceStats[]? Sources { get; init; }
+}
 public sealed record AnalyticsPoint(string Label, long Upload, long Download)
 {
     public long Total => Upload + Download;
@@ -19,12 +23,13 @@ public sealed record AnalyticsProgram(string Path, long Upload, long Download, T
 }
 public sealed record AnalyticsReport(AnalyticsPoint[] Points, AnalyticsProgram[] Programs, long Upload, long Download)
 {
+    public TrafficSourceStats[] Sources { get; init; } = [];
     public long Total => Upload + Download;
     public bool Empty => Total == 0 && Programs.Length == 0;
 }
 
 // История только локальная: даты, байты и пути программ. Адреса сайтов сюда не передаются.
-public sealed class TrafficHistory
+public sealed partial class TrafficHistory
 {
     public const int MaxDays = 30;
     public const int MaxPrograms = 256;
@@ -32,7 +37,7 @@ public sealed class TrafficHistory
     private static readonly CultureInfo Ru = CultureInfo.GetCultureInfo("ru-RU");
     private readonly Dictionary<string, DayState> days = new(StringComparer.Ordinal);
 
-    private sealed class DayState
+    private sealed partial class DayState
     {
         public long Upload, Download;
         public readonly long[] UploadHours = new long[24], DownloadHours = new long[24];
@@ -40,7 +45,8 @@ public sealed class TrafficHistory
 
         public TrafficDayStats Snapshot(string day) => new(day, Upload, Download, UploadHours.ToArray(), DownloadHours.ToArray(),
             Programs.Select(p => new TrafficProgramStats(p.Key, p.Value.Upload, p.Value.Download) { Routes = p.Value.Routes })
-                .OrderByDescending(p => p.Upload + p.Download).ThenBy(p => p.Path, StringComparer.OrdinalIgnoreCase).Take(MaxPrograms).ToArray());
+                .OrderByDescending(p => p.Upload + p.Download).ThenBy(p => p.Path, StringComparer.OrdinalIgnoreCase).Take(MaxPrograms).ToArray())
+            { Sources = Sources.Count == 0 ? null : Sources.Values.ToArray() };
     }
 
     public void Restore(TrafficDayStats[]? saved, string? legacyDay, long legacyBytes, long[]? legacyHours, DateTime now)
@@ -52,6 +58,7 @@ public sealed class TrafficHistory
             var state = new DayState { Upload = day.Upload, Download = day.Download };
             Array.Copy(day.UploadHours, state.UploadHours, 24); Array.Copy(day.DownloadHours, state.DownloadHours, 24);
             foreach (var program in day.Programs) AddProgram(state.Programs, program.Path, program.Upload, program.Download, program.Routes);
+            foreach (var source in day.Sources ?? []) state.Sources[source.Id] = source;
             days[day.Day] = state;
         }
         if (days.Count == 0 && legacyDay == Key(now) && legacyBytes > 0)
@@ -131,14 +138,15 @@ public sealed class TrafficHistory
             }
         }
         return new(points.ToArray(), programs.Select(p => new AnalyticsProgram(p.Key, p.Value.Upload, p.Value.Download, p.Value.Routes))
-            .OrderByDescending(p => p.Total).ThenBy(p => p.Path, StringComparer.OrdinalIgnoreCase).ToArray(), upload, download);
+            .OrderByDescending(p => p.Total).ThenBy(p => p.Path, StringComparer.OrdinalIgnoreCase).ToArray(), upload, download)
+            { Sources = ReportSources(now, periodDays) };
     }
 
     internal static bool Valid(TrafficDayStats[] history) => history.Length <= MaxDays &&
         history.All(d => d is not null && d.Upload >= 0 && d.Download >= 0 &&
             DateTime.TryParseExact(d.Day, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _) &&
             d.UploadHours is { Length: 24 } && d.DownloadHours is { Length: 24 } && d.UploadHours.All(n => n >= 0) && d.DownloadHours.All(n => n >= 0) &&
-            d.Programs is not null && d.Programs.Length <= MaxPrograms && d.Programs.All(p => p is not null && !string.IsNullOrWhiteSpace(p.Path) &&
+            ValidSources(d.Sources) && d.Programs is not null && d.Programs.Length <= MaxPrograms && d.Programs.All(p => p is not null && !string.IsNullOrWhiteSpace(p.Path) &&
                 p.Path.Length <= 1024 && !p.Path.Any(char.IsControl) && p.Upload >= 0 && p.Download >= 0 && p.Routes.Fits(p.Upload, p.Download))) &&
         history.Select(d => d.Day).Distinct(StringComparer.Ordinal).Count() == history.Length;
 
@@ -178,7 +186,7 @@ public sealed partial class ProgramTrafficHistory
     private sealed record Seen(string Path, long Upload, long Download, TrafficRouteBytes Routes = default);
     private readonly Dictionary<string, Seen> active = new(StringComparer.Ordinal);
 
-    public void Reset() { active.Clear(); programEpoch = null; rebaseNext = false; }
+    public void Reset() { active.Clear(); sources.Clear(); programEpoch = null; rebaseNext = false; }
 
     public void Record(IReadOnlyList<CoreConnection> connections, TrafficHistory history, DateTime now)
     {

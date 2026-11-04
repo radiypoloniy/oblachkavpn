@@ -20,6 +20,7 @@ public partial class AnalyticsView : UserControl
     private AnalyticsProgram[] programs = [];
     private const int PreviewPrograms = 5, ProgramPageSize = 25;
     private int programOffset;
+    private TrafficSourceStats[] trafficSources = [];
 
     public AnalyticsView()
     {
@@ -27,6 +28,7 @@ public partial class AnalyticsView : UserControl
         BackButton.Click += (_, _) => Closed?.Invoke();
         ExportButton.Click += (_, _) => ExportRequested?.Invoke();
         ResetButton.Click += (_, _) => ResetRequested?.Invoke();
+        TrafficSources.SelectionChanged += (_, _) => RenderSourceTraffic();
         MorePrograms.Click += (_, _) =>
         {
             if (ProgramSearch.IsVisible) programOffset += ProgramPageSize;
@@ -62,6 +64,7 @@ public partial class AnalyticsView : UserControl
         var programTotal = report.Programs.Sum(p => p.Total);
         RouteTotalsText.Text = programTotal > 0 ? "По учтённым программам — " + RoutesText(routes, programTotal) : "";
         RouteTotalsText.Visibility = programTotal > 0 ? Visibility.Visible : Visibility.Collapsed;
+        RenderTrafficSources(report.Sources);
         CurrentDown.Text = TrafficMeter.Rate(currentDown); CurrentUp.Text = TrafficMeter.Rate(currentUp);
         ServerText.Text = server;
         Chart.Upload = report.Points.Select(p => p.Upload).ToArray(); Chart.Download = report.Points.Select(p => p.Download).ToArray();
@@ -113,6 +116,25 @@ public partial class AnalyticsView : UserControl
         var text = "VPN " + TrafficMeter.Size(routes.Vpn) + " · напрямую " + TrafficMeter.Size(routes.Direct);
         var unknown = total - routes.Vpn - routes.Direct;
         return unknown > 0 ? text + " · без разбивки " + TrafficMeter.Size(unknown) : text;
+    }
+
+    private void RenderTrafficSources(TrafficSourceStats[] sources)
+    {
+        if (trafficSources.SequenceEqual(sources)) return;
+        var selected = TrafficSources.SelectedValue;
+        trafficSources = sources;
+        TrafficSources.ItemsSource = sources;
+        TrafficSources.SelectedValue = selected;
+        if (sources.Length > 0 && TrafficSources.SelectedIndex < 0) TrafficSources.SelectedIndex = 0;
+        SourcesPanel.Visibility = sources.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        RenderSourceTraffic();
+    }
+
+    private void RenderSourceTraffic()
+    {
+        SourceTrafficText.Text = TrafficSources.SelectedItem is TrafficSourceStats source
+            ? TrafficMeter.Size(source.Total) + " · только трафик с подтверждённым VPN-выходом"
+            : "";
     }
 
     private void RenderAxis(AnalyticsPoint[] points)

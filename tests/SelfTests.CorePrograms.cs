@@ -70,6 +70,30 @@ public static partial class SelfTests
             traffic.Record(Sample(40, 60, new(20, 25, 15, 25)), history, now);
             Assert(history.Report(now, 1).Programs.Single() is { Total: 20, Routes: { Vpn: 20, Direct: 0 } });
         }));
+        await check("Traffic from two observed VPN exits remains attributed to their original profiles", () => Sync(() =>
+        {
+            var now = DateTime.Now;
+            var history = new TrafficHistory();
+            var tracker = new ProgramTrafficHistory();
+            var epoch = Guid.NewGuid().ToString();
+            TrafficSource? Map(int index) => index switch
+            {
+                0 => new(new string('A', 64), "Первый"),
+                1 => new(new string('B', 64), "Второй"),
+                _ => null
+            };
+            tracker.Record(new(epoch, [], [new(0, 10, 20)]), history, now, Map);
+            tracker.Record(new(epoch, [], [new(0, 11, 21), new(1, 3, 7), new(2, 50, 50)]), history, now, Map);
+            var saved = history.Snapshot(now);
+            Assert(TrafficHistory.Valid(saved));
+            history.Restore(saved, null, 0, null, now);
+            var sources = history.Report(now, 1).Sources;
+            Assert(sources is [{ Name: "Первый", Total: 32 }, { Name: "Второй", Total: 10 }]);
+            history.Reset(); tracker.Rebase();
+            tracker.Record(new(epoch, [], [new(0, 11, 21), new(1, 3, 7)]), history, now, Map);
+            tracker.Record(new(epoch, [], [new(0, 11, 21), new(1, 5, 9)]), history, now, Map);
+            Assert(history.Report(now, 1).Sources is [{ Name: "Второй", Total: 4 }]);
+        }));
         await check("Compact parser rejects duplicate paths, unsupported versions, negative counters and oversized lists", () => Sync(() =>
         {
             var epoch = Guid.NewGuid().ToString();

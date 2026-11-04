@@ -4,7 +4,8 @@ using System.Text.Json;
 namespace Oblachka;
 
 internal sealed record CoreProgram(string Path, long Upload, long Download, int Vpn, int Direct, int Udp, DateTime LastSeen, TrafficRouteBytes Routes = default);
-internal sealed record CoreProgramSnapshot(string Epoch, IReadOnlyList<CoreProgram> Programs);
+internal readonly record struct CoreTrafficSource(int Index, long Upload, long Download);
+internal sealed record CoreProgramSnapshot(string Epoch, IReadOnlyList<CoreProgram> Programs, IReadOnlyList<CoreTrafficSource>? Sources = null);
 
 internal static class CorePrograms
 {
@@ -50,6 +51,21 @@ internal static class CorePrograms
             if (!routes.Fits(up, down)) throw new JsonException("Invalid route byte counters");
             result.Add(new(path, up, down, vpn, direct, udp, DateTimeOffset.FromUnixTimeMilliseconds(seen).UtcDateTime, routes));
         }
-        return new(epoch.ToString(), result);
+        return new(epoch.ToString(), result, ParseSources(root));
+    }
+
+    private static CoreTrafficSource[] ParseSources(JsonElement root)
+    {
+        if (!root.TryGetProperty("sources", out var rows)) return [];
+        if (rows.ValueKind != JsonValueKind.Array || rows.GetArrayLength() > DirectOutboundPolicy.MaxOutbounds)
+            throw new JsonException("Too many traffic sources");
+        var indices = new HashSet<int>();
+        return rows.EnumerateArray().Select(row =>
+        {
+            var source = new CoreTrafficSource(row.GetProperty("index").GetInt32(), row.GetProperty("upload").GetInt64(), row.GetProperty("download").GetInt64());
+            if (source.Index is < 0 or >= DirectOutboundPolicy.MaxOutbounds || source.Upload < 0 || source.Download < 0 || !indices.Add(source.Index))
+                throw new JsonException("Invalid traffic source");
+            return source;
+        }).ToArray();
     }
 }

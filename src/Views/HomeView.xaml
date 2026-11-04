@@ -214,7 +214,7 @@
         <DockPanel x:Name="TrafficRow">
           <v:PixelBars x:Name="TrafficBars" DockPanel.Dock="Right" Kind="Columns" Width="120" Height="34" VerticalAlignment="Bottom" Fill="{DynamicResource RouteVpn}" Empty="{DynamicResource Field}" Accent="{DynamicResource Sun}"/>
           <StackPanel VerticalAlignment="Bottom">
-            <TextBlock Text="Сегодня через VPN" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource Mu2}"/>
+            <TextBlock Text="Трафик сегодня" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource Mu2}"/>
             <TextBlock x:Name="TrafficToday" Text="0 Б" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FsDisplayStatus}" FontWeight="ExtraBold" Margin="0,3,0,0"/>
           </StackPanel>
         </DockPanel>

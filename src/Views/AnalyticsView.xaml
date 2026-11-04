@@ -43,6 +43,11 @@
         </DockPanel>
         <TextBlock Text="VPN и правила «напрямую» в системном режиме. Локальная сеть не учитывается. История хранится только на этом компьютере." Style="{StaticResource Small}" Margin="2,8,0,14"/>
         <TextBlock x:Name="RouteTotalsText" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="2,0,0,8"/>
+        <StackPanel x:Name="SourcesPanel" Margin="2,0,0,8" Visibility="Collapsed">
+          <TextBlock Text="Расход по VPN-профилям" Style="{StaticResource Small}"/>
+          <ComboBox x:Name="TrafficSources" DisplayMemberPath="Name" SelectedValuePath="Id" AutomationProperties.Name="VPN-профиль" Margin="0,4,0,4"/>
+          <TextBlock x:Name="SourceTrafficText" Style="{StaticResource Small}" TextWrapping="Wrap"/>
+        </StackPanel>
 
         <Grid>
           <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>

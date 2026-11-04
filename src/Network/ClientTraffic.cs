@@ -16,6 +16,7 @@ public sealed partial class ClientTraffic(ClientRuntime owner) : IDisposable
     public ProgramJournal Journal { get; } = new();
     internal CoreConnectionSampler CoreSamples { get; } = new();
     internal CoreProgramSampler? ProgramSamples { get; private set; }
+    private CoreStatsEntry? programEntry;
     private bool journalBusy;
     private DateTime journalAt;
 
@@ -31,12 +32,13 @@ public sealed partial class ClientTraffic(ClientRuntime owner) : IDisposable
         try
         {
             if (ProgramSamples is null) return;
+            var session = owner.Tunnel;
             var sample = await ProgramSamples.ReadAsync(stats, shutdown.Token);
-            if (disposed || !ReferenceEquals(stats, MeterEntry)) return;
+            if (disposed || !ReferenceEquals(stats, MeterEntry) || !ReferenceEquals(session, owner.Tunnel)) return;
             if (sample?.Summary is { } summary)
             {
                 Journal.Record(summary, DateTime.UtcNow);
-                Programs.Record(summary, trafficHistory, DateTime.Now);
+                Programs.Record(summary, trafficHistory, DateTime.Now, session is null ? null : session.TrafficSourceAt);
             }
             else if (sample?.Connections is { } core) RecordCoreConnections(core);
         }
@@ -47,14 +49,22 @@ public sealed partial class ClientTraffic(ClientRuntime owner) : IDisposable
     public void Tick()
     {
         if (disposed) return;
-        var stats = owner.Tunnel?.State == SystemTunnelState.Running ? owner.Tunnel.Stats : null;
+        var session = owner.Tunnel;
+        var stats = session?.State == SystemTunnelState.Running ? session.Stats : null;
+        // Holding during a server switch keeps the same core and its cumulative
+        // counters. Retain the source and baseline until the session actually changes.
+        if (!ReferenceEquals(programEntry, session?.Stats))
+        {
+            programEntry = session?.Stats;
+            ProgramSamples = programEntry is null ? null : new CoreProgramSampler(CoreSamples.ReadAsync);
+            Programs.Reset();
+        }
         if (!ReferenceEquals(stats, MeterEntry))
         {
             CoreSamples.Reset();
-            ProgramSamples = stats is null ? null : new CoreProgramSampler(CoreSamples.ReadAsync);
             Meter?.Dispose();
             Meter = stats is null ? null : new TrafficMeter(stats);
-            MeterEntry = stats; CountedUp = CountedDown = 0; Programs.Reset();
+            MeterEntry = stats; CountedUp = CountedDown = 0;
         }
         if (stats is not null && !journalBusy && DateTime.UtcNow - journalAt >= ProgramJournal.Interval) _ = SampleProgramsAsync(stats);
         var now = DateTime.Now;

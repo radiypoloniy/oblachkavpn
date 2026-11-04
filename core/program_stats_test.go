@@ -18,7 +18,7 @@ func fixtureConnection(path string, up, down int64) *trafficcontrol.TrackerMetad
 	u, d := new(atomic.Int64), new(atomic.Int64)
 	u.Store(up)
 	d.Store(down)
-	return &trafficcontrol.TrackerMetadata{ID: id, Upload: u, Download: d, Chain: []string{"server-selector", "direct-0"}, OutboundType: "vless", CreatedAt: time.Now(),
+	return &trafficcontrol.TrackerMetadata{ID: id, Upload: u, Download: d, Chain: []string{"server-selector", "direct-0"}, Outbound: "direct-0", OutboundType: "vless", CreatedAt: time.Now(),
 		Metadata: adapter.InboundContext{Inbound: "system-tun", Network: "tcp", ProcessInfo: &adapter.ConnectionOwner{ProcessPath: path, UserId: -1}}}
 }
 
@@ -65,6 +65,20 @@ func TestProgramStatsDoesNotGuessFallbackOrBridgeRoute(t *testing.T) {
 	got := s.snapshot([]*trafficcontrol.TrackerMetadata{fallback, bridge}, nil, time.Now()).Programs[0]
 	if got.Upload != 15 || got.Download != 27 || got.VPNUpload != 0 || got.DirectUpload != 0 {
 		t.Fatal(got)
+	}
+}
+
+func TestProgramStatsKeepsTrafficOnOriginalVPNExitAfterSwitch(t *testing.T) {
+	s := newProgramStats()
+	now := time.Now()
+	first := fixtureConnection("browser", 10, 20)
+	s.snapshot([]*trafficcontrol.TrackerMetadata{first}, nil, now)
+	first.ClosedAt = now
+	second := fixtureConnection("browser", 3, 7)
+	second.Outbound = "direct-1"
+	got := s.snapshot([]*trafficcontrol.TrackerMetadata{second}, []*trafficcontrol.TrackerMetadata{first}, now)
+	if len(got.Sources) != 2 || got.Sources[0] != (sourceCounters{0, 10, 20}) || got.Sources[1] != (sourceCounters{1, 3, 7}) {
+		t.Fatal(got.Sources)
 	}
 }
 
