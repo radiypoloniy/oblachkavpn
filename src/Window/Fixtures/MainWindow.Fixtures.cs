@@ -114,6 +114,16 @@ public partial class MainWindow
                 throw new InvalidOperationException("Running UI controls have incorrect state");
             if (i == 0)
             {
+                trafficDay = DateTime.Now.ToString("yyyy-MM-dd");
+                var previousTraffic = trafficToday;
+                trafficToday = 2 * 1024 * 1024;
+                RefreshPresentation();
+                if (Home.StatusCard.Tag is not "Clear" || Home.ServerName.Text != Row(profile!, note: false).Name ||
+                    Home.TrafficToday.Text != TrafficMeter.Size(2 * 1024 * 1024))
+                    throw new InvalidOperationException("Connected home does not show the current server, status styling and traffic");
+                trafficToday = previousTraffic;
+                RefreshPresentation();
+                checks.Add("Connected home shows the current server, connected styling and daily traffic");
                 var activeId = engine.ProcessId;
                 var current = profile!;
                 var other = (Profile)ProfilePicker.Items[1];
