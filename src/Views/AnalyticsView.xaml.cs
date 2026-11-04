@@ -31,7 +31,7 @@ public partial class AnalyticsView : UserControl
         TrafficSources.SelectionChanged += (_, _) => RenderSourceTraffic();
         MorePrograms.Click += (_, _) =>
         {
-            if (ProgramSearch.IsVisible) programOffset += ProgramPageSize;
+            if (ProgramSearch.Visibility == Visibility.Visible) programOffset += ProgramPageSize;
             else ProgramSearch.Visibility = Visibility.Visible;
             RenderPrograms();
         };

@@ -12,7 +12,8 @@ public partial class MainWindow
         {
             trafficHistory.Reset(); speedHistory.Reset();
             trafficHistory.Add(100, 900, DateTime.Now);
-            trafficHistory.AddProgram(Environment.ProcessPath!, 100, 400, DateTime.Now);
+            trafficHistory.AddProgram(Environment.ProcessPath!, 100, 400, DateTime.Now, new(60, 240, 40, 160));
+            trafficHistory.AddSource(new(new string('A', 64), "Тестовый VPN"), 60, 240, DateTime.Now);
             speedHistory.Record(DateTime.Now, 100, 1000);
             Home.TodayCard.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             UpdateLayout();
@@ -25,6 +26,9 @@ public partial class MainWindow
             var program = (Views.AnalyticsProgramRow)Analytics.ProgramList.Items[0];
             if (program.Icon is null || program.PlaceholderVisibility != Visibility.Collapsed)
                 throw new InvalidOperationException("Analytics did not load the program icon");
+            if (!Analytics.RouteTotalsText.Text.Contains("VPN") || Analytics.TrafficSources.Items.Count != 1 ||
+                !Analytics.SourceTrafficText.Text.StartsWith(TrafficMeter.Size(300), StringComparison.Ordinal))
+                throw new InvalidOperationException("Analytics did not render route and VPN-profile bytes");
             for (var i = 0; i < 26; i++) trafficHistory.AddProgram($@"C:\Fixture\test-{i:00}.exe", 1, 2, DateTime.Now);
             RefreshAnalytics();
             if (Analytics.ProgramList.Items.Count != 5)
