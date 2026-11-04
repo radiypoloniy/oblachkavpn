@@ -34,6 +34,14 @@ jobs:
         shell: powershell
         run: .\build.ps1
 
+      - name: Тестовая сборка Windows
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: oblachka-windows-${{ github.sha }}
+          path: out/app/
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Проверки
         shell: powershell
         run: .\test.ps1
