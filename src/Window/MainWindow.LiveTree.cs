@@ -66,12 +66,21 @@ public partial class MainWindow
             : "Для этой программы правило не поставить: у её файла необычное имя.";
         row.Folders = scope?.Rules is { } rules && rules.All(r => r.AllInFolder) ? rules.Select(r => r.Folder!).ToArray() : [];
         row.Files = parts.Length > 1 ? parts.OrderByDescending(p => p.Total).Select(LiveFile).ToArray() : [];
-        row.Sites = parts.SelectMany(p => p.Sites).GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
+        var sites = parts.SelectMany(p => p.Sites).GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
             .Select(g => (Name: g.Key, Vpn: g.Sum(s => s.Vpn), Direct: g.Sum(s => s.Direct), Unknown: g.Sum(s => s.Unknown),
                 Speed: g.Sum(s => s.Speed), Ids: g.SelectMany(s => s.Ids).ToArray()))
-            .OrderByDescending(s => s.Speed).ThenByDescending(s => s.Vpn + s.Direct + s.Unknown).ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
-            .Take(LiveSitesShown).Select(s => LiveSite(row, s.Name, s.Vpn, s.Direct, s.Unknown, s.Speed, s.Ids)).ToArray();
-        foreach (var site in row.Sites) ShowSiteRules(row, site);
+            .ToArray();
+        var shown = row.Expanded ? sites.OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
+            : sites.OrderByDescending(s => s.Speed).ThenByDescending(s => s.Vpn + s.Direct + s.Unknown)
+                .ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase).Take(LiveSitesShown);
+        row.ConnectionIds = sites.SelectMany(s => s.Ids).ToArray();
+        var entries = shown.Select(s => LiveSite(row, s.Name, s.Vpn, s.Direct, s.Unknown, s.Speed, s.Ids)).ToArray();
+        if (entries.Length > 0)
+        {
+            var keys = ScopeKeys(row.Path);
+            foreach (var site in entries) ShowSiteRules(row, site, keys);
+        }
+        row.Sites = entries;
     }
 
     private FileRow LiveFile(LiveApp part)

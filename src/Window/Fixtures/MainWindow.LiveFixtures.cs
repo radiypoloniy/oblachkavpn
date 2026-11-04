@@ -23,7 +23,7 @@ public partial class MainWindow
         ApplyStatusLook();
     }
 
-    private void LivePreview()
+    private void LivePreview(bool browser = false)
     {
         // «Сейчас в сети» с подложными программами: таблицы соединений компьютера не читаются.
         LoadGroupsPreview(); Navigate("Connection");
@@ -42,7 +42,7 @@ public partial class MainWindow
         }
         Views.SiteRow Site(string name, int vpn, int direct, string speed, bool ids = true)
         {
-            var site = new Views.SiteRow(name) { Ids = ids ? ["x"] : [] };
+            var site = new Views.SiteRow(name) { Ids = ids ? ["x"] : [], Domain = LiveApps.MainDomain(name) };
             site.ShowRoute(vpn, direct);
             site.Detail = string.Join(" · ", new[] { vpn + direct > 1 ? "×" + (vpn + direct) : "", site.Route, speed }.Where(p => p.Length > 0));
             return site;
@@ -54,9 +54,33 @@ public partial class MainWindow
         steam.Sites[0].Domain = "steamcontent.com"; steam.Sites[0].AppConfigurable = true; steam.Sites[0].AppLabel = "Только в Steam";
         steam.Sites[0].AppRule = SiteAction.Direct; steam.Sites[0].Expanded = true;
         steam.Summary = "23 соединения · 6,4 МБ/с";
+        steam.ConnectionIds = steam.Sites.SelectMany(s => s.Ids).ToArray();
+        var chrome = Switching(new Views.ConnectionRow(@"C:\Apps\Chrome\chrome.exe") { Name = "Google Chrome", Summary = "33 соединения · 2,1 МБ/с", Vpn = 31, Direct = 2 });
+        if (browser)
+        {
+            steam.Expanded = false;
+            chrome.Expanded = true;
+            chrome.SiteQuery = "wiki";
+            chrome.Sites = new[] { "archive.org", "bing.com", "cloudflare.com", "discord.com", "example.org", "github.com",
+                "google.com", "googlevideo.com", "microsoft.com", "reddit.com", "steamcommunity.com", "telegram.org",
+                "wikimedia.org", "wikipedia.org", "youtube.com" }.Select(name => Site(name, 2, 0, "")).ToArray();
+            foreach (var site in chrome.Sites) { site.AppConfigurable = true; site.AppLabel = "Только в Google Chrome"; }
+            chrome.Sites[^2].Expanded = true;
+        }
         Live.Load([new Views.ConnectionRow(@"C:\Apps\Telegram\Telegram.exe") { Name = "Telegram Desktop", Summary = "8 соединений", Route = "напрямую", RouteKind = "direct", Direct = 8, Rule = SiteAction.Direct, RuleText = "напрямую" },
-            steam, Switching(new Views.ConnectionRow(@"C:\Apps\Chrome\chrome.exe") { Name = "Google Chrome", Summary = "33 соединения · 2,1 МБ/с", Vpn = 31, Direct = 2 }),
+            steam, chrome,
             new Views.ConnectionRow(@"D:\Games\Aion2\Aion2.exe") { Name = "AION 2", Summary = "3 соединения", Route = "через VPN", RouteKind = "vpn", Vpn = 3, Rule = SiteAction.Tunnel, RuleText = "через VPN" },
             new Views.ConnectionRow(@"C:\Windows\System32\svchost.exe") { Name = "Хост-процесс для служб Windows", Summary = "2 соединения", Route = "напрямую", RouteKind = "direct", Direct = 2, Configurable = false }]);
+    }
+
+    private void ServiceRoutesPreview(bool configured)
+    {
+        if (configured && ClientServerCatalog.Id(profile) is { } id)
+        {
+            runtime.TunnelPolicy.ServiceRoutes.Add(new("openai", id, ["chatgpt.com", "openai.com"], []));
+            runtime.TunnelPolicy.ServiceRoutes.Add(new("claude", new string('0', 64), ["claude.ai"], []));
+            runtime.TunnelPolicy.ServiceRoutes.Add(new("github", id, ["github.com"], []));
+        }
+        ShowRulesSection(services: true);
     }
 }

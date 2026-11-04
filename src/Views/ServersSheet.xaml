@@ -29,7 +29,7 @@
 
   <Grid>
     <Grid.RowDefinitions>
-      <RowDefinition Height="72"/>
+      <RowDefinition Height="60"/>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
       <RowDefinition Height="Auto"/>
@@ -37,10 +37,10 @@
 
     <!-- Шапка: заголовок, поиск в той же строке, пинг, подписки. -->
     <DockPanel Margin="10,0,20,0">
-      <Button x:Name="SubscriptionsButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="38" Height="38" Background="{DynamicResource Field}" o:Ui.CornerRadius="{StaticResource RadiusLg}" Margin="6,0,0,0" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Добавить: подписку, ключ, файл или QR" ToolTip="Добавить: подписку, ключ, файл или QR">
+      <Button x:Name="SubscriptionsButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="32" Height="32" Background="{DynamicResource Acs}" Foreground="{DynamicResource Ac}" o:Ui.CornerRadius="{StaticResource RadiusMd}" Margin="6,0,0,0" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Добавить: подписку, ключ, файл или QR" ToolTip="Добавить: подписку, ключ, файл или QR">
         <Path Data="{StaticResource IcoPlus}" Style="{StaticResource Icon}" Width="15" Height="15" StrokeThickness="2.4"/>
       </Button>
-      <Button x:Name="MeasureButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="38" Height="38" Background="{DynamicResource Field}" o:Ui.CornerRadius="{StaticResource RadiusLg}" Margin="6,0,0,0" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Обновить подписки и пинг" ToolTip="Обновить подписки и пинг: новые серверы из подписки, затем задержка через каждый">
+      <Button x:Name="MeasureButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="32" Height="32" Background="{DynamicResource Field}" o:Ui.CornerRadius="{StaticResource RadiusMd}" Margin="6,0,0,0" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Обновить подписки и пинг" ToolTip="Обновить подписки и пинг: новые серверы из подписки, затем задержка через каждый">
         <Path Data="{StaticResource IcoRefresh}" Style="{StaticResource Icon}" Width="16" Height="16" StrokeThickness="2.2"/>
       </Button>
       <Button x:Name="RefreshButton" Visibility="Collapsed"/>
@@ -50,27 +50,30 @@
       <TextBlock Text="Серверы" Style="{StaticResource PageHead}" Margin="10,0,16,0" VerticalAlignment="Center"/>
       <Grid x:Name="HeaderSearchSlot" VerticalAlignment="Center">
       <Grid x:Name="SearchField" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True">
-        <TextBox x:Name="SearchBox" Height="38" Padding="34,0,12,0" FontSize="{StaticResource FsBody}" VerticalContentAlignment="Center" BorderThickness="0"
+        <TextBox x:Name="SearchBox" Height="32" Padding="32,0,10,0" FontSize="{StaticResource FsBody}" VerticalContentAlignment="Center" BorderThickness="0"
                  Background="{DynamicResource Field}" Foreground="{DynamicResource Tx}" CaretBrush="{DynamicResource Tx}" AutomationProperties.Name="Найти сервер">
           <TextBox.Template>
             <ControlTemplate TargetType="TextBox">
-              <Border x:Name="Plate" CornerRadius="{StaticResource RadiusLg}" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Ac}" BorderThickness="0">
+              <Border x:Name="Plate" CornerRadius="{StaticResource RadiusMd}" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Ac}" BorderThickness="0">
                 <Grid>
-                  <TextBlock x:Name="Hint" Text="Страна или название" Foreground="{DynamicResource Fa}" Margin="36,0,12,0" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed"/>
+                  <TextBlock x:Name="Hint" Text="Страна или название" Foreground="{DynamicResource Fa}" Margin="34,0,10,0" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed"/>
                   <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"/>
                 </Grid>
               </Border>
               <ControlTemplate.Triggers>
                 <Trigger Property="Text" Value=""><Setter TargetName="Hint" Property="Visibility" Value="Visible"/></Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Setter TargetName="Plate" Property="Background" Value="{DynamicResource Hov}"/>
+                </Trigger>
                 <Trigger Property="IsKeyboardFocused" Value="True">
-                  <Setter TargetName="Plate" Property="BorderThickness" Value="2"/>
+                  <Setter TargetName="Plate" Property="BorderThickness" Value="1"/>
                   <Setter TargetName="Plate" Property="Background" Value="{DynamicResource Bg}"/>
                 </Trigger>
               </ControlTemplate.Triggers>
             </ControlTemplate>
           </TextBox.Template>
         </TextBox>
-        <Path Data="{StaticResource IcoSearch}" Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource Fa}" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+        <Path Data="{StaticResource IcoSearch}" Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource Fa}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
               HorizontalAlignment="Left" VerticalAlignment="Center" Margin="13,0,0,0" IsHitTestVisible="False"/>
       </Grid>
       </Grid>
@@ -114,25 +117,25 @@
         <TextBlock Text="Чужие серверы: их владельцы видят, какие сайты вы открываете. Не входите через них в банк, почту и Госуслуги." FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource WF}" TextWrapping="Wrap" Margin="2,8,0,0"/>
       </StackPanel>
       <!-- Автовыбор — закреплённая первая строка: выбрать, какие серверы в пуле, переключение при обрыве. -->
-      <Border x:Name="AutoCard" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource Cream}" Padding="6,6,12,6" Margin="-10,10,0,0" BorderBrush="{DynamicResource Ink}" BorderThickness="0">
+      <Border x:Name="AutoCard" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource Cream}" Padding="4,4,12,4" Margin="-10,6,0,0">
         <DockPanel>
-          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+          <StackPanel x:Name="AutoRecoverActions" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
             <TextBlock Text="Упал — переключить" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource CreamMu}" VerticalAlignment="Center" Margin="0,0,8,0"/>
             <CheckBox x:Name="AutoRecover" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Переключать сервер при обрыве"/>
           </StackPanel>
           <Button x:Name="AutoPick" Style="{StaticResource Plain}" Tag="Transparent" Padding="6,4" HorizontalContentAlignment="Stretch" o:Ui.CornerRadius="{StaticResource RadiusMd}" AutomationProperties.Name="Автовыбор">
             <DockPanel>
-              <Border Width="34" Height="34" CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource Bg}" Margin="0,0,12,0">
-                <Path Data="{StaticResource IcoAuto}" Width="14" Height="14" Stretch="Uniform" Fill="{DynamicResource Orb}"/>
+              <Border Width="28" Height="28" CornerRadius="{StaticResource RadiusInner}" Background="{DynamicResource Bg}" Margin="0,0,12,0">
+                <Path Data="{StaticResource IcoAuto}" Width="14" Height="14" Stretch="Uniform" Fill="{DynamicResource CreamMu}"/>
               </Border>
               <StackPanel VerticalAlignment="Center">
-                <TextBlock x:Name="AutoTitle" Text="Автовыбор" FontSize="{StaticResource FsRowLarge}" FontWeight="Bold"/>
-                <StackPanel Orientation="Horizontal">
-                  <TextBlock x:Name="AutoNote" Text="самый быстрый из отмеченных" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource CreamMu}" VerticalAlignment="Center"/>
-                  <Button x:Name="OpenAutoPool" Style="{StaticResource BtnLink}" Height="22" Padding="6,0" Foreground="{DynamicResource Tx}" FontWeight="SemiBold" AutomationProperties.Name="Серверы автовыбора">
+                <TextBlock x:Name="AutoTitle" Text="Автовыбор" FontSize="{StaticResource FsBody}" FontWeight="Bold"/>
+                <DockPanel HorizontalAlignment="Left">
+                  <Button x:Name="OpenAutoPool" DockPanel.Dock="Right" Style="{StaticResource BtnLink}" Height="22" Padding="6,0" Foreground="{DynamicResource Tx}" FontWeight="SemiBold" AutomationProperties.Name="Серверы автовыбора">
                     <TextBlock x:Name="AutoPoolSummary" Text="какие"/>
                   </Button>
-                </StackPanel>
+                  <TextBlock x:Name="AutoNote" Text="самый быстрый из отмеченных" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource CreamMu}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+                </DockPanel>
               </StackPanel>
             </DockPanel>
           </Button>
@@ -155,11 +158,11 @@
     </ItemsControl>
 
     <!-- Подвал: когда обновлялся пинг, «Подобрать лучшее» и его итог. -->
-    <Border Grid.Row="3" BorderBrush="{DynamicResource Divider}" BorderThickness="0,1.5,0,0" Padding="24,10,20,14">
+    <Border Grid.Row="3" BorderBrush="{DynamicResource Divider}" BorderThickness="0,1,0,0" Padding="24,8,20,8">
       <DockPanel>
         <v:TuneCard x:Name="Tune" DockPanel.Dock="Top" Visibility="Collapsed"/>
         <Button x:Name="BestButton" DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Content="Подобрать лучшее" Padding="22,0" ToolTip="Проверит лучшие серверы с разными настройками и подключит самый быстрый и стабильный"/>
-        <TextBlock x:Name="MeasuredAgo" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Fa}" VerticalAlignment="Center"/>
+        <TextBlock x:Name="MeasuredAgo" FontSize="{StaticResource FsSmall}" TextWrapping="Wrap" Margin="0,0,8,0" Foreground="{DynamicResource Fa}" VerticalAlignment="Center"/>
       </DockPanel>
     </Border>
 

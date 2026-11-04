@@ -1,0 +1,118 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:o="clr-namespace:Oblachka" xmlns:v="clr-namespace:Oblachka.Views">
+  <Style x:Key="LiveDisclosure" TargetType="Expander">
+    <Setter Property="Foreground" Value="{DynamicResource Mu}"/>
+    <Setter Property="Focusable" Value="False"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Expander">
+          <StackPanel>
+            <ToggleButton HorizontalAlignment="Left" Cursor="Hand" FocusVisualStyle="{DynamicResource FocusRing}"
+                          IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                          AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource TemplatedParent}}">
+              <ToggleButton.Template>
+                <ControlTemplate TargetType="ToggleButton">
+                  <Border x:Name="Surface" CornerRadius="{StaticResource RadiusInner}" Background="Transparent" Padding="6,4">
+                    <ContentPresenter/>
+                  </Border>
+                  <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="{DynamicResource HoverTint}"/></Trigger>
+                  </ControlTemplate.Triggers>
+                </ControlTemplate>
+              </ToggleButton.Template>
+              <StackPanel Orientation="Horizontal">
+                <Path x:Name="DisclosureChevron" Data="{StaticResource IcoChevronRight}" Style="{StaticResource Icon}" Width="8" Height="12"
+                      StrokeThickness="1.5" Stroke="{TemplateBinding Foreground}" Margin="0,0,7,0"/>
+                <TextBlock Text="{Binding Header, RelativeSource={RelativeSource TemplatedParent}}" Foreground="{TemplateBinding Foreground}"
+                           VerticalAlignment="Center"/>
+              </StackPanel>
+            </ToggleButton>
+            <ContentPresenter x:Name="Details" ContentSource="Content" Visibility="Collapsed"/>
+          </StackPanel>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsExpanded" Value="True">
+              <Setter TargetName="Details" Property="Visibility" Value="Visible"/>
+              <Setter TargetName="DisclosureChevron" Property="LayoutTransform"><Setter.Value><RotateTransform Angle="90"/></Setter.Value></Setter>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <DataTemplate DataType="{x:Type v:SiteRow}">
+    <Border BorderBrush="{DynamicResource Divider}" BorderThickness="0,0,0,1">
+      <StackPanel>
+        <Button Tag="site" Style="{StaticResource Row}" Height="34" Padding="7,0" o:Ui.CornerRadius="{StaticResource RadiusInner}"
+                AutomationProperties.Name="{Binding OpenLabel}" ToolTip="{Binding Detail}">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
+              <TextBlock x:Name="ActionText" Text="Маршрут" FontSize="{StaticResource FsSmall}" FontWeight="SemiBold" Foreground="{DynamicResource Ac}" VerticalAlignment="Center"/>
+              <Path x:Name="SiteChevron" Data="{StaticResource IcoChevronRight}" Style="{StaticResource Icon}" Width="9" Height="12" StrokeThickness="1.5" Stroke="{DynamicResource Ac}" Margin="6,0,0,0"/>
+            </StackPanel>
+            <TextBlock x:Name="SiteDetail" DockPanel.Dock="Right" Text="{Binding Detail}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu}"
+                       TextTrimming="CharacterEllipsis" MaxWidth="180" Margin="10,0,0,0" VerticalAlignment="Center"/>
+            <DockPanel HorizontalAlignment="Left">
+              <Border x:Name="RuleMark" DockPanel.Dock="Right" Style="{StaticResource RuleTag}" Visibility="{Binding RuleTagVisibility}">
+                <TextBlock Text="правило" FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
+              </Border>
+              <TextBlock Text="{Binding Name}" ToolTip="{Binding Name}" FontSize="{StaticResource FsBody}" FontWeight="SemiBold"
+                         TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+            </DockPanel>
+          </DockPanel>
+        </Button>
+        <Border Visibility="{Binding ExpandedVisibility}" Background="{DynamicResource Bg}" CornerRadius="{StaticResource RadiusMd}" Padding="10,6" Margin="0,0,0,5">
+          <StackPanel>
+            <TextBlock x:Name="CompactDetail" Text="{Binding Detail}" Style="{StaticResource Small}" Margin="0,0,0,6" Visibility="Collapsed"/>
+            <TextBlock Text="Доступен только просмотр соединений. Правило сайта можно задать по домену."
+                       Style="{StaticResource Small}" Visibility="{Binding AddressVisibility}" Margin="0,0,0,6"/>
+            <WrapPanel>
+              <DockPanel Margin="0,0,16,6" Visibility="{Binding AppRulesVisibility}">
+                <TextBlock DockPanel.Dock="Top" Margin="0,0,0,3" Text="{Binding AppLabel}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal">
+                  <Border Style="{StaticResource PickPlate}">
+                    <StackPanel Orientation="Horizontal">
+                      <Button Tag="app-vpn" Content="VPN" Style="{StaticResource PickVpn}" o:Ui.Selected="{Binding AppVpn, Mode=OneWay}" AutomationProperties.Name="Сайт в этой программе через VPN"/>
+                      <Button Tag="app-direct" Content="Напрямую" Style="{StaticResource PickDirect}" o:Ui.Selected="{Binding AppDirect, Mode=OneWay}" AutomationProperties.Name="Сайт в этой программе напрямую"/>
+                      <Button Tag="app-block" Content="Блок" Style="{StaticResource PickBlock}" o:Ui.Selected="{Binding AppBlock, Mode=OneWay}" AutomationProperties.Name="Блокировать сайт в этой программе"/>
+                    </StackPanel>
+                  </Border>
+                  <Button Tag="app-remove" Content="Убрать" Style="{StaticResource BtnLink}" FontSize="{StaticResource FsSmall}" Visibility="{Binding AppRemoveVisibility}"/>
+                </StackPanel>
+              </DockPanel>
+              <DockPanel Margin="0,0,16,6" Visibility="{Binding RulesVisibility}">
+                <TextBlock DockPanel.Dock="Top" Margin="0,0,0,3" Text="Во всех программах" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal">
+                  <Border Style="{StaticResource PickPlate}">
+                    <StackPanel Orientation="Horizontal">
+                      <Button Tag="all-vpn" Content="VPN" Style="{StaticResource PickVpn}" o:Ui.Selected="{Binding AllVpn, Mode=OneWay}" AutomationProperties.Name="Сайт везде через VPN"/>
+                      <Button Tag="all-direct" Content="Напрямую" Style="{StaticResource PickDirect}" o:Ui.Selected="{Binding AllDirect, Mode=OneWay}" AutomationProperties.Name="Сайт везде напрямую"/>
+                      <Button Tag="all-block" Content="Блок" Style="{StaticResource PickBlock}" o:Ui.Selected="{Binding AllBlock, Mode=OneWay}" AutomationProperties.Name="Блокировать сайт везде"/>
+                    </StackPanel>
+                  </Border>
+                  <Button Tag="all-remove" Content="Убрать" Style="{StaticResource BtnLink}" FontSize="{StaticResource FsSmall}" Visibility="{Binding AllRemoveVisibility}"/>
+                </StackPanel>
+              </DockPanel>
+            </WrapPanel>
+            <TextBlock Text="{Binding Note}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" Margin="0,0,0,4" Visibility="{Binding NoteVisibility}"/>
+            <Expander Header="Как определён маршрут" Style="{StaticResource LiveDisclosure}" Visibility="{Binding EvidenceVisibility}" Margin="0,4">
+              <TextBlock Text="{Binding Evidence}" Style="{StaticResource Small}" Margin="0,4,0,2"/>
+            </Expander>
+            <Button Tag="site-close" Content="Закрыть соединения" Style="{StaticResource BtnLink}" HorizontalAlignment="Left"
+                    Visibility="{Binding CloseVisibility}" ToolTip="Программа переподключится заново"/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </Border>
+    <DataTemplate.Triggers>
+      <DataTrigger Binding="{Binding Expanded}" Value="True">
+        <Setter TargetName="SiteChevron" Property="LayoutTransform"><Setter.Value><RotateTransform Angle="90"/></Setter.Value></Setter>
+      </DataTrigger>
+      <DataTrigger Binding="{Binding Domain}" Value="{x:Null}"><Setter TargetName="ActionText" Property="Text" Value="Детали"/></DataTrigger>
+      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=o:AccessibleItems}}" Value="narrow">
+        <Setter TargetName="SiteDetail" Property="Visibility" Value="Collapsed"/>
+        <Setter TargetName="CompactDetail" Property="Visibility" Value="Visible"/>
+        <Setter TargetName="RuleMark" Property="Visibility" Value="Collapsed"/>
+      </DataTrigger>
+    </DataTemplate.Triggers>
+  </DataTemplate>
+</ResourceDictionary>

@@ -14,6 +14,9 @@ public partial class MainWindow
         Home.ServerCard.Click += (_, _) => Navigate("Servers");
         Home.HelpNav.Click += (_, _) => OpenSettings(Views.SettingsPanel.HelpPage);
         Home.RulesNav.Click += (_, _) => ShowRulesSection();
+        Home.ServicesNav.Click += (_, _) => ShowRulesSection(services: true);
+        WireServiceRoutes();
+        Routes.SectionChanged += () => { if (Routes.ServicesActive) RefreshServiceRoutes(); RefreshSideSelection(); };
         Home.BypassOpen.Click += (_, _) => OpenSettings(Views.SettingsPanel.BypassPage);
         RulesPage.BackButton.Click += (_, _) => CloseRulesSection();
         Settings.Bypass.OpenRules.Click += (_, _) => ShowRulesSection();
@@ -26,7 +29,7 @@ public partial class MainWindow
     }
 
     // «Правила» — раздел острова: свои правила сайтов и программ.
-    private void ShowRulesSection()
+    private void ShowRulesSection(bool services = false)
     {
         ShowModeMenu(false);
         CloseConnections();
@@ -34,8 +37,11 @@ public partial class MainWindow
         HidePage(doctor); HidePage(siteCheck); HidePage(analytics);
         if (currentPage is "Servers" or "Diagnostics" or "Analytics") currentPage = "Connection";
         RulesPage.Visibility = Visibility.Visible;
+        if (services) Routes.ShowServices();
+        else if (Routes.ServicesActive) Routes.ShowSites(true);
         RefreshRules();
         OpenSection();
+        Routes.FocusActiveTab();
     }
 
     private void CloseRulesSection()
@@ -43,12 +49,13 @@ public partial class MainWindow
         RulesPage.Visibility = Visibility.Collapsed;
         if (currentPage == "Routes") currentPage = "Connection";
         ShowDefaultSection();
-        Home.RulesNav.Focus();
+        Home.LiveNav.Focus();
     }
 
     private void RefreshSidebar()
     {
         ApplyStatusLook();
+        RefreshServiceRoutes();
         var shown = runningProfile ?? profile;
         if (shown is null)
         {

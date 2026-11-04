@@ -11,7 +11,7 @@ public partial class MainWindow
     private void WireLiveSites() => Live.SiteActionChosen += ApplySiteRule;
 
     // Подписи и выбранные кнопки строки сайта — по правилам, что есть сейчас.
-    private void ShowSiteRules(ConnectionRow row, SiteRow site)
+    private void ShowSiteRules(ConnectionRow row, SiteRow site, HashSet<string> keys)
     {
         site.OwnerPath = row.Path;
         site.AppLabel = "Только в " + row.Name;
@@ -22,7 +22,6 @@ public partial class MainWindow
             catch (UserError) { site.Domain = null; }
         }
         if (site.Domain is not { } domain) return;
-        var keys = ScopeKeys(row.Path);
         site.AppRule = programRules.FirstOrDefault(r => r.Domain == domain && keys.Contains(r.TargetKey))?.Action;
         site.AllRule = siteRules.FirstOrDefault(r => r.Domain == domain)?.Action;
         // Правило программы сильнее правила сайта для всех программ — иначе человек не поймёт, почему не сработало.
@@ -56,6 +55,7 @@ public partial class MainWindow
             else siteRules.Add(RoutingPlan.Create(domain, action.Value));
             RefreshRules(); QueueStateSave(); ProgramRulesChanged();
         }
+        if (app) site.AppRule = action; else site.AllRule = action;
         if (action is { } chosen && SystemTunnelActive) site.SwitchTo(chosen);
         StartLiveBurst();
         _ = RefreshConnectionsAsync();

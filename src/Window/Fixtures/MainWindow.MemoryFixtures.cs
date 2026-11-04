@@ -31,6 +31,19 @@ public partial class MainWindow
             if (liveSites.Count != 1 || liveRows.Count != 1)
                 throw new InvalidOperationException("Expired site or program presentation remained cached");
         }
+        var entries = Enumerable.Range(0, 16).Select(i => new LiveSite($"site{i:00}.example.org", 1, 0, 0, [$"id-{i}"])).ToArray();
+        var browser = new LiveApp(path, entries.Length, 0, 0, []) { Sites = entries };
+        var row = LiveRow(browser);
+        if (row.Sites.Length != 8 || row.ConnectionIds.Length != entries.Length)
+            throw new InvalidOperationException("Collapsed site preview lost connection IDs or grew beyond eight rows");
+        row.Expanded = true;
+        LiveRow(browser);
+        if (row.Sites.Length != entries.Length || row.VisibleSites.Count != 12 || row.MoreSitesVisibility != Visibility.Visible)
+            throw new InvalidOperationException("Expanded sites did not expose the full list with pagination");
+        row.SiteQuery = "site15";
+        if (row.VisibleSites.Count != 1 || row.VisibleSites[0].Name != "site15.example.org")
+            throw new InvalidOperationException("Site search missed a connection beyond the visible page");
+        checks.Add("Browser site search reaches connections beyond the preview; close-all retains every connection ID");
         var blocked = liveRows.Values.Single(); blocked.Rule = SiteAction.Block;
         ClearLivePresentation();
         if (liveSites.Count != 0 || !liveRows.Values.Contains(blocked))

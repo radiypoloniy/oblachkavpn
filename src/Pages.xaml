@@ -9,7 +9,7 @@
   <Style x:Key="FocusRing">
     <Setter Property="Control.Template">
       <Setter.Value>
-        <ControlTemplate><Border BorderBrush="{DynamicResource Ink}" BorderThickness="1.5" CornerRadius="{StaticResource RadiusMd}" Margin="-3" Opacity="0.6"/></ControlTemplate>
+        <ControlTemplate><Border BorderBrush="{DynamicResource Ac}" BorderThickness="1.5" CornerRadius="{StaticResource RadiusMd}" Margin="-2"/></ControlTemplate>
       </Setter.Value>
     </Setter>
   </Style>
@@ -31,8 +31,8 @@
   </Style>
 
   <Style x:Key="PageHead" TargetType="TextBlock">
-    <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
-    <Setter Property="FontSize" Value="{StaticResource FsHeadline}"/>
+    <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+    <Setter Property="FontSize" Value="{StaticResource FsTitle}"/>
     <Setter Property="FontWeight" Value="Bold"/>
     <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
   </Style>
@@ -44,9 +44,9 @@
   <!-- Строка настройки: подпись слева, переключатель или кнопка справа, черта снизу. -->
   <Style x:Key="OptRow" TargetType="Border">
     <Setter Property="BorderBrush" Value="{DynamicResource Divider}"/>
-    <Setter Property="BorderThickness" Value="0,0,0,1.5"/>
-    <Setter Property="MinHeight" Value="54"/>
-    <Setter Property="Padding" Value="0,8"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="MinHeight" Value="48"/>
+    <Setter Property="Padding" Value="0,6"/>
   </Style>
   <Style x:Key="OptTitle" TargetType="TextBlock">
     <Setter Property="FontSize" Value="{StaticResource FsRowLarge}"/>
@@ -89,8 +89,8 @@
     <Setter Property="Padding" Value="4"/>
   </Style>
   <Style x:Key="SegButton" TargetType="Button" BasedOn="{StaticResource Plain}">
-    <Setter Property="Height" Value="32"/>
-    <Setter Property="Padding" Value="16,0"/>
+    <Setter Property="Height" Value="28"/>
+    <Setter Property="Padding" Value="12,0"/>
     <Setter Property="Margin" Value="0,0,2,0"/>
     <Setter Property="FontSize" Value="{StaticResource FsBody}"/>
     <Setter Property="FontWeight" Value="SemiBold"/>

@@ -38,9 +38,9 @@
   <!-- «Правила» — раздел острова (0.16): свои правила для сайтов и программ. Что открывается
        без VPN целиком (YouTube и Discord, рунет) — в «Настройки → Обход блокировок». -->
   <DockPanel Margin="10,0,20,16">
-    <DockPanel DockPanel.Dock="Top" Height="64">
+    <DockPanel DockPanel.Dock="Top" Height="60">
       <!-- Правила файлом (RulesFile): перенос и обмен наборами, без ключей и серверов. -->
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True">
+      <StackPanel x:Name="ImportActions" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True">
         <Button x:Name="ImportRules" Style="{StaticResource BtnOutline}" Height="34" Padding="12,0,14,0" Margin="0,0,8,0" AutomationProperties.Name="Импорт правил из файла" ToolTip="Импорт правил из файла">
           <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IcoUpload}" Style="{StaticResource Icon}" Width="14" Height="14" StrokeThickness="2.2" Margin="0,0,6,0"/><TextBlock x:Name="ImportText" Text="Импорт" VerticalAlignment="Center"/></StackPanel>
         </Button>
@@ -51,95 +51,158 @@
       <Button x:Name="BackButton" Style="{StaticResource IconButton}" Foreground="{DynamicResource Tx}" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Назад">
         <Path Data="{StaticResource IcoBack}" Style="{StaticResource Icon}" StrokeThickness="2.2"/>
       </Button>
-      <TextBlock Text="Правила" Style="{StaticResource PageHead}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+      <TextBlock Text="Маршрутизация" Style="{StaticResource PageHead}" Margin="10,0,0,0" VerticalAlignment="Center"/>
     </DockPanel>
-    <!-- Набор правил (MainWindow.RuleSets): какой включён, через какие серверы, новый с чистого листа, удалить.
-         В черновике нового набора — вместо этого «Отмена» и «Сохранить». -->
-    <Grid DockPanel.Dock="Top" Margin="10,0,0,6" MinHeight="36">
-      <DockPanel x:Name="RuleSetBar">
-        <Button x:Name="DeleteRuleSet" DockPanel.Dock="Right" Content="Удалить" Style="{StaticResource BtnGhost}" Height="32" Padding="10,0" Foreground="{DynamicResource RF}" AutomationProperties.Name="Удалить набор"/>
-        <Button x:Name="NewRuleSet" DockPanel.Dock="Right" Style="{StaticResource BtnOutline}" Height="32" Padding="10,0,12,0" Margin="8,0,4,0" AutomationProperties.Name="Создать новый набор">
-          <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IcoPlus}" Style="{StaticResource Icon}" Width="12" Height="12" StrokeThickness="2.4" Margin="0,0,6,0"/><TextBlock Text="Новый набор" VerticalAlignment="Center"/></StackPanel>
-        </Button>
-        <Button x:Name="RuleSetButton" Style="{StaticResource Plain}" Tag="Transparent" Padding="6,0" Height="32" AutomationProperties.Name="Набор правил">
-          <StackPanel Orientation="Horizontal">
-            <TextBlock x:Name="RuleSetText" Text="Набор: Основной" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="180"/>
-            <Path Data="M6,9 L12,15 L18,9" Style="{StaticResource Icon}" Width="11" Height="11" StrokeThickness="2.6" Margin="6,1,0,0"/>
-          </StackPanel>
-        </Button>
-        <Button x:Name="RuleSetServers" Style="{StaticResource Plain}" Tag="Transparent" Padding="6,0" Height="32" Margin="6,0,0,0" HorizontalAlignment="Left" AutomationProperties.Name="Серверы набора">
-          <StackPanel Orientation="Horizontal">
-            <TextBlock x:Name="RuleSetServersText" Text="Серверы: любые" FontSize="{StaticResource FsBody}" Foreground="{DynamicResource Mu}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="200"/>
-            <Path Data="M6,9 L12,15 L18,9" Style="{StaticResource Icon}" Width="11" Height="11" StrokeThickness="2.6" Stroke="{DynamicResource Mu}" Margin="6,1,0,0"/>
-          </StackPanel>
-        </Button>
-      </DockPanel>
-      <DockPanel x:Name="RuleSetDraft" Visibility="Collapsed">
-        <Button x:Name="SaveRuleSet" DockPanel.Dock="Right" Content="Сохранить" Style="{StaticResource BtnPrimary}" Height="32" Padding="14,0" AutomationProperties.Name="Сохранить новый набор"/>
-        <Button x:Name="CancelRuleSet" DockPanel.Dock="Right" Content="Отмена" Style="{StaticResource BtnGhost}" Height="32" Padding="12,0" Margin="0,0,6,0" AutomationProperties.Name="Отменить новый набор"/>
-        <TextBlock Text="Новый набор: добавьте сайты и программы, затем сохраните" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="6,0,0,0"/>
-      </DockPanel>
-      <Popup x:Name="RuleSetPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=RuleSetButton}">
-        <Grid Width="280" Margin="12,4,12,18">
-          <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusSheet}"/>
-          <Border Style="{StaticResource MenuCard}" Padding="14,6"><StackPanel x:Name="RuleSetItems"/></Border>
-        </Grid>
-      </Popup>
-      <!-- Серверы набора (MainWindow.RuleSetServers): страны целиком, со всеми протоколами. -->
-      <Popup x:Name="RuleSetServersPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=RuleSetServers}">
-        <Grid Width="300" Margin="12,4,12,18">
-          <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusSheet}"/>
-          <Border Style="{StaticResource MenuCard}" Padding="14,8">
-            <ScrollViewer MaxHeight="380" VerticalScrollBarVisibility="Auto"><StackPanel x:Name="RuleSetServerItems"/></ScrollViewer>
-          </Border>
-        </Grid>
-      </Popup>
-    </Grid>
     <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Divider}" BorderThickness="0,0,0,1" Margin="10,4,0,0">
       <StackPanel Orientation="Horizontal" Margin="4,0">
         <Button x:Name="SitesTab" Content="Сайты" Style="{StaticResource Plain}" Height="34" Padding="2,0" FontSize="{StaticResource FsLabel}" Margin="0,0,16,0"/>
-        <Button x:Name="AppsTab" Content="Программы" Style="{StaticResource Plain}" Height="34" Padding="2,0" FontSize="{StaticResource FsLabel}"/>
+        <Button x:Name="AppsTab" Content="Программы" Style="{StaticResource Plain}" Height="34" Padding="2,0" FontSize="{StaticResource FsLabel}" Margin="0,0,16,0"/>
+        <Button x:Name="ServicesTab" Content="Сервисы" Style="{StaticResource Plain}" Height="34" Padding="2,0" FontSize="{StaticResource FsLabel}"/>
       </StackPanel>
     </Border>
 
-    <Grid DockPanel.Dock="Top" Margin="10,10,0,0">
-      <StackPanel x:Name="SiteInput">
-        <DockPanel>
-          <Button x:Name="AddRuleButton" DockPanel.Dock="Right" Content="Добавить" Style="{StaticResource BtnPrimary}" Height="38" Padding="14,0" o:Ui.CornerRadius="{StaticResource RadiusMd}" FontSize="{StaticResource FsBody}" Margin="8,0,0,0"/>
-          <TextBox x:Name="RuleDomain" Style="{StaticResource FieldBox}" Height="38" Tag="example.com, 10.20.0.0/16 или port:25" FontSize="{StaticResource FsLabel}" AutomationProperties.Name="Новое правило для сайта"/>
-        </DockPanel>
-      </StackPanel>
-      <!-- Программы выбираются из списка компьютера (AppPicker), а не вписываются именем файла. -->
-      <StackPanel x:Name="ProgramInput" Visibility="Collapsed">
-        <Button x:Name="ChooseProgramsButton" Style="{StaticResource BtnPrimary}" Height="40" o:Ui.CornerRadius="{StaticResource RadiusMd}" FontSize="{StaticResource FsLabel}">
-          <StackPanel Orientation="Horizontal">
-            <Path Data="{StaticResource IcoPlus}" Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource OnAccent}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Margin="0,0,8,0"/>
-            <TextBlock Text="Выбрать программы" VerticalAlignment="Center"/>
+    <Grid>
+      <DockPanel x:Name="RuleEditor" Margin="0,8,0,0">
+        <!-- Набор правил (MainWindow.RuleSets): какой включён, через какие серверы, новый с чистого листа, удалить.
+             В черновике нового набора — вместо этого «Отмена» и «Сохранить». -->
+        <Grid DockPanel.Dock="Top" Margin="10,0,0,6" MinHeight="36">
+          <DockPanel x:Name="RuleSetBar">
+            <Grid x:Name="CompactServerSlot" DockPanel.Dock="Bottom" Visibility="Collapsed"/>
+            <Button x:Name="DeleteRuleSet" DockPanel.Dock="Right" Content="Удалить" Style="{StaticResource BtnGhost}" Height="32" Padding="10,0" Foreground="{DynamicResource RF}" AutomationProperties.Name="Удалить набор"/>
+            <Button x:Name="NewRuleSet" DockPanel.Dock="Right" Style="{StaticResource BtnOutline}" Height="32" Padding="10,0,12,0" Margin="8,0,4,0" AutomationProperties.Name="Создать новый набор">
+              <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IcoPlus}" Style="{StaticResource Icon}" Width="12" Height="12" StrokeThickness="2.4" Margin="0,0,6,0"/><TextBlock Text="Новый набор" VerticalAlignment="Center"/></StackPanel>
+            </Button>
+            <Button x:Name="RuleSetButton" DockPanel.Dock="Left" Style="{StaticResource Plain}" Tag="Transparent" Padding="6,0" Height="32" AutomationProperties.Name="Набор правил">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="RuleSetText" Text="Набор: Основной" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="180"/>
+                <Path Data="M6,9 L12,15 L18,9" Style="{StaticResource Icon}" Width="11" Height="11" StrokeThickness="2.6" Margin="6,1,0,0"/>
+              </StackPanel>
+            </Button>
+            <Grid x:Name="InlineServerSlot">
+            <Button x:Name="RuleSetServers" Style="{StaticResource Plain}" Tag="Transparent" Padding="6,0" Height="32" Margin="6,0,0,0" HorizontalAlignment="Left" AutomationProperties.Name="Серверы набора">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="RuleSetServersText" Text="Серверы: любые" FontSize="{StaticResource FsBody}" Foreground="{DynamicResource Mu}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="200"/>
+                <Path Data="M6,9 L12,15 L18,9" Style="{StaticResource Icon}" Width="11" Height="11" StrokeThickness="2.6" Stroke="{DynamicResource Mu}" Margin="6,1,0,0"/>
+              </StackPanel>
+            </Button>
+            </Grid>
+          </DockPanel>
+          <DockPanel x:Name="RuleSetDraft" Visibility="Collapsed">
+            <Button x:Name="SaveRuleSet" DockPanel.Dock="Right" Content="Сохранить" Style="{StaticResource BtnPrimary}" Height="32" Padding="14,0" AutomationProperties.Name="Сохранить новый набор"/>
+            <Button x:Name="CancelRuleSet" DockPanel.Dock="Right" Content="Отмена" Style="{StaticResource BtnGhost}" Height="32" Padding="12,0" Margin="0,0,6,0" AutomationProperties.Name="Отменить новый набор"/>
+            <TextBlock Text="Новый набор: добавьте сайты и программы, затем сохраните" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="6,0,0,0"/>
+          </DockPanel>
+          <Popup x:Name="RuleSetPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=RuleSetButton}">
+            <Grid Width="280" Margin="12,4,12,18">
+              <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusSheet}"/>
+              <Border Style="{StaticResource MenuCard}" Padding="14,6"><StackPanel x:Name="RuleSetItems"/></Border>
+            </Grid>
+          </Popup>
+          <!-- Серверы набора (MainWindow.RuleSetServers): страны целиком, со всеми протоколами. -->
+          <Popup x:Name="RuleSetServersPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=RuleSetServers}">
+            <Grid Width="300" Margin="12,4,12,18">
+              <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusSheet}"/>
+              <Border Style="{StaticResource MenuCard}" Padding="14,8">
+                <ScrollViewer MaxHeight="380" VerticalScrollBarVisibility="Auto"><StackPanel x:Name="RuleSetServerItems"/></ScrollViewer>
+              </Border>
+            </Grid>
+          </Popup>
+        </Grid>
+        <Grid DockPanel.Dock="Top" Margin="10,10,0,0">
+          <StackPanel x:Name="SiteInput">
+            <DockPanel>
+              <Button x:Name="AddRuleButton" DockPanel.Dock="Right" Content="Добавить" Style="{StaticResource BtnPrimary}" Height="38" Padding="14,0" o:Ui.CornerRadius="{StaticResource RadiusMd}" FontSize="{StaticResource FsBody}" Margin="8,0,0,0"/>
+              <TextBox x:Name="RuleDomain" Style="{StaticResource FieldBox}" Height="38" Tag="example.com, 10.20.0.0/16 или port:25" FontSize="{StaticResource FsLabel}" AutomationProperties.Name="Новое правило для сайта"/>
+            </DockPanel>
           </StackPanel>
-        </Button>
-        <Button x:Name="LiveButton" Content="Сейчас в сети" Style="{StaticResource BtnSecondary}" Height="36" Margin="0,8,0,0" o:Ui.CornerRadius="{StaticResource RadiusMd}" FontSize="{StaticResource FsLabel}"
-                AutomationProperties.Name="Программы, которые сейчас в сети"/>
-        <TextBlock x:Name="ProgramModeNote" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" Margin="2,8,0,0"
-                   Text="Действуют в режиме «Весь компьютер»."/>
-      </StackPanel>
+          <!-- Программы выбираются из списка компьютера (AppPicker), а не вписываются именем файла. -->
+          <StackPanel x:Name="ProgramInput" Visibility="Collapsed">
+            <Button x:Name="ChooseProgramsButton" Style="{StaticResource BtnPrimary}" Height="40" o:Ui.CornerRadius="{StaticResource RadiusMd}" FontSize="{StaticResource FsLabel}">
+              <StackPanel Orientation="Horizontal">
+                <Path Data="{StaticResource IcoPlus}" Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource OnAccent}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Margin="0,0,8,0"/>
+                <TextBlock Text="Выбрать программы" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+            <Button x:Name="LiveButton" Content="Сейчас в сети" Style="{StaticResource BtnSecondary}" Height="36" Margin="0,8,0,0" o:Ui.CornerRadius="{StaticResource RadiusMd}" FontSize="{StaticResource FsLabel}"
+                    AutomationProperties.Name="Программы, которые сейчас в сети"/>
+            <TextBlock x:Name="ProgramModeNote" Style="{StaticResource Small}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" Margin="2,8,0,0"
+                       Text="Действуют в режиме «Весь компьютер»."/>
+          </StackPanel>
+        </Grid>
+
+        <TextBlock DockPanel.Dock="Bottom" Text="Нажмите на метку, чтобы сменить действие. Программа сильнее сайта." Style="{StaticResource Small}" Foreground="{DynamicResource Fa}" TextWrapping="Wrap" Margin="14,8,0,0"/>
+
+        <Border x:Name="ApplyStatus" DockPanel.Dock="Top" Background="{DynamicResource WB}" CornerRadius="{StaticResource RadiusMd}" Padding="12" Margin="10,8,0,4" Visibility="Collapsed">
+          <StackPanel>
+            <TextBlock x:Name="ApplyStatusText" TextWrapping="Wrap" Style="{StaticResource Small}"/>
+            <WrapPanel Margin="0,6,0,0">
+              <Button x:Name="RetryRules" Content="Повторить применение" Style="{StaticResource BtnGhost}"/>
+              <Button x:Name="ReconnectRules" Content="Переподключить VPN" Style="{StaticResource BtnGhost}"/>
+            </WrapPanel>
+          </StackPanel>
+        </Border>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="10,4,0,0">
+          <Grid>
+            <o:AccessibleItems x:Name="RuleList" Focusable="False"/>
+            <o:AccessibleItems x:Name="ProgramList" Focusable="False" Visibility="Collapsed"/>
+          </Grid>
+        </ScrollViewer>
+      </DockPanel>
+      <ScrollViewer x:Name="ServicePanel" Visibility="Collapsed" Margin="10,12,0,0" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+          <TextBlock Text="Для каждого сервиса закреплён один VPN-сервер." Style="{StaticResource Small}" Margin="0,0,0,8"/>
+          <TextBlock x:Name="ServiceEmpty" Text="Сохранённых маршрутов пока нет" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" Margin="0,10,0,4"/>
+          <ListBox x:Name="ServiceList" SelectedValuePath="Name" Foreground="{DynamicResource Tx}" Background="Transparent" BorderThickness="0" Padding="0"
+                   AutomationProperties.Name="Маршруты сервисов">
+            <ListBox.Template><ControlTemplate TargetType="ListBox"><ItemsPresenter/></ControlTemplate></ListBox.Template>
+            <ListBox.ItemContainerStyle>
+              <Style TargetType="ListBoxItem">
+                <Setter Property="Foreground" Value="{DynamicResource Tx}"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusRing}"/>
+                <Setter Property="Template">
+                  <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                      <Border x:Name="RoutePlate" Background="Transparent" CornerRadius="{StaticResource RadiusMd}" Margin="0,0,0,2">
+                        <ContentPresenter HorizontalAlignment="Stretch"/>
+                      </Border>
+                      <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="RoutePlate" Property="Background" Value="{DynamicResource Hov}"/></Trigger>
+                        <Trigger Property="IsSelected" Value="True"><Setter TargetName="RoutePlate" Property="Background" Value="{DynamicResource CardBg}"/></Trigger>
+                      </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                  </Setter.Value>
+                </Setter>
+              </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel>
+                  <Grid Margin="8,0" MinHeight="36">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Server}" ToolTip="{Binding Server}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}"
+                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,0,0,0"/>
+                    <Path x:Name="RouteChevron" Grid.Column="2" Data="{StaticResource IcoChevronRight}" Style="{StaticResource Icon}" Width="8" Height="11"
+                          Stroke="{DynamicResource Mu2}" StrokeThickness="1.5" Margin="8,0,0,0"/>
+                  </Grid>
+                  <StackPanel x:Name="RouteDetails" Visibility="Collapsed" Margin="8,0,8,9">
+                    <TextBlock Text="{Binding Targets}" Style="{StaticResource Small}"/>
+                    <TextBlock Text="В режиме «Весь компьютер» трафик блокируется, если назначенный сервер недоступен. При совпадении правила сайтов и программ имеют приоритет."
+                               Style="{StaticResource Small}" Margin="0,4,0,0"/>
+                  </StackPanel>
+                </StackPanel>
+                <DataTemplate.Triggers>
+                  <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                    <Setter TargetName="RouteDetails" Property="Visibility" Value="Visible"/>
+                    <Setter TargetName="RouteChevron" Property="LayoutTransform"><Setter.Value><RotateTransform Angle="90"/></Setter.Value></Setter>
+                  </DataTrigger>
+                </DataTemplate.Triggers>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </StackPanel>
+      </ScrollViewer>
     </Grid>
-
-    <TextBlock DockPanel.Dock="Bottom" Text="Нажмите на метку, чтобы сменить действие. Программа сильнее сайта." Style="{StaticResource Small}" Foreground="{DynamicResource Fa}" TextWrapping="Wrap" Margin="14,8,0,0"/>
-
-    <Border x:Name="ApplyStatus" DockPanel.Dock="Top" Background="{DynamicResource WB}" CornerRadius="{StaticResource RadiusMd}" Padding="12" Margin="10,8,0,4" Visibility="Collapsed">
-      <StackPanel>
-        <TextBlock x:Name="ApplyStatusText" TextWrapping="Wrap" Style="{StaticResource Small}"/>
-        <WrapPanel Margin="0,6,0,0">
-          <Button x:Name="RetryRules" Content="Повторить применение" Style="{StaticResource BtnGhost}"/>
-          <Button x:Name="ReconnectRules" Content="Переподключить VPN" Style="{StaticResource BtnGhost}"/>
-        </WrapPanel>
-      </StackPanel>
-    </Border>
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="10,4,0,0">
-      <Grid>
-        <o:AccessibleItems x:Name="RuleList" Focusable="False"/>
-        <o:AccessibleItems x:Name="ProgramList" Focusable="False" Visibility="Collapsed"/>
-      </Grid>
-    </ScrollViewer>
   </DockPanel>
 </UserControl>

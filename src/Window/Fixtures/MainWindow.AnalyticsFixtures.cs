@@ -18,7 +18,7 @@ public partial class MainWindow
             Home.TodayCard.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             UpdateLayout();
             if (Analytics.Visibility != Visibility.Visible || Live.Visibility == Visibility.Visible || currentPage != "Analytics" ||
-                Analytics.TotalText.Text != TrafficMeter.Size(1000) || !Ui.GetSelected(Home.AnalyticsNav))
+                Analytics.TotalText.Text != TrafficMeter.Size(1000) || !Ui.GetSelected(Home.TodayCard))
                 throw new InvalidOperationException("Analytics did not open from the traffic card with current data");
             Analytics.Periods.SelectedIndex = 1;
             if (Analytics.PeriodDays != 7 || Analytics.Chart.Download?.Length != 7 || Analytics.ProgramList.Items.Count != 1)
@@ -47,7 +47,7 @@ public partial class MainWindow
             Navigate("Servers");
             if (Analytics.Visibility != Visibility.Collapsed || Servers.Visibility != Visibility.Visible)
                 throw new InvalidOperationException("Servers did not replace analytics");
-            Home.AnalyticsNav.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            Home.TodayCard.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             Home.LiveNav.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             if (Analytics.Visibility != Visibility.Collapsed || Live.Visibility != Visibility.Visible)
                 throw new InvalidOperationException("Live section did not replace analytics");

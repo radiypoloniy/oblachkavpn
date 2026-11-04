@@ -23,7 +23,7 @@ public partial class MainWindow
         Live.Load([]);
         // Заблокированная программа должна остаться доступной для снятия её правила.
         foreach (var key in liveRows.Where(p => p.Value.Rule != SiteAction.Block).Select(p => p.Key).ToArray()) liveRows.Remove(key);
-        foreach (var row in liveRows.Values) { row.Files = []; row.Sites = []; }
+        foreach (var row in liveRows.Values) { row.Files = []; row.Sites = []; row.ConnectionIds = []; }
         liveFiles.Clear(); liveSites.Clear(); liveScopes.Clear();
         lock (livePaths) livePaths.Clear();
     }

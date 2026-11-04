@@ -6,11 +6,14 @@
        локальная сеть и все правила сайтов и программ. Строка раскрывается нажатием (или правой кнопкой):
        справа — «VPN · Напрямую · Блок», ниже — что возьмёт правило и с кем программа на связи. -->
   <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="LiveSiteRow.xaml"/></ResourceDictionary.MergedDictionaries>
     <DataTemplate DataType="{x:Type v:ConnectionRow}">
       <Border x:Name="Card" CornerRadius="{StaticResource RadiusLg}" Margin="0,0,0,2" Background="Transparent">
         <StackPanel>
-          <Button Tag="row" Style="{StaticResource Row}" Height="Auto" MinHeight="58" Padding="10,8,10,8" AutomationProperties.Name="{Binding Name}">
+          <Button Tag="row" Style="{StaticResource Row}" Height="Auto" MinHeight="48" Padding="10,6" AutomationProperties.Name="{Binding Name}">
             <Grid>
+              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="32"/>
                 <ColumnDefinition Width="*"/>
@@ -21,18 +24,18 @@
               </Border>
               <Image Source="{Binding Icon}" Width="30" Height="30" RenderOptions.BitmapScalingMode="HighQuality"/>
               <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal">
-                  <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsRowLarge}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                  <Border Style="{StaticResource RuleTag}" Visibility="{Binding RuleVisibility}">
+                <DockPanel HorizontalAlignment="Left">
+                  <Border DockPanel.Dock="Right" Style="{StaticResource RuleTag}" Visibility="{Binding RuleVisibility}">
                     <TextBlock Text="правило" FontSize="{StaticResource FsCaption}" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
                   </Border>
-                </StackPanel>
+                  <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                </DockPanel>
                 <TextBlock Text="{Binding Summary}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
               </StackPanel>
               <Border x:Name="Route" Grid.Column="2" Style="{StaticResource RoutePill}" Visibility="{Binding RouteVisibility}">
                 <TextBlock x:Name="RouteText" Text="{Binding Route}" FontSize="{StaticResource FsSmall}" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
               </Border>
-              <Border Grid.Column="2" Style="{StaticResource PickPlate}" Visibility="{Binding PickVisibility}">
+              <Border x:Name="ProgramPick" Grid.Column="2" Style="{StaticResource PickPlate}" Visibility="{Binding PickVisibility}">
                 <StackPanel Orientation="Horizontal">
                   <Button Tag="vpn" Content="VPN" Style="{StaticResource PickVpn}" o:Ui.Selected="{Binding RuleVpn, Mode=OneWay}" AutomationProperties.Name="Через VPN"/>
                   <Button Tag="direct" Content="Напрямую" Style="{StaticResource PickDirect}" o:Ui.Selected="{Binding RuleDirect, Mode=OneWay}"/>
@@ -41,7 +44,17 @@
               </Border>
             </Grid>
           </Button>
-          <StackPanel Margin="56,0,14,12" Visibility="{Binding ActionsVisibility}">
+          <StackPanel x:Name="AppDetails" Margin="56,0,14,12" Visibility="{Binding ActionsVisibility}">
+            <StackPanel Visibility="{Binding SitesVisibility}" Margin="0,2,0,8">
+              <TextBlock Text="{Binding SiteHeading}" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+              <TextBox Text="{Binding SiteQuery, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}" Height="30" Tag="Найти сайт по домену"
+                       FontSize="{StaticResource FsSmall}" AutomationProperties.Name="Поиск сайта в программе"/>
+              <TextBlock Text="Сайт не найден среди текущих соединений." Style="{StaticResource Small}" Visibility="{Binding NoSiteMatchesVisibility}" Margin="0,8,0,2"/>
+              <ItemsControl ItemsSource="{Binding VisibleSites}" Focusable="False" Margin="0,4,0,0"/>
+              <Button Tag="more-sites" Content="{Binding MoreSitesLabel}" Visibility="{Binding MoreSitesVisibility}" Style="{StaticResource BtnLink}" HorizontalAlignment="Left"/>
+            </StackPanel>
+            <Expander Header="Детали программы" Style="{StaticResource LiveDisclosure}" Margin="0,2,0,0">
+              <StackPanel Margin="0,6,0,0">
             <TextBlock Text="{Binding Observation}" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="0,0,0,4"/>
             <TextBlock Text="{Binding Scope}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu}" TextWrapping="Wrap"/>
             <Button Tag="folders" Content="{Binding FoldersLink}" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Margin="-8,2,0,0" FontSize="{StaticResource FsSmall}" Visibility="{Binding FoldersLinkVisibility}"/>
@@ -60,12 +73,13 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type v:FileRow}">
                   <Grid Margin="0,3">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
                       <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                       <TextBlock Text="{Binding Summary}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel x:Name="FileActions" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                       <Button Tag="file-remove" Content="Убрать" Style="{StaticResource BtnLink}" FontSize="{StaticResource FsSmall}" Visibility="{Binding RemoveVisibility}" AutomationProperties.Name="Убрать правило файла"/>
                       <Border Style="{StaticResource PickPlate}" Visibility="{Binding PickVisibility}">
                         <StackPanel Orientation="Horizontal">
@@ -76,71 +90,33 @@
                       </Border>
                     </StackPanel>
                   </Grid>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            <TextBlock Text="С кем на связи" Style="{StaticResource DetailKey}" Visibility="{Binding SitesVisibility}"/>
-            <ItemsControl ItemsSource="{Binding Sites}" Visibility="{Binding SitesVisibility}" Focusable="False">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate DataType="{x:Type v:SiteRow}">
-                  <StackPanel Margin="0,1">
-                    <Grid>
-                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                      <Button Tag="site" Style="{StaticResource Row}" Height="Auto" Padding="6,3" Margin="-6,0,0,0" HorizontalContentAlignment="Left" AutomationProperties.Name="{Binding Name}"
-                              ToolTip="Правило для этого сайта">
-                        <StackPanel Orientation="Horizontal">
-                          <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsSmall}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                          <Border Style="{StaticResource RuleTag}" Visibility="{Binding RuleTagVisibility}">
-                            <TextBlock Text="правило" FontSize="{StaticResource FsCaption}" FontWeight="SemiBold" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
-                          </Border>
-                        </StackPanel>
-                      </Button>
-                      <TextBlock Grid.Column="1" Text="{Binding Detail}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu}" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                      <Button Grid.Column="2" Tag="site-close" Content="Закрыть" Style="{StaticResource BtnLink}" FontSize="{StaticResource FsSmall}" Margin="4,0,-8,0" Visibility="{Binding CloseVisibility}"
-                              AutomationProperties.Name="Закрыть соединения с сайтом" ToolTip="Закрыть соединения: программа переподключится заново"/>
-                    </Grid>
-                    <TextBlock Text="{Binding Evidence}" Style="{StaticResource Small}" Visibility="{Binding EvidenceVisibility}" TextWrapping="Wrap" Margin="0,4,0,2"/>
-                    <Grid Margin="0,4,0,2" Visibility="{Binding AppRulesVisibility}">
-                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                      <TextBlock Text="{Binding AppLabel}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                      <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button Tag="app-remove" Content="Убрать" Style="{StaticResource BtnLink}" FontSize="{StaticResource FsSmall}" Visibility="{Binding AppRemoveVisibility}"/>
-                        <Border Style="{StaticResource PickPlate}">
-                          <StackPanel Orientation="Horizontal">
-                            <Button Tag="app-vpn" Content="VPN" Style="{StaticResource PickVpn}" o:Ui.Selected="{Binding AppVpn, Mode=OneWay}" AutomationProperties.Name="Сайт в этой программе через VPN"/>
-                            <Button Tag="app-direct" Content="Напрямую" Style="{StaticResource PickDirect}" o:Ui.Selected="{Binding AppDirect, Mode=OneWay}" AutomationProperties.Name="Сайт в этой программе напрямую"/>
-                            <Button Tag="app-block" Content="Блок" Style="{StaticResource PickBlock}" o:Ui.Selected="{Binding AppBlock, Mode=OneWay}" AutomationProperties.Name="Блокировать сайт в этой программе"/>
-                          </StackPanel>
-                        </Border>
-                      </StackPanel>
-                    </Grid>
-                    <Grid Margin="0,2,0,4" Visibility="{Binding RulesVisibility}">
-                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                      <TextBlock Text="Во всех программах" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu}" VerticalAlignment="Center"/>
-                      <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button Tag="all-remove" Content="Убрать" Style="{StaticResource BtnLink}" FontSize="{StaticResource FsSmall}" Visibility="{Binding AllRemoveVisibility}"/>
-                        <Border Style="{StaticResource PickPlate}">
-                          <StackPanel Orientation="Horizontal">
-                            <Button Tag="all-vpn" Content="VPN" Style="{StaticResource PickVpn}" o:Ui.Selected="{Binding AllVpn, Mode=OneWay}" AutomationProperties.Name="Сайт везде через VPN"/>
-                            <Button Tag="all-direct" Content="Напрямую" Style="{StaticResource PickDirect}" o:Ui.Selected="{Binding AllDirect, Mode=OneWay}" AutomationProperties.Name="Сайт везде напрямую"/>
-                            <Button Tag="all-block" Content="Блок" Style="{StaticResource PickBlock}" o:Ui.Selected="{Binding AllBlock, Mode=OneWay}" AutomationProperties.Name="Блокировать сайт везде"/>
-                          </StackPanel>
-                        </Border>
-                      </StackPanel>
-                    </Grid>
-                    <TextBlock Text="{Binding Note}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" TextWrapping="Wrap" Margin="0,0,0,4" Visibility="{Binding NoteVisibility}"/>
-                  </StackPanel>
+                  <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=o:AccessibleItems}}" Value="narrow">
+                      <Setter TargetName="FileActions" Property="Grid.Row" Value="1"/>
+                      <Setter TargetName="FileActions" Property="Grid.Column" Value="0"/>
+                    </DataTrigger>
+                  </DataTemplate.Triggers>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
             <Button Tag="close-all" Content="Закрыть все соединения программы" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Margin="-8,4,0,0" FontSize="{StaticResource FsSmall}" Visibility="{Binding CloseAllVisibility}"/>
             <TextBlock Text="{Binding Pending}" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource WF}" TextWrapping="Wrap" Margin="0,6,0,0" Visibility="{Binding PendingVisibility}"/>
             <Button Tag="remove" Content="Убрать правило" Style="{StaticResource BtnLink}" HorizontalAlignment="Left" Margin="-8,6,0,0" FontSize="{StaticResource FsSmall}" Visibility="{Binding RemoveVisibility}"/>
+              </StackPanel>
+            </Expander>
           </StackPanel>
         </StackPanel>
       </Border>
       <DataTemplate.Triggers>
         <DataTrigger Binding="{Binding Expanded}" Value="True"><Setter TargetName="Card" Property="Background" Value="{DynamicResource CardBg}"/></DataTrigger>
+        <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=o:AccessibleItems}}" Value="narrow">
+          <Setter TargetName="AppDetails" Property="Margin" Value="12,0,12,12"/>
+          <Setter TargetName="ProgramPick" Property="Grid.Row" Value="1"/>
+          <Setter TargetName="ProgramPick" Property="Grid.Column" Value="1"/>
+          <Setter TargetName="ProgramPick" Property="Grid.ColumnSpan" Value="2"/>
+          <Setter TargetName="ProgramPick" Property="HorizontalAlignment" Value="Left"/>
+          <Setter TargetName="ProgramPick" Property="Margin" Value="14,4,0,0"/>
+        </DataTrigger>
         <DataTrigger Binding="{Binding RouteKind}" Value="vpn">
           <Setter TargetName="Route" Property="Background" Value="{DynamicResource Aci}"/>
           <Setter TargetName="RouteText" Property="Foreground" Value="{DynamicResource Ac}"/>
@@ -155,20 +131,30 @@
         </DataTrigger>
       </DataTemplate.Triggers>
     </DataTemplate>
+    </ResourceDictionary>
   </UserControl.Resources>
 
   <Grid>
     <Grid.RowDefinitions>
-      <RowDefinition Height="72"/>
+      <RowDefinition Height="60"/>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
       <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
 
     <DockPanel Margin="10,0,24,0">
+      <Grid x:Name="HeaderRulesSlot" DockPanel.Dock="Right" VerticalAlignment="Center">
+      <Button x:Name="RulesOpen" HorizontalAlignment="Left" Style="{StaticResource BtnPrimary}" Height="32" Padding="11,0" VerticalAlignment="Center"
+              AutomationProperties.Name="Открыть маршрутизацию" ToolTip="Открыть правила для сайтов, программ и сервисов">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="Маршрутизация" VerticalAlignment="Center"/>
+          <Path Data="{StaticResource IcoChevronRight}" Style="{StaticResource Icon}" Width="9" Height="12" StrokeThickness="1.5" Margin="7,0,0,0"/>
+        </StackPanel>
+      </Button>
+      </Grid>
       <!-- Режим работы: весь компьютер (системный туннель) или только браузеры (прокси Windows). -->
       <!-- В узком окне переключатель переезжает строкой ниже (NarrowModeSlot), иначе закрывал заголовок. -->
-      <Grid x:Name="HeaderModeSlot" DockPanel.Dock="Right" VerticalAlignment="Center">
+      <Grid x:Name="HeaderModeSlot" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="0,0,8,0">
       <Border x:Name="ModeTrack" Style="{StaticResource SegTrack}" VerticalAlignment="Center" HorizontalAlignment="Left" WindowChrome.IsHitTestVisibleInChrome="True">
         <StackPanel Orientation="Horizontal">
           <Button x:Name="ModeTun" Content="Весь компьютер" Style="{StaticResource SegButton}" AutomationProperties.Name="Весь компьютер">
@@ -188,8 +174,9 @@
 
     <StackPanel Grid.Row="1" Margin="24,0,24,6">
       <Grid x:Name="NarrowModeSlot" Margin="0,0,0,10" Visibility="Collapsed"/>
+      <Grid x:Name="NarrowRulesSlot" Margin="0,0,0,8" Visibility="Collapsed"/>
       <DockPanel>
-        <TextBox x:Name="SearchBox" DockPanel.Dock="Right" Style="{StaticResource FieldBox}" Width="200" Height="36" Margin="12,0,0,0" VerticalAlignment="Center"
+        <TextBox x:Name="SearchBox" DockPanel.Dock="Right" Style="{StaticResource FieldBox}" Width="200" Height="32" Margin="12,0,0,0" VerticalAlignment="Center"
                  Tag="Найти программу" FontSize="{StaticResource FsNote}" AutomationProperties.Name="Найти программу"/>
         <ListBox x:Name="Filters" ItemContainerStyle="{StaticResource FilterChip}" Background="Transparent" BorderThickness="0" Padding="0" Margin="-2,0,0,0"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Показать">
@@ -219,10 +206,9 @@
                  TextAlignment="Center" TextWrapping="Wrap" Margin="32,0"/>
     </Grid>
 
-    <!-- Подвал: локальная сеть мимо туннеля и все правила сайтов и программ. -->
-    <Border Grid.Row="3" BorderBrush="{DynamicResource Divider}" BorderThickness="0,1.5,0,0" Padding="24,12,24,14">
+    <!-- Локальная сеть мимо туннеля. -->
+    <Border Grid.Row="3" BorderBrush="{DynamicResource Divider}" BorderThickness="0,1,0,0" Padding="24,8">
       <DockPanel>
-        <Button x:Name="RulesOpen" DockPanel.Dock="Right" Content="Правила сайтов и программ" Style="{StaticResource BtnSecondary}" Height="36" Padding="16,0" VerticalAlignment="Center"/>
         <CheckBox x:Name="LocalNetwork" Style="{StaticResource Toggle}" IsChecked="True" VerticalAlignment="Center" AutomationProperties.Name="Локальная сеть напрямую"/>
         <StackPanel VerticalAlignment="Center" Margin="12,0,12,0">
           <TextBlock Text="Локальная сеть напрямую" FontSize="{StaticResource FsBody}" FontWeight="SemiBold"/>

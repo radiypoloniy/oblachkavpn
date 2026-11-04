@@ -10,6 +10,7 @@ namespace Oblachka;
 public partial class MainWindow
 {
     private const double NarrowWidth = 760;
+    private GridLength sidebarWidth;
     private bool narrow;
     // В узком окне остров виден, только когда человек открыл раздел.
     private bool narrowOpen;
@@ -17,10 +18,11 @@ public partial class MainWindow
     private void WireLayout()
     {
         // Ширина — от корневой сетки: она разложена под настоящий размер и в снимке окна без показа.
+        sidebarWidth = SideColumn.Width;
         Shell.SizeChanged += (_, _) => ApplyLayout();
-        // Скругление острова — как у неба. Border не обрезает содержимое, а у разделов свой
-        // квадратный фон: без обрезки он закрывал углы.
-        IslandHost.SizeChanged += (_, e) => IslandHost.Clip = new RectangleGeometry(new Rect(e.NewSize), 28, 28);
+        // Фон раздела не должен перекрывать скруглённую рамку.
+        var innerRadius = IslandPlate.CornerRadius.TopLeft - IslandPlate.BorderThickness.Left;
+        IslandHost.SizeChanged += (_, e) => IslandHost.Clip = new RectangleGeometry(new Rect(e.NewSize), innerRadius, innerRadius);
         StateChanged += (_, _) =>
         {
             // Развёрнутое окно без системной рамки уходит краями за экран на толщину рамки.
@@ -52,11 +54,11 @@ public partial class MainWindow
         if (!viewsReady) return;
         var wasNarrow = narrow;
         narrow = Shell.ActualWidth > 0 && Shell.ActualWidth < NarrowWidth;
-        SideColumn.Width = narrow ? new GridLength(1, GridUnitType.Star) : new GridLength(332);
+        SideColumn.Width = narrow ? new GridLength(1, GridUnitType.Star) : sidebarWidth;
         IslandColumn.Width = narrow ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
         Grid.SetColumn(Island, narrow ? 0 : 1);
         Grid.SetColumnSpan(Island, narrow ? 2 : 1);
-        Island.Margin = narrow ? new Thickness(10, 44, 10, 10) : new Thickness(0, 44, 10, 10);
+        IslandPlate.Margin = narrow ? new Thickness(12, 0, 12, 12) : new Thickness(0, 0, 12, 12);
         var welcome = Onboarding.Visibility == Visibility.Visible;
         var anyOpen = Live.Visibility == Visibility.Visible || Servers.Visibility == Visibility.Visible || Settings.Visibility == Visibility.Visible || RulesPage.Visibility == Visibility.Visible ||
             picker?.Visibility == Visibility.Visible || doctor?.Visibility == Visibility.Visible || siteCheck?.Visibility == Visibility.Visible || analytics?.Visibility == Visibility.Visible;
@@ -81,8 +83,9 @@ public partial class MainWindow
         var settings = island && Settings.Visibility == Visibility.Visible;
         var rules = island && !settings && RulesPage.Visibility == Visibility.Visible;
         var analyticsOpen = island && !page && analytics?.Visibility == Visibility.Visible;
-        Ui.SetSelected(Home.LiveNav, island && !page && !settings && !analyticsOpen && (rules || Live.Visibility == Visibility.Visible && Servers.Visibility != Visibility.Visible));
-        Ui.SetSelected(Home.AnalyticsNav, analyticsOpen);
+        Ui.SetSelected(Home.LiveNav, island && !page && !settings && !analyticsOpen && (rules && !Routes.ServicesActive || Live.Visibility == Visibility.Visible && Servers.Visibility != Visibility.Visible));
+        Ui.SetSelected(Home.TodayCard, analyticsOpen);
+        Ui.SetSelected(Home.ServicesNav, rules && Routes.ServicesActive);
         // Подписки и серверы автовыбора открываются из «Серверов» — подсвечены они; обход блокировок — ничего.
         var shown = settings ? Settings.CurrentPage : -1;
         Ui.SetSelected(Home.AllServersButton, island && (Servers.Visibility == Visibility.Visible && !settings || shown is Views.SettingsPanel.SubscriptionPage or Views.SettingsPanel.AutoPoolPage));

@@ -24,7 +24,7 @@ public partial class MainWindow
         Live.ActionChosen += ApplyLiveRule;
         Live.FileActionChosen += ApplyFileRule;
         Live.CloseChosen += ids => _ = CloseLiveAsync(ids);
-        Live.DetailsChanged += RefreshLiveDetails;
+        Live.DetailsChanged += () => { RefreshLiveDetails(); _ = RefreshConnectionsAsync(); };
         WireLiveSites();
         // Окно в фоне — список реже: каждое обновление перерисовывает строки, а смотрят на него редко.
         Activated += (_, _) => LivePace();

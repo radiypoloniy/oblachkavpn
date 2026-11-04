@@ -5,12 +5,12 @@
 
   <!-- Фильтр списка: ListBox, выбранный пункт — значение. Мягкая подсветка, а не заливка акцентом. -->
   <Style x:Key="FilterChip" TargetType="ListBoxItem">
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusRing}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ListBoxItem">
-          <Border x:Name="Chip" Height="30" CornerRadius="{StaticResource RadiusXl}" Padding="12,0" Margin="0,0,4,0" Background="Transparent">
+          <Border x:Name="Chip" Height="28" CornerRadius="{StaticResource RadiusInner}" Padding="10,0" Margin="0,0,4,0" Background="Transparent">
             <TextBlock x:Name="Label" Text="{Binding}" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource Mu2}" VerticalAlignment="Center"/>
           </Border>
           <ControlTemplate.Triggers>
@@ -27,8 +27,8 @@
 
   <!-- Куда идёт программа сейчас: «через VPN», «напрямую», «VPN 29 · напрямую 2». -->
   <Style x:Key="RoutePill" TargetType="Border">
-    <Setter Property="Height" Value="26"/>
-    <Setter Property="Padding" Value="12,0"/>
+    <Setter Property="Height" Value="24"/>
+    <Setter Property="Padding" Value="9,0"/>
     <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
     <Setter Property="VerticalAlignment" Value="Center"/>
     <Setter Property="Background" Value="{DynamicResource Field}"/>
@@ -53,7 +53,7 @@
   </Style>
   <Style x:Key="PickButton" TargetType="Button" BasedOn="{StaticResource Plain}">
     <Setter Property="Height" Value="28"/>
-    <Setter Property="Padding" Value="12,0"/>
+    <Setter Property="Padding" Value="8,0"/>
     <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusInner}"/>
     <Setter Property="FontSize" Value="{StaticResource FsSmall}"/>
     <Setter Property="FontWeight" Value="SemiBold"/>

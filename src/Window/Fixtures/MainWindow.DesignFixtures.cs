@@ -145,7 +145,8 @@ public partial class MainWindow
             Navigate("Connection"); RefreshHome();
             return;
         }
-        if (page is "live" or "live-on") { LivePreview(); if (page == "live-on") ConnectedPreview(); return; }
+        if (page is "live" or "live-on" or "live-browser") { LivePreview(browser: page == "live-browser"); if (page != "live") ConnectedPreview(); return; }
+        if (page is "services" or "services-empty") { ServiceRoutesPreview(page == "services"); return; }
         if (page is "apps" or "apps-rules")
         {
             // Настоящий каталог этого компьютера, собранный сразу: снимок делается синхронно.

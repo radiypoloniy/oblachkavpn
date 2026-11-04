@@ -39,10 +39,10 @@ public partial class MainWindow
             if (ServiceKey.Classify(text) != kind) throw new InvalidOperationException($"Key field misclassified {text}: {ServiceKey.Classify(text)}");
         checks.Add("One key field tells a service key, service and foreign subscription links and profiles apart without a network request");
         field.Clear();
-        // Окно 0.16: меняет размер (не уже 380), строка заголовка 44 px; свернуть, развернуть и
+        // Окно 0.16: меняет размер (не уже 380), строка заголовка 40 px; свернуть, развернуть и
         // закрыть нажимаются поверх области перетаскивания.
         var chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
-        if (ResizeMode != ResizeMode.CanResize || MinWidth < 380 || chrome is null || chrome.CaptionHeight != 44 ||
+        if (ResizeMode != ResizeMode.CanResize || MinWidth < 380 || chrome is null || chrome.CaptionHeight != 40 ||
             !System.Windows.Shell.WindowChrome.GetIsHitTestVisibleInChrome(MinimizeButton) || !System.Windows.Shell.WindowChrome.GetIsHitTestVisibleInChrome(MaximizeButton) ||
             !System.Windows.Shell.WindowChrome.GetIsHitTestVisibleInChrome(CloseWindowButton) ||
             Onboarding.FindName("PasteUrlButton") is not null || !Onboarding.ContinueButton.IsDefault)

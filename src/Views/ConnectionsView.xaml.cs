@@ -2,7 +2,7 @@
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace Oblachka.Views;
 
@@ -40,17 +40,17 @@ public partial class ConnectionsView : UserControl
     // Узкий остров: переключатель режима — строкой под заголовком, поиск — под фильтрами во всю ширину.
     private void Fit(double width)
     {
-        var narrow = width < 640;
+        var narrow = width < 690;
+        AppList.Tag = width < 480 ? "narrow" : null;
+        var rulesHost = width < 520 ? NarrowRulesSlot : HeaderRulesSlot;
+        if (RulesOpen.Parent is Panel parent && parent != rulesHost) { parent.Children.Remove(RulesOpen); rulesHost.Children.Add(RulesOpen); }
+        NarrowRulesSlot.Visibility = rulesHost == NarrowRulesSlot ? Visibility.Visible : Visibility.Collapsed;
         var host = narrow ? NarrowModeSlot : HeaderModeSlot;
         if (ModeTrack.Parent is Panel from && from != host) { from.Children.Remove(ModeTrack); host.Children.Add(ModeTrack); }
         NarrowModeSlot.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
         DockPanel.SetDock(SearchBox, narrow ? Dock.Bottom : Dock.Right);
         SearchBox.Width = narrow ? double.NaN : 200;
         SearchBox.Margin = narrow ? new Thickness(0, 8, 0, 0) : new Thickness(12, 0, 0, 0);
-        // Подвал: кнопка правил — строкой ниже, иначе «Локальная сеть напрямую» ужималась до «Локал…».
-        DockPanel.SetDock(RulesOpen, narrow ? Dock.Bottom : Dock.Right);
-        RulesOpen.Margin = narrow ? new Thickness(0, 10, 0, 0) : new Thickness(0);
-        RulesOpen.HorizontalAlignment = narrow ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
     }
 
     // focus — человек открыл раздел сам; при открытии по умолчанию фокус поиск не отбирает.
@@ -102,13 +102,26 @@ public partial class ConnectionsView : UserControl
         if (source is Button { Tag: string siteTag } && source.DataContext is SiteRow site)
         {
             if (siteTag == "site-close") CloseChosen?.Invoke(site.Ids);
-            else if (siteTag == "site") { site.Expanded = !site.Expanded; DetailsChanged?.Invoke(); }
+            else if (siteTag == "site")
+            {
+                var open = !site.Expanded;
+                foreach (var other in rows.Where(r => r.Expanded).SelectMany(r => r.Sites))
+                    if (!ReferenceEquals(other, site)) other.Expanded = false;
+                site.Expanded = open;
+                if (open)
+                {
+                    DetailsChanged?.Invoke();
+                    if (source.Parent is FrameworkElement editor)
+                        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => editor.BringIntoView()));
+                }
+            }
             else if (siteTag.Split('-') is [var scope and ("app" or "all"), var verb])
                 SiteActionChosen?.Invoke(site, scope == "app", verb switch { "vpn" => SiteAction.Tunnel, "direct" => SiteAction.Direct, "block" => SiteAction.Block, _ => null });
             return;
         }
         if (source?.DataContext is not ConnectionRow row) return;
-        if (source is Button { Tag: "close-all" }) { CloseChosen?.Invoke(row.Sites.SelectMany(s => s.Ids).ToArray()); return; }
+        if (source is Button { Tag: "close-all" }) { CloseChosen?.Invoke(row.ConnectionIds); return; }
+        if (source is Button { Tag: "more-sites" }) { row.ShowMoreSites(); return; }
         if (args.OriginalSource is Button { Tag: "folders" }) { row.FoldersShown = !row.FoldersShown; return; }
         if (args.OriginalSource is Button { Tag: string tag } && tag != "row")
         {
@@ -126,84 +139,4 @@ public partial class ConnectionsView : UserControl
         row.Expanded = open;
         if (open) DetailsChanged?.Invoke();
     }
-}
-
-// Строка «Сейчас в сети»: программа (все её файлы — одним правилом), куда идёт её трафик сейчас,
-// какое правило на неё действует. Раскрытая — файлы программы и сайты, с которыми она на связи.
-public sealed class ConnectionRow(string path) : LiveRouteRow
-{
-    private bool expanded, foldersShown;
-    private string name = "", summary = "", remotes = "", scope = "", ruleText = "", pending = "", observation = "";
-    private string[] folders = [];
-    private FileRow[] files = [];
-    private SiteRow[] sites = [];
-    private SiteAction? rule;
-    private ImageSource? icon;
-    public string Path { get; } = path;
-    public string Name { get => name; set => Set(ref name, value, nameof(Name), nameof(Initial)); }
-    // «23 соединения · 3,1 МБ/с» — под именем.
-    public string Summary { get => summary; set => Set(ref summary, value, nameof(Summary)); }
-    public string Observation { get => observation; set => Set(ref observation, value, nameof(Observation)); }
-    public string Remotes { get => remotes; set => Set(ref remotes, value, nameof(Remotes)); }
-    // Что возьмёт правило одной строкой: «Правило возьмёт Steam целиком · 3 папки».
-    public string Scope { get => scope; set => Set(ref scope, value, nameof(Scope)); }
-    // Папки правила — по ссылке «Показать папки», чтобы карточка не была кучной.
-    public string[] Folders
-    {
-        get => folders;
-        set
-        {
-            if (folders.SequenceEqual(value)) return;
-            folders = value;
-            foreach (var n in new[] { nameof(Folders), nameof(FoldersLink), nameof(FoldersLinkVisibility), nameof(FoldersVisibility) }) Changed(n);
-        }
-    }
-    // Файлы показываются, только когда их больше одного: у Chrome и Telegram это лишняя строка.
-    public FileRow[] Files { get => files; set { if (files.SequenceEqual(value)) return; files = value; Changed(nameof(Files)); Changed(nameof(FilesVisibility)); } }
-    public SiteRow[] Sites { get => sites; set { if (sites.SequenceEqual(value)) return; sites = value; Changed(nameof(Sites)); Changed(nameof(SitesVisibility)); Changed(nameof(CloseAllVisibility)); } }
-    public bool FoldersShown { get => foldersShown; set { if (foldersShown == value) return; foldersShown = value; Changed(nameof(FoldersLink)); Changed(nameof(FoldersVisibility)); } }
-    public string FoldersLink => foldersShown ? "Скрыть" : folders.Length == 1 ? "Показать папку" : $"Показать папки ({folders.Length})";
-    // Соединения, открытые до правила, доживают прежним путём.
-    public string Pending { get => pending; set => Set(ref pending, value, nameof(Pending), nameof(PendingVisibility)); }
-    public SiteAction? Rule
-    {
-        get => rule;
-        set
-        {
-            if (rule == value) return;
-            rule = value;
-            foreach (var n in new[] { nameof(Rule), nameof(RuleVisibility), nameof(RemoveVisibility), nameof(RuleVpn), nameof(RuleDirect), nameof(RuleBlock) }) Changed(n);
-        }
-    }
-    public string RuleText { get => ruleText; set => Set(ref ruleText, value, nameof(RuleText)); }
-    public bool Configurable { get; set; } = true;
-    public ImageSource? Icon { get => icon; set { icon = value; Changed(nameof(Icon)); Changed(nameof(PlaceholderVisibility)); } }
-    public bool Expanded
-    {
-        get => expanded;
-        set
-        {
-            if (expanded == value) return;
-            expanded = value;
-            foreach (var n in new[] { nameof(Expanded), nameof(ActionsVisibility), nameof(PickVisibility), nameof(RouteVisibility) }) Changed(n);
-        }
-    }
-    public bool RuleVpn => rule == SiteAction.Tunnel;
-    public bool RuleDirect => rule == SiteAction.Direct;
-    public bool RuleBlock => rule == SiteAction.Block;
-    public Visibility ActionsVisibility => expanded ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility PickVisibility => expanded && Configurable ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility RouteVisibility => expanded && Configurable ? Visibility.Collapsed : Visibility.Visible;
-    public Visibility RuleVisibility => rule is null ? Visibility.Collapsed : Visibility.Visible;
-    public Visibility RemoveVisibility => rule is null ? Visibility.Collapsed : Visibility.Visible;
-    public Visibility FoldersLinkVisibility => folders.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility FoldersVisibility => foldersShown && folders.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility FilesVisibility => files.Length > 1 ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility SitesVisibility => sites.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility CloseAllVisibility => sites.Any(s => s.Ids.Length > 0) ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility PendingVisibility => pending.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility PlaceholderVisibility => icon is null ? Visibility.Visible : Visibility.Collapsed;
-    public string Initial => name.Length > 0 ? char.ToUpperInvariant(name[0]).ToString() : "?";
-    // Имя элемента списка для экранного диктора и UIA (иначе там имя класса).
-    public override string ToString() => name;
 }

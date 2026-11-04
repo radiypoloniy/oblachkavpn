@@ -43,6 +43,7 @@ public partial class PowerSwitch : UserControl
             PowerState.Blocked => (0.0, 0.0, 1.0, "RouteBlock", "IcoLock", "Выключить VPN и открыть интернет"),
             _ => (0.0, 0.0, 0.0, "Orb", "IcoPower", "Включить VPN")
         };
+        animate &= SystemParameters.ClientAreaAnimation;
         Animate(MidLayer, OpacityProperty, mid, animate);
         Animate(OnLayer, OpacityProperty, on, animate);
         Animate(BlockedLayer, OpacityProperty, blocked, animate);

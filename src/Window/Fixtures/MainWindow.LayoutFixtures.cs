@@ -30,7 +30,7 @@ public partial class MainWindow
                 throw new InvalidOperationException("Last server was not realized after scrolling");
             ProfilePicker.SelectedIndex = 23;
             if (profile?.DisplayName != "Резервный сервер 18") throw new InvalidOperationException("End-of-list selection was lost");
-            if (Servers.MeasureButton.ActualWidth < 38 || Servers.BestButton.ActualWidth < 150 || Servers.BestButton.ActualHeight < 40)
+            if (Servers.MeasureButton.ActualWidth < 32 || Servers.BestButton.ActualWidth < 150 || Servers.BestButton.ActualHeight < 32)
                 throw new InvalidOperationException("Sheet actions are clipped in the 460×760 window");
             checks.Add("460×760 server sheet scrolls 24 rows of 44 px; actions stay unclipped and end-of-list selection remains available");
         }

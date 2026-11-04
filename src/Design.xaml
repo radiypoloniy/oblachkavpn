@@ -103,8 +103,8 @@
   </Style>
 
   <Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource Plain}">
-    <Setter Property="Height" Value="40"/>
-    <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusLg}"/>
+    <Setter Property="Height" Value="32"/>
+    <Setter Property="o:Ui.CornerRadius" Value="{StaticResource RadiusMd}"/>
     <Setter Property="Background" Value="{DynamicResource Ink}"/>
     <Setter Property="Foreground" Value="{DynamicResource OnInk}"/>
     <Setter Property="FontWeight" Value="SemiBold"/>
@@ -147,7 +147,6 @@
     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
   </Style>
 
-  <!-- Переключатель 46×28, ручка 20 px; включённый — чернильная дорожка и ручка-солнце; анимация 200 мс. -->
   <Style x:Key="Toggle" TargetType="CheckBox">
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusRing}"/>
@@ -156,7 +155,7 @@
       <Setter.Value>
         <ControlTemplate TargetType="CheckBox">
           <Grid Width="46" Height="28" Background="Transparent">
-            <Border x:Name="Track" CornerRadius="{StaticResource RadiusInner}" Background="{DynamicResource Off}"/>
+            <Border x:Name="Track" CornerRadius="{StaticResource RadiusToggle}" Background="{DynamicResource Off}"/>
             <Ellipse x:Name="Dot" Width="20" Height="20" Fill="{DynamicResource Knob}" HorizontalAlignment="Left" Margin="4,0,4,0">
               <Ellipse.RenderTransform><TranslateTransform x:Name="Knob" X="0"/></Ellipse.RenderTransform>
             </Ellipse>
@@ -205,8 +204,11 @@
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="Text" Value=""><Setter TargetName="Hint" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Plate" Property="Background" Value="{DynamicResource Hov}"/>
+            </Trigger>
             <Trigger Property="IsKeyboardFocused" Value="True">
-              <Setter TargetName="Plate" Property="BorderThickness" Value="2"/>
+              <Setter TargetName="Plate" Property="BorderThickness" Value="1"/>
               <Setter TargetName="Plate" Property="Background" Value="{DynamicResource Bg}"/>
             </Trigger>
           </ControlTemplate.Triggers>
@@ -225,9 +227,8 @@
     </Setter>
     <!-- Тень — картинкой: иначе её пересчитывают перерисовки соседнего содержимого. --><Setter Property="CacheMode"><Setter.Value><BitmapCache/></Setter.Value></Setter>
   </Style>
-  <!-- Чипы-переключатели — это ListBox: выбранный чип и есть значение (порядок серверов, действие правила). -->
   <Style x:Key="ChipItem" TargetType="ListBoxItem">
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusRing}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Template">
       <Setter.Value>

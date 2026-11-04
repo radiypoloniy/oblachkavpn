@@ -6,7 +6,7 @@
        здесь нет: заголовок страницы и «Назад». -->
   <Grid>
     <Grid.RowDefinitions>
-      <RowDefinition Height="72"/>
+      <RowDefinition Height="60"/>
       <RowDefinition Height="*"/>
     </Grid.RowDefinitions>
     <DockPanel Margin="10,0,24,0">

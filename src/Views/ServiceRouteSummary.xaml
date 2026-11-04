@@ -1,0 +1,37 @@
+<UserControl x:Class="Oblachka.Views.ServiceRouteSummary"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="clr-namespace:Oblachka" FontFamily="{StaticResource UiFont}">
+  <Border BorderBrush="{DynamicResource StatusSheen}" BorderThickness="0,1,0,0" Padding="0,4,0,0" Margin="0,7,0,0">
+    <StackPanel>
+      <Button x:Name="AllRoutes" Style="{StaticResource Row}" Height="28" Padding="6,0" o:Ui.CornerRadius="{StaticResource RadiusSm}"
+              Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="Все маршруты сервисов">
+        <DockPanel>
+          <Path DockPanel.Dock="Right" Data="{StaticResource IcoChevronRight}" Style="{StaticResource Icon}" Width="8" Height="11"
+                StrokeThickness="1.5" Margin="7,0,0,0"/>
+          <TextBlock x:Name="RouteCount" DockPanel.Dock="Right" FontSize="{StaticResource FsSmall}" Opacity="0.8" VerticalAlignment="Center"/>
+          <TextBlock Text="Сервисы" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+        </DockPanel>
+      </Button>
+      <ItemsControl x:Name="QuickRoutes" Focusable="False">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Button Style="{StaticResource Row}" Height="27" Padding="6,0" o:Ui.CornerRadius="{StaticResource RadiusSm}"
+                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ItemsControl}}" ToolTip="{Binding Server}"
+                    AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding Server}">
+              <DockPanel>
+                <Ellipse x:Name="MissingMark" DockPanel.Dock="Right" Width="6" Height="6" Fill="{DynamicResource Alert}"
+                         VerticalAlignment="Center" Margin="6,0,2,0" Visibility="Collapsed"/>
+                <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsSmall}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+              </DockPanel>
+            </Button>
+            <DataTemplate.Triggers>
+              <DataTrigger Binding="{Binding Missing}" Value="True">
+                <Setter TargetName="MissingMark" Property="Visibility" Value="Visible"/>
+              </DataTrigger>
+            </DataTemplate.Triggers>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </Border>
+</UserControl>

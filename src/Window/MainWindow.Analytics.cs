@@ -8,7 +8,6 @@ public partial class MainWindow
 {
     private void WireAnalytics()
     {
-        Home.AnalyticsNav.Click += (_, _) => OpenAnalytics();
         Home.TodayCard.Click += (_, _) => OpenAnalytics();
     }
 
@@ -35,7 +34,7 @@ public partial class MainWindow
         HidePage(analytics);
         if (currentPage == "Analytics") currentPage = "Connection";
         ShowDefaultSection();
-        Home.AnalyticsNav.Focus();
+        Home.TodayCard.Focus();
     }
 
     private void RefreshAnalytics()

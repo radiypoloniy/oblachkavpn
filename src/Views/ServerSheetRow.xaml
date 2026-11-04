@@ -48,7 +48,7 @@
           <Button x:Name="MoreButton" Grid.Column="1" Tag="more" Style="{StaticResource IconButton}" Width="30" Height="30" Opacity="0" AutomationProperties.Name="Ещё: проверить, убрать" ToolTip="Проверить, убрать">
             <Path Data="M5,12 L5.01,12 M12,12 L12.01,12 M19,12 L19.01,12" Width="16" Height="4" Stretch="Uniform" StrokeThickness="3.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stroke="{DynamicResource Mu2}"/>
           </Button>
-          <Button x:Name="StarButton" Grid.Column="2" Tag="star" Style="{StaticResource IconButton}" Width="34" Height="34" Margin="0,0,2,0" AutomationProperties.Name="Избранное">
+          <Button x:Name="StarButton" Grid.Column="2" Tag="star" Style="{StaticResource IconButton}" Width="32" Height="32" Margin="0,0,2,0" Opacity="0" AutomationProperties.Name="В избранное" ToolTip="Избранное">
             <Path x:Name="StarGlyph" Data="{StaticResource IcoStar}" Width="16" Height="16" Stretch="Uniform" StrokeThickness="1.8" StrokeLineJoin="Round" Stroke="{DynamicResource Ring}" Fill="Transparent"/>
           </Button>
         </Grid>
@@ -113,6 +113,7 @@
         <Setter TargetName="MemberButton" Property="Tag" Value="Transparent"/>
       </MultiDataTrigger>
       <DataTrigger Binding="{Binding Favorite}" Value="True">
+        <Setter TargetName="StarButton" Property="Opacity" Value="1"/>
         <Setter TargetName="StarGlyph" Property="Fill" Value="{DynamicResource Star}"/>
         <Setter TargetName="StarGlyph" Property="Stroke" Value="{DynamicResource Star}"/>
         <Setter TargetName="StarButton" Property="AutomationProperties.Name" Value="Убрать из избранного"/>
@@ -130,9 +131,11 @@
       </DataTrigger>
       <Trigger SourceName="Plate" Property="IsMouseOver" Value="True">
         <Setter TargetName="MoreButton" Property="Opacity" Value="1"/>
+        <Setter TargetName="StarButton" Property="Opacity" Value="1"/>
       </Trigger>
-      <Trigger SourceName="MoreButton" Property="IsKeyboardFocused" Value="True">
+      <Trigger SourceName="Plate" Property="IsKeyboardFocusWithin" Value="True">
         <Setter TargetName="MoreButton" Property="Opacity" Value="1"/>
+        <Setter TargetName="StarButton" Property="Opacity" Value="1"/>
       </Trigger>
       <DataTrigger Binding="{Binding IconMuted}" Value="True">
         <Setter TargetName="IconPlate" Property="Background" Value="{DynamicResource Field}"/>

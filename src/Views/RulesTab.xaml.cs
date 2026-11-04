@@ -5,6 +5,10 @@ namespace Oblachka.Views;
 
 public partial class RulesTab : UserControl
 {
+    public bool ServicesActive => ServicePanel.Visibility == Visibility.Visible;
+    public event Action? SectionChanged;
+    private Button activeTab = null!;
+
     public RulesTab()
     {
         InitializeComponent();
@@ -13,22 +17,46 @@ public partial class RulesTab : UserControl
         {
             var narrow = args.NewSize.Width < 560;
             ImportText.Visibility = ExportText.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
-            RuleSetText.MaxWidth = narrow ? 90 : 180;
+            var serverSlot = narrow ? CompactServerSlot : InlineServerSlot;
+            if (RuleSetServers.Parent is Panel previous && previous != serverSlot)
+            {
+                previous.Children.Remove(RuleSetServers);
+                serverSlot.Children.Add(RuleSetServers);
+            }
+            CompactServerSlot.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
+            RuleSetText.MaxWidth = narrow ? 120 : 180;
             ImportRules.Padding = ExportRules.Padding = narrow ? new Thickness(10, 0, 4, 0) : new Thickness(12, 0, 14, 0);
         };
         SitesTab.Click += (_, _) => ShowSites(true);
         AppsTab.Click += (_, _) => ShowSites(false);
+        ServicesTab.Click += (_, _) => ShowServices();
         ShowSites(true);
     }
 
     // Подвкладки «Сайты / Программы»: активная подчёркнута акцентом.
     public void ShowSites(bool sites)
     {
+        ServicePanel.Visibility = Visibility.Collapsed;
+        ImportActions.Visibility = RuleEditor.Visibility = Visibility.Visible;
+        Mark(ServicesTab, false);
         SiteInput.Visibility = RuleList.Visibility = sites ? Visibility.Visible : Visibility.Collapsed;
         ProgramInput.Visibility = ProgramList.Visibility = sites ? Visibility.Collapsed : Visibility.Visible;
         Mark(SitesTab, sites);
         Mark(AppsTab, !sites);
+        activeTab = sites ? SitesTab : AppsTab;
+        SectionChanged?.Invoke();
     }
+
+    public void ShowServices()
+    {
+        ImportActions.Visibility = RuleEditor.Visibility = Visibility.Collapsed;
+        ServicePanel.Visibility = Visibility.Visible;
+        Mark(SitesTab, false); Mark(AppsTab, false); Mark(ServicesTab, true);
+        activeTab = ServicesTab;
+        SectionChanged?.Invoke();
+    }
+
+    public void FocusActiveTab() => activeTab.Focus();
 
     private static void Mark(Button tab, bool on)
     {

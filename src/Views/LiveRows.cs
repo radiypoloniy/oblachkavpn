@@ -101,6 +101,9 @@ public sealed class SiteRow(string name) : LiveRouteRow
     private SiteAction? appRule, allRule;
     public string Name { get; } = name;
     public string? Domain { get; set; }
+    public string OpenLabel => (Domain is null ? "Соединения с " : "Маршрут для ") + Name;
+    public Visibility AddressVisibility => Domain is null ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility ExpandedVisibility => expanded ? Visibility.Visible : Visibility.Collapsed;
     public string OwnerPath { get; set; } = "";
     public bool AppConfigurable { get; set; }
     public string Detail { get => detail; set => Set(ref detail, value, nameof(Detail)); }
@@ -110,7 +113,7 @@ public sealed class SiteRow(string name) : LiveRouteRow
     // Почему правило для всех программ здесь может не сработать: правило программы сильнее.
     public string Note { get => note; set => Set(ref note, value, nameof(Note), nameof(NoteVisibility)); }
     public string[] Ids { get => ids; set { ids = value; Changed(nameof(CloseVisibility)); } }
-    public bool Expanded { get => expanded; set { if (expanded == value) return; expanded = value; Changed(nameof(RulesVisibility)); Changed(nameof(AppRulesVisibility)); Changed(nameof(EvidenceVisibility)); } }
+    public bool Expanded { get => expanded; set { if (expanded == value) return; expanded = value; Changed(nameof(ExpandedVisibility)); Changed(nameof(RulesVisibility)); Changed(nameof(AppRulesVisibility)); Changed(nameof(EvidenceVisibility)); } }
     public Visibility EvidenceVisibility => expanded && evidence.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     public SiteAction? AppRule { get => appRule; set { if (appRule == value) return; appRule = value; foreach (var n in new[] { nameof(AppVpn), nameof(AppDirect), nameof(AppBlock), nameof(AppRemoveVisibility), nameof(RuleTagVisibility) }) Changed(n); } }
     public SiteAction? AllRule { get => allRule; set { if (allRule == value) return; allRule = value; foreach (var n in new[] { nameof(AllVpn), nameof(AllDirect), nameof(AllBlock), nameof(AllRemoveVisibility), nameof(RuleTagVisibility) }) Changed(n); } }

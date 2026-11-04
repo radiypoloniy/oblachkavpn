@@ -26,7 +26,10 @@ public partial class ServersSheet : UserControl
             if (SearchField.Parent is Panel from && from != host) { from.Children.Remove(SearchField); host.Children.Add(SearchField); }
             NarrowSearchSlot.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
             // Строкам (ServerSheetRow.xaml): в узком окне плашка вариантов — только число.
-            SheetList.Tag = args.NewSize.Width < 480 ? "narrow" : null;
+            var compact = args.NewSize.Width < 480;
+            SheetList.Tag = compact ? "narrow" : null;
+            DockPanel.SetDock(AutoRecoverActions, compact ? Dock.Bottom : Dock.Right);
+            AutoRecoverActions.HorizontalAlignment = compact ? HorizontalAlignment.Right : HorizontalAlignment.Left;
         };
     }
 
