@@ -5,14 +5,49 @@ namespace Oblachka;
 
 public partial class MainWindow
 {
-    private readonly DispatcherTimer presentationTimer = new() { Interval = TimeSpan.FromSeconds(1) };
+    private static readonly TimeSpan VisiblePresentationInterval = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan HiddenPresentationInterval = TimeSpan.FromMinutes(1);
+    private readonly DispatcherTimer presentationTimer = new();
     private DateTimeOffset? sessionStarted;
     private DateTimeOffset? lastCheck { get => runtime.Monitor.LastCheck; set => runtime.Monitor.LastCheck = value; }
     private ProbeResult? lastProbe { get => runtime.Monitor.LastProbe; set => runtime.Monitor.LastProbe = value; }
     private int? presentedPid;
     private bool findingRoute { get => runtime.Activity.FindingRoute; set => runtime.Activity.FindingRoute = value; }
 
-    private void RefreshPresentation(bool background = false)
+    private bool PresentationVisible => (IsVisible && WindowState != WindowState.Minimized) || trayPopup?.IsVisible == true;
+
+    private void WirePresentation()
+    {
+        IsVisibleChanged += (_, _) => PresentationVisibilityChanged();
+        StateChanged += (_, _) => PresentationVisibilityChanged();
+        presentationTimer.Tick += (_, _) =>
+        {
+            if (PresentationVisible) RefreshPresentation();
+            PollZapretRouting();
+            PollZapretWatch();
+            PollExpiry();
+        };
+        UpdatePresentationInterval();
+        presentationTimer.Start();
+    }
+
+    private void PresentationVisibilityChanged()
+    {
+        if (closed) return;
+        UpdatePresentationInterval();
+        if (PresentationVisible) RefreshPresentation();
+    }
+
+    private void UpdatePresentationInterval()
+    {
+        // Пока ещё действует старый маршрут zapret, сохраняем частоту повторных попыток
+        // даже после выключения обхода. Уведомлению о сроке подписки достаточно минуты.
+        var interval = PresentationVisible || zapretEnabled || coreZapretKey.Length > 0
+            ? VisiblePresentationInterval : HiddenPresentationInterval;
+        if (presentationTimer.Interval != interval) presentationTimer.Interval = interval;
+    }
+
+    private void RefreshPresentation()
     {
         if (!viewsReady) return;
         var state = engine.State;
@@ -24,11 +59,7 @@ public partial class MainWindow
             sessionStarted = pid is null ? null : DateTimeOffset.UtcNow;
             // Новое ядро — сразу перепроверяем, иначе чип «Проверяем связь…» ждал бы плановые 45 с.
         }
-        var onScreen = !background || (IsVisible && WindowState != WindowState.Minimized) || trayPopup?.IsVisible == true;
-        RefreshTraffic(onScreen);
-        // Скрытое окно продолжает считать трафик и проверять связь, но не перерисовывает
-        // десятки WPF-свойств каждую секунду. Открытый трей обновляется в прежнем темпе.
-        if (!onScreen) return;
+        RefreshTraffic();
         if (sheetMeasurementsDirty && Servers.IsVisible) FilterProfiles();
         RefreshHome();
         RefreshRuleApplyStatus();

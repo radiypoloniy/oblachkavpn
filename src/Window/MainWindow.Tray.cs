@@ -67,7 +67,12 @@ public partial class MainWindow
             () => { if (StopButton.IsEnabled) StopClick(this, new RoutedEventArgs()); else ConnectClick(this, new RoutedEventArgs()); },
             ShowWindow, ExitApplication, PickRow);
         trayPopup = popup;
-        popup.Closed += (_, _) => { if (ReferenceEquals(trayPopup, popup)) trayPopup = null; };
+        popup.Closed += (_, _) =>
+        {
+            if (!ReferenceEquals(trayPopup, popup)) return;
+            trayPopup = null;
+            UpdatePresentationInterval();
+        };
         RefreshTrayPopup();
         var area = SystemParameters.WorkArea;
         popup.Left = Math.Max(area.Left, area.Right - popup.Width - 12);
@@ -75,6 +80,7 @@ public partial class MainWindow
         popup.Top = area.Bottom - 440;
         popup.Loaded += (_, _) => popup.Top = Math.Max(area.Top, area.Bottom - popup.ActualHeight - 12);
         popup.Show();
+        PresentationVisibilityChanged();
     }
 
     // Трей повторяет главный экран: тот же статус и быстрая смена — автовыбор и три сервера.

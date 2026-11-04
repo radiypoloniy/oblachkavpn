@@ -20,10 +20,9 @@ public partial class MainWindow
     private CoreConnectionSampler coreSamples => runtime.Traffic.CoreSamples;
     private CoreProgramSampler? programSamples => runtime.Traffic.ProgramSamples;
     private void RecordCoreConnections(IReadOnlyList<CoreConnection> core) => runtime.Traffic.RecordCoreConnections(core);
-    private void RefreshTraffic(bool updateUi = true)
+    private void RefreshTraffic()
     {
         if (!runtime.Traffic.Started) runtime.Traffic.Tick();
-        if (!updateUi) return;
         Home.StatusSub.ToolTip = trafficToday > 0 ? "Сегодня через ядро туннеля: " + TrafficMeter.Size(trafficToday) : null;
         RefreshTodayCard();
         if (analytics?.Visibility == Visibility.Visible) RefreshAnalytics();
