@@ -57,7 +57,6 @@ public partial class MainWindow
     {
         if (closed) return;
         stoppedOnNetwork = null;
-        Notify(Notice.PauseEnded, "Пауза кончилась", "VPN снова включается.");
     }
     private void PauseResumed()
     { if (!closed) { SelectProfile(profile!); Connected(); DetailText.Text = "Пауза кончилась: подключение запущено."; } }

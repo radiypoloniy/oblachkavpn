@@ -16,7 +16,6 @@ public partial class MainWindow
     private void WireZapret()
     {
         runtime.Zapret.Changed += ZapretChanged;
-        runtime.Zapret.BypassBroken += ZapretBroken;
         Bypass.ZapretToggle.Click += async (_, _) =>
         {
             if (Bypass.ZapretToggle.IsChecked == true) await EnableZapretAsync(); else await DisableZapretAsync();
@@ -32,7 +31,6 @@ public partial class MainWindow
     }
 
     private void ZapretChanged() { if (!closed) RefreshZapret(); }
-    private void ZapretBroken(string message) => Notify(Notice.BypassBroken, "Обход перестал работать", message);
     private Task DisableZapretAsync() => runtime.Zapret.DisableAsync();
 
     private async Task EnableZapretAsync()

@@ -54,7 +54,7 @@ public partial class MainWindow
         if (stateStore is not null && !isolatedPersistence)
             try { Directory.CreateDirectory(ClientDataPaths.Root); File.WriteAllText(TrayHintMarker, DateTimeOffset.UtcNow.ToString("O")); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
-        tray.ShowBalloonTip(4000, ServiceBrand.Name, "Облачка продолжают работать в трее. Выйти — через меню значка: «Завершить».", System.Windows.Forms.ToolTipIcon.Info);
+        runtime.Tray!.ShowBackgroundHint();
     }
 
     private void ShowTrayPopup()
@@ -71,7 +71,7 @@ public partial class MainWindow
         {
             if (!ReferenceEquals(trayPopup, popup)) return;
             trayPopup = null;
-            UpdatePresentationInterval();
+            UpdatePresentationTimer();
         };
         RefreshTrayPopup();
         var area = SystemParameters.WorkArea;

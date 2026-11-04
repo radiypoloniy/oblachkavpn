@@ -8,7 +8,6 @@ public partial class MainWindow
     {
         if (closed) return;
         DetailText.Text = "Защиту от утечек кто-то снял — Облачка поставила её заново.";
-        Notify(Notice.ProtectionRepaired, "Защита от утечек снова на месте", "Её снял Windows или другая программа, Облачка поставила заново. Мимо VPN ничего не ушло.", warning: true);
     });
     private void ReleaseViewResources()
     {
@@ -17,7 +16,7 @@ public partial class MainWindow
         runtime.Connections.Changed -= ConnectionChanged;
         runtime.Measurements.Changed -= MeasurementsChanged;
         runtime.Rules.Changed -= RulesChanged; runtime.Networks.Changed -= NetworksChanged;
-        runtime.Networks.Securing -= NetworkSecuring; runtime.Networks.Connected -= NetworkConnected;
+        runtime.Networks.Connected -= NetworkConnected;
         runtime.Imports.Applied -= ImportApplied; runtime.Imports.Changed -= ImportsChanged;
         runtime.Pause.Changed -= PauseChanged;
         runtime.Pause.Resuming -= PauseResuming;

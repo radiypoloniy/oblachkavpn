@@ -6,7 +6,6 @@ namespace Oblachka;
 public partial class MainWindow
 {
     private static readonly TimeSpan VisiblePresentationInterval = TimeSpan.FromSeconds(1);
-    private static readonly TimeSpan HiddenPresentationInterval = TimeSpan.FromMinutes(1);
     private readonly DispatcherTimer presentationTimer = new();
     private DateTimeOffset? sessionStarted;
     private DateTimeOffset? lastCheck { get => runtime.Monitor.LastCheck; set => runtime.Monitor.LastCheck = value; }
@@ -20,26 +19,21 @@ public partial class MainWindow
     {
         IsVisibleChanged += (_, _) => PresentationVisibilityChanged();
         StateChanged += (_, _) => PresentationVisibilityChanged();
-        presentationTimer.Tick += (_, _) =>
-        {
-            if (PresentationVisible) RefreshPresentation();
-            PollExpiry();
-        };
-        UpdatePresentationInterval();
-        presentationTimer.Start();
+        presentationTimer.Interval = VisiblePresentationInterval;
+        presentationTimer.Tick += (_, _) => { if (PresentationVisible) RefreshPresentation(); };
+        UpdatePresentationTimer();
     }
 
     private void PresentationVisibilityChanged()
     {
         if (closed) return;
-        UpdatePresentationInterval();
+        UpdatePresentationTimer();
         if (PresentationVisible) RefreshPresentation();
     }
 
-    private void UpdatePresentationInterval()
+    private void UpdatePresentationTimer()
     {
-        var interval = PresentationVisible ? VisiblePresentationInterval : HiddenPresentationInterval;
-        if (presentationTimer.Interval != interval) presentationTimer.Interval = interval;
+        presentationTimer.IsEnabled = PresentationVisible;
     }
 
     private void RefreshPresentation()

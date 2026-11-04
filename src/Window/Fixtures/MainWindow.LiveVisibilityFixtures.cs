@@ -20,7 +20,7 @@ public partial class MainWindow
             window.appCatalog = [];
             window.Show(); await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
             if (window.liveTimer?.IsEnabled != true) throw new InvalidOperationException("Visible live view did not start polling");
-            if (window.presentationTimer.Interval != VisiblePresentationInterval)
+            if (!window.presentationTimer.IsEnabled || window.presentationTimer.Interval != VisiblePresentationInterval)
                 throw new InvalidOperationException("Visible presentation did not use its normal cadence");
             const string game = @"C:\Games\game.exe";
             CoreConnection[] core = [new(game, false, "voice.example.net", "192.0.2.1", 443, [SingBoxTunConfig.UserDirect], "voice")];
@@ -39,10 +39,10 @@ public partial class MainWindow
             window.Hide();
             if (window.liveTimer?.IsEnabled != false) throw new InvalidOperationException("Hidden live view retained its timer");
             if (window.liveObservation is not null) throw new InvalidOperationException("Hidden live view retained its observation");
-            if (window.presentationTimer.Interval != HiddenPresentationInterval)
-                throw new InvalidOperationException("Hidden window retained its frequent presentation cadence");
+            if (window.presentationTimer.IsEnabled)
+                throw new InvalidOperationException("Hidden window retained its presentation timer");
             window.runtime.Zapret.Restore(true, defer: true);
-            if (window.presentationTimer.Interval != HiddenPresentationInterval)
+            if (window.presentationTimer.IsEnabled)
                 throw new InvalidOperationException("Zapret resumed the hidden presentation timer");
             window.runtime.Zapret.Restore(false, defer: false);
             window.Show(); await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
@@ -53,7 +53,7 @@ public partial class MainWindow
             if (window.liveTimer?.IsEnabled != true) throw new InvalidOperationException("Restoring the window did not resume connection polling");
             checks.Add("Connection polling stops in tray/minimized windows, resumes on restore and does not scan apps before showing");
             checks.Add("Expanded connection details distinguish core observations from Windows fallback and release the snapshot on hide");
-            checks.Add("Zapret state no longer keeps a hidden presentation on its frequent timer");
+            checks.Add("A hidden window stops its presentation timer even when Zapret is enabled");
             var nodes = window.importedProfiles;
             var second = Profiles.Parse("vless://22222222-2222-4222-8222-222222222222@node0.invalid:443?security=tls&type=tcp#Second");
             window.SetGroup(ProfileGroup.Manual, [nodes[0], second]); window.ApplyProfiles(false); window.RefreshHome();

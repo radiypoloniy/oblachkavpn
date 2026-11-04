@@ -106,6 +106,7 @@ public sealed class ClientRuntime : IDisposable
         if (disposed) return;
         disposed = true;
         Preferences.PropertyChanged -= PreferencesChanged;
+        Tray?.Dispose(); Tray = null;
         Zapret.Dispose();
         Recovery.Dispose();
         Networks.Dispose(); Rules.Dispose();
@@ -116,7 +117,6 @@ public sealed class ClientRuntime : IDisposable
         Connections.Dispose();
         Updates.Dispose();
         Persistence.Dispose();
-        Tray?.Dispose(); Tray = null;
         Monitor.Dispose();
         Proxy.Dispose();
         TunnelChanged = null; ProtectionRepaired = null;

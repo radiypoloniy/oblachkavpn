@@ -33,8 +33,7 @@ public partial class MainWindow
     private void BackgroundUpdateAvailable(AppRelease release)
     {
         if (closed) return;
-        DetailText.Text = $"Доступна {ReleaseName(release)}. Обновить: «Приложение → Обновления».";
-        Notify(Notice.Update, "Вышла " + ReleaseName(release), "Нажмите, чтобы обновить.", () => { ShowWindow(); OpenSettings(Views.SettingsPanel.AppPage); });
+        DetailText.Text = $"Доступна {release.DisplayName}. Обновить: «Приложение → Обновления».";
     }
 
     private void RefreshUpdate()
@@ -44,7 +43,7 @@ public partial class MainWindow
         if (updateBusy) return;
         if (availableUpdate is { } release)
         {
-            help.UpdateTitle.Text = (release.Signature is null ? "Вышла " : "Доступна ") + ReleaseName(release);
+            help.UpdateTitle.Text = (release.Signature is null ? "Вышла " : "Доступна ") + release.DisplayName;
             help.UpdateText.Text = release.Signature is null ? "Ждёт подписи разработчика — обновить можно будет чуть позже. Ничего делать не нужно."
                 : $"Сейчас {ServiceBrand.Version}. Установщик {release.Size / (1024 * 1024)} МБ, проверяется по SHA256 и подписи";
             help.UpdateButton.Content = release.Signature is null ? "Проверить" : "Обновить";
@@ -57,8 +56,6 @@ public partial class MainWindow
         }
     }
 
-    // «версия 0.14.2» или «пробная версия 0.14.2-rc.3».
-    private static string ReleaseName(AppRelease release) => release.Prerelease ? "пробная версия " + release.Tag.TrimStart('v') : "версия " + release.Version;
 
     private async Task InstallUpdateAsync()
     {

@@ -20,10 +20,6 @@ public partial class MainWindow
         {
             if (closed) return;
             DetailText.Text = change.Message;
-            if (change.Kind == ProxyChangeKind.Repaired)
-                Notify(Notice.ProxyRepaired, "Прокси снова через VPN", "Другая программа поменяла прокси Windows, Облачка вернула свой.");
-            else if (change.Kind == ProxyChangeKind.Lost)
-                Notify(Notice.ProxyLost, "Браузеры идут мимо VPN", "Другая программа меняет прокси Windows. Закройте её или включите «Весь компьютер».", warning: true);
         });
     }
 

@@ -11,6 +11,7 @@ namespace Oblachka;
 public sealed record AppRelease(Version Version, string Tag, Uri Installer, long Size, string Sha256, string Notes, Uri Page)
 {
     public string FileName => Installer.Segments[^1];
+    internal string DisplayName => Prerelease ? "пробная версия " + Tag.TrimStart('v') : "версия " + Version;
     public string Revision { get; init; } = "";
     public bool Prerelease { get; init; }
     // «<установщик>.sig» из того же релиза (ReleaseSignature). Нет — релиз виден, но не ставится: «ждёт подписи».

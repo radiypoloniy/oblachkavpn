@@ -56,7 +56,6 @@ public partial class MainWindow
         Diagnostics.ExportButton.Click += ExportReportClick;
         Diagnostics.CopyReportButton.Click += CopyReportClick;
         WireHome();
-        WireNotices();
         WireNetworks();
         WireLockdown();
         WireSettings();

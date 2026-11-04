@@ -24,6 +24,7 @@ public partial class MainWindow
         runtime.Networks.Start(new DispatcherSynchronizationContext(Dispatcher));
         runtime.Traffic.Start(new DispatcherSynchronizationContext(Dispatcher));
         runtime.Zapret.Start(new DispatcherSynchronizationContext(Dispatcher));
+        runtime.Tray?.StartNotices();
         runtime.Persistence.Start(new DispatcherSynchronizationContext(Dispatcher));
         if (stateStore is not null && !isolatedPersistence) runtime.Updates.Start(new DispatcherSynchronizationContext(Dispatcher));
     }

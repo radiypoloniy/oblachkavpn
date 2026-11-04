@@ -6,17 +6,18 @@ internal enum TrayCommand { Open, Connect, Stop, Exit, Popup, Notice, Update }
 internal interface IClientTrayView
 {
     bool Closed { get; }
-    void Handle(TrayCommand command);
+    bool Foreground { get; }
+    void Handle(TrayCommand command, string? renewUrl);
 }
 
 // Значок принадлежит приложению. Слабая ссылка не удерживает закрытое представление.
-internal sealed class ClientTray : IDisposable
+internal sealed partial class ClientTray : IDisposable
 {
     private readonly ClientRuntime owner;
     private readonly SynchronizationContext context;
     private readonly System.Drawing.Icon icon;
     private WeakReference<IClientTrayView>? view;
-    private bool disposed, updateNotice;
+    private bool disposed;
     public Forms.NotifyIcon Icon { get; }
     public Forms.ToolStripMenuItem Connect { get; } = new("Подключить");
     public Forms.ToolStripMenuItem Stop { get; } = new("Остановить");
@@ -34,20 +35,24 @@ internal sealed class ClientTray : IDisposable
         icon = AppIcon.Small();
         Icon = new Forms.NotifyIcon { Icon = icon, Text = ServiceBrand.Name + " — отключено", ContextMenuStrip = menu };
         Icon.DoubleClick += (_, _) => Request(TrayCommand.Open);
-        Icon.BalloonTipClicked += (_, _) => { var command = updateNotice ? TrayCommand.Update : TrayCommand.Notice; updateNotice = false; Request(command); };
+        Icon.BalloonTipClicked += (_, _) =>
+        {
+            var (command, renewUrl) = noticeTarget;
+            noticeTarget = (TrayCommand.Notice, null);
+            Request(command, renewUrl);
+        };
         Icon.MouseUp += (_, args) => { if (args.Button == Forms.MouseButtons.Left && args.Clicks < 2) Request(TrayCommand.Popup); };
         owner.Engine.Changed += EngineChanged;
         owner.Monitor.StateChanged += Refresh;
         owner.Recovery.StateChanged += Refresh;
         owner.Connections.Changed += Refresh;
-        owner.Updates.AvailableInBackground += UpdateAvailable;
         Refresh();
     }
-    public void Attach(IClientTrayView current) { view = new(current); updateNotice = false; }
+    public void Attach(IClientTrayView current) => view = new(current);
     public void Detach(IClientTrayView current)
     { if (view?.TryGetTarget(out var target) == true && ReferenceEquals(target, current)) view = null; }
     private IClientTrayView? CurrentView() => view?.TryGetTarget(out var target) == true && !target.Closed ? target : null;
-    internal void Request(TrayCommand command) => context.Post(_ =>
+    internal void Request(TrayCommand command, string? renewUrl = null) => context.Post(_ =>
     {
         if (disposed) return;
         var target = CurrentView();
@@ -56,15 +61,9 @@ internal sealed class ClientTray : IDisposable
             ViewRequested?.Invoke();
             target = CurrentView();
         }
-        target?.Handle(command);
+        target?.Handle(command, renewUrl);
     }, null);
     private void EngineChanged(ConnectionState state, string message) => context.Post(_ => Refresh(), null);
-    private void UpdateAvailable(AppRelease release)
-    {
-        if (disposed || CurrentView() is not null || !owner.Preferences.Notices) return;
-        updateNotice = true;
-        Icon.ShowBalloonTip(8000, "Вышла версия " + release.Tag.TrimStart('v'), "Нажмите, чтобы обновить.", Forms.ToolTipIcon.Info);
-    }
     private void Refresh()
     {
         if (disposed) return;
@@ -80,7 +79,7 @@ internal sealed class ClientTray : IDisposable
         if (disposed) return; disposed = true;
         owner.Engine.Changed -= EngineChanged; owner.Monitor.StateChanged -= Refresh; owner.Recovery.StateChanged -= Refresh;
         owner.Connections.Changed -= Refresh;
-        owner.Updates.AvailableInBackground -= UpdateAvailable;
+        StopNotices();
         view = null; ViewRequested = null;
         Icon.Visible = false; Icon.ContextMenuStrip?.Dispose(); Icon.Dispose(); icon.Dispose();
     }

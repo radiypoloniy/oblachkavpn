@@ -62,7 +62,6 @@ public partial class MainWindow
     }
     private void NetworksChanged()
     { if (!closed) { RefreshNetworkRow(); if (runtime.Networks.Message.Length > 0) DetailText.Text = runtime.Networks.Message; } }
-    private void NetworkSecuring(string message) { if (!closed) Notify(Notice.NetworkSecured, "VPN включается", message); }
     private void NetworkConnected() { if (!closed) { Connected(); UpdateControls(); } }
 
     private void SetNetworkMode(NetworkMode mode)

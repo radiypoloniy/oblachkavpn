@@ -105,8 +105,9 @@ public partial class MainWindow
     private sealed class TrayCommandSink : IClientTrayView
     {
         public bool Closed => false;
+        public bool Foreground => false;
         public List<TrayCommand> Commands { get; } = new();
-        public void Handle(TrayCommand command) => Commands.Add(command);
+        public void Handle(TrayCommand command, string? renewUrl) => Commands.Add(command);
     }
     private sealed class ViewProxyStore : IProxySettingsStore
     {

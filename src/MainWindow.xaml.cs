@@ -50,7 +50,7 @@ public partial class MainWindow : Window
         runtime.Connections.Changed += ConnectionChanged;
         runtime.Measurements.Changed += MeasurementsChanged;
         runtime.Rules.Changed += RulesChanged; runtime.Networks.Changed += NetworksChanged;
-        runtime.Networks.Securing += NetworkSecuring; runtime.Networks.Connected += NetworkConnected;
+        runtime.Networks.Connected += NetworkConnected;
         runtime.Imports.Applied += ImportApplied; runtime.Imports.Changed += ImportsChanged;
         runtime.Pause.Changed += PauseChanged;
         runtime.Pause.Resuming += PauseResuming;
@@ -216,7 +216,6 @@ public partial class MainWindow : Window
         { args.Cancel = true; exitTunnelClosing = true; _ = CloseAfterTunnelAsync(); return; }
         closed = true;
         runtime.Zapret.Changed -= ZapretChanged;
-        runtime.Zapret.BypassBroken -= ZapretBroken;
         try { vmTestProcess?.CloseMainWindow(); } catch (InvalidOperationException) { }
         presentationTimer.Stop();
         ReleaseViewResources();
