@@ -116,7 +116,8 @@ public partial class MainWindow
     {
         Home.BypassToggle.IsChecked = zapretEnabled;
         var (text, color) =
-            !zapretEnabled ? ("YouTube и Discord без VPN", "Mu2")
+            runtime.Zapret.UpdatingRoutes ? ("Применяем маршруты…", "Mu2")
+            : !zapretEnabled ? ("YouTube и Discord без VPN", "Mu2")
             : zapretDemoted.Length > 0 ? (string.Join(" и ", zapretDemoted.Select(ZapretTitle)) + " временно через VPN", "WI")
             : zapretBusy ? ("подбираем обход… сайты пока через VPN", "Mu2")
             : zapretActiveGroups.Length > 0 ? (string.Join(" и ", zapretActiveGroups.Select(ZapretTitle)) + (zapretActiveGroups.Length > 1 ? " работают" : " работает") + ZapretInVpn(), "OkF")

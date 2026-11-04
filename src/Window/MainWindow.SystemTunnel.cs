@@ -86,7 +86,7 @@ public partial class MainWindow
             UpdateModeText();
         }
         if (!SystemTunnelWanted && SystemTunnelActive) _ = StopSystemTunnelAsync();
-        _ = ZapretModeChangedAsync();
+        runtime.Zapret.ModeChanged();
         UpdateModeText();
         UpdateSystemTunnelNote(systemTunnel?.State);
         UpdateControls();

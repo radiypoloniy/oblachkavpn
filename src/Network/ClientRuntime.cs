@@ -20,6 +20,7 @@ public sealed class ClientRuntime : IDisposable
     public ClientNetworks Networks { get; }
     public ClientRules Rules { get; }
     public ClientTraffic Traffic { get; }
+    internal ClientZapret Zapret { get; }
     internal ClientTray? Tray { get; private set; }
     internal ClientTray EnsureTray(SynchronizationContext context) => Tray ??= new(this, context);
     public ClientHealthMonitor Monitor { get; }
@@ -35,6 +36,7 @@ public sealed class ClientRuntime : IDisposable
     public event Action<SystemTunnelState>? TunnelChanged;
     public event Action? ProtectionRepaired;
     private Task stopping = Task.CompletedTask;
+    internal bool TunnelStopping => !stopping.IsCompleted;
     private readonly Func<Profile, ServerTweak?> previousLookup, lookup;
     private bool disposed;
 
@@ -56,7 +58,7 @@ public sealed class ClientRuntime : IDisposable
         Networks = new(this, networkEnvironment); Rules = new(this);
         Traffic = new(this);
         Preferences.PropertyChanged += PreferencesChanged;
-        tunnelHost = host; TunnelPolicy = new(this); Tunnels = new(this, host);
+        tunnelHost = host; TunnelPolicy = new(this); Tunnels = new(this, host); Zapret = new(this);
         Monitor = new ClientHealthMonitor(this, path: path);
         Recovery = new ClientRecovery(this);
         previousLookup = ServerTweak.Lookup; lookup = Profiles.TweakFor;
@@ -88,7 +90,7 @@ public sealed class ClientRuntime : IDisposable
     {
         if (Tunnel is null && TunnelLink is null) return stopping.IsCompleted ? Task.CompletedTask : stopping;
         var session = Tunnel; var link = TunnelLink;
-        Tunnel = null; Helper = null; TunnelLink = null; RoutingLists = null; Tunnels.SentLists = null;
+        Tunnel = null; Helper = null; TunnelLink = null; RoutingLists = null; Tunnels.SentLists = null; Tunnels.SentZapretDomains = [];
         return stopping = ReleaseAsync(session, link);
     }
 
@@ -104,6 +106,7 @@ public sealed class ClientRuntime : IDisposable
         if (disposed) return;
         disposed = true;
         Preferences.PropertyChanged -= PreferencesChanged;
+        Zapret.Dispose();
         Recovery.Dispose();
         Networks.Dispose(); Rules.Dispose();
         Traffic.Dispose();

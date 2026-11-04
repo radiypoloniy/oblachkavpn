@@ -41,7 +41,7 @@ public sealed partial class ClientConnections
             await session!.SwitchAsync(target, token);
             if (owner.TunnelLink is { } link)
             {
-                var domains = ClientTunnelPolicy.DirectDomains(routing, settings.Sites);
+                var domains = ClientTunnelPolicy.DirectDomains(owner.Tunnels.SentLists ?? routing, settings.Sites);
                 try
                 {
                     using var limit = CancellationTokenSource.CreateLinkedTokenSource(token); limit.CancelAfter(TimeSpan.FromSeconds(20));
@@ -56,5 +56,6 @@ public sealed partial class ClientConnections
             if (owner.Engine.State is not ConnectionState.Idle) owner.Engine.Stop();
             await owner.Engine.StartAsync(target, token);
         }
+        if (!runningTunnel || owner.RoutingLists is null) owner.Tunnels.SentZapretDomains = settings.ZapretDomains;
     }
 }

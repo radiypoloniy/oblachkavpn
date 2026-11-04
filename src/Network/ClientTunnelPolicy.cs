@@ -5,6 +5,7 @@ public sealed record ClientTunnelSettings(SiteRule[] Sites, ProgramRule[] Progra
     bool ForeignNode, bool Fragment, ProviderFragment? FragmentShape, bool Zapret)
 {
     public ServiceRoute[] ServiceRoutes { get; init; } = [];
+    internal string[] ZapretDomains { get; init; } = [];
 }
 
 // Источник текущей конфигурации; снимок строится непосредственно перед запуском новой сессии.
@@ -18,7 +19,6 @@ public sealed class ClientTunnelPolicy
     public AdvancedOptions Advanced { get; set; } = AdvancedOptions.Default;
     public bool Selective { get; set; }
     public bool Zapret { get; set; }
-    public RoutingProfile[] ZapretProfiles { get; set; } = [];
     public RoutingProfile? ProviderRouting { get; set; }
     public bool? UseProviderRouting { get; set; }
     public ProviderOptions? Provider => owner.Profiles.Groups.FirstOrDefault(g => g.Id == ProfileGroup.ServiceId)?.Metadata?.Provider;
@@ -42,7 +42,8 @@ public sealed class ClientTunnelPolicy
     }
     public IEnumerable<RoutingProfile> RoutingProfiles()
     {
-        foreach (var profile in ZapretProfiles) yield return profile;
+        if (owner.Zapret.RoutedDomains is { Length: > 0 } domains)
+            yield return new RoutingProfile("zapret", domains.Select(d => "domain:" + d).ToArray(), [], [], [], [], []) { GlobalProxy = true };
         if (Selective && !owner.Preferences.SystemTunnel)
             yield return new RoutingProfile("Через VPN только YouTube и Discord", [], SelectiveDomains.Select(d => "domain:" + d).ToArray(), [], [], [], []) { GlobalProxy = false };
         if (RoutingProfile.Custom(Advanced.GeoDirect, Advanced.GeoProxy, Advanced.GeoBlock) is { } custom) yield return custom;
@@ -57,7 +58,7 @@ public sealed class ClientTunnelPolicy
             TunnelTuning.From(Advanced, Provider, preferences.CompatibleStack), Selective, preferences.LocalNetwork,
             preferences.QuicOverTcp, preferences.CompatibleStack, selected.IsFree, fragment,
             Advanced.Fragment(Provider?.Fragment is { Enabled: true } shape ? shape : null), Zapret)
-        { ServiceRoutes = ServiceRoutes.ToArray() };
+        { ServiceRoutes = ServiceRoutes.ToArray(), ZapretDomains = owner.Zapret.RoutedDomains };
     }
     public static string[] DirectDomains(CompiledRouting? routing, IEnumerable<SiteRule> rules)
     {

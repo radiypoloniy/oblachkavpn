@@ -23,8 +23,6 @@ public partial class MainWindow
         presentationTimer.Tick += (_, _) =>
         {
             if (PresentationVisible) RefreshPresentation();
-            PollZapretRouting();
-            PollZapretWatch();
             PollExpiry();
         };
         UpdatePresentationInterval();
@@ -40,10 +38,7 @@ public partial class MainWindow
 
     private void UpdatePresentationInterval()
     {
-        // Пока ещё действует старый маршрут zapret, сохраняем частоту повторных попыток
-        // даже после выключения обхода. Уведомлению о сроке подписки достаточно минуты.
-        var interval = PresentationVisible || zapretEnabled || coreZapretKey.Length > 0
-            ? VisiblePresentationInterval : HiddenPresentationInterval;
+        var interval = PresentationVisible ? VisiblePresentationInterval : HiddenPresentationInterval;
         if (presentationTimer.Interval != interval) presentationTimer.Interval = interval;
     }
 

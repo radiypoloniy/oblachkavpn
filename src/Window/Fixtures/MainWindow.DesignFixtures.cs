@@ -140,8 +140,8 @@ public partial class MainWindow
         if (page is "home-zapret" or "home-invite")
         {
             // VPN выключен: обход работает (YouTube и Discord открываются) или ещё не включён.
-            LoadGroupsPreview(); zapretEnabled = page == "home-zapret";
-            zapretActiveGroups = zapretEnabled ? ["youtube", "discord"] : [];
+            LoadGroupsPreview(); runtime.Zapret.Restore(page == "home-zapret", defer: false);
+            if (zapretEnabled) runtime.Zapret.Watch(ZapretPlan.NoBypass, ["youtube", "discord"], "preview");
             Navigate("Connection"); RefreshHome();
             return;
         }

@@ -33,7 +33,7 @@ public partial class MainWindow
             Zapret = new
             {
                 Enabled = zapretEnabled, Strategy = zapretActiveStrategy, Direct = zapretActiveGroups, Demoted = zapretDemoted,
-                KeptInVpn = zapretVpnGroups.ToArray(), Journal = zapretJournal.Entries.TakeLast(60)
+                KeptInVpn = runtime.Zapret.KeptInVpn.ToArray(), Journal = runtime.Zapret.History.TakeLast(60)
             },
             LastCrash = DiagnosticReport.RecentCrash(CrashLog.PathName, DateTimeOffset.Now)
         };

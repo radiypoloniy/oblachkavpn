@@ -10,6 +10,7 @@ public sealed class ClientTunnels
     public SentRules SentRules { get; set; } = SentRules.None;
     public string? SentDirectDns { get; set; }
     internal CompiledRouting? SentLists { get; set; }
+    internal string[] SentZapretDomains { get; set; } = [];
     public bool DirectAllowed { get; private set; }
     public bool ForeignSession { get; set; }
     internal ClientTunnels(ClientRuntime owner, IClientTunnelHost host) { this.owner = owner; this.host = host; }
@@ -45,7 +46,7 @@ public sealed class ClientTunnels
                 }
                 catch (Exception ex) when (!token.IsCancellationRequested && ex is UserError or IOException or OperationCanceledException or TimeoutException) { }
                 token.ThrowIfCancellationRequested();
-                Applied = settings; owner.Profiles.Running = selected;
+                Applied = settings; SentZapretDomains = settings.ZapretDomains; owner.Profiles.Running = selected;
                 owner.Workspace.WasConnected = true; owner.Persistence.Queue();
                 owner.Monitor.ObserveProcess(); owner.Monitor.StartedFresh();
             }

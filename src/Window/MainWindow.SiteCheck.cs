@@ -99,7 +99,7 @@ public partial class MainWindow
         static SiteRoute Of(SiteAction action) => action switch { SiteAction.Direct => SiteRoute.Direct, SiteAction.Block => SiteRoute.Block, _ => SiteRoute.Tunnel };
         if (siteRules.Where(r => Covers(r.Domain, host)).OrderByDescending(r => r.Domain.Length).FirstOrDefault() is { } rule)
             return (Of(rule.Action), RuleRow.ActionLabel(rule.Action) + " · ваше правило");
-        if (ZapretRouting && zapretDomains.Any(d => Covers(d, host))) return (SiteRoute.Zapret, "напрямую · zapret");
+        if (runtime.Zapret.AppliedDomains.Any(d => Covers(d, host))) return (SiteRoute.Zapret, "напрямую · zapret");
         // Списки нужны только для результата проверки: не держим их всё время жизни окна.
         if (CurrentRouting()?.Decide(host) is { } listed) return (Of(listed), RuleRow.ActionLabel(listed) + " · по спискам");
         return (SiteRoute.Tunnel, "через VPN");

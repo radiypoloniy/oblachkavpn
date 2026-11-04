@@ -104,11 +104,10 @@ public partial class MainWindow
         preferences.UpdateAuto = snapshot.UpdateCheck;
         preferences.UpdatePrerelease = snapshot.UpdatePrerelease;
         fragmentMode = Enum.IsDefined(snapshot.DpiBypass) ? snapshot.DpiBypass : FragmentMode.Auto;
-        zapretEnabled = snapshot.ZapretEnabled;
         selectiveVpn = snapshot.SelectiveVpn; Bypass.SelectiveToggle.IsChecked = selectiveVpn;
-        zapretChoices.Clear(); foreach (var (net, choice) in snapshot.ZapretChoices ?? new()) zapretChoices[net] = choice;
-        zapretVpnGroups.Clear(); zapretVpnGroups.UnionWith(snapshot.ZapretVpnGroups ?? []);
-        RefreshZapret(); RestoreZapret();
+        var choices = runtime.Workspace.ZapretChoices;
+        choices.Clear(); foreach (var (net, choice) in snapshot.ZapretChoices ?? new()) choices[net] = choice;
+        runtime.Zapret.KeptInVpn.Clear(); runtime.Zapret.KeptInVpn.UnionWith(snapshot.ZapretVpnGroups ?? []);
         RefreshRouting();
         // Группы из снимка; у снимка до 0.11 их выводим: сервис, одна сторонняя подписка или «Вручную».
         groups.Clear(); groupProfiles.Clear(); groupRevision++;
@@ -127,5 +126,7 @@ public partial class MainWindow
         {
             profile = selected; ShowProfile(); FilterProfiles(); UpdateControls();
         }
+        runtime.Zapret.Restore(snapshot.ZapretEnabled, defer: !isolatedPersistence &&
+            (ConnectAtLaunchPlanned || SessionLeft(NetworkService.JournalPath)));
     }
 }

@@ -6,8 +6,6 @@ namespace Oblachka;
 public partial class MainWindow
 {
     private bool wasConnected { get => runtime.Workspace.WasConnected; set => runtime.Workspace.WasConnected = value; }
-    // Подбор zapret отложен до подключения (RestoreZapret).
-    private bool zapretAfterConnect;
 
     // Сервис может попросить подключаться при каждом запуске (subscription-autoconnect) — «Сразу подключаться»
     // по-прежнему решает человек: выключил её — не подключаемся.
@@ -31,13 +29,7 @@ public partial class MainWindow
     }
 
     // Подключение состоялось (из ConnectCoreAsync).
-    private void Connected()
-    {
-        RememberConnected(true);
-        if (!zapretAfterConnect) return;
-        zapretAfterConnect = false;
-        _ = ZapretModeChangedAsync();
-    }
+    private void Connected() => RememberConnected(true);
 
     // Канал со службой оборвался (система надолго замирала, служба перезапустилась): служба держит
     // сессию, как после аварии окна, а окно её потеряло и показывает «Не подключено» — интернет закрыт

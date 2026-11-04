@@ -20,8 +20,6 @@ public partial class MainWindow
     {
         if (vmTestActive || profile is null || operation is not null || runtime.Connections.IsStopping) return;
         var target = profile; var previous = systemTunnel;
-        runtime.TunnelPolicy.ZapretProfiles = ZapretRoutingProfiles().ToArray();
-        coreZapretKey = DesiredZapretKey; appliedZapretDomains = ZapretRouting ? zapretDomains : [];
         try
         {
             if (SystemTunnelWanted && !SystemTunnelActive)

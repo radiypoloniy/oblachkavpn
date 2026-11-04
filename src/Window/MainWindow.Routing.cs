@@ -31,11 +31,7 @@ public partial class MainWindow
         RefreshRouting();
     }
 
-    private IEnumerable<RoutingProfile> ActiveRoutingProfiles()
-    {
-        runtime.TunnelPolicy.ZapretProfiles = ZapretRoutingProfiles().ToArray();
-        return runtime.TunnelPolicy.RoutingProfiles();
-    }
+    private IEnumerable<RoutingProfile> ActiveRoutingProfiles() => runtime.TunnelPolicy.RoutingProfiles();
 
     private CompiledRouting? CurrentRouting() => CompiledRouting.Compile(ActiveRoutingProfiles(), GeoStore.Default);
 
@@ -56,10 +52,8 @@ public partial class MainWindow
         QueueStateSave();
         await DownloadGeoAsync(force: false);
         if (closed) return;
-        var key = DesiredZapretKey;
         var result = systemStopping ? RoutingListsResult.Deferred : await runtime.Rules.ApplyListsAsync();
         if (closed) return;
-        if (result is RoutingListsResult.Applied or RoutingListsResult.Reconnected) coreZapretKey = key;
         if (result != RoutingListsResult.Inactive)
             DetailText.Text = result switch
             {

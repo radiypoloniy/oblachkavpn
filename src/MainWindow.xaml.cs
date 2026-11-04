@@ -215,7 +215,8 @@ public partial class MainWindow : Window
         if (!exitTunnelClosing && !Application.Current.Dispatcher.HasShutdownStarted && (systemTunnel is not null || helperLifetime is not null))
         { args.Cancel = true; exitTunnelClosing = true; _ = CloseAfterTunnelAsync(); return; }
         closed = true;
-        StopZapretOnExit();
+        runtime.Zapret.Changed -= ZapretChanged;
+        runtime.Zapret.BypassBroken -= ZapretBroken;
         try { vmTestProcess?.CloseMainWindow(); } catch (InvalidOperationException) { }
         presentationTimer.Stop();
         ReleaseViewResources();
