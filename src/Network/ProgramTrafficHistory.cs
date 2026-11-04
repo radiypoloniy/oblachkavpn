@@ -17,8 +17,9 @@ public sealed partial class ProgramTrafficHistory
             active.TryGetValue(program.Path, out var old);
             var up = old is null || program.Upload < old.Upload ? program.Upload : program.Upload - old.Upload;
             var down = old is null || program.Download < old.Download ? program.Download : program.Download - old.Download;
-            active[program.Path] = new(program.Path, program.Upload, program.Download);
-            if (!baselineOnly && (up > 0 || down > 0)) history.AddProgram(program.Path, up, down, now);
+            var routes = program.Routes.Since(old?.Routes ?? default);
+            active[program.Path] = new(program.Path, program.Upload, program.Download, program.Routes);
+            if (!baselineOnly && (up > 0 || down > 0)) history.AddProgram(program.Path, up, down, now, routes.Fits(up, down) ? routes : default);
         }
     }
 }

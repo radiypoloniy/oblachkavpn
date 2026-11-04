@@ -19,7 +19,7 @@ func fixtureConnection(path string, up, down int64) *trafficcontrol.TrackerMetad
 	u.Store(up)
 	d.Store(down)
 	return &trafficcontrol.TrackerMetadata{ID: id, Upload: u, Download: d, Chain: []string{"server-selector", "direct-0"}, OutboundType: "vless", CreatedAt: time.Now(),
-		Metadata: adapter.InboundContext{Network: "tcp", ProcessInfo: &adapter.ConnectionOwner{ProcessPath: path, UserId: -1}}}
+		Metadata: adapter.InboundContext{Inbound: "system-tun", Network: "tcp", ProcessInfo: &adapter.ConnectionOwner{ProcessPath: path, UserId: -1}}}
 }
 
 func TestProgramStatsClosingAndCumulativeCounters(t *testing.T) {
@@ -49,8 +49,22 @@ func TestProgramStatsClosingAndCumulativeCounters(t *testing.T) {
 	next.Chain = []string{"user-direct"}
 	next.Metadata.Network = "udp"
 	last := s.snapshot([]*trafficcontrol.TrackerMetadata{next}, nil, now.Add(time.Second))
-	if len(last.Programs) != 1 || last.Programs[0].Upload != 40 || last.Programs[0].Direct != 1 || last.Programs[0].UDP != 1 {
+	if len(last.Programs) != 1 || last.Programs[0].Upload != 40 || last.Programs[0].Direct != 1 || last.Programs[0].UDP != 1 ||
+		last.Programs[0].VPNUpload != 35 || last.Programs[0].VPNDownload != 40 ||
+		last.Programs[0].DirectUpload != 5 || last.Programs[0].DirectDownload != 7 {
 		t.Fatal(last)
+	}
+}
+
+func TestProgramStatsDoesNotGuessFallbackOrBridgeRoute(t *testing.T) {
+	s := newProgramStats()
+	fallback := fixtureConnection("browser", 10, 20)
+	fallback.Outbound, fallback.Chain = "local-core", []string{"local-core", "server"}
+	bridge := fixtureConnection("browser", 5, 7)
+	bridge.Metadata.Inbound, bridge.Chain = "core-direct", []string{"user-direct"}
+	got := s.snapshot([]*trafficcontrol.TrackerMetadata{fallback, bridge}, nil, time.Now()).Programs[0]
+	if got.Upload != 15 || got.Download != 27 || got.VPNUpload != 0 || got.DirectUpload != 0 {
+		t.Fatal(got)
 	}
 }
 

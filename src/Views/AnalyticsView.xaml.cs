@@ -58,6 +58,10 @@ public partial class AnalyticsView : UserControl
     public void Render(AnalyticsReport report, AnalyticsPoint[] speed, long currentUp, long currentDown, string server, SubscriptionState? subscription)
     {
         TotalText.Text = TrafficMeter.Size(report.Total); DownloadText.Text = TrafficMeter.Size(report.Download); UploadText.Text = TrafficMeter.Size(report.Upload);
+        var routes = report.Programs.Aggregate(default(TrafficRouteBytes), (sum, program) => sum + program.Routes);
+        var programTotal = report.Programs.Sum(p => p.Total);
+        RouteTotalsText.Text = programTotal > 0 ? "По учтённым программам — " + RoutesText(routes, programTotal) : "";
+        RouteTotalsText.Visibility = programTotal > 0 ? Visibility.Visible : Visibility.Collapsed;
         CurrentDown.Text = TrafficMeter.Rate(currentDown); CurrentUp.Text = TrafficMeter.Rate(currentUp);
         ServerText.Text = server;
         Chart.Upload = report.Points.Select(p => p.Upload).ToArray(); Chart.Download = report.Points.Select(p => p.Download).ToArray();
@@ -83,15 +87,17 @@ public partial class AnalyticsView : UserControl
         var matches = query.Length == 0 ? programs : programs.Where(p => p.Path.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
         if (programOffset >= matches.Length) programOffset = 0;
         var shown = matches.Skip(programOffset).Take(limit).ToArray();
-        var signature = string.Join("\n", shown.Select(p => $"{p.Path}|{p.Upload}|{p.Download}"));
+        var signature = string.Join("\n", shown.Select(p => $"{p.Path}|{p.Upload}|{p.Download}|{p.Routes.Vpn}|{p.Routes.Direct}"));
         if (signature != programsShown)
         {
             programsShown = signature;
             ProgramList.ItemsSource = shown.Select(p =>
             {
                 var name = Path.GetFileNameWithoutExtension(p.Path);
+                var directions = "↓ " + TrafficMeter.Size(p.Download) + " · ↑ " + TrafficMeter.Size(p.Upload);
+                if (p.Routes != default) directions += "\n" + RoutesText(p.Routes, p.Total);
                 return new AnalyticsProgramRow(name, name.Length == 0 ? "?" : char.ToUpperInvariant(name[0]).ToString(),
-                    "↓ " + TrafficMeter.Size(p.Download) + " · ↑ " + TrafficMeter.Size(p.Upload), TrafficMeter.Size(p.Total), AppIcons.For(p.Path));
+                    directions, TrafficMeter.Size(p.Total), AppIcons.For(p.Path));
             }).ToArray();
         }
         ProgramsEmpty.Text = query.Length == 0 ? "Данные появятся после подключения в режиме «Весь компьютер»." : "Программы не найдены.";
@@ -99,6 +105,14 @@ public partial class AnalyticsView : UserControl
         PreviousPrograms.Visibility = programOffset > 0 ? Visibility.Visible : Visibility.Collapsed;
         MorePrograms.Content = all ? "Далее" : "Все программы";
         MorePrograms.Visibility = matches.Length > programOffset + limit ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private static string RoutesText(TrafficRouteBytes routes, long total)
+    {
+        if (routes == default) return "без разбивки " + TrafficMeter.Size(total);
+        var text = "VPN " + TrafficMeter.Size(routes.Vpn) + " · напрямую " + TrafficMeter.Size(routes.Direct);
+        var unknown = total - routes.Vpn - routes.Direct;
+        return unknown > 0 ? text + " · без разбивки " + TrafficMeter.Size(unknown) : text;
     }
 
     private void RenderAxis(AnalyticsPoint[] points)

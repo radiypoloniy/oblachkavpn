@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace Oblachka;
 
-internal sealed record CoreProgram(string Path, long Upload, long Download, int Vpn, int Direct, int Udp, DateTime LastSeen);
+internal sealed record CoreProgram(string Path, long Upload, long Download, int Vpn, int Direct, int Udp, DateTime LastSeen, TrafficRouteBytes Routes = default);
 internal sealed record CoreProgramSnapshot(string Epoch, IReadOnlyList<CoreProgram> Programs);
 
 internal static class CorePrograms
@@ -43,9 +43,12 @@ internal static class CorePrograms
             var up = row.GetProperty("upload").GetInt64(); var down = row.GetProperty("download").GetInt64();
             var vpn = row.GetProperty("vpn").GetInt32(); var direct = row.GetProperty("direct").GetInt32(); var udp = row.GetProperty("udp").GetInt32();
             var seen = row.GetProperty("lastSeen").GetInt64();
+            long Bytes(string name) => row.TryGetProperty(name, out var value) ? value.GetInt64() : 0;
+            var routes = new TrafficRouteBytes(Bytes("vpnUpload"), Bytes("vpnDownload"), Bytes("directUpload"), Bytes("directDownload"));
             if (string.IsNullOrWhiteSpace(path) || path.Length > 1024 || path.Any(char.IsControl) || !paths.Add(path) || up < 0 || down < 0 || vpn < 0 || direct < 0 || udp < 0 || seen < 0 || seen > DateTimeOffset.MaxValue.ToUnixTimeMilliseconds())
                 throw new JsonException("Invalid program statistics");
-            result.Add(new(path, up, down, vpn, direct, udp, DateTimeOffset.FromUnixTimeMilliseconds(seen).UtcDateTime));
+            if (!routes.Fits(up, down)) throw new JsonException("Invalid route byte counters");
+            result.Add(new(path, up, down, vpn, direct, udp, DateTimeOffset.FromUnixTimeMilliseconds(seen).UtcDateTime, routes));
         }
         return new(epoch.ToString(), result);
     }

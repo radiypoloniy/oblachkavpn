@@ -12,7 +12,7 @@
         <Image Source="{Binding Icon}" Width="30" Height="30" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
         <StackPanel Grid.Column="1" Margin="10,0,12,0" VerticalAlignment="Center">
           <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsRow}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-          <TextBlock Text="{Binding Detail}" Style="{StaticResource Small}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+          <TextBlock Text="{Binding Detail}" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="0,1,0,0"/>
         </StackPanel>
         <TextBlock Grid.Column="2" Text="{Binding Total}" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" VerticalAlignment="Center"/>
       </Grid>
@@ -42,6 +42,7 @@
           </ListBox>
         </DockPanel>
         <TextBlock Text="VPN и правила «напрямую» в системном режиме. Локальная сеть не учитывается. История хранится только на этом компьютере." Style="{StaticResource Small}" Margin="2,8,0,14"/>
+        <TextBlock x:Name="RouteTotalsText" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="2,0,0,8"/>
 
         <Grid>
           <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>

@@ -3,13 +3,17 @@ using System.Text;
 
 namespace Oblachka;
 
-public sealed record TrafficProgramStats(string Path, long Upload, long Download);
+public sealed record TrafficProgramStats(string Path, long Upload, long Download)
+{
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public TrafficRouteBytes Routes { get; init; }
+}
 public sealed record TrafficDayStats(string Day, long Upload, long Download, long[] UploadHours, long[] DownloadHours, TrafficProgramStats[] Programs);
 public sealed record AnalyticsPoint(string Label, long Upload, long Download)
 {
     public long Total => Upload + Download;
 }
-public sealed record AnalyticsProgram(string Path, long Upload, long Download)
+public sealed record AnalyticsProgram(string Path, long Upload, long Download, TrafficRouteBytes Routes = default)
 {
     public long Total => Upload + Download;
 }
@@ -32,10 +36,10 @@ public sealed class TrafficHistory
     {
         public long Upload, Download;
         public readonly long[] UploadHours = new long[24], DownloadHours = new long[24];
-        public readonly Dictionary<string, (long Upload, long Download)> Programs = new(StringComparer.OrdinalIgnoreCase);
+        public readonly Dictionary<string, (long Upload, long Download, TrafficRouteBytes Routes)> Programs = new(StringComparer.OrdinalIgnoreCase);
 
         public TrafficDayStats Snapshot(string day) => new(day, Upload, Download, UploadHours.ToArray(), DownloadHours.ToArray(),
-            Programs.Select(p => new TrafficProgramStats(p.Key, p.Value.Upload, p.Value.Download))
+            Programs.Select(p => new TrafficProgramStats(p.Key, p.Value.Upload, p.Value.Download) { Routes = p.Value.Routes })
                 .OrderByDescending(p => p.Upload + p.Download).ThenBy(p => p.Path, StringComparer.OrdinalIgnoreCase).Take(MaxPrograms).ToArray());
     }
 
@@ -47,7 +51,7 @@ public sealed class TrafficHistory
             if (day.Programs is null || day.UploadHours is not { Length: 24 } || day.DownloadHours is not { Length: 24 }) continue;
             var state = new DayState { Upload = day.Upload, Download = day.Download };
             Array.Copy(day.UploadHours, state.UploadHours, 24); Array.Copy(day.DownloadHours, state.DownloadHours, 24);
-            foreach (var program in day.Programs) AddProgram(state.Programs, program.Path, program.Upload, program.Download);
+            foreach (var program in day.Programs) AddProgram(state.Programs, program.Path, program.Upload, program.Download, program.Routes);
             days[day.Day] = state;
         }
         if (days.Count == 0 && legacyDay == Key(now) && legacyBytes > 0)
@@ -76,14 +80,14 @@ public sealed class TrafficHistory
         state.UploadHours[now.Hour] += upload; state.DownloadHours[now.Hour] += download;
     }
 
-    internal void AddProgram(string path, long upload, long download, DateTime now)
+    internal void AddProgram(string path, long upload, long download, DateTime now, TrafficRouteBytes routes = default)
     {
-        AddProgram(Day(now).Programs, path, upload, download);
+        AddProgram(Day(now).Programs, path, upload, download, routes);
     }
 
     // Предел действует и в памяти. Редкие новые программы сверх него учитываются вместе,
     // чтобы долгий сеанс не раздувал словарь и не терял суммарный трафик программ.
-    private static void AddProgram(Dictionary<string, (long Upload, long Download)> programs, string path, long upload, long download)
+    private static void AddProgram(Dictionary<string, (long Upload, long Download, TrafficRouteBytes Routes)> programs, string path, long upload, long download, TrafficRouteBytes routes)
     {
         if (!programs.ContainsKey(path) && programs.Count >= MaxPrograms)
         {
@@ -96,7 +100,7 @@ public sealed class TrafficHistory
             path = OtherPrograms;
         }
         programs.TryGetValue(path, out var old);
-        programs[path] = (old.Upload + upload, old.Download + download);
+        programs[path] = (old.Upload + upload, old.Download + download, old.Routes + routes);
     }
 
     public void Reset() => days.Clear();
@@ -106,7 +110,7 @@ public sealed class TrafficHistory
         if (periodDays is not 1 and not 7 and not 30) throw new ArgumentOutOfRangeException(nameof(periodDays));
         Trim(now);
         var points = new List<AnalyticsPoint>();
-        var programs = new Dictionary<string, (long Upload, long Download)>(StringComparer.OrdinalIgnoreCase);
+        var programs = new Dictionary<string, (long Upload, long Download, TrafficRouteBytes Routes)>(StringComparer.OrdinalIgnoreCase);
         long upload = 0, download = 0;
         for (var offset = periodDays - 1; offset >= 0; offset--)
         {
@@ -123,10 +127,10 @@ public sealed class TrafficHistory
             foreach (var (path, value) in state.Programs)
             {
                 programs.TryGetValue(path, out var old);
-                programs[path] = (old.Upload + value.Upload, old.Download + value.Download);
+                programs[path] = (old.Upload + value.Upload, old.Download + value.Download, old.Routes + value.Routes);
             }
         }
-        return new(points.ToArray(), programs.Select(p => new AnalyticsProgram(p.Key, p.Value.Upload, p.Value.Download))
+        return new(points.ToArray(), programs.Select(p => new AnalyticsProgram(p.Key, p.Value.Upload, p.Value.Download, p.Value.Routes))
             .OrderByDescending(p => p.Total).ThenBy(p => p.Path, StringComparer.OrdinalIgnoreCase).ToArray(), upload, download);
     }
 
@@ -135,7 +139,7 @@ public sealed class TrafficHistory
             DateTime.TryParseExact(d.Day, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _) &&
             d.UploadHours is { Length: 24 } && d.DownloadHours is { Length: 24 } && d.UploadHours.All(n => n >= 0) && d.DownloadHours.All(n => n >= 0) &&
             d.Programs is not null && d.Programs.Length <= MaxPrograms && d.Programs.All(p => p is not null && !string.IsNullOrWhiteSpace(p.Path) &&
-                p.Path.Length <= 1024 && !p.Path.Any(char.IsControl) && p.Upload >= 0 && p.Download >= 0)) &&
+                p.Path.Length <= 1024 && !p.Path.Any(char.IsControl) && p.Upload >= 0 && p.Download >= 0 && p.Routes.Fits(p.Upload, p.Download))) &&
         history.Select(d => d.Day).Distinct(StringComparer.Ordinal).Count() == history.Length;
 
     public static string Csv(AnalyticsReport report)
@@ -171,7 +175,7 @@ public sealed class TrafficHistory
 // между снимками; новый идентификатор после перезапуска ядра начинает свой собственный счётчик.
 public sealed partial class ProgramTrafficHistory
 {
-    private sealed record Seen(string Path, long Upload, long Download);
+    private sealed record Seen(string Path, long Upload, long Download, TrafficRouteBytes Routes = default);
     private readonly Dictionary<string, Seen> active = new(StringComparer.Ordinal);
 
     public void Reset() { active.Clear(); programEpoch = null; rebaseNext = false; }

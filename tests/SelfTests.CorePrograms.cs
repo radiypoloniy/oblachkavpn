@@ -50,6 +50,26 @@ public static partial class SelfTests
             Assert(await current.ReadAsync(stats, CancellationToken.None) is null);
             Assert((await current.ReadAsync(stats, CancellationToken.None))?.Summary is not null && legacyCalls == 0);
         });
+        await check("Program route bytes survive deltas, reset and restoration alongside legacy totals", () => Sync(() =>
+        {
+            var now = DateTime.Now;
+            var history = new TrafficHistory();
+            var traffic = new ProgramTrafficHistory();
+            history.AddProgram("browser", 10, 20, now.AddDays(-1));
+            var epoch = Guid.NewGuid().ToString();
+            CoreProgramSnapshot Sample(long up, long down, TrafficRouteBytes routes) =>
+                new(epoch, [new("browser", up, down, 0, 0, 0, now, routes)]);
+            traffic.Record(Sample(20, 40, new(5, 10, 10, 20)), history, now);
+            traffic.Record(Sample(30, 50, new(10, 15, 15, 25)), history, now);
+            var restored = new TrafficHistory();
+            restored.Restore(history.Snapshot(now), null, 0, null, now);
+            var row = restored.Report(now, 7).Programs.Single();
+            Assert(row.Total == 110 && row.Routes is { Vpn: 25, Direct: 40 });
+            history.Reset(); traffic.Rebase();
+            traffic.Record(Sample(30, 50, new(10, 15, 15, 25)), history, now);
+            traffic.Record(Sample(40, 60, new(20, 25, 15, 25)), history, now);
+            Assert(history.Report(now, 1).Programs.Single() is { Total: 20, Routes: { Vpn: 20, Direct: 0 } });
+        }));
         await check("Compact parser rejects duplicate paths, unsupported versions, negative counters and oversized lists", () => Sync(() =>
         {
             var epoch = Guid.NewGuid().ToString();
