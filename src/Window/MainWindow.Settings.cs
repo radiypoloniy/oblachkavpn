@@ -103,25 +103,23 @@ public partial class MainWindow
     private void RuleRowClick(object sender, RoutedEventArgs args)
     {
         if (args.OriginalSource is not Button { DataContext: RuleRow row } button) return;
-        if (Equals(button.Tag, "delete")) RemoveRule(row.Rule);
+        if (Equals(button.Tag, "delete")) RemoveRule(row.Rule, editor: true);
         else if (Equals(button.Tag, "cycle")) CycleRule(row.Rule);
     }
 
     private void CycleRule(object rule)
     {
         static SiteAction Next(SiteAction action) => (SiteAction)(((int)action + 1) % 3);
-        if (rule is SiteRule site && siteRules.IndexOf(site) is var i and >= 0) siteRules[i] = site with { Action = Next(site.Action) };
-        else if (rule is ProgramRule program && programRules.IndexOf(program) is var j and >= 0) programRules[j] = program with { Action = Next(program.Action) };
-        RefreshRules(); QueueStateSave();
-        ProgramRulesChanged();
+        if (rule is SiteRule site && EditedSites.IndexOf(site) is var i and >= 0) EditedSites[i] = site with { Action = Next(site.Action) };
+        else if (rule is ProgramRule program && EditedPrograms.IndexOf(program) is var j and >= 0) EditedPrograms[j] = program with { Action = Next(program.Action) };
+        RulesEdited();
     }
 
-    private void RemoveRule(object rule)
+    private void RemoveRule(object rule, bool editor = false)
     {
-        if (rule is SiteRule site) siteRules.Remove(site);
-        else if (rule is ProgramRule program) programRules.Remove(program);
-        RefreshRules(); QueueStateSave();
-        ProgramRulesChanged();
+        if (rule is SiteRule site) (editor ? EditedSites : siteRules).Remove(site);
+        else if (rule is ProgramRule program) (editor ? EditedPrograms : programRules).Remove(program);
+        RulesEdited(editor);
     }
 
 }

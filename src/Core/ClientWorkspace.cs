@@ -11,7 +11,6 @@ public sealed class ClientWorkspace
     public Dictionary<string, Dictionary<string, string>> MachineMemory { get; } = new();
     public List<RuleSet> RuleSets { get; } = new();
     public string RuleSetName { get; set; } = MainRuleSet;
-    public RuleSet? DraftBase { get; set; }
     public Dictionary<string, string> ZapretChoices { get; } = new(StringComparer.Ordinal);
     public HashSet<string> ZapretVpnGroups { get; } = new(StringComparer.Ordinal);
     public string TrafficDay { get; set; } = "";
@@ -22,9 +21,9 @@ public sealed class ClientWorkspace
     public int FreeConsent { get; set; }
     public FreeList? FreeList { get; set; }
 
-    public RuleSet PersistedSet(ClientRuntime owner) => DraftBase ?? new RuleSet(RuleSetName,
+    public RuleSet PersistedSet(ClientRuntime owner) => new RuleSet(RuleSetName,
         owner.TunnelPolicy.Sites.ToArray(), owner.TunnelPolicy.Programs.ToArray(), owner.Profiles.RuleSetServers?.ToArray());
-    public RuleSet[] SavedRuleSets(ClientRuntime owner) => DraftBase is not null ? RuleSets.ToArray() :
+    public RuleSet[] SavedRuleSets(ClientRuntime owner) =>
         RuleSets.Where(s => s.Name != RuleSetName).Append(PersistedSet(owner))
             .OrderBy(s => s.Name == MainRuleSet ? 0 : 1).ToArray();
 }

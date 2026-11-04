@@ -24,14 +24,14 @@ public partial class MainWindow
         Picker.FolderRequested += ChooseProgramFolder;
         Picker.Chosen += (apps, action) =>
         {
-            try { AddProgramRules(apps.SelectMany(a => AppRuleScope.For(a, action)).ToArray()); }
+            try { AddProgramRules(apps.SelectMany(a => AppRuleScope.For(a, action)).ToArray(), editor: true); }
             catch (UserError ex) { DetailText.Text = ex.Message; return; }
             CloseAppPicker();
             DetailText.Text = apps.Count == 1 ? "Программа добавлена в правила." : "Программ добавлено в правила: " + apps.Count + ".";
         };
     }
 
-    private IReadOnlyList<ProgramRule> AddedPrograms() => programRules.ToArray();
+    private IReadOnlyList<ProgramRule> AddedPrograms() => EditedPrograms.ToArray();
 
     private void OpenAppPicker()
     {
@@ -70,7 +70,7 @@ public partial class MainWindow
         var dialog = new OpenFileDialog { Filter = "Программа (*.exe)|*.exe", Title = "Выберите программу" };
         if (dialog.ShowDialog(this) != true) return;
         var app = new InstalledApp(Path.GetFileNameWithoutExtension(dialog.FileName), Path.GetFileName(dialog.FileName), dialog.FileName, false);
-        try { if (AddProgramRules(AppRuleScope.For(app, Picker.Action))) { CloseAppPicker(); DetailText.Text = "Программа добавлена в правила."; } }
+        try { if (AddProgramRules(AppRuleScope.For(app, Picker.Action), editor: true)) { CloseAppPicker(); DetailText.Text = "Программа добавлена в правила."; } }
         catch (UserError ex) { DetailText.Text = ex.Message; }
     }
 
@@ -79,19 +79,19 @@ public partial class MainWindow
     {
         var dialog = new OpenFolderDialog { Title = "Выберите папку программы или игры" };
         if (dialog.ShowDialog(this) != true) return;
-        try { if (AddProgramRules([AppRuleScope.ForFolder(dialog.FolderName, Picker.Action)])) { CloseAppPicker(); DetailText.Text = "Папка добавлена в правила."; } }
+        try { if (AddProgramRules([AppRuleScope.ForFolder(dialog.FolderName, Picker.Action)], editor: true)) { CloseAppPicker(); DetailText.Text = "Папка добавлена в правила."; } }
         catch (UserError ex) { DetailText.Text = ex.Message; }
     }
 
     // Уже существующее правило на тот же файл или папку заменяется: человек поменял решение.
-    private bool AddProgramRules(IReadOnlyList<ProgramRule> rules)
+    private bool AddProgramRules(IReadOnlyList<ProgramRule> rules, bool editor = false)
     {
         try
         {
-            var next = programRules.Where(r => !rules.Any(n => string.Equals(n.Key, r.Key, StringComparison.OrdinalIgnoreCase))).Concat(rules).ToArray();
+            var target = editor ? EditedPrograms : programRules;
+            var next = target.Where(r => !rules.Any(n => string.Equals(n.Key, r.Key, StringComparison.OrdinalIgnoreCase))).Concat(rules).ToArray();
             ProgramRoutingPlan.Validate(next);
-            programRules.Clear(); programRules.AddRange(next); RefreshRules(); QueueStateSave();
-            ProgramRulesChanged();
+            target.Clear(); target.AddRange(next); RulesEdited(editor);
             return true;
         }
         catch (UserError ex) { DetailText.Text = ex.Message; return false; }

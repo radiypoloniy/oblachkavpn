@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 
 namespace Oblachka;
 
@@ -34,23 +34,33 @@ public partial class MainWindow
             finally { operation.Dispose(); operation = null; if (!closed) UpdateControls(); }
         };
     }
+    private void RulesEdited(bool editor = true)
+    {
+        RefreshRules();
+        if (editor && ruleSetDraft is not null) return;
+        QueueStateSave();
+        ProgramRulesChanged();
+    }
+
     private void AddSiteRule(string domain, SiteAction action)
     {
         try
         {
-            if (siteRules.Count >= 100) throw new UserError("Достигнут предел 100 правил.");
+            if (EditedSites.Count >= 100) throw new UserError("Достигнут предел 100 правил.");
             var rule = RoutingPlan.Create(domain, action);
-            if (siteRules.Any(r => r.Domain == rule.Domain)) throw new UserError("Этот домен уже добавлен: нажмите на его метку, чтобы сменить действие.");
-            siteRules.Add(rule); Routes.RuleDomain.Clear(); RefreshRules(); QueueStateSave(); ProgramRulesChanged();
+            if (EditedSites.Any(r => r.Domain == rule.Domain)) throw new UserError("Этот домен уже добавлен: нажмите на его метку, чтобы сменить действие.");
+            EditedSites.Add(rule); Routes.RuleDomain.Clear(); RulesEdited();
         }
         catch (UserError ex) { DetailText.Text = ex.Message; }
     }
 
     private void RefreshRules()
     {
-        Routes.RuleList.ItemsSource = siteRules.Select(r => new RuleRow { Rule = r, Text = r.Domain, Action = r.Action }).ToArray();
-        var conflicts = ProgramRuleConflicts.Find(programRules, KnownProgramPaths());
-        Routes.ProgramList.ItemsSource = programRules.Select(r => ProgramRow(r, conflicts)).ToArray();
+        Routes.RuleList.ItemsSource = EditedSites.Select(r => new RuleRow { Rule = r, Text = r.Domain, Action = r.Action }).ToArray();
+        var paths = KnownProgramPaths();
+        var conflicts = ProgramRuleConflicts.Find(programRules, paths);
+        var editorConflicts = ruleSetDraft is null ? conflicts : ProgramRuleConflicts.Find(EditedPrograms, paths);
+        Routes.ProgramList.ItemsSource = EditedPrograms.Select(r => ProgramRow(r, editorConflicts)).ToArray();
         // Тот же спор — плашкой в «Программах и сайтах»: там его видно раньше, чем в правилах.
         Live.ConflictBanner.Visibility = conflicts.Count > 0 ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         if (conflicts.Count > 0)

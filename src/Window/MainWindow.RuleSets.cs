@@ -16,9 +16,14 @@ public partial class MainWindow
     public const int MaxRuleSets = 8;
     private List<RuleSet> ruleSets => runtime.Workspace.RuleSets;
     private string ruleSetName { get => runtime.Workspace.RuleSetName; set => runtime.Workspace.RuleSetName = value; }
-    // Черновик нового набора (0.21): правила с чистого листа, имя — при сохранении. draftBase — набор,
-    // что был включён до черновика: в состоянии остаётся он, «Отмена» возвращает его.
-    private RuleSet? draftBase { get => runtime.Workspace.DraftBase; set => runtime.Workspace.DraftBase = value; }
+    private sealed class RuleSetDraft
+    {
+        public List<SiteRule> Sites { get; } = new();
+        public List<ProgramRule> Programs { get; } = new();
+    }
+    private RuleSetDraft? ruleSetDraft;
+    private List<SiteRule> EditedSites => ruleSetDraft?.Sites ?? siteRules;
+    private List<ProgramRule> EditedPrograms => ruleSetDraft?.Programs ?? programRules;
 
     private void WireRuleSets()
     {
@@ -33,7 +38,7 @@ public partial class MainWindow
 
     private void RestoreRuleSets(RuleSet[]? saved, string? current, string[]? currentServers)
     {
-        ruleSets.Clear(); draftBase = null;
+        ruleSets.Clear(); ruleSetDraft = null;
         foreach (var set in saved ?? [])
         {
             // Набор, не прошедший проверку, не загружается: правила оттуда ушли бы в ядро.
@@ -48,14 +53,14 @@ public partial class MainWindow
 
     internal static bool ValidName(string name) => name.Trim().Length is >= 1 and <= 24 && name == name.Trim();
 
-    // Все наборы для сохранения: текущий — из списка правил. В черновике текущих правил в наборах нет.
+    // Снимок действующих и сохранённых наборов, отдельно от редактора.
     private RuleSet[] SavedRuleSets() => runtime.Workspace.SavedRuleSets(runtime);
     private RuleSet PersistedSet => runtime.Workspace.PersistedSet(runtime);
 
     private void SwitchRuleSet(string name)
     {
         Routes.RuleSetPopup.IsOpen = false;
-        if (draftBase is not null) CancelDraft();
+        if (ruleSetDraft is not null) CancelDraft();
         if (name == ruleSetName) return;
         var all = SavedRuleSets();
         var next = all.FirstOrDefault(s => s.Name == name) ?? new RuleSet(name, [], []);
@@ -77,39 +82,56 @@ public partial class MainWindow
     // «Новый набор»: нынешние правила остаются в своём наборе, список — с чистого листа.
     private void StartDraft()
     {
-        if (draftBase is not null) return;
+        if (ruleSetDraft is not null) return;
         if (SavedRuleSets().Length >= MaxRuleSets) { DetailText.Text = "Наборов не больше " + MaxRuleSets + ". Удалите лишний."; return; }
-        var all = SavedRuleSets();
-        ruleSets.Clear(); ruleSets.AddRange(all);
-        draftBase = all.First(s => s.Name == ruleSetName);
-        siteRules.Clear(); programRules.Clear(); ruleSetServers = null;
-        RefreshRules(); ProgramRulesChanged(); RefreshRuleSetButton();
-        DetailText.Text = "Новый набор: добавьте сайты и программы и нажмите «Сохранить». «Отмена» вернёт «" + draftBase.Name + "».";
+        ruleSetDraft = new();
+        RefreshRules(); RefreshRuleSetButton();
+        DetailText.Text = "Новый набор: добавьте сайты и программы. Действующий набор — «" + ruleSetName + "».";
     }
 
     private void SaveDraft()
     {
-        if (draftBase is null) return;
+        if (ruleSetDraft is null) return;
         var name = AppDialog.Ask(this, "Название набора", "Например «Работа» или «Игры». Включать набор можно здесь же или сам по сети — в «Приложении».", "Название набора", "Сохранить")?.Trim();
         if (string.IsNullOrEmpty(name)) return;
-        if (!ValidName(name) || ruleSets.Any(s => s.Name == name)) { DetailText.Text = "Нужно новое название до 24 символов."; return; }
-        draftBase = null; ruleSetName = name;
-        QueueStateSave(); RefreshRuleSetButton();
-        DetailText.Text = "Набор «" + name + "» сохранён: сайтов " + siteRules.Count + ", программ " + programRules.Count + ".";
+        CommitDraft(name);
+    }
+
+    private bool CommitDraft(string name)
+    {
+        if (ruleSetDraft is not { } draft) return false;
+        var all = SavedRuleSets();
+        if (!ValidName(name) || all.Any(s => s.Name == name))
+        {
+            DetailText.Text = "Нужно новое название до 24 символов.";
+            return false;
+        }
+        if (all.Length >= MaxRuleSets)
+        {
+            DetailText.Text = "Наборов не больше " + MaxRuleSets + ". Удалите лишний.";
+            return false;
+        }
+
+        var next = new RuleSet(name, draft.Sites.ToArray(), draft.Programs.ToArray());
+        ruleSets.Clear(); ruleSets.AddRange(all);
+        ruleSetDraft = null; ruleSetName = name;
+        Load(next);
+        DetailText.Text = "Набор «" + name + "» сохранён и выбран.";
+        return true;
     }
 
     private void CancelDraft()
     {
-        if (draftBase is not { } back) return;
-        draftBase = null; ruleSetName = back.Name;
-        Load(back);
-        DetailText.Text = "Новый набор отменён, включён «" + back.Name + "».";
+        if (ruleSetDraft is null) return;
+        ruleSetDraft = null;
+        RefreshRules(); RefreshRuleSetButton();
+        DetailText.Text = "Новый набор отменён. Действующий набор — «" + ruleSetName + "».";
     }
 
     private void DeleteRuleSet()
     {
         Routes.RuleSetPopup.IsOpen = false;
-        if (ruleSetName == MainRuleSet || draftBase is not null) return;
+        if (ruleSetName == MainRuleSet || ruleSetDraft is not null) return;
         if (!AppDialog.Confirm(this, "Удалить набор «" + ruleSetName + "»?", "Его правила уберутся, включится набор «" + MainRuleSet + "».", "Удалить", danger: true)) return;
         var removed = ruleSetName;
         ruleSets.RemoveAll(s => s.Name == removed);
@@ -119,7 +141,7 @@ public partial class MainWindow
 
     private void RefreshRuleSetButton()
     {
-        var draft = draftBase is not null;
+        var draft = ruleSetDraft is not null;
         Routes.RuleSetBar.Visibility = draft ? Visibility.Collapsed : Visibility.Visible;
         Routes.RuleSetDraft.Visibility = draft ? Visibility.Visible : Visibility.Collapsed;
         Routes.RuleSetText.Text = "Набор: " + ruleSetName;

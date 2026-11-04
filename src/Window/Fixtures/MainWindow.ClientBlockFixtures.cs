@@ -24,6 +24,7 @@ public partial class MainWindow
         if (programRules.Count != 1 || programRules[0].Action != SiteAction.Direct) throw new InvalidOperationException("Program draft editor failed");
         RemoveRule(programRules[0]);
         if (programRules.Count != 0) throw new InvalidOperationException("Program draft removal failed");
+        CheckRuleSetDraft(checks);
         CheckAppPicker(checks);
         // «Сейчас в сети»: процесс с необычным именем файла (claude.exe.old.123) не роняет окно, а
         // показывается без кнопок правил — так упала 0.15.0-rc.3.
@@ -35,6 +36,39 @@ public partial class MainWindow
         if (!Diagnostics.ValidateRulesButton.IsEnabled || backgroundWorkEnabled)
             throw new InvalidOperationException("Client block actions or fixture network isolation incorrect");
         checks.Add("Rule editor normalizes domains, cycles actions, answers «Куда пойдёт сайт?» and removes rules; background requests disabled in fixtures");
+    }
+
+    private void CheckRuleSetDraft(ICollection<string> checks)
+    {
+        var active = RoutingPlan.Create("active.invalid", SiteAction.Block);
+        var servers = new HashSet<string> { "0123456789abcdef" };
+        siteRules.Add(active);
+        ruleSetServers = servers;
+
+        StartDraft();
+        AddSiteRule("draft.invalid", SiteAction.Direct);
+        CycleRule(EditedSites.Single());
+        AddProgramRules([ProgramRoutingPlan.Create("steam.exe", SiteAction.Tunnel)], editor: true);
+        if (!siteRules.SequenceEqual([active]) || programRules.Count != 0 || ruleSetServers != servers ||
+            !PersistedSet.Sites.SequenceEqual([active]) || EditedSites.Single().Action != SiteAction.Block)
+            throw new InvalidOperationException("The rule-set editor touched active rules, servers or the persistence snapshot");
+        var live = ProgramRoutingPlan.Create("game.exe", SiteAction.Block);
+        AddProgramRules([live]);
+        CancelDraft();
+        if (!siteRules.SequenceEqual([active]) || !programRules.SequenceEqual([live]) || ruleSetServers != servers)
+            throw new InvalidOperationException("Cancelling the editor overwrote an active rule change");
+
+        StartDraft();
+        AddSiteRule("new.invalid", SiteAction.Tunnel);
+        if (CommitDraft(MainRuleSet) || !siteRules.SequenceEqual([active]))
+            throw new InvalidOperationException("The editor allowed a duplicate set name");
+        if (!CommitDraft("Тест") || ruleSetName != "Тест" || siteRules.Single().Domain != "new.invalid" ||
+            !SavedRuleSets().Single(s => s.Name == MainRuleSet).Programs.SequenceEqual([live]))
+            throw new InvalidOperationException("Saving did not activate the new set and retain the previous set");
+        SwitchRuleSet(MainRuleSet);
+        ruleSets.Clear(); siteRules.Clear(); programRules.Clear(); ruleSetServers = null;
+        RefreshRules(); RefreshRuleSetButton();
+        checks.Add("Rule-set draft edits and cancel leave active rules and servers intact; save activates the new set");
     }
 
     // Выбор программ: поиск по первым буквам имени, отметка, действие, «Добавить» — в правиле

@@ -70,11 +70,11 @@ public sealed class ClientRules(ClientRuntime owner) : IDisposable
     {
         if (disposed) return false;
         var workspace = owner.Workspace;
-        if (name == workspace.RuleSetName && workspace.DraftBase is null) return false;
+        if (name == workspace.RuleSetName) return false;
         var all = workspace.SavedRuleSets(owner); var next = all.FirstOrDefault(s => s.Name == name);
         if (next is null) return false;
         RoutingPlan.Validate(next.Sites); ProgramRoutingPlan.Validate(next.Programs);
-        workspace.DraftBase = null; workspace.RuleSets.Clear(); workspace.RuleSets.AddRange(all); workspace.RuleSetName = name;
+        workspace.RuleSets.Clear(); workspace.RuleSets.AddRange(all); workspace.RuleSetName = name;
         owner.TunnelPolicy.Sites.Clear(); owner.TunnelPolicy.Sites.AddRange(next.Sites);
         owner.TunnelPolicy.Programs.Clear(); owner.TunnelPolicy.Programs.AddRange(next.Programs);
         owner.Profiles.RuleSetServers = next.Servers?.Where(s => s is { Length: 16 } && s.All(char.IsAsciiHexDigit)).Take(Subscriptions.MaxProfiles).ToHashSet();

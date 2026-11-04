@@ -21,8 +21,7 @@ public static partial class SelfTests
             runtime.Profiles.GroupProfiles[ProfileGroup.ManualId] = [first, hidden];
             runtime.Workspace.HiddenServers.Add(AutoPool.Key(hidden)); runtime.Workspace.Favorites.Add(AutoPool.Key(first));
             var kept = RoutingPlan.Create("saved.invalid", SiteAction.Block);
-            runtime.Workspace.DraftBase = new(ClientWorkspace.MainRuleSet, [kept], []);
-            runtime.TunnelPolicy.Sites.Add(RoutingPlan.Create("draft.invalid", SiteAction.Direct));
+            runtime.TunnelPolicy.Sites.Add(kept);
             runtime.Workspace.WasConnected = true; runtime.Workspace.TrafficToday = 1234;
             runtime.Persistence.Queue(); Assert(runtime.Persistence.Flush());
             var restored = runtime.Persistence.Store!.Load()!;
