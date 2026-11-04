@@ -73,6 +73,46 @@ public static partial class SelfTests
             Assert(!ReferenceEquals(session, owner.Tunnel) && host.Connects == 2 && owner.Tunnels.ForeignSession && owner.Profiles.Running == free);
             await owner.Connections.StopAsync();
         });
+        await check("A hot routing update timeout preserves the lease and the last acknowledged lists", async () =>
+        {
+            var core = new RecoveryCore { Working = a }; var host = new TunnelHostFixture();
+            using var owner = new ClientRuntime(core, host); owner.Preferences.SystemTunnel = true;
+            owner.TunnelPolicy.Advanced = AdvancedOptions.Default with { GeoBlock = ["domain:before.invalid"] };
+            await owner.Connections.StartAsync(a);
+            var session = owner.Tunnel; var before = owner.Tunnels.SentLists;
+            Assert(before?.Block.Suffix.Contains("before.invalid") == true);
+            owner.TunnelPolicy.Advanced = AdvancedOptions.Default with { GeoBlock = ["domain:after.invalid"] };
+            host.Listing = _ => Task.FromException(new TimeoutException("fixture routing ACK timeout"));
+            Assert(await owner.Rules.ApplyListsAsync() == RoutingListsResult.Failed);
+            Assert(ReferenceEquals(session, owner.Tunnel) && session?.BlocksBypass == true && host.Connects == 1 &&
+                ReferenceEquals(before, owner.Tunnels.SentLists));
+            host.Listing = null;
+            Assert(await owner.Rules.ApplyListsAsync() == RoutingListsResult.Applied);
+            Assert(ReferenceEquals(session, owner.Tunnel) && owner.Tunnels.SentLists?.Block.Suffix.Contains("after.invalid") == true);
+            await owner.Connections.StopAsync();
+        });
+        await check("A routing ACK from a retired tunnel cannot replace the new tunnel's lists", async () =>
+        {
+            var core = new RecoveryCore { Working = a }; var host = new TunnelHostFixture();
+            using var owner = new ClientRuntime(core, host); owner.Preferences.SystemTunnel = true;
+            owner.TunnelPolicy.Advanced = AdvancedOptions.Default with { GeoBlock = ["domain:before.invalid"] };
+            await owner.Connections.StartAsync(a);
+            var session = owner.Tunnel;
+            var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var acknowledge = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            host.Listing = token => { entered.TrySetResult(); return acknowledge.Task.WaitAsync(token); };
+            owner.TunnelPolicy.Advanced = AdvancedOptions.Default with { GeoBlock = ["domain:stale.invalid"] };
+            var applying = owner.Rules.ApplyListsAsync();
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            host.Listing = null;
+            owner.TunnelPolicy.Advanced = AdvancedOptions.Default with { GeoBlock = ["domain:current.invalid"] };
+            await owner.Connections.RestartAsync(a, rebuildTunnel: true);
+            var current = owner.Tunnels.SentLists;
+            Assert(!ReferenceEquals(session, owner.Tunnel) && current?.Block.Suffix.Contains("current.invalid") == true);
+            acknowledge.SetResult();
+            Assert(await applying == RoutingListsResult.Deferred && ReferenceEquals(current, owner.Tunnels.SentLists));
+            await owner.Connections.StopAsync();
+        });
         await check("Runtime disposal cancels a start owned by the application", async () =>
         {
             var core = new ConnectionCore { Release = new(TaskCreationOptions.RunContinuationsAsynchronously) };
