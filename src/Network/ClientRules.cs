@@ -1,7 +1,7 @@
 namespace Oblachka;
 
 // Применение правил не держит представление. Сессия проверяется после каждого ожидания.
-public sealed class ClientRules(ClientRuntime owner) : IDisposable
+public sealed partial class ClientRules(ClientRuntime owner) : IDisposable
 {
     private readonly SemaphoreSlim ruleSync = new(1), dnsSync = new(1);
     private readonly CancellationTokenSource shutdown = new();
@@ -19,7 +19,7 @@ public sealed class ClientRules(ClientRuntime owner) : IDisposable
         {
             if (!Active || owner.TunnelLink is not { } link) return false;
             var session = owner.Tunnel;
-            var routing = (owner.Engine as Engine)?.Routing ?? (owner.RoutingLists is not null ? CompiledRouting.Compile(owner.TunnelPolicy.RoutingProfiles(), GeoStore.Default) : null);
+            var routing = (owner.Engine as Engine)?.Routing ?? owner.Tunnels.SentLists;
             var domains = ClientTunnelPolicy.DirectDomains(routing, sites ?? owner.TunnelPolicy.Sites);
             var key = string.Join(',', domains);
             if (key == owner.Tunnels.SentDirectDns) return true;

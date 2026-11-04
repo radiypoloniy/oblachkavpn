@@ -67,7 +67,7 @@ public partial class MainWindow
         if (coreZapretKey != DesiredZapretKey) return;
         var changed = appliedZapretDomains.Except(now).Concat(now.Except(appliedZapretDomains)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         appliedZapretDomains = now;
-        if (changed.Count == 0 || !TunnelListsActive || systemTunnel?.Stats is not { } stats) return;
+        if (changed.Count == 0 || runtime.RoutingLists is null || !SystemTunnelActive || systemTunnel?.Stats is not { } stats) return;
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         await CoreConnections.CloseHostsAsync(stats, host => ZapretSites.Covers(changed, host), timeout.Token);
     }

@@ -6,8 +6,9 @@ public enum ClientConnectionResult { None, Connected, Cancelled, Failed }
 public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
 {
     private CancellationTokenSource? active;
-    private Profile? requested;
-    private bool rebuild, disposed;
+    private sealed record StartRequest(Profile Target, bool AllowReconnect, bool RebuildTunnel);
+    private StartRequest? requested;
+    private bool disposed;
     public Task? Pending { get; private set; }
     public Task? Stopping { get; private set; }
     public bool IsActive => Pending is { IsCompleted: false } || active is not null;
@@ -15,7 +16,13 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
     public ClientConnectionResult LastResult { get; private set; }
     public event Action? Changed;
 
-    public Task StartAsync(Profile target, bool allowReconnect = false)
+    public Task StartAsync(Profile target, bool allowReconnect = false) =>
+        StartAsync(target, allowReconnect, rebuildTunnel: false);
+
+    internal Task RestartAsync(Profile target, bool rebuildTunnel) =>
+        StartAsync(target, allowReconnect: rebuildTunnel, rebuildTunnel: rebuildTunnel);
+
+    private Task StartAsync(Profile target, bool allowReconnect, bool rebuildTunnel)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         if (IsStopping || active?.IsCancellationRequested == true) throw new UserError("Подключение ещё останавливается.");
@@ -25,7 +32,7 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
         owner.Pause.Cancel(rememberDisconnected: false);
         owner.Networks.StoppedOnNetwork = null;
         if (owner.Preferences.SystemTunnel) owner.Measurements.PrepareTunnel();
-        requested = target; rebuild = allowReconnect;
+        requested = new(target, allowReconnect, rebuildTunnel);
         owner.Profiles.Selected = target; owner.Persistence.Queue();
         if (IsActive) { Changed?.Invoke(); return Pending!; }
         owner.Activity.ManualStop = false; owner.Activity.RecoveryWait?.Cancel();
@@ -69,19 +76,20 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
             cancel.Token.ThrowIfCancellationRequested();
             if (owner.Activity.Operation is not null) throw new UserError("Дождитесь завершения текущей операции.");
             owner.Activity.Operation = cancel; owner.Activity.EngineOperation = true; Changed?.Invoke();
-            while (requested is { } target)
+            while (requested is { } request)
             {
-                var allowReconnect = rebuild; requested = null;
-                Validate(target, allowReconnect); cancel.Token.ThrowIfCancellationRequested();
+                requested = null;
+                var target = request.Target;
+                Validate(target, request.AllowReconnect); cancel.Token.ThrowIfCancellationRequested();
                 var previousTunnel = owner.Tunnel;
-                await StartOneAsync(target, allowReconnect, cancel.Token);
+                await StartOneAsync(request, cancel.Token);
                 if (!ReferenceEquals(previousTunnel, owner.Tunnel)) owner.Rules.Remember();
                 cancel.Token.ThrowIfCancellationRequested();
                 owner.Profiles.Running = target; owner.Workspace.WasConnected = true;
                 owner.Monitor.ObserveProcess(); owner.Monitor.StartedFresh();
                 owner.Proxy.Sync(); owner.Persistence.Queue(); LastResult = ClientConnectionResult.Connected;
                 Changed?.Invoke();
-                if (requested is { } next && Profiles.Fingerprint(next) == Profiles.Fingerprint(target)) requested = null;
+                if (requested is { RebuildTunnel: false } next && Profiles.Fingerprint(next.Target) == Profiles.Fingerprint(target)) requested = null;
             }
             cancel.Token.ThrowIfCancellationRequested();
         }

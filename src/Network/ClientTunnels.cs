@@ -9,6 +9,7 @@ public sealed class ClientTunnels
     public bool CanRebuild => Applied is not null;
     public SentRules SentRules { get; set; } = SentRules.None;
     public string? SentDirectDns { get; set; }
+    internal CompiledRouting? SentLists { get; set; }
     public bool DirectAllowed { get; private set; }
     public bool ForeignSession { get; set; }
     internal ClientTunnels(ClientRuntime owner, IClientTunnelHost host) { this.owner = owner; this.host = host; }
@@ -70,7 +71,7 @@ public sealed class ClientTunnels
                 core.Routing = routing;
                 core.DirectEntry = routing?.HasDirect == true || settings.Zapret ? CoreDirectEntry.Create(Engine.FreePort()) : null;
             }
-            session.Tuning = settings.Tuning; owner.RoutingLists = null;
+            session.Tuning = settings.Tuning; owner.RoutingLists = null; SentLists = null;
             if (routing is { IsEmpty: false })
             {
                 try
@@ -78,6 +79,7 @@ public sealed class ClientTunnels
                     using var limit = CancellationTokenSource.CreateLinkedTokenSource(token); limit.CancelAfter(TimeSpan.FromSeconds(60));
                     await owner.TunnelLink!.SendListsAsync(routing, limit.Token);
                     owner.RoutingLists = new(routing.Order, routing.GlobalProxy);
+                    SentLists = routing;
                     if (owner.Engine is Engine shared) shared.Routing = null;
                 }
                 catch (Exception ex) when (!token.IsCancellationRequested && (ex is UserError or IOException or OperationCanceledException or TimeoutException)) { }

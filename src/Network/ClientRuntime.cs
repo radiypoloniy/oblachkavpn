@@ -88,7 +88,7 @@ public sealed class ClientRuntime : IDisposable
     {
         if (Tunnel is null && TunnelLink is null) return stopping.IsCompleted ? Task.CompletedTask : stopping;
         var session = Tunnel; var link = TunnelLink;
-        Tunnel = null; Helper = null; TunnelLink = null; RoutingLists = null;
+        Tunnel = null; Helper = null; TunnelLink = null; RoutingLists = null; Tunnels.SentLists = null;
         return stopping = ReleaseAsync(session, link);
     }
 

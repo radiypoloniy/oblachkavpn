@@ -118,7 +118,7 @@ public partial class MainWindow
         finally
         {
             if (session is not null) session.Changed -= OnSystemTunnelChanged;
-            systemStopping = false; tunnelLists = null;
+            systemStopping = false;
             // Снятая не до конца сессия видна только по журналу: окно должно о ней сказать.
             if (!closed) { UpdateSystemTunnelNote(null); UpdateControls(); }
         }

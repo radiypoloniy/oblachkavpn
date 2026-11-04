@@ -2,15 +2,16 @@ namespace Oblachka;
 
 public sealed partial class ClientConnections
 {
-    private async Task StartOneAsync(Profile target, bool allowReconnect, CancellationToken token)
+    private async Task StartOneAsync(StartRequest request, CancellationToken token)
     {
+        var target = request.Target;
         var mode = owner.Preferences.SystemTunnel;
         var session = owner.Tunnel;
         var runningTunnel = session is { State: not (SystemTunnelState.Idle or SystemTunnelState.Failed) };
         if (!mode && session is not null) { await owner.StopTunnelAsync(); runningTunnel = false; }
-        if (mode && runningTunnel && !session!.CanSwitchTo(target))
+        if (mode && runningTunnel && (request.RebuildTunnel || !session!.CanSwitchTo(target)))
         {
-            if (!allowReconnect) throw new UserError("Подтвердите переподключение со снятием защиты.");
+            if (!request.AllowReconnect) throw new UserError("Подтвердите переподключение со снятием защиты.");
             await owner.StopTunnelAsync(); runningTunnel = false;
         }
         if (owner.Engine is Engine core)

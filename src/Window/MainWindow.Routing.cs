@@ -37,8 +37,6 @@ public partial class MainWindow
         return runtime.TunnelPolicy.RoutingProfiles();
     }
 
-    private bool HasDirectEntry => (engine as Engine)?.DirectEntry is not null;
-
     private CompiledRouting? CurrentRouting() => CompiledRouting.Compile(ActiveRoutingProfiles(), GeoStore.Default);
 
     // Какие базы нужны включённым наборам; для предложения — и набору сервиса до согласия.
@@ -57,27 +55,19 @@ public partial class MainWindow
         RefreshRouting();
         QueueStateSave();
         await DownloadGeoAsync(force: false);
-        // Списки исполняет ядро подключения: чтобы они заработали, подключение перезапускается,
-        // как при смене режима. Во время запуска или замера не трогаем — применятся при следующем.
-        if (closed || !ConnectionActive) return;
-        if (operation is not null || systemStopping) { DetailText.Text = "Списки применятся со следующего подключения."; return; }
-        recoveryWait?.Cancel();
-        // Списки в ядре туннеля — новые файлы на ходу: ни ядро, ни туннель не перезапускаются.
-        if (TunnelListsActive && await UpdateTunnelListsAsync()) { DetailText.Text = "Списки применены; туннель и защита не снимались."; return; }
-        // «Весь компьютер»: если у сессии уже есть вход для прямого трафика (или он не нужен),
-        // перезапускается только ядро — туннель и защита остаются, связь пропадает на секунду.
-        // Полностью переподключаться приходится, только когда вход для прямого трафика нужен впервые.
-        if (SystemTunnelActive && systemTunnel is not null && (HasDirectEntry || CurrentRouting()?.HasDirect != true && !zapretEnabled))
-        {
-            await ConnectCoreAsync();
-            if (closed) return;
-            if (systemTunnel?.State == SystemTunnelState.Running && engine.State is ConnectionState.Running or ConnectionState.Verified)
-            { DetailText.Text = "Списки применены; туннель и защита не снимались."; return; }
-            // Ядро под сессией не поднялось: защита осталась, а трафик нести некому — весь интернет
-            // закрыт. Не прячем это за «применено», а переподключаемся полностью.
-            if (manualStop || systemTunnel is null) return;
-        }
-        if (await ReconnectAsync()) DetailText.Text = "Списки включены, подключение перезапущено.";
+        if (closed) return;
+        var key = DesiredZapretKey;
+        var result = systemStopping ? RoutingListsResult.Deferred : await runtime.Rules.ApplyListsAsync();
+        if (closed) return;
+        if (result is RoutingListsResult.Applied or RoutingListsResult.Reconnected) coreZapretKey = key;
+        if (result != RoutingListsResult.Inactive)
+            DetailText.Text = result switch
+            {
+                RoutingListsResult.Applied => "Списки применены; туннель и защита не снимались.",
+                RoutingListsResult.Reconnected => "Списки включены, подключение перезапущено.",
+                RoutingListsResult.Deferred => "Списки применятся со следующего подключения.",
+                _ => "Не удалось применить списки. Проверьте подключение."
+            };
     }
 
     // Полное переподключение: новая сессия «Весь компьютер» с новым входом прямого трафика.
