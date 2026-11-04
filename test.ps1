@@ -33,7 +33,10 @@ if (-not (Test-Path -LiteralPath $uiReportPath)) { throw 'Проверка ин�
 $uiReport = Get-Content -LiteralPath $uiReportPath -Raw | ConvertFrom-Json
 Write-Host ('Проверки интерфейса: ' + $uiReport.Checks.Count + '. Успех: ' + $uiReport.Passed)
 Write-Host ('Отчёт: ' + $uiReportPath)
-if ($uiProcess.ExitCode -ne 0 -or -not $uiReport.Passed) { throw 'Проверки интерфейса не прошли.' }
+if ($uiProcess.ExitCode -ne 0 -or -not $uiReport.Passed) {
+    if ($uiReport.Error) { Write-Host $uiReport.Error }
+    throw 'Проверки интерфейса не прошли.'
+}
 
 # Отдельный процесс нужен, чтобы проверить отсутствие WPF после фоновых сетевых операций.
 $backgroundReportPath = Join-Path $testDirectory ('background-network-' + [guid]::NewGuid().ToString('N') + '.json')

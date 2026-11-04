@@ -68,9 +68,12 @@ public partial class MainWindow
         Navigate("Servers");
         UpdateLayout();
         await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
-        var realized = Descendants<System.Windows.Controls.ContentPresenter>(Servers.SheetList).Count(p => p.DataContext is ServerRow);
-        if (Servers.SheetList.Items.OfType<ServerRow>().Count() != 47 || realized >= 47)
-            throw new InvalidOperationException($"Large server list is not virtualized: {realized} of 47 rows realized");
+        var list = Servers.SheetList;
+        var realized = Enumerable.Range(0, list.Items.Count)
+            .Count(index => list.Items[index] is ServerRow && list.ItemContainerGenerator.ContainerFromIndex(index) is not null);
+        var total = list.Items.OfType<ServerRow>().Count();
+        if (total != 47 || realized is 0 or >= 47)
+            throw new InvalidOperationException($"Large server list expected 47 rows with a virtualized viewport: {realized} of {total} rows realized");
         checks.Add("47-server subscription virtualizes row visuals and opens as a separate tab");
         RemoveGroup(groups.Single(g => g.Sources.Contains("https://large.invalid/sub")).Id);
         Navigate("Connection");
