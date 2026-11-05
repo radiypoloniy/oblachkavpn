@@ -54,12 +54,16 @@ public partial class MainWindow
         // В системном режиме ядро окна поднимается раньше туннеля: «Защищено» — только когда
         // служба подтвердила туннель, до этого идёт подключение.
         var tunnelStarting = systemTunnel?.State == SystemTunnelState.Starting;
-        var running = engine.State is ConnectionState.Running or ConnectionState.Verified && !tunnelStarting;
+        var mainPaused = runtime.Connections.MainPaused;
+        var running = engine.State is ConnectionState.Running or ConnectionState.Verified && !tunnelStarting && !mainPaused;
         var busy = engine.State is ConnectionState.Starting or ConnectionState.Validating || tunnelStarting || operation is not null && engineOperation && !backgroundCheck;
         var holding = systemTunnel?.State == SystemTunnelState.Holding;
         var name = (runningProfile ?? profile)?.DisplayName ?? "";
         var (title, sub, power, dot) =
             systemStopping ? ("Отключаемся…", name, PowerState.Connecting, "MidI")
+            : mainPaused && systemTunnel?.State is SystemTunnelState.Failed or SystemTunnelState.RecoveryRequired ? ("Строгая защита", "Туннель недоступен · ожидаем восстановления", PowerState.Off, "WI")
+            : mainPaused ? (pausedUntil is null ? "Основной VPN выключен" : "Основной VPN на паузе",
+                pausedUntil is null ? "Привязки действуют" : "Привязки действуют · включится в " + PauseEnd, PowerState.Off, "Ok")
             : findingRoute || holding ? ("Ищем сервер", name + " не отвечает", PowerState.Connecting, "MidI")
             : busy && !running ? ("Подключаемся…", profile?.DisplayName ?? "", PowerState.Connecting, "MidI")
             // «Защищено» — только когда через туннель идёт весь компьютер. Прокси защищает не всё.
@@ -85,7 +89,7 @@ public partial class MainWindow
         Home.CheckText.Text = checkedOk ? "Связь проверена · " + lastProbe!.Milliseconds + " мс"
             : running && lastProbe is { Success: false } ? "Проверка связи не прошла"
             : running ? "Проверяем связь…"
-            : busy ? "Запускаем ядро и проверяем связь" : "Туннель выключен";
+            : busy ? "Запускаем ядро и проверяем связь" : mainPaused ? "Состояние выходов в «Маршрутах»" : "Туннель выключен";
         RefreshExit(checkedOk);
         Home.CheckChip.SetResourceReference(Border.BackgroundProperty, checkedOk ? "OkB" : "Field");
         Home.CheckText.SetResourceReference(TextBlock.ForegroundProperty, checkedOk ? "OkF" : "Mu2");

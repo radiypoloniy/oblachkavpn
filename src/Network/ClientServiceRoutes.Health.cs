@@ -14,7 +14,7 @@ internal sealed partial class ClientServiceRoutes
 
     internal (string Text, bool Warning) Status(ServiceRoute route)
     {
-        if (owner.Pause.Until is not null) return ("На паузе", false);
+        if (owner.Pause.Until is not null && !owner.Connections.MainPaused) return ("На паузе", false);
         if (owner.Tunnel is not { State: SystemTunnelState.Running } tunnel) return ("Не применяется", false);
         if (!MatchesApplied(route)) return ("Ожидает применения", false);
         var pin = tunnel.PinnedServices.FirstOrDefault(r => r.Id == route.Id);

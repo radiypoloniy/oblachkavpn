@@ -83,7 +83,7 @@ public sealed class ClientRuntime : IDisposable
     {
         TunnelChanged?.Invoke(state);
         if (state is SystemTunnelState.Failed or SystemTunnelState.RecoveryRequired)
-            Monitor.Dispatch(() => _ = Recovery.HealLostTunnelAsync());
+            Monitor.Dispatch(Recovery.QueueTunnelHeal);
     }
     private void TunnelProtectionRepaired() => ProtectionRepaired?.Invoke();
 

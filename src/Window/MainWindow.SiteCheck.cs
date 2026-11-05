@@ -149,6 +149,7 @@ public partial class MainWindow
         try
         {
             var rule = RoutingPlan.Create(domain, action);
+            if (!ConfirmPinnedConflicts([rule], [])) return;
             var index = siteRules.FindIndex(r => r.Domain == rule.Domain);
             if (index >= 0) siteRules[index] = rule;
             else if (siteRules.Count >= 100) throw new UserError("Достигнут предел 100 правил: удалите лишние в «Программы и сайты → Правила».");

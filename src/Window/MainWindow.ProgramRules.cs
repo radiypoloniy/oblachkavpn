@@ -80,13 +80,14 @@ public partial class MainWindow
     }
 
     // Уже существующее правило на тот же файл или папку заменяется: человек поменял решение.
-    private bool AddProgramRules(IReadOnlyList<ProgramRule> rules, bool editor = false)
+    private bool AddProgramRules(IReadOnlyList<ProgramRule> rules, bool editor = false, bool confirmPins = true)
     {
         try
         {
             var target = editor ? EditedPrograms : programRules;
             var next = target.Where(r => !rules.Any(n => string.Equals(n.Key, r.Key, StringComparison.OrdinalIgnoreCase))).Concat(rules).ToArray();
             ProgramRoutingPlan.Validate(next);
+            if (confirmPins && !ConfirmPinnedConflicts([], rules)) return false;
             target.Clear(); target.AddRange(next); RulesEdited(editor);
             return true;
         }

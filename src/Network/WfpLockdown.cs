@@ -19,12 +19,17 @@ public static class WfpLockdown
 {
     public static readonly Guid ProviderKey = new("6f1a3c52-0b7e-4d0e-9a1d-0b1a5c7e2f11");
     public static readonly Guid SublayerKey = new("6f1a3c52-0b7e-4d0e-9a1d-0b1a5c7e2f12");
-    public const ushort SublayerWeight = ushort.MaxValue - 1;
+    internal static readonly Guid StrictProviderKey = new("6f1a3c52-0b7e-4d0e-9a1d-0b1a5c7e2f21");
+    internal static readonly Guid StrictSublayerKey = new("6f1a3c52-0b7e-4d0e-9a1d-0b1a5c7e2f22");
+    public const ushort SublayerWeight = ushort.MaxValue - 2;
+    internal const ushort StrictSublayerWeight = ushort.MaxValue - 1;
     public const int MaxFilters = 24;
 
-    public static Guid FilterKey(int index)
+    public static Guid FilterKey(int index) => FilterKey(index, strict: false);
+
+    private static Guid FilterKey(int index, bool strict)
     {
-        var hash = SHA256.HashData(Encoding.ASCII.GetBytes("oblachka:wfp-lockdown:" + index));
+        var hash = SHA256.HashData(Encoding.ASCII.GetBytes((strict ? "oblachka:wfp-strict:" : "oblachka:wfp-lockdown:") + index));
         return new Guid(hash.AsSpan(0, 16));
     }
 
@@ -32,11 +37,14 @@ public static class WfpLockdown
     public static IReadOnlyList<string> Programs(string folder) =>
         [Path.Combine(folder, "Oblachka.exe"), Path.Combine(folder, "tools", "xray.exe"), Path.Combine(folder, "tools", "sing-box.exe"), TunCore.Program(Path.Combine(folder, "tools"))];
 
-    public static IReadOnlyList<WfpFilter> Filters(IReadOnlyList<string> programs, bool lan)
+    // Окно разрешает имена серверов при восстановлении. Ядра получают разрешения после Acquire.
+    internal static IReadOnlyList<string> StrictPrograms(string folder) => [Path.Combine(folder, "Oblachka.exe")];
+
+    public static IReadOnlyList<WfpFilter> Filters(IReadOnlyList<string> programs, bool lan, bool strict = false)
     {
         var list = new List<WfpFilter>();
         void Add(string name, bool v6, byte weight, bool permit, params WfpCondition[] conditions) =>
-            list.Add(new(FilterKey(list.Count), ServiceBrand.Name + " — без VPN: " + name, v6, weight, permit, conditions));
+            list.Add(new(FilterKey(list.Count, strict), ServiceBrand.Name + (strict ? " — строгая защита: " : " — без VPN: ") + name, v6, weight, permit, conditions));
         foreach (var v6 in new[] { false, true })
         {
             var family = v6 ? " (IPv6)" : " (IPv4)";
@@ -51,43 +59,54 @@ public static class WfpLockdown
                 Add("локальная сеть" + family, v6, 11, true, WfpProtectionBackend.LocalSubnets(v6).Concat(WfpProtectionBackend.Discovery(v6)).ToArray());
             }
             Add("запрет" + family, v6, 0, false);
+            if (strict)
+                list.Add(new(FilterKey(list.Count, strict), ServiceBrand.Name + " — адрес туннеля только в туннель" + family,
+                    v6, 15, false,
+                    [new(WfpConditionKind.LocalAddress, IPAddress.Parse(v6 ? SingBoxTunConfig.TunHost6 : SingBoxTunConfig.TunHost4)),
+                     new(WfpConditionKind.InterfaceTypeNot, Number: WfpProtectionBackend.TunnelInterfaceType)], Packet: true));
         }
         return list;
     }
 
     public static bool IsOn(IWfpEngine engine) => engine.SublayerExists(SublayerKey);
+    internal static bool StrictIntact(IWfpEngine engine, IReadOnlyList<string> programs) =>
+        engine.SublayerExists(StrictSublayerKey) && Filters(programs, lan: false, strict: true).All(f => engine.FilterExists(f.Key));
 
     // Ставится заново целиком: прежний набор (другой выбор локальной сети) снимается в той же транзакции.
-    public static void Apply(IWfpEngine engine, IReadOnlyList<string> programs, bool lan)
+    public static void Apply(IWfpEngine engine, IReadOnlyList<string> programs, bool lan, bool strict = false)
     {
-        var filters = Filters(programs, lan);
+        var filters = Filters(programs, lan, strict);
+        var provider = strict ? StrictProviderKey : ProviderKey;
+        var sublayer = strict ? StrictSublayerKey : SublayerKey;
+        var name = ServiceBrand.Name + (strict ? " — строгая защита" : " — без VPN без интернета");
         engine.Begin();
         try
         {
-            if (engine.SublayerExists(SublayerKey)) Delete(engine);
-            engine.AddProvider(ProviderKey, ServiceBrand.Name + " — без VPN без интернета", persistent: true);
-            engine.AddSublayer(SublayerKey, ProviderKey, ServiceBrand.Name + " — без VPN без интернета", SublayerWeight, persistent: true);
-            foreach (var filter in filters) engine.AddFilter(filter with { Persistent = true }, ProviderKey, SublayerKey);
+            if (engine.SublayerExists(sublayer)) Delete(engine, strict);
+            engine.AddProvider(provider, name, persistent: true);
+            engine.AddSublayer(sublayer, provider, name, strict ? StrictSublayerWeight : SublayerWeight, persistent: true);
+            foreach (var filter in filters) engine.AddFilter(filter with { Persistent = true }, provider, sublayer);
             engine.Commit();
         }
         catch { engine.Abort(); throw; }
-        if (!engine.SublayerExists(SublayerKey)) throw new IOException("Фильтрация Windows не сохранила запрет без VPN.");
+        if (!engine.SublayerExists(sublayer)) throw new IOException("Фильтрация Windows не сохранила постоянную блокировку.");
     }
 
-    public static void Remove(IWfpEngine engine)
+    public static void Remove(IWfpEngine engine, bool strict = false)
     {
-        if (!engine.SublayerExists(SublayerKey)) return;
+        var sublayer = strict ? StrictSublayerKey : SublayerKey;
+        if (!engine.SublayerExists(sublayer)) return;
         engine.Begin();
-        try { Delete(engine); engine.Commit(); }
+        try { Delete(engine, strict); engine.Commit(); }
         catch { engine.Abort(); throw; }
-        if (engine.SublayerExists(SublayerKey)) throw new IOException("Фильтрация Windows не сняла запрет без VPN.");
+        if (engine.SublayerExists(sublayer)) throw new IOException("Фильтрация Windows не сняла постоянную блокировку.");
     }
 
-    private static void Delete(IWfpEngine engine)
+    private static void Delete(IWfpEngine engine, bool strict)
     {
-        for (var i = 0; i < MaxFilters; i++) engine.DeleteFilter(FilterKey(i));
-        engine.DeleteSublayer(SublayerKey);
-        engine.DeleteProvider(ProviderKey);
+        for (var i = 0; i < MaxFilters; i++) engine.DeleteFilter(FilterKey(i, strict));
+        engine.DeleteSublayer(strict ? StrictSublayerKey : SublayerKey);
+        engine.DeleteProvider(strict ? StrictProviderKey : ProviderKey);
     }
 }
 

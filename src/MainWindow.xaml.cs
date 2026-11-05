@@ -104,10 +104,10 @@ public partial class MainWindow : Window
     private void UpdateControls()
     {
         runtime.Imports.TryApplyPending();
-        var active = engine.State is not ConnectionState.Idle;
+        var active = engine.State is not ConnectionState.Idle && !runtime.Connections.MainPaused;
         ConnectButton.IsEnabled = profile is not null && !active && operation is null && !runtime.Connections.IsStopping;
         // Пока системный режим снимается, повторное нажатие ничего не ускорит.
-        StopButton.IsEnabled = (active || operation is not null) && !systemStopping;
+        StopButton.IsEnabled = (active || operation is not null) && !systemStopping && !runtime.Connections.IsStopping;
         // Добавлять можно и при подключении: подписка применится после остановки (pendingImport),
         // ключ попадёт во «Вручную» и сразу выбран — как и после QR-кода.
         ImportFileButton.IsEnabled = Servers.Add.AddKeyButton.IsEnabled = operation is null;
@@ -119,7 +119,7 @@ public partial class MainWindow : Window
         // Список закрыт только на время подбора: он сам выбирает сервер. Выбор во время запуска
         // или проверки запоминается и выполняется, как только они закончатся.
         ProfilePicker.IsEnabled = !findingRoute;
-        ProbeButton.IsEnabled = engine.ProcessId is not null && operation is null;
+        ProbeButton.IsEnabled = engine.ProcessId is not null && operation is null && !runtime.Connections.MainPaused;
         ProbeUrl.IsEnabled = operation is null;
         CopyEndpointButton.IsEnabled = engine.ProcessId is not null;
         ReconnectButton.IsEnabled = profile is not null && operation is null;

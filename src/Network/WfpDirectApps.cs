@@ -50,6 +50,8 @@ public static class WfpDirectApps
         {
             if (!force && programs.SequenceEqual(allowed, StringComparer.OrdinalIgnoreCase)) return false;
             using var engine = open();
+            if (engine.SublayerExists(WfpLockdown.StrictSublayerKey)) programs = [];
+            if (!force && programs.SequenceEqual(allowed, StringComparer.OrdinalIgnoreCase)) return false;
             if (!engine.SublayerExists(WfpProtectionBackend.SublayerKey)) { allowed = []; armed = false; return false; }
             armed = true;
             engine.Begin();

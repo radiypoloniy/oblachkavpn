@@ -61,8 +61,10 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
         // direct=1 — пользователь сам отправил часть трафика мимо туннеля правилами: ядру туннеля
         // открыт любой адрес. local=1 — только локальная сеть: ядру туннеля открыты частные подсети.
         // bypass= — подсети мимо туннеля из «Для продвинутых»: программам открыты они, и только они.
-        var bypass = lease.Tuning?.Subnets.Select(TunnelTuning.Normalize).ToArray() ?? [];
+        var strict = lease.ServiceRoutes.Count > 0;
+        var bypass = strict ? [] : lease.Tuning?.Subnets.Select(TunnelTuning.Normalize).ToArray() ?? [];
         var after = "sublayer=" + SublayerKey + (lease.HasDirect ? " direct=1" : "") + (lease.LocalNetwork ? " local=1" : "") +
+            (strict ? " strict=1" : "") +
             (bypass.Length > 0 ? " bypass=" + string.Join(',', bypass) : "") + " peers=" + string.Join(',', lease.Peers.Select(p => p.ToString()));
         return new[] { new NetworkChange(NetworkResourceKind.WfpProtection, ResourceId, null, after) };
     }
@@ -71,12 +73,13 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
     {
         var filters = FiltersOf(change);
         using var engine = open();
-        // Остатки прошлой сессии снимаются отдельной транзакцией: новая не должна
-        // зависеть от того, что от старой осталось.
-        if (engine.SublayerExists(SublayerKey)) RemoveAll(engine);
+        var strictPrograms = WfpLockdown.StrictPrograms(AppContext.BaseDirectory);
+        if (IsStrict(change) && !WfpLockdown.StrictIntact(engine, strictPrograms))
+            WfpLockdown.Apply(engine, strictPrograms, lan: false, strict: true);
         engine.Begin();
         try
         {
+            if (engine.SublayerExists(SublayerKey)) DeleteAll(engine);
             engine.AddProvider(ProviderKey, ServiceBrand.Name);
             engine.AddSublayer(SublayerKey, ProviderKey, ServiceBrand.Name + " — защита от утечек", SublayerWeight);
             foreach (var filter in filters) engine.AddFilter(filter, ProviderKey, SublayerKey);
@@ -94,11 +97,15 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
     {
         var filters = FiltersOf(change);
         using var engine = open();
-        return engine.SublayerExists(SublayerKey) && filters.All(f => engine.FilterExists(f.Key));
+        return engine.SublayerExists(SublayerKey) && filters.All(f => engine.FilterExists(f.Key)) &&
+            (!IsStrict(change) || WfpLockdown.StrictIntact(engine, WfpLockdown.StrictPrograms(AppContext.BaseDirectory)));
     }
 
     private IReadOnlyList<WfpFilter> FiltersOf(NetworkChange change) =>
-        Filters(Peers(change), change.After.Contains(" direct=1 ", StringComparison.Ordinal), change.After.Contains(" local=1 ", StringComparison.Ordinal), Bypass(change));
+        Filters(Peers(change), change.After.Contains(" direct=1 ", StringComparison.Ordinal), change.After.Contains(" local=1 ", StringComparison.Ordinal), Bypass(change), IsStrict(change));
+
+    internal static bool IsStrict(NetworkChange change) => change.Kind == NetworkResourceKind.WfpProtection &&
+        change.After.Contains(" strict=1 ", StringComparison.Ordinal);
 
     // Подсети из журнала проверяются заново, как и адреса узлов: строку могли изменить.
     private static string[] Bypass(NetworkChange change)
@@ -125,16 +132,21 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
         engine.Begin();
         try
         {
-            for (var i = 0; i < AllFilters; i++) engine.DeleteFilter(FilterKey(i));
-            engine.DeleteSublayer(SublayerKey);
-            engine.DeleteProvider(ProviderKey);
+            DeleteAll(engine);
             engine.Commit();
         }
         catch { engine.Abort(); throw; }
     }
 
+    private static void DeleteAll(IWfpEngine engine)
+    {
+        for (var i = 0; i < AllFilters; i++) engine.DeleteFilter(FilterKey(i));
+        engine.DeleteSublayer(SublayerKey);
+        engine.DeleteProvider(ProviderKey);
+    }
+
     // Состав фильтров. Вес внутри подслоя: разрешения выше запрета.
-    public IReadOnlyList<WfpFilter> Filters(IReadOnlyList<IPAddress> peers, bool direct = false, bool local = false, IReadOnlyList<string>? bypass = null)
+    public IReadOnlyList<WfpFilter> Filters(IReadOnlyList<IPAddress> peers, bool direct = false, bool local = false, IReadOnlyList<string>? bypass = null, bool strict = false)
     {
         var list = new List<WfpFilter>();
         void Add(string name, bool v6, byte weight, bool permit, params WfpCondition[] conditions) =>
@@ -169,7 +181,7 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
             // программы ходят к принтеру и NAS сами, без ядра. Выше разрешения — два запрета: DNS мимо
             // туннеля (Windows спрашивает DNS роутера на каждом интерфейсе — это утечка имён) и адреса
             // узлов для всех, кроме ядер (сервер в локальной сети остаётся только за ядрами).
-            if (local)
+            if (local && !strict)
             {
                 Add("DNS мимо туннеля" + family, v6, 12, false, new WfpCondition(WfpConditionKind.RemotePort, Number: 53));
                 var own = peers.Where(p => (p.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) == v6)

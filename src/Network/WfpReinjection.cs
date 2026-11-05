@@ -91,6 +91,7 @@ public static class WfpReinjection
         {
             using var engine = open();
             if (!engine.SublayerExists(WfpProtectionBackend.SublayerKey)) { active = false; return false; }
+            if (engine.SublayerExists(WfpLockdown.StrictSublayerKey)) ranges = [];
             engine.Begin();
             try
             {

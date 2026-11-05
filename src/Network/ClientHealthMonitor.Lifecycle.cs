@@ -34,6 +34,11 @@ public sealed partial class ClientHealthMonitor
             {
                 if (!disposed)
                 {
+                    if (owner.Recovery.HasPendingTunnelHeal)
+                    {
+                        if (now() >= next) await owner.Recovery.HealLostTunnelAsync();
+                        if (owner.Recovery.HasPendingTunnelHeal) return;
+                    }
                     ObserveProcess(); var before = LastObservation;
                     await PollAsync();
                     if (!disposed && LastObservation is { } result && !ReferenceEquals(before, result))
@@ -42,7 +47,7 @@ public sealed partial class ClientHealthMonitor
                         else if (result.Round.Reachable && result.PathProblem is null) owner.Recovery.PathHealthy();
                         else if (result.ShouldRecover) await owner.Recovery.RecoverAsync();
                     }
-                    if (!disposed && owner.Engine.State == ConnectionState.Failed)
+                    if (!disposed && !owner.Recovery.HasPendingTunnelHeal && owner.Engine.State == ConnectionState.Failed)
                         await owner.Recovery.RestartFailedAsync();
                 }
             }
@@ -55,17 +60,30 @@ public sealed partial class ClientHealthMonitor
                     if (owner.Activity.Operation is not null || owner.Activity.RecoveryWait is not null) delay = TimeSpan.FromSeconds(1);
                     if (delay < TimeSpan.FromSeconds(1)) delay = TimeSpan.FromSeconds(1);
                     if (delay > TimeSpan.FromDays(1)) delay = TimeSpan.FromDays(1);
-                    if (owner.Engine.ProcessId is null || next == DateTimeOffset.MaxValue) delay = Timeout.InfiniteTimeSpan;
+                    if (!owner.Recovery.HasPendingTunnelHeal && (owner.Engine.ProcessId is null || next == DateTimeOffset.MaxValue))
+                        delay = Timeout.InfiniteTimeSpan;
                     Schedule(delay);
                 }
             }
         }, null);
     }
-    private void PowerChanged(object sender, PowerModeChangedEventArgs args) { if (args.Mode == PowerModes.Resume) RequestSoon(); }
+    private void PowerChanged(object sender, PowerModeChangedEventArgs args) { if (args.Mode == PowerModes.Resume) Dispatch(Resume); }
+    internal void Resume()
+    {
+        if (disposed) return;
+        owner.Recovery.ResumeTunnelHeal();
+        if (owner.Recovery.HasPendingTunnelHeal) return;
+        if (owner.Activity.ManualStop || owner.Pause.Until is not null || owner.Activity.VmTestActive) return;
+        probing?.Cancel();
+        Health.Reset(); Path.Reset(); Recovery.Reset();
+        StartedFresh();
+        NextCheck = now().AddSeconds(3);
+    }
     private void AvailabilityChanged(object? sender, NetworkAvailabilityEventArgs args) { if (args.IsAvailable) RequestSoon(); }
     private void CoreChanged(ConnectionState state, string message) => context?.Post(_ =>
     { if (!disposed) { ObserveProcess(); Wake(); if (state == ConnectionState.Failed) _ = owner.Recovery.RestartFailedAsync(); } }, null);
-    private void RequestSoon() => context?.Post(_ => { if (!disposed) NextCheck = now().AddSeconds(3); }, null);
+    private void RequestSoon() => context?.Post(_ =>
+    { if (!disposed && !owner.Recovery.HasPendingTunnelHeal) NextCheck = now().AddSeconds(3); }, null);
     internal void Dispatch(Action action) => context?.Post(_ => { if (!disposed) action(); }, null);
     public void Dispose()
     {

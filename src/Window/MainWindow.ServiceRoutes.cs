@@ -96,6 +96,14 @@ public partial class MainWindow
         Home.ServiceSummary.QuickRoutes.ItemsSource = rows.OrderByDescending(row => row.Warning).Take(2).ToArray();
     }
 
+    private bool ConfirmPinnedConflicts(IEnumerable<SiteRule> sites, IEnumerable<ProgramRule> programs, string? exceptId = null)
+    {
+        var conflicts = runtime.ServiceRoutes.ConflictingRoutes(sites, programs, exceptId);
+        return conflicts.Length == 0 || AppDialog.Confirm(this, "Пересечение со строгими маршрутами",
+            "Для совпавшего трафика продолжат действовать привязки " + string.Join(", ", conflicts) + ".",
+            "Сохранить с приоритетом привязок");
+    }
+
     private void SaveServiceRoute()
     {
         var preset = Routes.ServicePresetPicker.SelectedItem as ServicePreset;
@@ -115,7 +123,9 @@ public partial class MainWindow
             target = target with { Domains = saved.Domains };
         if (Routes.ServiceAction.SelectedIndex is > 0 and var index)
         {
-            if (!SaveTargetRules(target.Name, target.Domains, index switch { 2 => SiteAction.Direct, 3 => SiteAction.Block, _ => SiteAction.Tunnel })) return;
+            if (runtime.TunnelPolicy.ServiceRoutes.Any(r => r.Id == target.Id) && !AppDialog.Confirm(this, "Заменить строгую привязку?",
+                "После применения трафик пойдёт по выбранному обычному правилу.", "Заменить", danger: true)) return;
+            if (!SaveTargetRules(target.Name, target.Domains, index switch { 2 => SiteAction.Direct, 3 => SiteAction.Block, _ => SiteAction.Tunnel }, target.Id)) return;
             if (ruleSetDraft is null) runtime.ServiceRoutes.Remove(target.Id);
             FinishRouteEdit();
             return;
@@ -130,7 +140,7 @@ public partial class MainWindow
             var draft = runtime.ServiceRoutes.Draft(target, server.Profile, serviceFiles);
             var conflicts = runtime.ServiceRoutes.Conflicts(draft);
             if (conflicts.Length > 0 && MessageBox.Show(this,
-                "Эти правила могут иметь приоритет над маршрутом сервиса:\n\n" +
+                "Привязка получит приоритет над этими правилами для совпавшего трафика:\n\n" +
                 string.Join("\n", conflicts.Take(6)) + (conflicts.Length > 6 ? $"\nЕщё правил: {conflicts.Length - 6}" : "") +
                 "\n\nСохранить привязку?", "Пересечение правил", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
             runtime.ServiceRoutes.Save(draft);
@@ -142,7 +152,7 @@ public partial class MainWindow
     private async Task ApplyServiceRoutesAsync()
     {
         if (!runtime.ServiceRoutes.HasPendingChanges || runtime.Profiles.Running is not { } running) return;
-        if (MessageBox.Show(this, "Соединения прервутся, а защита VPN на время переподключения снимется. Продолжить?",
+        if (MessageBox.Show(this, "Соединения прервутся. Пока туннель перестраивается, сеть будет заблокирована. Продолжить?",
             "Переподключение VPN", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
         try { await runtime.Connections.RestartAsync(running, rebuildTunnel: true); }
         catch (UserError error) { MessageBox.Show(this, error.Message, "Маршрутизация"); }

@@ -6,6 +6,12 @@ public static class TestProgram
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Length is 3 or 4 && args[0] == "--strict-routing-vm" && (args.Length == 3 || args[3] == "--hold-for-reboot"))
+            return StrictRoutingVmCommand.RunAsync(args[1], args[2], holdForReboot: args.Length == 4).GetAwaiter().GetResult();
+        if (args.Length == 2 && args[0] == "--strict-routing-after-reboot")
+            return StrictRoutingVmCommand.CheckAfterRebootAsync(args[1]).GetAwaiter().GetResult();
+        if (args.Length == 3 && args[0] == "--strict-routing-quic-probe")
+            return StrictRoutingVmCommand.RunQuicProbeAsync(args[1], args[2]).GetAwaiter().GetResult();
         if (args.Length == 2 && args[0] == "--background-network-self-test") return SelfTests.RunBackgroundNetworkAsync(args[1]).GetAwaiter().GetResult();
         if (args.Length == 2 && args[0] == "--view-channel-self-test") return SelfTests.RunClientViewAsync(args[1]).GetAwaiter().GetResult();
         if (args.Length == 2 && args[0] == "--routing-inspect") return RoutingInspectCommand.Run(args[1]);

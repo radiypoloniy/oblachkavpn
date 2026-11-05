@@ -74,10 +74,19 @@ public sealed partial class ClientRules(ClientRuntime owner) : IDisposable
         var all = workspace.SavedRuleSets(owner); var next = all.FirstOrDefault(s => s.Name == name);
         if (next is null) return false;
         RoutingPlan.Validate(next.Sites); ProgramRoutingPlan.Validate(next.Programs);
+        var nextServers = next.Servers?.Where(s => s is { Length: 16 } && s.All(char.IsAsciiHexDigit)).Take(Subscriptions.MaxProfiles).ToHashSet();
+        var excluded = owner.ServiceRoutes.ExcludedBy(nextServers);
+        var conflicts = owner.ServiceRoutes.ConflictingRoutes(next.Sites, next.Programs);
+        if (excluded.Length > 0 || conflicts.Length > 0)
+        {
+            Problem = "Автосмена набора остановлена из-за строгих маршрутов. Откройте «Маршруты», чтобы проверить пересечения.";
+            Changed?.Invoke();
+            return false;
+        }
         workspace.RuleSets.Clear(); workspace.RuleSets.AddRange(all); workspace.RuleSetName = name;
         owner.TunnelPolicy.Sites.Clear(); owner.TunnelPolicy.Sites.AddRange(next.Sites);
         owner.TunnelPolicy.Programs.Clear(); owner.TunnelPolicy.Programs.AddRange(next.Programs);
-        owner.Profiles.RuleSetServers = next.Servers?.Where(s => s is { Length: 16 } && s.All(char.IsAsciiHexDigit)).Take(Subscriptions.MaxProfiles).ToHashSet();
+        owner.Profiles.RuleSetServers = nextServers;
         owner.Persistence.Queue(); await SyncAsync(); if (disposed) return false;
         if (owner.Profiles.Selected is { } current && owner.Profiles.RuleSetServers is { } servers && !servers.Contains(ServerMachines.Hash(current)))
         {
@@ -95,7 +104,7 @@ public sealed partial class ClientRules(ClientRuntime owner) : IDisposable
                 var active = owner.Engine.State is not ConnectionState.Idle || owner.Tunnel is not null;
                 if (owner.Activity.ManualStop) { owner.Profiles.Selected = best; owner.Persistence.Queue(); }
                 else if (!active || owner.Tunnel is null || owner.Tunnel.CanSwitchTo(best)) await owner.Connections.SelectAsync(best);
-                else { await owner.Connections.StopAsync(); await owner.Connections.StartAsync(best); }
+                else await owner.Connections.RestartAsync(best, rebuildTunnel: true);
             }
         }
         if (!disposed) Changed?.Invoke(); return true;

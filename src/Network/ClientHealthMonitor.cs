@@ -50,6 +50,12 @@ public sealed partial class ClientHealthMonitor : IDisposable
     private async Task PollCoreAsync()
     {
         var activity = owner.Activity;
+        if (!disposed && owner.Connections.MainPaused)
+        {
+            next = now().AddSeconds(45);
+            _ = owner.ServiceRoutes.CheckAsync();
+            return;
+        }
         if (disposed || polling || activity.VmTestActive || activity.ManualStop || activity.Operation is not null || activity.RecoveryWait is not null ||
             owner.Engine.ProcessId is null || now() < next) return;
         polling = true;

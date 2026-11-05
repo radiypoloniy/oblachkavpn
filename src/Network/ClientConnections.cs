@@ -13,6 +13,7 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
     public Task? Stopping { get; private set; }
     public bool IsActive => Pending is { IsCompleted: false } || active is not null;
     public bool IsStopping => Stopping is { IsCompleted: false };
+    public bool MainPaused => owner.Tunnel?.MainPaused == true;
     public ClientConnectionResult LastResult { get; private set; }
     public event Action? Changed;
 
@@ -26,10 +27,12 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         if (IsStopping || active?.IsCancellationRequested == true) throw new UserError("Подключение ещё останавливается.");
+        allowReconnect |= MainPaused && owner.Tunnel?.BlocksBypass == true;
         Validate(target, allowReconnect);
         if (!IsActive && owner.Activity.Operation is not null && !owner.Activity.BackgroundCheck)
             throw new UserError("Дождитесь завершения текущей операции.");
-        owner.Pause.Cancel(rememberDisconnected: false);
+        owner.Recovery.CancelTunnelHeal();
+        if (!rebuildTunnel) owner.Pause.Cancel(rememberDisconnected: false);
         owner.Networks.StoppedOnNetwork = null;
         if (owner.Preferences.SystemTunnel) owner.Measurements.PrepareTunnel();
         requested = new(target, allowReconnect, rebuildTunnel);
@@ -49,6 +52,8 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
     public Task SelectAsync(Profile target, bool allowReconnect = false)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        if (!IsActive && MainPaused)
+        { owner.Profiles.Selected = target; owner.Persistence.Queue(); Changed?.Invoke(); return Task.CompletedTask; }
         if (!IsActive && owner.Engine.State is ConnectionState.Running or ConnectionState.Verified && owner.Profiles.Running is { } running &&
             Profiles.Fingerprint(running) == Profiles.Fingerprint(target))
         { owner.Profiles.Selected = target; owner.Persistence.Queue(); Changed?.Invoke(); return Task.CompletedTask; }
@@ -63,7 +68,7 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
             throw new UserError("Сервер больше не входит в текущий список.");
         if (target.IsFree && owner.Workspace.FreeConsent != FreeServers.ConsentVersion)
             throw new UserError("Сначала подтвердите условия бесплатных серверов в приложении.");
-        if (owner.Preferences.SystemTunnel && owner.Tunnel is { State: not (SystemTunnelState.Idle or SystemTunnelState.Failed) } session &&
+        if (owner.Preferences.SystemTunnel && owner.Tunnel is { State: SystemTunnelState.Running or SystemTunnelState.Holding } session &&
             !session.CanSwitchTo(target) && !allowReconnect)
             throw new UserError("Для этого сервера требуется переподключение со снятием защиты.");
     }
@@ -85,7 +90,8 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
                 await StartOneAsync(request, cancel.Token);
                 if (!ReferenceEquals(previousTunnel, owner.Tunnel)) owner.Rules.Remember();
                 cancel.Token.ThrowIfCancellationRequested();
-                owner.Profiles.Running = target; owner.Workspace.WasConnected = true;
+                owner.Profiles.Running = target; owner.Workspace.WasConnected = !MainPaused || owner.Pause.Until is not null;
+                if (MainPaused) owner.Activity.ManualStop = true;
                 owner.Monitor.ObserveProcess(); owner.Monitor.StartedFresh();
                 owner.Proxy.Sync(); owner.Persistence.Queue(); LastResult = ClientConnectionResult.Connected;
                 Changed?.Invoke();
@@ -108,17 +114,18 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
         }
     }
     public Task StopAsync() => StopAsync(preservePause: false);
-    internal Task StopAsync(bool preservePause)
+    internal Task StopAsync(bool preservePause, bool stopProtection = false)
     {
+        owner.Recovery.CancelTunnelHeal();
         if (!preservePause) owner.Pause.Cancel();
         if (IsStopping) return Stopping!;
         var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         Stopping = completed.Task;
-        _ = CompleteAsync(StopCoreAsync(), completed);
+        _ = CompleteAsync(StopCoreAsync(stopProtection), completed);
         _ = ObserveAsync(Stopping);
         return Stopping;
     }
-    private async Task StopCoreAsync()
+    private async Task StopCoreAsync(bool stopProtection)
     {
         requested = null; owner.Activity.ManualStop = true; owner.Activity.RecoveryWait?.Cancel();
         owner.Networks.StoppedOnNetwork = owner.Networks.Current?.Key;
@@ -128,6 +135,18 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
         owner.Persistence.Queue(); Changed?.Invoke();
         if (Pending is { IsCompleted: false } starting) await ObserveAsync(starting);
         if (checking is not null) await ObserveAsync(checking);
+        if (!stopProtection && owner.Tunnel is { PinnedServices.Count: > 0 } session)
+        {
+            try { await session.SetMainPausedAsync(true, owner.Preferences.Lockdown); }
+            catch
+            {
+                owner.Activity.ManualStop = session.MainPaused;
+                owner.Workspace.WasConnected = !session.MainPaused;
+                owner.Persistence.Queue();
+                throw;
+            }
+            return;
+        }
         await owner.StopTunnelAsync();
         if (owner.Engine.State is not ConnectionState.Idle && (owner.Activity.Operation is null || !owner.Activity.EngineOperation)) owner.Engine.Stop();
         if (owner.Engine.State == ConnectionState.Idle) owner.Profiles.Running = null;

@@ -4,8 +4,8 @@ public static partial class SelfTests
 {
     private sealed class TunnelHostFixture : IClientTunnelHost
     {
-        public bool IsService => true;
-        public bool Foreign, FailLists, FailAcquire, FailRecover;
+        public bool IsService { get; set; } = true;
+        public bool Foreign, FailLists, FailAcquire, FailRecover, DisposeLostChannel;
         public int Connects, Disposes;
         public Func<CancellationToken, Task>? Preparing, Listing, Dns, Ruling;
         public readonly List<string> Calls = new();
@@ -62,7 +62,9 @@ public static partial class SelfTests
             }
             public Task<NetworkSessionState> ReleaseAsync(CancellationToken token)
             {
-                host.Calls.Add("release"); if (Lost) throw new IOException("fixture: lost pipe");
+                host.Calls.Add("release");
+                if (Lost && host.DisposeLostChannel) throw new ObjectDisposedException("fixture: lost pipe");
+                if (Lost) throw new IOException("fixture: lost pipe");
                 return Task.FromResult(NetworkSessionState.Released);
             }
             public ValueTask DisposeAsync() { host.Calls.Add("dispose"); return ValueTask.CompletedTask; }

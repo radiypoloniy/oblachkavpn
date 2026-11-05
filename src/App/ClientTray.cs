@@ -68,11 +68,12 @@ internal sealed partial class ClientTray : IDisposable
     {
         if (disposed) return;
         var busy = owner.Activity.Operation is not null || owner.Connections.IsActive || owner.Connections.IsStopping;
+        var mainPaused = owner.Connections.MainPaused;
         var running = owner.Engine.State is ConnectionState.Running or ConnectionState.Verified;
         var tunnel = owner.Tunnel is { State: not (SystemTunnelState.Idle or SystemTunnelState.Failed) };
-        Connect.Enabled = !busy && !running && !tunnel && owner.Profiles.Selected is not null;
-        Stop.Enabled = busy || running || tunnel || owner.Engine.State == ConnectionState.Failed;
-        Icon.Text = ServiceBrand.Name + " — " + (owner.Connections.IsStopping ? "Отключаемся" : running ? tunnel ? "VPN включён" : "Прокси запущен" : busy ? "Подключаемся" : "Отключено");
+        Connect.Enabled = !busy && (mainPaused || !running && !tunnel) && owner.Profiles.Selected is not null;
+        Stop.Enabled = !mainPaused && (busy || running || tunnel || owner.Engine.State == ConnectionState.Failed);
+        Icon.Text = ServiceBrand.Name + " — " + (owner.Connections.IsStopping ? "Отключаемся" : mainPaused ? "Строгие маршруты" : running ? tunnel ? "VPN включён" : "Прокси запущен" : busy ? "Подключаемся" : "Отключено");
     }
     public void Dispose()
     {

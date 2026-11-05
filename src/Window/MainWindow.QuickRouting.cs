@@ -133,7 +133,7 @@ public partial class MainWindow
         }
         catch (UserError error) { DetailText.Text = error.Message; }
     }
-    private bool SaveTargetRules(string name, string[] domains, SiteAction action)
+    private bool SaveTargetRules(string name, string[] domains, SiteAction action, string? exceptPin = null)
     {
         try
         {
@@ -144,6 +144,7 @@ public partial class MainWindow
                 .Concat(serviceFiles.Select(f => f with { Action = action })).ToArray();
             RoutingPlan.Validate(sites);
             ProgramRoutingPlan.Validate(programs);
+            if (!ConfirmPinnedConflicts(sites.Where(r => domains.Contains(r.Domain)), serviceFiles, exceptPin)) return false;
             if ((EditedSites.Any(r => domains.Contains(r.Domain) && r.Action != action) ||
                  EditedPrograms.Any(r => r.Action != action && serviceFiles.Any(f => string.Equals(r.Key, f.Key, StringComparison.OrdinalIgnoreCase)))) &&
                 !AppDialog.Confirm(this, "Изменить действующие правила?", "Для выбранных сайтов и программ будет установлено новое действие.", "Изменить")) return false;

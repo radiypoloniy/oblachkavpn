@@ -42,7 +42,7 @@ public static partial class SingBoxTunConfig
         // работают без ядра (как у Throne). Защита открывает их программам, кроме DNS и адресов
         // узлов (WfpProtectionBackend). Подсеть самого туннеля внутри 172.16/12 остаётся в туннеле:
         // её маршрут — подключённый, он точнее исключения.
-        var exclusions = new JsonArray((lease.LocalNetwork ? LocalSubnets : []).Select(s => (JsonNode?)JsonValue.Create(s)).ToArray());
+        var exclusions = new JsonArray((lease.LocalNetwork && lease.ServiceRoutes.Count == 0 ? LocalSubnets : []).Select(s => (JsonNode?)JsonValue.Create(s)).ToArray());
         var config = new JsonObject
         {
             ["log"] = new JsonObject { ["disabled"] = true },
@@ -96,12 +96,21 @@ public static partial class SingBoxTunConfig
             }
         };
         AddServers(config, lease);
-        TunnelTuning.Apply(config, lease.Tuning, tunnel);
+        TunnelTuning.Apply(config, lease.ServiceRoutes.Count > 0 && lease.Tuning is { } tuning ? tuning with { Bypass = null, LanPort = null, LanPassword = null } : lease.Tuning, tunnel);
         AddRules(config, lease, programSets, tunnel);
-        AddServiceRoutes(config, lease.ServiceRoutes);
         AddLists(config, lease, listsFolder, tunnel);
         if (lease.HasDirect && localDns is not null && ruleSet is not null) AddDirectDns(config, localDns, ruleSet);
         if (lease.DirectByDefault && localDns is not null && ruleSet is not null) DnsByDefaultDirect(config, lease);
+        AddPinnedDns(config, lease.ServiceRoutes, lease.CanPauseMain);
+        if (lease.InitialMainMode is { } initial) config["experimental"]!["clash_api"]!["default_mode"] = initial;
+        if (lease.CanPauseMain)
+        {
+            var route = config["route"]!;
+            var rules = route["rules"]!.AsArray();
+            // Ядро принимает через API только режимы, перечисленные в правилах или при запуске.
+            rules.Add(new JsonObject { ["clash_mode"] = MainOn, ["outbound"] = route["final"]!.GetValue<string>() });
+            rules.Add(new JsonObject { ["clash_mode"] = MainOff, ["outbound"] = UserDirect });
+        }
         return config;
     }
 
@@ -175,7 +184,11 @@ public static partial class SingBoxTunConfig
             sets.Add(new JsonObject { ["type"] = "local", ["tag"] = RoutingLists.Tag(set), ["format"] = "binary", ["path"] = RoutingLists.PathOf(folder, set) });
             var match = new JsonObject { ["rule_set"] = new JsonArray(RoutingLists.Tag(set)) };
             if (set == "block" || set == "direct" && !lease.HasDirect) match["action"] = "reject";
-            else match["outbound"] = set == "direct" ? UserDirect : tunnel;
+            else
+            {
+                if (set == "proxy" && lease.CanPauseMain) rules.Add(RejectWhenMainOff(match));
+                match["outbound"] = set == "direct" ? UserDirect : tunnel;
+            }
             rules.Add(match);
         }
         if (!lists.GlobalProxy && lease.HasDirect && !lease.DirectByDefault) config["route"]!["final"] = UserDirect;
@@ -184,54 +197,8 @@ public static partial class SingBoxTunConfig
     public const string ServerSelector = "server";
     public static string DirectTag(int index) => "direct-" + index;
 
-    private static void AddRules(JsonObject config, ValidatedNetworkLease lease, string? programSets, string tunnel)
-    {
-        var rules = (JsonArray)config["route"]!["rules"]!;
-        if (lease.DirectExit) ((JsonArray)config["outbounds"]!).Add(new JsonObject { ["type"] = "direct", ["tag"] = UserDirect });
-        // Соединения для «Сейчас в сети»: только 127.0.0.1 и только с секретом этой сессии.
-        CoreProgramsConfig.Apply(config, lease.Stats);
-        // Прямой трафик ядра окна (списки маршрутизации) приходит на свой локальный вход с паролем
-        // сессии и уходит мимо туннеля. Правило — самое первое, раньше перехвата DNS: этот трафик
-        // ядро уже разобрало, и возвращать его ядру нельзя — получилась бы петля.
-        if (lease.CoreDirect is { } entry)
-        {
-            ((JsonArray)config["inbounds"]!).Add(new JsonObject
-            {
-                ["type"] = "socks", ["tag"] = CoreDirectInbound, ["listen"] = "127.0.0.1", ["listen_port"] = entry.Port,
-                ["users"] = new JsonArray(new JsonObject { ["username"] = entry.User, ["password"] = entry.Password })
-            });
-            rules.Insert(0, new JsonObject { ["inbound"] = new JsonArray(CoreDirectInbound), ["outbound"] = UserDirect });
-        }
-        // Локальная сеть — раньше правил сайтов и программ: принтер и NAS не уходят на сервер.
-        if (lease.LocalNetwork) rules.Add(new JsonObject { ["ip_cidr"] = new JsonArray(LocalSubnets.Select(s => (JsonNode?)JsonValue.Create(s)).ToArray()), ["outbound"] = UserDirect });
-        // «QUIC через TCP» — после локальной сети и раньше правил: отказ сразу (ICMP), браузер
-        // без ожидания переходит на HTTP/2. Касается всех сайтов, и прямых тоже.
-        if (lease.QuicOverTcp) rules.Add(new JsonObject { ["network"] = "udp", ["port"] = 443, ["action"] = "reject" });
-        // Бесплатный чужой узел: незашифрованный HTTP закрыт для всего (ForeignGuard), прямые сайты тоже — так проще и строже.
-        if (lease.ForeignNode) rules.Add(ForeignGuard.SingBoxHttpRule());
-        // Имя сайта ядро узнаёт из TLS/QUIC. С файлами правил сайт может появиться в правилах на ходу,
-        // поэтому имя нужно всегда, а не только когда правила сайтов были при подключении.
-        if (lease.SiteRules.Count > 0 || lease.ServiceRoutes.Any(r => r.Domains.Length > 0) || lease.Lists is not null || programSets is not null)
-            rules.Add(new JsonObject { ["action"] = "sniff" });
-        // Прямой выход разрешён защитой, только если «напрямую» было при подключении. Правило
-        // «напрямую», добавленное на ходу без него, блокирует программу: мимо VPN без разрешения
-        // она не уйдёт, а окно попросит переподключиться.
-        // Правила с сайтом для одной программы — в тех же файлах, что правила программ (раньше них);
-        // правила сайтов для всех программ — после правил программ, своими файлами (SiteRuleSets).
-        if (programSets is not null)
-        {
-            JsonObject Guarded(JsonObject match, SiteAction action) => Route(match, action == SiteAction.Direct && !lease.HasDirect ? SiteAction.Block : action, tunnel);
-            ProgramRuleSets.AddTo(config, programSets, Guarded);
-            SiteRuleSets.AddTo(config, SiteRuleSets.NextTo(programSets), Guarded);
-            return;
-        }
-        foreach (var rule in ProgramRoutingPlan.Ordered(lease.ProgramRules))
-            rules.Add(Route(ProgramRoutingPlan.Match(rule), rule.Action, tunnel));
-        foreach (var rule in lease.SiteRules.OrderByDescending(r => SiteTarget.Order(r.Domain)))
-            rules.Add(Route(SiteTarget.SingBox(rule.Domain), rule.Action, tunnel));
-    }
-
     public const string UserDirect = "user-direct";
+    private static JsonObject LocalNetworkRule() => new() { ["ip_cidr"] = new JsonArray(LocalSubnets.Select(s => (JsonNode?)JsonValue.Create(s)).ToArray()), ["outbound"] = UserDirect };
     // Частные сети без адресов самого туннеля (172.31.255.0/30 внутри 172.16/12 — правило DNS
     // стоит раньше, а другого трафика на адрес туннеля нет) и без CGNAT 100.64/10: там бывают
     // адреса провайдера, а не домашняя сеть.

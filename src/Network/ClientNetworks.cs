@@ -91,7 +91,7 @@ public sealed partial class ClientNetworks : IDisposable
     }
     public async Task FollowAsync()
     {
-        if (disposed || owner.Activity.VmTestActive || owner.Activity.Operation is not null || owner.Activity.RecoveryWait is not null ||
+        if (disposed || owner.Activity.VmTestActive || owner.Connections.MainPaused || owner.Activity.Operation is not null || owner.Activity.RecoveryWait is not null ||
             owner.Connections.IsActive || owner.Connections.IsStopping || owner.Tunnel is not { } session ||
             owner.Profiles.Selected is not { } target || !environment.Moved(session)) return;
         await owner.Connections.StartAsync(target);

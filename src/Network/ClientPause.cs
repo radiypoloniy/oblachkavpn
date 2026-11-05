@@ -41,6 +41,7 @@ public sealed class ClientPause : IDisposable
         var deadline = now().AddMinutes(minutes);
         SetDeadline(deadline);
         try { await owner.Connections.StopAsync(preservePause: true); }
+        catch { if (Until == deadline) SetDeadline(null); throw; }
         finally
         {
             if (Until == deadline && !disposed) { owner.Workspace.WasConnected = true; owner.Persistence.Queue(); Schedule(); }
@@ -59,12 +60,12 @@ public sealed class ClientPause : IDisposable
         if (disposed || polling || Until is not { } deadline || now() < deadline) return;
         if (owner.Connections.IsActive || owner.Connections.IsStopping || owner.Activity.Operation is not null ||
             owner.Activity.RecoveryWait is not null || owner.Activity.VmTestActive) { Schedule(); return; }
-        if (owner.Engine.State is ConnectionState.Running or ConnectionState.Verified || owner.Tunnel is not null)
+        if (!owner.Connections.MainPaused && (owner.Engine.State is ConnectionState.Running or ConnectionState.Verified || owner.Tunnel is not null))
         { SetDeadline(null); return; }
         var target = owner.Selection.BeforeConnect();
         if (target is null) { Schedule(); return; }
         polling = true; SetDeadline(null);
-        try { Resuming?.Invoke(); await owner.Connections.StartAsync(target); if (!disposed) Resumed?.Invoke(); }
+        try { Resuming?.Invoke(); await owner.Connections.StartAsync(target, allowReconnect: owner.Connections.MainPaused); if (!disposed) Resumed?.Invoke(); }
         catch (Exception error) when (error is UserError or IOException or OperationCanceledException or TimeoutException or ObjectDisposedException)
         { if (!disposed) ResumeFailed?.Invoke(); }
         finally { polling = false; if (!disposed) Changed?.Invoke(); }

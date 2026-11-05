@@ -8,6 +8,28 @@ public static class CoreSelector
     private static readonly HttpClient Http = new(new SocketsHttpHandler { UseProxy = false, ConnectTimeout = TimeSpan.FromSeconds(1) })
         { Timeout = TimeSpan.FromSeconds(3) };
 
+    internal static async Task SetModeAsync(CoreStatsEntry entry, string mode)
+    {
+        var url = $"http://127.0.0.1:{entry.Port}/configs";
+        using var patch = new HttpRequestMessage(HttpMethod.Patch, url)
+        {
+            Content = System.Net.Http.Json.JsonContent.Create(new { mode })
+        };
+        using var read = new HttpRequestMessage(HttpMethod.Get, url);
+        patch.Headers.Authorization = read.Headers.Authorization = new("Bearer", entry.Secret);
+        try { using var changed = await Http.SendAsync(patch).ConfigureAwait(false); }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException) { }
+        try
+        {
+            using var actual = await Http.SendAsync(read).ConfigureAwait(false);
+            actual.EnsureSuccessStatusCode();
+            using var settings = System.Text.Json.JsonDocument.Parse(await actual.Content.ReadAsStringAsync().ConfigureAwait(false));
+            if (settings.RootElement.TryGetProperty("mode", out var value) && value.GetString() == mode) return;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or System.Text.Json.JsonException) { }
+        throw new UserError("Ядро не подтвердило состояние основного VPN.");
+    }
+
     public static async Task<bool> SelectAsync(CoreStatsEntry entry, string outbound, CancellationToken token)
     {
         try

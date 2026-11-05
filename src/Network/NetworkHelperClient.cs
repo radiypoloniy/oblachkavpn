@@ -165,6 +165,18 @@ public sealed class NetworkHelperClient : INetworkHelperClient
         finally { operations.Release(); }
     }
 
+    internal async Task SetStrictGuardAsync(bool arm, CancellationToken token)
+    {
+        await operations.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            var response = await pipe.SendAsync(arm ? HelperOperation.ArmStrictGuard : HelperOperation.ClearStrictGuard, null, token).ConfigureAwait(false);
+            if (response.Failure != HelperFailure.None)
+                throw new UserError("Служба не подтвердила изменение строгой блокировки.");
+        }
+        finally { operations.Release(); }
+    }
+
     private async Task PulseAsync(CancellationToken token)
     {
         // Счётчик восстановлений службы с её запуска: первый пульс задаёт отсчёт, рост — событие.

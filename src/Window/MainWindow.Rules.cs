@@ -46,6 +46,7 @@ public partial class MainWindow
             if (EditedSites.Count >= 100) throw new UserError("Достигнут предел 100 правил.");
             var rule = RoutingPlan.Create(SiteRuleInput.Target(domain), action);
             if (EditedSites.Any(r => r.Domain == rule.Domain)) throw new UserError("Этот домен уже добавлен: нажмите на его метку, чтобы сменить действие.");
+            if (!ConfirmPinnedConflicts([rule], [])) return;
             EditedSites.Add(rule); Routes.RuleDomain.Clear(); RulesEdited();
         }
         catch (UserError ex) { DetailText.Text = ex.Message; }

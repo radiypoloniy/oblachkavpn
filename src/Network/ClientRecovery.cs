@@ -24,7 +24,7 @@ public sealed partial class ClientRecovery : IDisposable
         this.owner = owner; this.tunnel = tunnel ?? (() => owner.Tunnel);
         this.diagnose = diagnose ?? ((profile, token) => ConnectionDiagnosis.RunAsync(profile, token)); this.wait = wait ?? Task.Delay;
     }
-    private bool Allowed => !disposed && !owner.Activity.VmTestActive && !owner.Activity.ManualStop &&
+    private bool Allowed => !disposed && !owner.Activity.VmTestActive && !owner.Activity.ManualStop && !owner.Connections.MainPaused &&
         (owner.Profiles.AutoSelect || owner.Preferences.AutoRecover) &&
         (owner.Profiles.Running ?? owner.Profiles.Selected) is { IsFree: false };
     private bool TunnelActive => tunnel() is { State: not (SystemTunnelState.Idle or SystemTunnelState.Failed) };
@@ -105,7 +105,7 @@ public sealed partial class ClientRecovery : IDisposable
             if (result.Kind is RecoveryOutcomeKind.NotFound or RecoveryOutcomeKind.Exhausted) NetworkClosed = TunnelActive;
             else if (result.Kind is RecoveryOutcomeKind.Recovered or RecoveryOutcomeKind.Restarted or RecoveryOutcomeKind.Rebuilt) NetworkClosed = false;
             if (result.Kind is RecoveryOutcomeKind.Recovered or RecoveryOutcomeKind.Restarted or RecoveryOutcomeKind.Rebuilt)
-            { owner.Workspace.WasConnected = true; owner.Persistence.Queue(); }
+            { owner.Workspace.WasConnected = !owner.Connections.MainPaused || owner.Pause.Until is not null; owner.Persistence.Queue(); }
         }
     }
     private void Publish(RecoveryOutcome? before)

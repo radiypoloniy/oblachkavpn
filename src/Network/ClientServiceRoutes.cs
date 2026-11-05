@@ -43,18 +43,33 @@ internal sealed partial class ClientServiceRoutes(ClientRuntime owner)
     internal string[] Conflicts(ServiceRoute route)
     {
         var policy = owner.TunnelPolicy;
-        var programs = policy.LeasePrograms().Where(rule =>
-            (rule.Domain is null || route.Domains.Any(domain => Overlaps(domain, rule.Domain))) ||
-            route.Files.Any(file => rule.AllInFolder
-                ? file.FilePath!.StartsWith(rule.Folder + "\\", StringComparison.OrdinalIgnoreCase)
-                : string.Equals(file.Executable, rule.Executable, StringComparison.OrdinalIgnoreCase) &&
-                  (rule.Folder is null || string.Equals(rule.Folder, file.Folder, StringComparison.OrdinalIgnoreCase))));
-        return policy.LeaseSites(owner.Profiles.Selected?.IsFree == true)
-            .Where(rule => route.Files.Length > 0 || SiteTarget.Kind(rule.Domain) != SiteTargetKind.Domain ||
+        return Conflicts(route, policy.LeaseSites(owner.Profiles.Selected?.IsFree == true), policy.LeasePrograms());
+    }
+
+    internal string[] ConflictingRoutes(IEnumerable<SiteRule> sites, IEnumerable<ProgramRule> programs, string? exceptId = null) =>
+        owner.TunnelPolicy.ServiceRoutes.Concat(owner.Tunnels.Applied?.ServiceRoutes ?? [])
+            .Where(route => route.Id != exceptId && Conflicts(route, sites, programs).Length > 0)
+            .Select(Title).Distinct().ToArray();
+
+    internal string[] ExcludedBy(IReadOnlySet<string>? servers)
+    {
+        if (servers is null) return [];
+        return owner.TunnelPolicy.ServiceRoutes.Concat(owner.Tunnels.Applied?.ServiceRoutes ?? [])
+            .Where(route => ClientServerCatalog.Find(owner, route.ProfileId) is { } profile && !servers.Contains(ServerMachines.Hash(profile)))
+            .Select(Title).Distinct().ToArray();
+    }
+
+    private static string[] Conflicts(ServiceRoute route, IEnumerable<SiteRule> sites, IEnumerable<ProgramRule> programs) =>
+        sites.Where(rule => route.Files.Length > 0 || SiteTarget.Kind(rule.Domain) != SiteTargetKind.Domain ||
                            route.Domains.Any(domain => Overlaps(domain, rule.Domain)))
             .Select(rule => rule.Domain + " · " + rule.Label)
-            .Concat(programs.Select(rule => rule.ToString())).Distinct().ToArray();
-    }
+            .Concat(programs.Where(rule =>
+                route.Domains.Any(domain => rule.Domain is null || Overlaps(domain, rule.Domain)) ||
+                route.Files.Any(file => rule.AllInFolder
+                    ? file.FilePath!.StartsWith(rule.Folder + "\\", StringComparison.OrdinalIgnoreCase)
+                    : string.Equals(file.Executable, rule.Executable, StringComparison.OrdinalIgnoreCase) &&
+                      (rule.Folder is null || string.Equals(rule.Folder, file.Folder, StringComparison.OrdinalIgnoreCase))))
+                .Select(rule => rule.ToString())).Distinct().ToArray();
 
     private static bool Overlaps(string left, string right) =>
         left == right || left.EndsWith("." + right, StringComparison.Ordinal) || right.EndsWith("." + left, StringComparison.Ordinal);

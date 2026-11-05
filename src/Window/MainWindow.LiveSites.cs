@@ -48,6 +48,7 @@ public partial class MainWindow
         }
         else
         {
+            if (action is { } next && !ConfirmPinnedConflicts([RoutingPlan.Create(domain, next)], [])) return;
             var index = siteRules.FindIndex(r => r.Domain == domain);
             if (action is null) { if (index >= 0) siteRules.RemoveAt(index); }
             else if (index >= 0) siteRules[index] = siteRules[index] with { Action = action.Value };

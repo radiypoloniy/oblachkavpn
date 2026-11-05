@@ -34,7 +34,7 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
     internal static NetworkLeaseRequest RequestFor(ValidatedNetworkLease lease) =>
         new(1, lease.LeaseId, NetworkLeaseAction.Acquire, lease.LoopbackPort, lease.Peers.Select(p => p.ToString()).ToArray(),
             lease.SiteRules.ToArray(), lease.ProgramRules.ToArray(), lease.CoreDirect, lease.DirectByDefault, lease.Stats, lease.Direct?.ToArray(), lease.Lists, lease.LocalNetwork, lease.QuicOverTcp, lease.CompatibleStack, lease.ForeignNode, lease.Tuning)
-        { ServiceRoutes = lease.ServiceRoutes.Count == 0 ? null : lease.ServiceRoutes.ToArray() };
+        { ServiceRoutes = lease.ServiceRoutes.Count == 0 ? null : lease.ServiceRoutes.ToArray(), InitialMainMode = lease.InitialMainMode };
 
     internal static ITunnelProcess Start(ValidatedNetworkLease lease, string executable, CancellationToken token)
     {

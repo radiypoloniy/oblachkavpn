@@ -67,6 +67,7 @@ public partial class MainWindow
         if (name == ruleSetName) return;
         var all = SavedRuleSets();
         var next = all.FirstOrDefault(s => s.Name == name) ?? new RuleSet(name, [], []);
+        if (!CheckPinnedServers(CleanServers(next.Servers)) || !ConfirmPinnedConflicts(next.Sites, next.Programs)) return;
         ruleSets.Clear(); ruleSets.AddRange(all);
         ruleSetName = name;
         Load(next);
@@ -119,6 +120,7 @@ public partial class MainWindow
         }
 
         var next = new RuleSet(name, draft.Sites.ToArray(), draft.Programs.ToArray());
+        if (!ConfirmPinnedConflicts(next.Sites, next.Programs)) return false;
         CloseRouteEditor();
         ruleSets.Clear(); ruleSets.AddRange(all);
         ruleSetDraft = null; ruleSetName = name;
@@ -142,11 +144,13 @@ public partial class MainWindow
     {
         Routes.RuleSetPopup.IsOpen = false;
         if (ruleSetName == MainRuleSet || ruleSetDraft is not null) return;
+        var next = ruleSets.FirstOrDefault(s => s.Name == MainRuleSet) ?? new RuleSet(MainRuleSet, [], []);
+        if (!CheckPinnedServers(CleanServers(next.Servers)) || !ConfirmPinnedConflicts(next.Sites, next.Programs)) return;
         if (!AppDialog.Confirm(this, "Удалить набор «" + ruleSetName + "»?", "Его правила уберутся, включится набор «" + MainRuleSet + "».", "Удалить", danger: true)) return;
         var removed = ruleSetName;
         ruleSets.RemoveAll(s => s.Name == removed);
         ruleSetName = MainRuleSet;
-        Load(ruleSets.FirstOrDefault(s => s.Name == MainRuleSet) ?? new RuleSet(MainRuleSet, [], []));
+        Load(next);
     }
 
     private void RefreshRuleSetButton()

@@ -43,6 +43,8 @@ public sealed record NetworkLeaseRequest(
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public PinnedServiceRoute[]? ServiceRoutes { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? InitialMainMode { get; init; }
 }
 
 // Локальный интерфейс соединений ядра туннеля (clash API sing-box) на 127.0.0.1 с секретом сессии.
@@ -83,10 +85,12 @@ public sealed record ValidatedNetworkLease(Guid LeaseId, NetworkLeaseAction Acti
     bool QuicOverTcp = false, bool CompatibleStack = false, bool ForeignNode = false, TunnelTuning? Tuning = null)
 {
     public IReadOnlyList<PinnedServiceRoute> ServiceRoutes { get; init; } = [];
+    public string? InitialMainMode { get; init; }
     public IReadOnlyList<SiteRule> SiteRules => Sites ?? Array.Empty<SiteRule>();
     public IReadOnlyList<ProgramRule> ProgramRules => Programs ?? Array.Empty<ProgramRule>();
     // Есть ли трафик, который пользователь сам отправил мимо туннеля.
-    public bool HasDirect => DirectByDefault || CoreDirect is not null || SiteRules.Any(r => r.Action == SiteAction.Direct) || ProgramRules.Any(r => r.Action == SiteAction.Direct);
+    public bool CanPauseMain => Stats is not null && ServiceRoutes.Count > 0 && ServiceRoutes.All(r => r.Domains.Length == 0);
+    public bool HasDirect => CanPauseMain || DirectByDefault || CoreDirect is not null || SiteRules.Any(r => r.Action == SiteAction.Direct) || ProgramRules.Any(r => r.Action == SiteAction.Direct);
     // Нужен ли ядру туннеля прямой выход (и разрешение защиты для него): правила «напрямую»
     // или локальная сеть. Локальная сеть не меняет смысл правил и списков — только выход;
     // защита открывает ей только частные подсети (WfpProtectionBackend.LocalSubnets).
@@ -126,7 +130,7 @@ public static class NetworkHelperContracts
             throw new UserError("Неверная версия или идентификатор сетевой сессии.");
         if (request.Action == NetworkLeaseAction.Release)
         {
-            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 } || request.CoreDirect is not null || request.DirectByDefault || request.Stats is not null || request.Direct is not null || request.Lists is not null || request.LocalNetwork || request.QuicOverTcp || request.CompatibleStack || request.ForeignNode || request.Tuning is not null || request.ServiceRoutes is not null)
+            if (request.LoopbackPort != 0 || request.PeerAddresses.Length != 0 || request.Sites is { Length: > 0 } || request.Programs is { Length: > 0 } || request.CoreDirect is not null || request.DirectByDefault || request.Stats is not null || request.Direct is not null || request.Lists is not null || request.LocalNetwork || request.QuicOverTcp || request.CompatibleStack || request.ForeignNode || request.Tuning is not null || request.ServiceRoutes is not null || request.InitialMainMode is not null)
                 throw new UserError("Завершение сессии не принимает сетевые параметры.");
             return new(request.LeaseId, request.Action, 0, Array.Empty<IPAddress>());
         }
@@ -169,11 +173,15 @@ public static class NetworkHelperContracts
         request.Lists?.Validate();
         var services = request.ServiceRoutes ?? [];
         ServiceRoutePlan.Validate(services, direct);
+        if (request.InitialMainMode is { } initial &&
+            (initial is not (SingBoxTunConfig.MainOff or SingBoxTunConfig.MainBlocked) ||
+             request.Stats is null || services.Length == 0 || services.Any(r => r.Domains.Length > 0)))
+            throw new UserError("Начальное состояние основного VPN несовместимо с привязками.");
         request.Tuning?.Validate();
         // Порт прокси для локальной сети на всех адресах занял бы локальные порты ядер.
         if (request.Tuning?.LanPort is { } lan && (lan == request.LoopbackPort || lan == request.Stats?.Port || lan == request.CoreDirect?.Port))
             throw new UserError("Порт прокси для локальной сети занят ядром.");
         return new(request.LeaseId, request.Action, request.LoopbackPort, peers.AsReadOnly(), sites, programs, request.CoreDirect, request.DirectByDefault, request.Stats, direct, request.Lists, request.LocalNetwork, request.QuicOverTcp, request.CompatibleStack, request.ForeignNode, request.Tuning)
-        { ServiceRoutes = services };
+        { ServiceRoutes = services, InitialMainMode = request.InitialMainMode };
     }
 }

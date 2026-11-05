@@ -61,7 +61,24 @@ public partial class MainWindow
             if (Routes.TargetEditor.Visibility != Visibility.Visible || Routes.EditorTitle.Text != app.Name)
                 throw new InvalidOperationException("Clicking the search target did not open its inline editor");
             Routes.ServiceAction.SelectedIndex = 3;
-            Routes.ServiceSave.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+            bool SaveWithAnswer(bool accept)
+            {
+                var conflict = false;
+                var answer = Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, new Action(() =>
+                {
+                    var dialog = Application.Current.Windows.OfType<Window>().LastOrDefault(w => w.IsVisible && w != this);
+                    if (dialog is null) return;
+                    conflict = dialog.Title == "Пересечение со строгими маршрутами";
+                    dialog.DialogResult = conflict && accept;
+                }));
+                try { Routes.ServiceSave.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent)); }
+                finally { answer.Abort(); }
+                return conflict;
+            }
+            if (!SaveWithAnswer(accept: false) || programRules.Count != 0 || Routes.TargetEditor.Visibility != Visibility.Visible)
+                throw new InvalidOperationException("Cancelling a strict routing conflict changed the saved rules");
+            if (!SaveWithAnswer(accept: true))
+                throw new InvalidOperationException("Saving an overlapping ordinary rule did not ask about the strict route");
             if (Routes.TargetEditor.Visibility != Visibility.Collapsed ||
                 !Routes.RuleList.Items.OfType<RuleRow>().Any(row => row.Rule is SiteRule) ||
                 !Routes.RuleList.Items.OfType<RuleRow>().Any(row => row.Rule is ProgramRule { Action: SiteAction.Block }) ||

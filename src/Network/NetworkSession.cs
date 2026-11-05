@@ -11,6 +11,16 @@ public sealed class NetworkSession(INetworkSessionJournal journal, INetworkSessi
 
     public NetworkSessionState? State { get { lock (gate) return journal.Load()?.State; } }
 
+    internal bool StrictTunnelLost()
+    {
+        lock (gate)
+        {
+            var record = journal.Load();
+            return record is { State: NetworkSessionState.Applied } && record.Changes.Any(WfpProtectionBackend.IsStrict) &&
+                record.Changes.Any(c => c.Kind == NetworkResourceKind.TunnelInterface && !backend.Intact(c));
+        }
+    }
+
     public NetworkSessionRecord Acquire(NetworkLeaseRequest request, CancellationToken token = default)
     {
         var lease = NetworkHelperContracts.Validate(request);

@@ -71,7 +71,7 @@ public static class NetworkServiceControl
     public static int Uninstall()
     {
         if (!NetworkHelperHost.IsElevated()) return 2;
-        try { using var engine = WfpEngine.Open(); WfpLockdown.Remove(engine); }
+        try { using var engine = WfpEngine.Open(); WfpLockdown.Remove(engine); WfpLockdown.Remove(engine, strict: true); }
         catch (IOException) { } // служба фильтрации недоступна — тогда и запрет не действует
         if (!Query().Installed) return 0;
         Sc("stop", NetworkService.Name);

@@ -25,6 +25,27 @@ public static partial class SelfTests
         NetworkLeaseRequest Request(Guid id) => new(1, id, NetworkLeaseAction.Acquire, 10808, peers);
         static Task NoDelay(TimeSpan _, CancellationToken __) => Task.CompletedTask;
 
+        await check("Strict lease detects loss of the TUN core independently of the WFP policy", () => Sync(() =>
+        {
+            var id = Guid.NewGuid();
+            var process = new FakeTunnelProcess();
+            var up = false;
+            var tunnel = new WindowsTunnelBackend((_, _) => { up = true; return process; }, _ => up, delay: NoDelay);
+            using var backend = new SystemNetworkBackend(tunnel, null);
+            var change = tunnel.Prepare(NetworkHelperContracts.Validate(Request(id)))[0];
+            Assert(tunnel.Apply(id, change) == NetworkWriteResult.Changed);
+            var strict = new NetworkChange(NetworkResourceKind.WfpProtection, WfpProtectionBackend.ResourceId, null,
+                "sublayer=fixture strict=1 peers=203.0.113.7", NetworkChangeState.Applied);
+            var journal = new MemoryNetworkJournal();
+            journal.Save(new(1, id, NetworkSessionState.Applied, [strict, change with { State = NetworkChangeState.Applied }]));
+            var session = new NetworkSession(journal, backend);
+            Assert(!session.StrictTunnelLost());
+            process.Dispose();
+            Assert(session.StrictTunnelLost());
+            journal.Save(journal.Record! with { Changes = [change with { State = NetworkChangeState.Applied }] });
+            Assert(!session.StrictTunnelLost());
+        }));
+
         await check("Tunnel session owns one change: the core process with its interface", () => Sync(() =>
         {
             var lease = NetworkHelperContracts.Validate(Request(Guid.NewGuid()));

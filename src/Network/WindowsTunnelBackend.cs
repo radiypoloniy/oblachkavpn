@@ -41,6 +41,7 @@ public sealed class WindowsTunnelBackend : INetworkSessionBackend, IDisposable
     // В тестах не задаётся — обрыв настоящих соединений машины, на которой они идут, недопустим.
     private readonly Action<ValidatedNetworkLease>? afterStart;
     private ITunnelProcess? core;
+    internal bool Running => core is { IsRunning: true };
     private Guid owner;
     // Правила сессии в журнал не помещаются (до 200 записей), а нужны только для запуска
     // ядра сразу после подготовки. Журнал хранит их число, восстановлению они не нужны.

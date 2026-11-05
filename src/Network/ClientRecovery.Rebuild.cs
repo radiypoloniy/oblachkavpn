@@ -4,13 +4,29 @@ public sealed partial class ClientRecovery
 {
     private readonly Queue<DateTimeOffset> heals = new();
     private int healing;
+    private sealed record TunnelHeal(Profile Target, bool MainPaused, DateTimeOffset Until);
+    private TunnelHeal? pendingTunnelHeal;
+    internal bool HasPendingTunnelHeal => pendingTunnelHeal is not null;
+    internal void CancelTunnelHeal() => pendingTunnelHeal = null;
     private static string RecoveryMessage(Exception error) => error is UserError ? error.Message : "Связь со службой прервалась. Подключитесь снова или восстановите сеть.";
-    private async Task RebuildOrRequestAsync(Profile previous, Profile selected, CancellationToken token)
+    private async Task RebuildOrRequestAsync(Profile previous, Profile selected, CancellationToken token, bool mainWasPaused = false)
     {
         if (!owner.Tunnels.CanRebuild)
         { Finish(new(RecoveryOutcomeKind.RequiresReconnect, previous, selected, [])); return; }
-        Message = "Пересоздаём системный туннель: на это время защита снимается."; StateChanged?.Invoke();
-        await owner.Tunnels.StartAsync(selected, token);
+        Message = "Восстанавливаем системный туннель."; StateChanged?.Invoke();
+        mainWasPaused |= owner.Connections.MainPaused;
+        try { await owner.Tunnels.StartAsync(selected, token, preserveMainPause: true, recoverAppliedPins: true, mainWasPaused: mainWasPaused); }
+        catch (Exception error) when (!token.IsCancellationRequested && error is UserError or IOException or TimeoutException or ObjectDisposedException or OperationCanceledException)
+        {
+            if (!disposed && owner.Preferences.SystemTunnel && owner.Tunnel is null && pendingTunnelHeal is null &&
+                (!owner.Activity.ManualStop || mainWasPaused))
+            {
+                var now = DateTimeOffset.UtcNow;
+                pendingTunnelHeal = new(selected, mainWasPaused, now.AddMinutes(2));
+                owner.Monitor.NextCheck = now.AddSeconds(3);
+            }
+            throw;
+        }
         token.ThrowIfCancellationRequested();
         owner.Profiles.Selected = selected;
         Finish(new(RecoveryOutcomeKind.Rebuilt, previous, selected, []));
@@ -51,29 +67,67 @@ public sealed partial class ClientRecovery
     internal void PathHealthy()
     { owner.Monitor.Path.Rebuilt = owner.Monitor.Path.Broken = false; NetworkClosed = false; }
 
-    public async Task HealLostTunnelAsync()
+    internal void QueueTunnelHeal() => QueueTunnelHeal(afterSleep: false);
+
+    internal void ResumeTunnelHeal() => QueueTunnelHeal(afterSleep: true);
+
+    private void QueueTunnelHeal(bool afterSleep)
+    {
+        if (disposed || !owner.Preferences.SystemTunnel || !owner.Tunnels.CanRebuild || owner.Profiles.Running is not { } target) return;
+        var until = DateTimeOffset.UtcNow.AddMinutes(2);
+        if (pendingTunnelHeal is { } pending)
+        {
+            if (!afterSleep || Volatile.Read(ref healing) != 0) return;
+            pendingTunnelHeal = pending with { Until = until };
+        }
+        else
+        {
+            var lost = owner.Tunnel;
+            if (lost is not { State: SystemTunnelState.Failed or SystemTunnelState.RecoveryRequired } &&
+                !(afterSleep && lost is null && owner.Workspace.WasConnected && owner.Pause.Until is null)) return;
+            var mainPaused = lost?.MainPaused == true;
+            if (owner.Activity.ManualStop && !mainPaused) return;
+            pendingTunnelHeal = new(target, mainPaused, until);
+        }
+        owner.Monitor.NextCheck = DateTimeOffset.UtcNow;
+    }
+
+    internal async Task HealLostTunnelAsync()
     {
         var activity = owner.Activity;
-        if (disposed || Volatile.Read(ref healing) != 0 || activity.ManualStop || activity.VmTestActive || activity.Operation is not null ||
-            activity.RecoveryWait is not null || !owner.ServiceAvailable || !owner.Tunnels.CanRebuild || owner.Tunnel is null ||
-            owner.Tunnel.State is not (SystemTunnelState.Failed or SystemTunnelState.RecoveryRequired) || owner.Profiles.Selected is not { } selected) return;
-        if (Interlocked.CompareExchange(ref healing, 1, 0) != 0) return;
+        if (disposed || pendingTunnelHeal is not { } request || Volatile.Read(ref healing) != 0) return;
         var now = DateTimeOffset.UtcNow;
+        if (!owner.Preferences.SystemTunnel || activity.ManualStop && !request.MainPaused ||
+            owner.Tunnel is { State: SystemTunnelState.Running } || now >= request.Until)
+        { CancelTunnelHeal(); return; }
+        if (activity.VmTestActive || activity.Operation is not null || activity.RecoveryWait is not null ||
+            owner.Connections.IsStopping || !owner.ServiceAvailable)
+        { owner.Monitor.NextCheck = now.AddSeconds(2); return; }
+        if (Interlocked.CompareExchange(ref healing, 1, 0) != 0) return;
         while (heals.Count > 0 && now - heals.Peek() > TimeSpan.FromMinutes(10)) heals.Dequeue();
-        if (heals.Count >= 3) { Interlocked.Exchange(ref healing, 0); return; }
-        heals.Enqueue(now);
+        if (heals.Count >= 3) { CancelTunnelHeal(); Interlocked.Exchange(ref healing, 0); return; }
         var before = LastOutcome;
+        var selected = request.Target;
         using var cancel = new CancellationTokenSource(); active = cancel;
         activity.Operation = cancel; activity.EngineOperation = true;
         try
         {
             await wait(TimeSpan.FromSeconds(2), cancel.Token);
-            if (activity.ManualStop) return;
-            await RebuildOrRequestAsync(selected, selected, cancel.Token);
+            if (!ReferenceEquals(pendingTunnelHeal, request) || !owner.Preferences.SystemTunnel ||
+                activity.ManualStop && !request.MainPaused) return;
+            if (!owner.ServiceAvailable)
+            { owner.Monitor.NextCheck = DateTimeOffset.UtcNow.AddSeconds(2); return; }
+            heals.Enqueue(DateTimeOffset.UtcNow);
+            await RebuildOrRequestAsync(selected, selected, cancel.Token, request.MainPaused);
+            CancelTunnelHeal();
         }
         catch (OperationCanceledException) when (cancel.IsCancellationRequested) { }
-        catch (Exception error) when (error is UserError or IOException or TimeoutException or ObjectDisposedException)
-        { Finish(new(RecoveryOutcomeKind.Error, selected, null, [], Message: RecoveryMessage(error))); }
+        catch (Exception error) when (error is UserError or IOException or TimeoutException or ObjectDisposedException or OperationCanceledException)
+        {
+            if (heals.Count >= 3) CancelTunnelHeal();
+            else if (ReferenceEquals(pendingTunnelHeal, request)) owner.Monitor.NextCheck = DateTimeOffset.UtcNow.AddSeconds(3);
+            Finish(new(RecoveryOutcomeKind.Error, selected, null, [], Message: RecoveryMessage(error)));
+        }
         finally
         {
             active = null;

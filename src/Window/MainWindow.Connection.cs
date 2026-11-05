@@ -53,13 +53,25 @@ public partial class MainWindow
     {
         systemStopping = true; UpdateControls();
         StatusText.Text = "Отключаемся…"; DetailText.Text = "Отключаем VPN…";
-        try { await runtime.Connections.StopAsync(); if (!closed) DetailText.Text = "Подключение остановлено."; }
-        catch (Exception error) when (error is UserError or IOException or TimeoutException or ObjectDisposedException)
+        try
+        {
+            await runtime.Connections.StopAsync();
+            if (!closed) DetailText.Text = runtime.Connections.MainPaused
+                ? "Основной VPN выключен. Привязки продолжают действовать." : "Подключение остановлено.";
+        }
+        catch (UserError error) { if (!closed) DetailText.Text = error.Message; }
+        catch (Exception error) when (error is IOException or TimeoutException or ObjectDisposedException)
         { if (!closed) DetailText.Text = "Остановить подключение полностью не удалось. Проверьте сетевые настройки."; }
         finally { systemStopping = false; if (!closed) { UpdateSystemTunnelNote(systemTunnel?.State); UpdateControls(); } }
     }
     private void StopClick(object sender, RoutedEventArgs args)
     {
+        if (systemTunnel is { PinnedServices.Count: > 0 } pinned)
+        {
+            if (pinned.CanPauseMain) _ = StopOwnedConnectionAsync();
+            else _ = RestoreNetworkAsync();
+            return;
+        }
         runtime.Pause.Cancel();
         manualStop = true;
         stoppedOnNetwork = currentNetwork?.Key;

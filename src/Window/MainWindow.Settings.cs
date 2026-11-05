@@ -109,8 +109,18 @@ public partial class MainWindow
     private void CycleRule(object rule)
     {
         static SiteAction Next(SiteAction action) => (SiteAction)(((int)action + 1) % 3);
-        if (rule is SiteRule site && EditedSites.IndexOf(site) is var i and >= 0) EditedSites[i] = site with { Action = Next(site.Action) };
-        else if (rule is ProgramRule program && EditedPrograms.IndexOf(program) is var j and >= 0) EditedPrograms[j] = program with { Action = Next(program.Action) };
+        if (rule is SiteRule site && EditedSites.IndexOf(site) is var i and >= 0)
+        {
+            var next = site with { Action = Next(site.Action) };
+            if (!ConfirmPinnedConflicts([next], [])) return;
+            EditedSites[i] = next;
+        }
+        else if (rule is ProgramRule program && EditedPrograms.IndexOf(program) is var j and >= 0)
+        {
+            var next = program with { Action = Next(program.Action) };
+            if (!ConfirmPinnedConflicts([], [next])) return;
+            EditedPrograms[j] = next;
+        }
         RulesEdited();
     }
 

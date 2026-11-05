@@ -32,8 +32,9 @@ public partial class MainWindow
                 if (nextSites.Count > 100) throw new UserError("Вместе с файлом правил сайтов стало бы больше 100. Уберите лишние и повторите.");
                 // Программы — проверить до любых изменений: иначе сайты заменились бы, а программы нет.
                 ProgramRoutingPlan.Validate(EditedPrograms.Where(r => programs.All(p => !string.Equals(p.Key, r.Key, StringComparison.OrdinalIgnoreCase))).Concat(programs).ToArray());
+                if (!ConfirmPinnedConflicts(sites, programs)) return;
                 EditedSites.Clear(); EditedSites.AddRange(nextSites);
-                AddProgramRules(programs, editor: true);
+                AddProgramRules(programs, editor: true, confirmPins: false);
                 DetailText.Text = $"Правила добавлены: сайтов {sites.Length}, программ {programs.Length}.";
             }
             catch (UserError ex) { DetailText.Text = ex.Message; }

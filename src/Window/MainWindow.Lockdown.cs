@@ -12,6 +12,12 @@ public partial class MainWindow
         AppTab.Lockdown.Click += async (_, _) =>
         {
             var on = preferences.Lockdown;
+            if (runtime.Connections.MainPaused)
+            {
+                preferences.Lockdown = !on;
+                DetailText.Text = "Включите основной VPN, чтобы изменить запрет «Без VPN — без интернета».";
+                return;
+            }
             if (on && !AppDialog.Confirm(this, "Закрыть интернет без VPN?",
                     "Пока VPN выключен, программы не выйдут в интернет — даже после выхода из Облачки и перезагрузки. " +
                     "Облачка сама останется на связи, чтобы подключиться. Снять запрет — этим же переключателем или удалив Облачку.", "Закрыть"))

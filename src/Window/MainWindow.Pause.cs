@@ -27,7 +27,8 @@ public partial class MainWindow
 
     private void RefreshPauseButton()
     {
-        var offered = pausedUntil is not null || ConnectionActive && StopButton.IsEnabled && operation is null && !systemStopping;
+        var offered = pausedUntil is not null || ConnectionActive && StopButton.IsEnabled && operation is null && !systemStopping &&
+            (systemTunnel is not { PinnedServices.Count: > 0 } || systemTunnel.CanPauseMain);
         Home.PauseButton.Visibility = offered ? Visibility.Visible : Visibility.Collapsed;
         Home.PauseText.Text = pausedUntil is null ? "Пауза" : "Не включать сам";
         Home.PauseIcon.SetResourceReference(System.Windows.Shapes.Path.DataProperty, pausedUntil is null ? "IcoPause" : "IcoClose");

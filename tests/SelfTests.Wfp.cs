@@ -11,21 +11,22 @@ public static partial class SelfTests
         public readonly List<string> Log = new();
         public readonly Dictionary<Guid, WfpFilter> Filters = new();
         public bool Sublayer, Provider, InTransaction, FailOnFilter;
-        private (bool, bool, Dictionary<Guid, WfpFilter>)? saved;
-        public void Begin() { InTransaction = true; saved = (Sublayer, Provider, new(Filters)); Log.Add("begin"); }
+        private Guid sublayerKey = WfpProtectionBackend.SublayerKey;
+        private (bool, bool, Guid, Dictionary<Guid, WfpFilter>)? saved;
+        public void Begin() { InTransaction = true; saved = (Sublayer, Provider, sublayerKey, new(Filters)); Log.Add("begin"); }
         public void Commit() { InTransaction = false; saved = null; Log.Add("commit"); }
         public void Abort()
         {
             Log.Add("abort"); InTransaction = false;
-            if (saved is var (s, p, f)) { Sublayer = s; Provider = p; Filters.Clear(); foreach (var kv in f) Filters[kv.Key] = kv.Value; }
+            if (saved is var (s, p, key, f)) { Sublayer = s; Provider = p; sublayerKey = key; Filters.Clear(); foreach (var kv in f) Filters[kv.Key] = kv.Value; }
         }
-        public bool SublayerExists(Guid key) => Sublayer;
+        public bool SublayerExists(Guid key) => Sublayer && key == sublayerKey;
         public bool FilterExists(Guid key) => Filters.ContainsKey(key);
         public ushort Weight = ushort.MaxValue;
         public bool PersistentObjects;
         public void AddProvider(Guid key, string name, bool persistent = false) { Provider = true; PersistentObjects = persistent; Log.Add("provider+"); }
         public void AddSublayer(Guid key, Guid provider, string name, ushort weight, bool persistent = false)
-        { Assert(weight == Weight && InTransaction && persistent == PersistentObjects); Sublayer = true; Log.Add("sublayer+"); }
+        { Assert(weight == Weight && InTransaction && persistent == PersistentObjects); Sublayer = true; sublayerKey = key; Log.Add("sublayer+"); }
         public void AddFilter(WfpFilter filter, Guid provider, Guid sublayer)
         {
             Assert(InTransaction);
@@ -50,6 +51,22 @@ public static partial class SelfTests
             Assert(Marshal.SizeOf<WfpNative.Provider>() == 64 && Marshal.SizeOf<WfpNative.Value>() == 16);
             Assert(Marshal.OffsetOf<WfpNative.Filter>(nameof(WfpNative.Filter.Context)) == 152);
             Assert(Marshal.OffsetOf<WfpNative.Filter>(nameof(WfpNative.Filter.EffectiveWeight)) == 184);
+            return Task.CompletedTask;
+        });
+        await check("Strict WFP protection has independent persistent keys and suppresses physical bypasses", () =>
+        {
+            var programs = WfpLockdown.Programs(@"C:\app");
+            var filters = WfpLockdown.Filters(programs, lan: false, strict: true);
+            Assert(!filters.Select(f => f.Key).Intersect(WfpLockdown.Filters(programs, lan: false).Select(f => f.Key)).Any());
+            var engine = new FakeWfp { Weight = WfpLockdown.StrictSublayerWeight };
+            WfpLockdown.Apply(engine, programs, lan: false, strict: true);
+            Assert(WfpLockdown.StrictIntact(engine, programs) && engine.Filters.Values.All(f => f.Persistent));
+            WfpLockdown.Remove(engine, strict: true);
+            Assert(engine.Filters.Count == 0);
+            var backend = new WfpProtectionBackend(() => engine, @"C:\app\tools");
+            var strict = backend.Filters([IPAddress.Parse("203.0.113.7")], local: true, strict: true);
+            Assert(!strict.Any(f => f.Permit && f.Conditions.Any(c => c.Kind == WfpConditionKind.RemoteSubnet) &&
+                !f.Conditions.Any(c => c.Kind == WfpConditionKind.Application)));
             return Task.CompletedTask;
         });
         await check("Lockdown lets out only Oblachka and its cores, loopback, DHCP and the chosen LAN, persistently, below the session protection", () =>
@@ -144,7 +161,7 @@ public static partial class SelfTests
             finally { Directory.Delete(folder, recursive: true); }
             return Task.CompletedTask;
         });
-        await check("WFP protection is applied in one transaction and removed completely, leftovers first", () =>
+        await check("WFP protection replaces leftovers in one transaction and is removed completely", () =>
         {
             var engine = new FakeWfp { Sublayer = true, Provider = true };
             engine.Filters[WfpProtectionBackend.FilterKey(5)] = new(WfpProtectionBackend.FilterKey(5), "leftover", false, 0, false, []);
@@ -153,8 +170,8 @@ public static partial class SelfTests
             var change = backend.Prepare(NetworkHelperContracts.Validate(Request(id, "203.0.113.7")))[0];
             Assert(change.Kind == NetworkResourceKind.WfpProtection && change.Before is null);
             Assert(backend.Apply(id, change) == NetworkWriteResult.Changed);
-            // Остаток снят своей транзакцией до новой, новая — целиком одной.
-            Assert(engine.Log.IndexOf("sublayer-") < engine.Log.LastIndexOf("begin") && engine.Log.Count(l => l == "commit") == 2);
+            Assert(engine.Log.IndexOf("begin") < engine.Log.IndexOf("sublayer-") &&
+                engine.Log.IndexOf("sublayer-") < engine.Log.IndexOf("sublayer+") && engine.Log.Count(l => l == "commit") == 1);
             Assert(engine.Sublayer && engine.Filters.Count == backend.Filters(new[] { IPAddress.Parse("203.0.113.7") }).Count);
             Assert(backend.Restore(id, change with { State = NetworkChangeState.Applied }) == NetworkWriteResult.Changed);
             Assert(!engine.Sublayer && !engine.Provider && engine.Filters.Count == 0);

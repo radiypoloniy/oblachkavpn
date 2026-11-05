@@ -83,9 +83,18 @@ public partial class MainWindow
 
     private void SetRuleSetServers(HashSet<string>? next)
     {
+        if (!CheckPinnedServers(next)) return;
         ruleSetServers = next;
         QueueStateSave(); RefreshRuleSetServersText(); FillRuleSetServers(); RenderSheet();
         EnforceRuleSetServers();
+    }
+
+    private bool CheckPinnedServers(IReadOnlySet<string>? next)
+    {
+        var excluded = runtime.ServiceRoutes.ExcludedBy(next);
+        if (excluded.Length == 0) return true;
+        DetailText.Text = "Набор исключает серверы для привязок " + string.Join(", ", excluded) + ". Сначала измените привязки или список серверов.";
+        return false;
     }
 
     // Включён набор, а выбран сервер не из него: выбор переходит на лучший разрешённый (на ходу, если VPN включён).

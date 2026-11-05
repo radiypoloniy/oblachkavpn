@@ -120,6 +120,24 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                         if (activeLease is not null) throw new UserError("Сессия этого владельца ещё активна.");
                         state = session.Recover()?.State ?? NetworkSessionState.Released;
                     }
+                    else if (request.Operation == HelperOperation.ArmStrictGuard)
+                    {
+                        if (activeLease is null || state != NetworkSessionState.Applied)
+                            throw new UserError("Для смены политики нужна действующая сетевая сессия.");
+                        using var engine = WfpEngine.Open();
+                        WfpLockdown.Apply(engine, WfpLockdown.StrictPrograms(AppContext.BaseDirectory), lan: false, strict: true);
+                        SyncDirectApps(force: true);
+                        SyncReinjection();
+                    }
+                    else if (request.Operation == HelperOperation.ClearStrictGuard)
+                    {
+                        if (activeLease is not null || state is not (null or NetworkSessionState.Released))
+                            throw new UserError("Сначала остановите системный туннель.");
+                        using var engine = WfpEngine.Open();
+                        WfpLockdown.Remove(engine, strict: true);
+                    }
+                    else if (request.Operation == HelperOperation.Heartbeat && activeLease is not null && session.StrictTunnelLost())
+                        throw new IOException("Ядро системного туннеля остановилось при действующей строгой защите.");
                     response = new(1, request.RequestId, state == NetworkSessionState.RecoveryRequired ? HelperFailure.RecoveryRequired : HelperFailure.None, state, blocking, zapret,
                         request.Operation == HelperOperation.Heartbeat ? session.Repairs : null);
                 }

@@ -1,4 +1,4 @@
-﻿namespace Oblachka;
+namespace Oblachka;
 
 // Holding — ядро остановилось или переключается, а туннель и блокировка остаются на месте.
 public enum SystemTunnelState { Idle, Starting, Running, Holding, Stopping, RecoveryRequired, Failed }
@@ -36,6 +36,8 @@ public sealed partial class SystemTunnelSession : IAsyncDisposable
     public TunnelTuning? Tuning { get; set; }
     // Идёт ли трафик сейчас прямо на сервер (одно ядро) — для отчёта и проверок.
     public bool DirectActive { get; private set; }
+    public bool CanPauseMain => BlocksBypass && PinnedServices.Count > 0 && PinnedServices.All(route => route.Domains.Length == 0);
+    public bool MainPaused { get; private set; }
     private System.Text.Json.Nodes.JsonObject?[]? direct;
     public event Action<SystemTunnelState>? Changed;
     // Защиту от утечек сняли без нас (служба фильтрации, чужая программа), служба поставила её заново.
@@ -62,7 +64,7 @@ public sealed partial class SystemTunnelSession : IAsyncDisposable
         try
         {
             // Событие могло устареть, пока ждало очереди: ядро уже перезапущено.
-            if (State == SystemTunnelState.Running && core.State == ConnectionState.Failed) Set(SystemTunnelState.Holding);
+            if (State == SystemTunnelState.Running && !MainPaused && core.State == ConnectionState.Failed) Set(SystemTunnelState.Holding);
         }
         finally { operations.Release(); }
     }
@@ -88,7 +90,7 @@ public sealed partial class SystemTunnelSession : IAsyncDisposable
     public async Task StartWithSparesAsync(IReadOnlyList<TunnelEndpointPlan> prepared, CancellationToken token,
         IReadOnlyList<SiteRule>? sites = null, IReadOnlyList<ProgramRule>? programs = null, CoreDirectEntry? coreDirect = null, bool directByDefault = false,
         RoutingListsEntry? lists = null, bool localNetwork = false, bool quicOverTcp = false, bool compatibleStack = false, bool foreignNode = false,
-        IReadOnlyList<ServiceRoute>? services = null, Func<Profile, bool>? serviceProfileAllowed = null)
+        IReadOnlyList<ServiceRoute>? services = null, Func<Profile, bool>? serviceProfileAllowed = null, string? initialMainMode = null)
     {
         if (prepared.Count == 0) throw new UserError("Нет подготовленного сервера для системного режима.");
         await operations.WaitAsync(token).ConfigureAwait(false);
@@ -113,10 +115,11 @@ public sealed partial class SystemTunnelSession : IAsyncDisposable
                 // сессия снимается обычным Release.
                 BlocksBypass = await helper.AcquireAsync(new(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, leasePort, peers,
                     sites?.ToArray(), programs?.ToArray(), coreDirect, directByDefault, Stats, direct, lists, localNetwork, quicOverTcp, compatibleStack, foreignNode, Tuning)
-                    { ServiceRoutes = pinned }, CancellationToken.None).ConfigureAwait(false);
+                    { ServiceRoutes = pinned, InitialMainMode = initialMainMode }, CancellationToken.None).ConfigureAwait(false);
                 DirectActive = direct?[0] is not null;
                 token.ThrowIfCancellationRequested();
                 PinnedServices = pinned ?? [];
+                MainPaused = initialMainMode is not null;
                 Set(SystemTunnelState.Running);
             }
             catch

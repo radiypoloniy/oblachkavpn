@@ -44,29 +44,33 @@ public partial class MainWindow
     private static bool SessionLeft(string journal) =>
         NetworkSessionJournal.PeekState(journal) is { } state && state != NetworkSessionState.Released;
 
-    private async Task RestoreNetworkAsync()
+    private async Task<bool> RestoreNetworkAsync()
     {
-        if (systemTunnel is not null || operation is not null) return;
+        if (operation is not null || runtime.Connections.IsStopping) return false;
+        if (systemTunnel is { PinnedServices.Count: 0 }) return false;
+        if (!AppDialog.Confirm(this, "Восстановить обычную сеть?",
+            "Строгая защита будет снята. Программы смогут подключаться напрямую, если это разрешено настройкой «Без VPN — без интернета».",
+            "Восстановить сеть", danger: true)) return false;
         Settings.RestoreNetwork.IsEnabled = false;
         var service = NetworkHelperConnection.ServiceRunning;
         DetailText.Text = service ? "Восстанавливаем сеть." : "Восстанавливаем сеть. Подтвердите запрос прав администратора.";
+        var recovered = false;
         try
         {
+            if (systemTunnel is not null) await runtime.Connections.StopAsync(preservePause: false, stopProtection: true);
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-            if (service) await RecoverServiceSessionAsync(timeout.Token).ConfigureAwait(true);
-            else
+            await using var lifetime = await NetworkHelperConnection.ConnectAsync(timeout.Token);
+            if (await lifetime.Client.RecoverAsync(timeout.Token) == NetworkSessionState.Released)
             {
-                // Помощник с UAC восстанавливает сеть по журналу при своём запуске.
-                var lifetime = await HelperProcessLifetime.ConnectAsync(NetworkHelperLauncher.Launch, timeout.Token).ConfigureAwait(true);
-                await lifetime.DisposeAsync().ConfigureAwait(true);
+                await lifetime.Client.SetStrictGuardAsync(arm: false, timeout.Token);
+                recovered = true;
             }
         }
         catch (Exception ex) when (ex is UserError or IOException or TimeoutException or OperationCanceledException or ObjectDisposedException) { }
         finally { Settings.RestoreNetwork.IsEnabled = true; }
-        DetailText.Text = NetworkLeftChanged
-            ? "Сеть восстановить не удалось. Перезагрузите компьютер: фильтры защиты после перезагрузки не сохраняются."
-            : "Сеть восстановлена.";
+        DetailText.Text = recovered && !NetworkLeftChanged ? "Сеть восстановлена." : "Сеть восстановить не удалось. Проверьте, запущена ли служба Облачки.";
         UpdateSystemTunnelNote(null);
+        return recovered;
     }
 
     private static async Task RecoverServiceSessionAsync(CancellationToken token)
@@ -75,8 +79,14 @@ public partial class MainWindow
         await lifetime.Client.RecoverAsync(token).ConfigureAwait(true);
     }
 
-    private void SystemTunnelToggled(object sender, RoutedEventArgs args)
+    private async void SystemTunnelToggled(object sender, RoutedEventArgs args)
     {
+        if (!SystemTunnelWanted && systemTunnel is { PinnedServices.Count: > 0 })
+        {
+            preferences.SystemTunnel = true;
+            if (!await RestoreNetworkAsync()) return;
+            preferences.SystemTunnel = false;
+        }
         // Два системных режима сразу не имеют смысла: прокси указывал бы на порт,
         // который уже забрал туннель.
         if (SystemTunnelWanted && preferences.SystemProxy)
@@ -144,16 +154,18 @@ public partial class MainWindow
             : "Системный режим работает: весь трафик компьютера идёт через туннель. Блокировка трафика мимо туннеля " +
               "не действует — фильтрация Windows недоступна, при обрыве программы пойдут напрямую.";
         var leftover = systemTunnel is null && Settings.SystemTunnel.IsEnabled && NetworkLeftChanged;
-        Settings.RestoreNetwork.Visibility = leftover ? Visibility.Visible : Visibility.Collapsed;
+        Settings.RestoreNetwork.Visibility = Settings.SystemTunnel.IsEnabled &&
+            (systemTunnel is null || systemTunnel.PinnedServices.Count > 0) ? Visibility.Visible : Visibility.Collapsed;
         if (leftover)
         {
             Settings.SystemTunnelNote.Text = "Прошлый системный режим прервался, и блокировка трафика могла остаться: " +
-                "без неё интернет может не работать. Нажмите «Восстановить сеть» или включите системный режим снова.";
+                "интернет может быть закрыт. Нажмите «Восстановить сеть» или включите системный режим снова.";
             return;
         }
         Settings.SystemTunnelNote.Text = state switch
         {
             SystemTunnelState.Starting => "Системный режим запускается.",
+            SystemTunnelState.Running when runtime.Connections.MainPaused => "Основной VPN выключен. Закреплённые выходы и блокировка обхода продолжают работать.",
             SystemTunnelState.Running => running,
             SystemTunnelState.Holding => systemTunnel?.BlocksBypass == true
                 ? "Связь с сервером прервана, восстанавливаем. Трафик мимо туннеля по-прежнему заблокирован: интернета не будет, пока связь не вернётся или вы не нажмёте «Остановить»."

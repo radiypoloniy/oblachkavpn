@@ -10,7 +10,7 @@ namespace Oblachka;
 // ProgramRules — новые правила программ для работающего туннеля (ProgramRuleSets), без переподключения.
 // RoutingLists — списки маршрутизации для ядра туннеля (RoutingLists), частями, тоже на ходу.
 // Lockdown — включить или снять запрет «без VPN — без интернета» (WfpLockdown); в ответе Blocking — стоит ли он.
-public enum HelperOperation { Acquire, Release, Heartbeat, Recover, Repair, Zapret, DirectDns, ProgramRules, RoutingLists, Lockdown }
+public enum HelperOperation { Acquire, Release, Heartbeat, Recover, Repair, Zapret, DirectDns, ProgramRules, RoutingLists, Lockdown, ArmStrictGuard, ClearStrictGuard }
 // SystemRefused — отказ самой системы, а не ошибка в запросе. Без него такой отказ
 // вылетал мимо ответа и завершал помощника: клиент видел обрыв канала вместо причины.
 public enum HelperFailure { None, InvalidRequest, Busy, RecoveryRequired, SystemRefused }
@@ -125,7 +125,7 @@ public static class HelperProtocol
             return;
         }
         if (request.Repair is not null) throw new UserError("Исправление сети передаётся только командой Repair.");
-        if (request.Operation is HelperOperation.Heartbeat or HelperOperation.Recover)
+        if (request.Operation is HelperOperation.Heartbeat or HelperOperation.Recover or HelperOperation.ArmStrictGuard or HelperOperation.ClearStrictGuard)
         {
             if (request.Lease is not null) throw new UserError(request.Operation + " не принимает сетевые параметры.");
             return;

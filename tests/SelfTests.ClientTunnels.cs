@@ -24,6 +24,75 @@ public static partial class SelfTests
             Assert(runtime.Activity.Operation is null && !runtime.Activity.EngineOperation);
             await runtime.StopTunnelAsync();
         });
+        await check("Wake recovery waits for the service and retries a failed rebuild without a live core", async () =>
+        {
+            var host = new TunnelHostFixture { DisposeLostChannel = true };
+            using var runtime = new ClientRuntime(new RecoveryCore { Working = selected }, host);
+            runtime.Preferences.SystemTunnel = true; runtime.Profiles.Selected = selected; runtime.Profiles.Imported = [selected];
+            await runtime.Tunnels.StartAsync(selected, CancellationToken.None);
+            host.IsService = false;
+            using var busy = new CancellationTokenSource();
+            runtime.Activity.Operation = busy;
+            host.LastLink!.Fixture.Lose();
+            await UntilAsync(() => runtime.Tunnel?.State == SystemTunnelState.RecoveryRequired);
+            runtime.Monitor.Resume();
+            Assert(runtime.Recovery.HasPendingTunnelHeal);
+            await runtime.Recovery.HealLostTunnelAsync();
+            Assert(host.Connects == 1);
+            runtime.Activity.Operation = null;
+            host.IsService = true; host.FailRecover = true;
+            await runtime.Recovery.HealLostTunnelAsync();
+            Assert(runtime.Tunnel is null && runtime.Engine.ProcessId is null && runtime.Recovery.HasPendingTunnelHeal);
+            host.FailRecover = false;
+            runtime.Monitor.Start(new SynchronizationContext());
+            runtime.Monitor.NextCheck = DateTimeOffset.MinValue;
+            await UntilAsync(() => runtime.Recovery.LastOutcome?.Kind == RecoveryOutcomeKind.Rebuilt);
+            Assert(host.Connects == 2 && runtime.Tunnel?.BlocksBypass == true);
+            await runtime.StopTunnelAsync();
+
+            static async Task UntilAsync(Func<bool> ready)
+            {
+                using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+                while (!ready()) await Task.Delay(20, deadline.Token);
+            }
+        });
+        await check("Wake does not recreate a tunnel that was stopped manually", async () =>
+        {
+            var host = new TunnelHostFixture();
+            using var runtime = new ClientRuntime(new RecoveryCore(), host);
+            runtime.Preferences.SystemTunnel = true; runtime.Profiles.Selected = selected; runtime.Profiles.Imported = [selected];
+            await runtime.Tunnels.StartAsync(selected, CancellationToken.None);
+            await runtime.Connections.StopAsync();
+            runtime.Monitor.Resume();
+            await runtime.Recovery.HealLostTunnelAsync();
+            Assert(host.Connects == 1 && runtime.Tunnel is null && !runtime.Recovery.HasPendingTunnelHeal);
+        });
+        await check("A failed rebuild after a path check schedules another attempt even with no remaining tunnel", async () =>
+        {
+            var host = new TunnelHostFixture();
+            using var runtime = new ClientRuntime(new RecoveryCore(), host);
+            runtime.Preferences.SystemTunnel = true; runtime.Profiles.Selected = selected; runtime.Profiles.Imported = [selected];
+            await runtime.Tunnels.StartAsync(selected, CancellationToken.None);
+            host.FailRecover = true;
+            await runtime.Recovery.RepairPathAsync("fixture path failure after wake");
+            Assert(runtime.Tunnel is null && runtime.Recovery.HasPendingTunnelHeal);
+            host.FailRecover = false;
+            await runtime.Recovery.HealLostTunnelAsync();
+            Assert(runtime.Tunnel?.BlocksBypass == true && !runtime.Recovery.HasPendingTunnelHeal);
+            await runtime.StopTunnelAsync();
+        });
+        await check("An explicit connection recreates an unusable lease after the helper channel is lost", async () =>
+        {
+            var host = new TunnelHostFixture { DisposeLostChannel = true };
+            using var runtime = new ClientRuntime(new RecoveryCore(), host);
+            runtime.Preferences.SystemTunnel = true; runtime.Profiles.Selected = selected; runtime.Profiles.Imported = [selected];
+            await runtime.Tunnels.StartAsync(selected, CancellationToken.None);
+            host.LastLink!.Fixture.Lose();
+            Assert(runtime.Tunnel?.State == SystemTunnelState.RecoveryRequired);
+            await runtime.Connections.StartAsync(selected);
+            Assert(host.Connects == 2 && runtime.Tunnel?.BlocksBypass == true);
+            await runtime.StopTunnelAsync();
+        });
         await check("Headless TUN rebuild uses current rules, routing, DNS and tuning rather than its original snapshot", async () =>
         {
             var host = new TunnelHostFixture(); var core = new RecoveryCore { Working = selected };

@@ -31,6 +31,8 @@ public sealed class SystemNetworkBackend : INetworkSessionBackend, IDisposable
     public IReadOnlyList<NetworkChange> Prepare(ValidatedNetworkLease lease)
     {
         var changes = new List<NetworkChange>();
+        if (lease.ServiceRoutes.Count > 0 && wfp is null)
+            throw new UserError("Строгим маршрутам нужна фильтрация Windows (WFP).");
         if (wfp is not null) changes.AddRange(wfp.Prepare(lease));
         else if (killSwitch is { IsAvailable: true }) changes.AddRange(killSwitch.Prepare(lease));
         changes.AddRange(tunnel.Prepare(lease));
@@ -41,7 +43,12 @@ public sealed class SystemNetworkBackend : INetworkSessionBackend, IDisposable
 
     public NetworkWriteResult Restore(Guid leaseId, NetworkChange change) => Pick(change).Restore(leaseId, change);
 
-    public bool Intact(NetworkChange change) => change.Kind != NetworkResourceKind.WfpProtection || wfp is null || wfp.Intact(change);
+    public bool Intact(NetworkChange change) => change.Kind switch
+    {
+        NetworkResourceKind.WfpProtection => wfp is not null && wfp.Intact(change),
+        NetworkResourceKind.TunnelInterface => tunnel.Running,
+        _ => true
+    };
 
     // Восстановление должно работать и тогда, когда блокировку сейчас поставить нельзя:
     // запись в журнале могла остаться от сессии, когда брандмауэр был включён. Поэтому

@@ -7,12 +7,12 @@ public sealed partial class ClientConnections
         var target = request.Target;
         var mode = owner.Preferences.SystemTunnel;
         var session = owner.Tunnel;
-        var runningTunnel = session is { State: not (SystemTunnelState.Idle or SystemTunnelState.Failed) };
+        var runningTunnel = session is { State: SystemTunnelState.Running or SystemTunnelState.Holding };
         if (!mode && session is not null) { await owner.StopTunnelAsync(); runningTunnel = false; }
         if (mode && runningTunnel && (request.RebuildTunnel || !session!.CanSwitchTo(target)))
         {
             if (!request.AllowReconnect) throw new UserError("Подтвердите переподключение со снятием защиты.");
-            await owner.StopTunnelAsync(); runningTunnel = false;
+            await owner.Tunnels.StartAsync(target, token, preserveMainPause: request.RebuildTunnel); return;
         }
         if (owner.Engine is Engine core)
         {
@@ -39,6 +39,7 @@ public sealed partial class ClientConnections
         if (mode && runningTunnel)
         {
             await session!.SwitchAsync(target, token);
+            if (session.MainPaused) await session.SetMainPausedAsync(false, lockdown: false);
             if (owner.TunnelLink is { } link)
             {
                 var domains = ClientTunnelPolicy.DirectDomains(owner.Tunnels.SentLists ?? routing, settings.Sites);
