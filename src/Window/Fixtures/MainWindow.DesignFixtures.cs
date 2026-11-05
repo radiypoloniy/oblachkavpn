@@ -147,11 +147,12 @@ public partial class MainWindow
         }
         if (page is "live" or "live-on" or "live-browser") { LivePreview(browser: page == "live-browser"); if (page != "live") ConnectedPreview(); return; }
         if (page is "services" or "services-empty") { ServiceRoutesPreview(page == "services"); return; }
+        if (page is "rules-search" or "rules-editor") { RoutingSearchPreview(page == "rules-editor"); return; }
         if (page is "apps" or "apps-rules")
         {
             // Настоящий каталог этого компьютера, собранный сразу: снимок делается синхронно.
             appCatalog = InstalledApps.Find().Select(a => new Views.AppRow(a, AppIcons.For(a.Path))).ToArray();
-            ShowRulesSection(); Routes.ShowSites(false);
+            ShowRulesSection();
             if (page == "apps-rules")
             {
                 // Как после выбора в списке: папка программы целиком; чего нет на компьютере — старое правило по имени.

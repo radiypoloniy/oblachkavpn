@@ -17,7 +17,7 @@ public partial class MainWindow
 
     private void WireConnections()
     {
-        Routes.LiveButton.Click += (_, _) => ShowLiveSection();
+        Routes.Quick.Live.Click += (_, _) => ShowLiveSection();
         Home.LiveNav.Click += (_, _) => ShowLiveSection();
         // «Назад» есть только в узком окне: там раздел закрывается, и видна боковая панель.
         Live.Closed += () => { CloseConnections(); narrowOpen = false; ApplyLayout(); Home.LiveNav.Focus(); };

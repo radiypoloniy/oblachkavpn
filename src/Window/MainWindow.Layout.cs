@@ -85,9 +85,9 @@ public partial class MainWindow
         var settings = island && Settings.Visibility == Visibility.Visible;
         var rules = island && !settings && RulesPage.Visibility == Visibility.Visible;
         var analyticsOpen = island && !page && analytics?.Visibility == Visibility.Visible;
-        Ui.SetSelected(Home.LiveNav, island && !page && !settings && !analyticsOpen && (rules && !Routes.ServicesActive || Live.Visibility == Visibility.Visible && Servers.Visibility != Visibility.Visible));
+        Ui.SetSelected(Home.LiveNav, island && !page && !settings && !analyticsOpen && Live.Visibility == Visibility.Visible && Servers.Visibility != Visibility.Visible);
         Ui.SetSelected(Home.TodayCard, analyticsOpen);
-        Ui.SetSelected(Home.ServicesNav, rules && Routes.ServicesActive);
+        Ui.SetSelected(Home.ServicesNav, rules);
         // Подписки и серверы автовыбора открываются из «Серверов» — подсвечены они; обход блокировок — ничего.
         var shown = settings ? Settings.CurrentPage : -1;
         Ui.SetSelected(Home.AllServersButton, island && (Servers.Visibility == Visibility.Visible && !settings || shown is Views.SettingsPanel.SubscriptionPage or Views.SettingsPanel.AutoPoolPage));

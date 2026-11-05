@@ -81,6 +81,21 @@ public partial class MainWindow
             runtime.TunnelPolicy.ServiceRoutes.Add(new("claude", new string('0', 64), ["claude.ai"], []));
             runtime.TunnelPolicy.ServiceRoutes.Add(new("github", id, ["github.com"], []));
         }
-        ShowRulesSection(services: true);
+        ShowRulesSection();
+        if (!configured) OpenRouteTemplates();
+    }
+
+    private void RoutingSearchPreview(bool editor)
+    {
+        LoadGroupsPreview();
+        var codex = new Views.AppRow(new("Codex", "Codex.exe", @"C:\Apps\Codex\Codex.exe", false), null);
+        appCatalog = [codex];
+        siteRules.Add(RoutingPlan.Create("goldapple.ru", SiteAction.Direct));
+        programRules.Add(ProgramRoutingPlan.Create("Steam.exe", SiteAction.Tunnel));
+        if (ClientServerCatalog.Id(profile) is { } id)
+            runtime.TunnelPolicy.ServiceRoutes.Add(new("claude", id, ["claude.ai"], []));
+        ShowRulesSection();
+        Routes.RuleDomain.Text = "Codex";
+        if (editor) OpenQuickTarget(new(codex.Name, codex));
     }
 }

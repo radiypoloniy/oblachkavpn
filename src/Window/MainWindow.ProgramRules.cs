@@ -12,11 +12,6 @@ public partial class MainWindow
     private IReadOnlyList<AppRow>? appCatalog;
     private bool appCatalogLoading;
 
-    private void WireProgramRules()
-    {
-        Routes.ChooseProgramsButton.Click += (_, _) => OpenAppPicker();
-    }
-
     private void WirePickerPage()
     {
         Picker.Closed += CloseAppPicker;
@@ -43,7 +38,7 @@ public partial class MainWindow
     private void CloseAppPicker()
     {
         HidePage(picker);
-        Routes.ChooseProgramsButton.Focus();
+        Routes.Quick.Browse.Focus();
     }
 
     // Каталог и значки собираются один раз за запуск и в фоне: ярлыков и процессов бывают сотни.

@@ -1,47 +1,79 @@
 <UserControl x:Class="Oblachka.Views.QuickRouting" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:o="clr-namespace:Oblachka">
-  <StackPanel>
-    <TextBox x:Name="Query" Style="{StaticResource FieldBox}" Height="40" FontSize="{StaticResource FsLabel}"
-             Tag="Найти программу или вставить ссылку…" AutomationProperties.Name="Найти программу или вставить ссылку"/>
-    <StackPanel x:Name="SiteResult" Visibility="Collapsed" Margin="0,6,0,0">
-      <TextBlock x:Name="SiteName" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-      <WrapPanel Margin="0,4,0,0">
-        <Button x:Name="AddDirect" Content="Напрямую" Style="{StaticResource BtnOutline}" Height="30" Margin="0,0,6,0"/>
-        <Button x:Name="AddVpn" Content="Через VPN" Style="{StaticResource BtnSecondary}" Height="30" Margin="0,0,6,0"/>
-        <Button x:Name="SiteMore" Content="⋯" AutomationProperties.Name="Другие маршруты сайта" Style="{StaticResource BtnGhost}" Height="30"/>
-      </WrapPanel>
-    </StackPanel>
-    <ScrollViewer MaxHeight="235" VerticalScrollBarVisibility="Auto" Margin="0,4,0,0">
-      <ItemsControl x:Name="Apps">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate>
-            <Border BorderBrush="{DynamicResource Divider}" BorderThickness="0,0,0,1" Padding="0,5">
-              <StackPanel>
-                <DockPanel>
-                  <Image Source="{Binding Icon}" Width="20" Height="20" Margin="0,0,8,0"/>
-                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                </DockPanel>
-                <WrapPanel Margin="28,4,0,0">
-                  <Button Tag="direct" Content="Напрямую" Style="{StaticResource BtnOutline}" Height="30" Margin="0,0,6,0"/>
-                  <Button Tag="vpn" Content="Через VPN" Style="{StaticResource BtnSecondary}" Height="30" Margin="0,0,6,0"/>
-                  <Button Tag="more" Content="⋯" AutomationProperties.Name="Другие маршруты программы" Style="{StaticResource BtnGhost}" Height="30"/>
-                </WrapPanel>
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:o="clr-namespace:Oblachka"
+             xmlns:v="clr-namespace:Oblachka.Views">
+  <UserControl.Resources>
+    <Style x:Key="QuickAction" TargetType="Button" BasedOn="{StaticResource BtnSecondary}">
+      <Setter Property="Height" Value="36"/>
+      <Setter Property="Padding" Value="12,0"/>
+      <Setter Property="FontSize" Value="{StaticResource FsBody}"/>
+    </Style>
+    <DataTemplate DataType="{x:Type v:QuickRouteTarget}">
+      <Border Background="{DynamicResource Bg}" CornerRadius="{StaticResource RadiusLg}" Padding="6" Margin="0,0,0,4">
+        <Grid>
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <Button x:Name="Target" Tag="edit" Style="{StaticResource BtnGhost}" Height="Auto" MinHeight="42" Padding="8,4"
+                  HorizontalContentAlignment="Stretch" ToolTip="Настроить маршрут" AutomationProperties.Name="{Binding EditLabel}">
+            <DockPanel>
+              <Border Width="30" Height="30" CornerRadius="{StaticResource RadiusSm}" Background="{DynamicResource Field}" Margin="0,0,9,0">
+                <Grid>
+                  <Path Data="{StaticResource IcoGlobe}" Style="{StaticResource Icon}" Width="15" Height="15" StrokeThickness="1.8" Visibility="{Binding SiteIcon}"/>
+                  <Image Source="{Binding Application.Icon}" Width="20" Height="20"/>
+                  <TextBlock Text="{Binding Application.Initial}" FontWeight="SemiBold" Foreground="{DynamicResource Ac}" HorizontalAlignment="Center"
+                             VerticalAlignment="Center" Visibility="{Binding Application.PlaceholderVisibility, FallbackValue=Collapsed}"/>
+                </Grid>
+              </Border>
+              <Path DockPanel.Dock="Right" Data="{StaticResource IcoChevronRight}" Style="{StaticResource Icon}" Width="8" Height="12"
+                    StrokeThickness="1.8" Margin="8,0,0,0"/>
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FsLabel}" Foreground="{DynamicResource Tx}" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding Kind}" Style="{StaticResource Small}"/>
               </StackPanel>
-            </Border>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-    </ScrollViewer>
-    <TextBlock x:Name="ResultNote" Style="{StaticResource Small}" TextWrapping="Wrap" Visibility="Collapsed"/>
+            </DockPanel>
+          </Button>
+          <StackPanel x:Name="Actions" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,4,0">
+            <Button Tag="direct" Content="Напрямую" Style="{StaticResource QuickAction}" Margin="0,0,6,0"/>
+            <Button Tag="vpn" Content="Через VPN" Style="{StaticResource QuickAction}" Background="{DynamicResource Aci}" Foreground="{DynamicResource Ac}"/>
+          </StackPanel>
+        </Grid>
+      </Border>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding Compact, RelativeSource={RelativeSource AncestorType=v:QuickRouting}}" Value="True">
+          <Setter TargetName="Target" Property="Grid.ColumnSpan" Value="2"/>
+          <Setter TargetName="Actions" Property="Grid.Column" Value="0"/>
+          <Setter TargetName="Actions" Property="Grid.ColumnSpan" Value="2"/>
+          <Setter TargetName="Actions" Property="Grid.Row" Value="1"/>
+          <Setter TargetName="Actions" Property="Margin" Value="8,4,8,4"/>
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+  </UserControl.Resources>
+  <StackPanel>
+    <TextBox x:Name="Query" Style="{StaticResource FieldBox}" Height="44" FontSize="{StaticResource FsLabel}"
+             Tag="Найти программу или вставить ссылку…" AutomationProperties.Name="Найти программу или вставить ссылку"/>
+    <Border x:Name="ResultCard" Background="{DynamicResource CardBg}" CornerRadius="{StaticResource RadiusSheet}" Padding="10,9,10,6"
+            Margin="0,8,0,2" Visibility="Collapsed">
+      <DockPanel>
+        <TextBlock x:Name="ResultNote" DockPanel.Dock="Top" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="6,2,6,7"/>
+        <ScrollViewer MaxHeight="212" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <ItemsControl x:Name="Results" Focusable="False"/>
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
     <WrapPanel Margin="0,6,0,0">
-      <Button x:Name="Templates" Content="Готовые шаблоны ›" Style="{StaticResource BtnGhost}" Height="32" Margin="0,0,6,0"/>
-      <Button x:Name="Browse" Content="Все программы" Style="{StaticResource BtnGhost}" Height="32"/>
+      <Button x:Name="Templates" Content="Готовые шаблоны ›" Style="{StaticResource BtnGhost}" Height="36" Margin="0,0,6,0"/>
+      <Button x:Name="Browse" Content="Все программы" Style="{StaticResource BtnGhost}" Height="36" Margin="0,0,6,0"/>
+      <Button x:Name="Live" Content="Сейчас в сети" Style="{StaticResource BtnGhost}" Height="36"/>
     </WrapPanel>
-    <TextBlock Text="Сохранённые правила" FontWeight="SemiBold" FontSize="{StaticResource FsLabel}" Margin="0,10,0,2"/>
-    <StackPanel x:Name="Suggestion" Visibility="Collapsed" Margin="0,4,0,0">
-      <TextBlock x:Name="SuggestionText" Style="{StaticResource Small}" TextWrapping="Wrap"/>
-      <WrapPanel><Button x:Name="SuggestionAdd" Content="Добавить" Style="{StaticResource BtnSecondary}"/>
-        <Button x:Name="SuggestionDismiss" Content="Скрыть" Style="{StaticResource BtnGhost}"/></WrapPanel>
-    </StackPanel>
+    <Border x:Name="Suggestion" Visibility="Collapsed" Background="{DynamicResource Aci}" CornerRadius="{StaticResource RadiusMd}"
+            Padding="10,8" Margin="0,6,0,0">
+      <StackPanel>
+        <TextBlock x:Name="SuggestionText" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="0,0,0,4"/>
+        <WrapPanel>
+          <Button x:Name="SuggestionAdd" Content="Добавить" Style="{StaticResource BtnSecondary}" Padding="10,0"/>
+          <Button x:Name="SuggestionDismiss" Content="Скрыть" Style="{StaticResource BtnGhost}"/>
+        </WrapPanel>
+      </StackPanel>
+    </Border>
   </StackPanel>
 </UserControl>

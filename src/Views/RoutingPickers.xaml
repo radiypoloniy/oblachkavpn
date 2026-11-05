@@ -1,0 +1,71 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style x:Key="RoutingPickerItem" TargetType="ComboBoxItem">
+    <Setter Property="Foreground" Value="{DynamicResource Tx}"/>
+    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusRing}"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBoxItem">
+          <Border x:Name="Row" Background="Transparent" CornerRadius="{DynamicResource RadiusMd}" Padding="10,7" MinHeight="36" Margin="0,0,0,2">
+            <TextBlock Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Row" Property="Background" Value="{DynamicResource Hov}"/></Trigger>
+            <Trigger Property="IsSelected" Value="True"><Setter TargetName="Row" Property="Background" Value="{DynamicResource Lilac}"/></Trigger>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="RoutingPicker" TargetType="ComboBox">
+    <Setter Property="MinHeight" Value="36"/>
+    <Setter Property="Background" Value="{DynamicResource Bg}"/>
+    <Setter Property="Foreground" Value="{DynamicResource Tx}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource Divider}"/>
+    <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusRing}"/>
+    <Setter Property="ItemContainerStyle" Value="{StaticResource RoutingPickerItem}"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBox">
+          <Grid>
+            <ToggleButton Focusable="False" ClickMode="Press"
+                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+              <ToggleButton.Template>
+                <ControlTemplate TargetType="ToggleButton">
+                  <Border x:Name="Field" CornerRadius="{DynamicResource RadiusMd}" Background="{DynamicResource Bg}"
+                          BorderBrush="{DynamicResource Divider}" BorderThickness="1"/>
+                  <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Field" Property="Background" Value="{DynamicResource Hov}"/></Trigger>
+                  </ControlTemplate.Triggers>
+                </ControlTemplate>
+              </ToggleButton.Template>
+            </ToggleButton>
+            <DockPanel Margin="10,4" IsHitTestVisible="False">
+              <Path DockPanel.Dock="Right" Data="M6,9 L12,15 L18,9" Style="{DynamicResource Icon}" Width="12" Height="10"
+                    StrokeThickness="2" Margin="8,0,0,0"/>
+              <TextBlock x:Name="Value" Text="{Binding SelectionBoxItem, RelativeSource={RelativeSource TemplatedParent}}"
+                         VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+            <Popup x:Name="PART_Popup" Placement="Bottom" VerticalOffset="4" AllowsTransparency="True"
+                   IsOpen="{TemplateBinding IsDropDownOpen}">
+              <Border Style="{DynamicResource MenuCard}" Padding="7" Width="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                <ScrollViewer MaxHeight="{TemplateBinding MaxDropDownHeight}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                  <ItemsPresenter/>
+                </ScrollViewer>
+              </Border>
+            </Popup>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="SelectedIndex" Value="-1">
+              <Setter TargetName="Value" Property="Text" Value="Выберите сервер"/>
+              <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource Mu2}"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+</ResourceDictionary>

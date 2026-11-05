@@ -1,20 +1,20 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 
 namespace Oblachka.Views;
 
 public partial class RulesTab : UserControl
 {
-    public bool ServicesActive => ServicePanel.Visibility == Visibility.Visible;
-    public event Action? SectionChanged;
     internal TextBox RuleDomain => Quick.Query;
-    internal Button AddRuleButton => Quick.AddVpn;
-    private Button activeTab = null!;
+    private readonly CollectionContainer ordinary = new(), pinned = new();
+    private ServiceRouteRow[] pinnedRows = [];
+    private bool showPinned = true;
 
     public RulesTab()
     {
         InitializeComponent();
-        // Узкий остров: у «Импорт» и «Экспорт» — только значки, иначе заголовок сжимался до «Прав…».
+        RuleList.ItemsSource = new CompositeCollection { ordinary, pinned };
         SizeChanged += (_, args) =>
         {
             var narrow = args.NewSize.Width < 560;
@@ -27,44 +27,53 @@ public partial class RulesTab : UserControl
             }
             CompactServerSlot.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
             RuleSetText.MaxWidth = narrow ? 120 : 180;
+            RuleSetServers.Margin = narrow ? new Thickness(0, 4, 0, 0) : new Thickness(6, 0, 0, 0);
             ImportRules.Padding = ExportRules.Padding = narrow ? new Thickness(10, 0, 4, 0) : new Thickness(12, 0, 14, 0);
         };
-        SitesTab.Click += (_, _) => ShowSites(true);
-        AppsTab.Click += (_, _) => ShowSites(false);
-        ServicesTab.Click += (_, _) => ShowServices();
-        ShowSites(true);
+        RefreshEmpty();
     }
 
-    // Подвкладки «Сайты / Программы»: активная подчёркнута акцентом.
-    public void ShowSites(bool sites)
+    internal void SetRules(RuleRow[] rows)
     {
-        ServicePanel.Visibility = Visibility.Collapsed;
-        ImportActions.Visibility = RuleEditor.Visibility = Visibility.Visible;
-        Mark(ServicesTab, false);
-        RuleList.Visibility = sites ? Visibility.Visible : Visibility.Collapsed;
-        ProgramInput.Visibility = ProgramList.Visibility = sites ? Visibility.Collapsed : Visibility.Visible;
-        Mark(SitesTab, sites);
-        Mark(AppsTab, !sites);
-        activeTab = sites ? SitesTab : AppsTab;
-        SectionChanged?.Invoke();
+        ordinary.Collection = rows;
+        RefreshEmpty();
     }
 
-    public void ShowServices()
+    internal void SetPinnedRules(ServiceRouteRow[] rows)
     {
-        ImportActions.Visibility = RuleEditor.Visibility = Visibility.Collapsed;
-        ServicePanel.Visibility = Visibility.Visible;
-        Mark(SitesTab, false); Mark(AppsTab, false); Mark(ServicesTab, true);
-        activeTab = ServicesTab;
-        SectionChanged?.Invoke();
+        pinnedRows = rows;
+        if (showPinned) pinned.Collection = rows;
+        RefreshEmpty();
     }
 
-    public void FocusActiveTab() => activeTab.Focus();
-
-    private static void Mark(Button tab, bool on)
+    internal void ShowPinnedRules(bool show)
     {
-        tab.SetResourceReference(ForegroundProperty, on ? "Tx" : "Mu2");
-        tab.FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal;
-        tab.SetResourceReference(BorderBrushProperty, "Ac");
-        tab.BorderThickness = new Thickness(0, 0, 0, on ? 2 : 0);
+        if (showPinned == show) return;
+        showPinned = show;
+        pinned.Collection = show ? pinnedRows : null;
+        RefreshEmpty();
+    }
+
+    internal void ShowTargetEditor(string title, bool templates)
+    {
+        EditorTitle.Text = title;
+        ServicePresetPicker.Visibility = templates ? Visibility.Visible : Visibility.Collapsed;
+        TargetEditor.Visibility = Visibility.Visible;
+        TargetEditor.BringIntoView();
+        (templates ? ServicePresetPicker : ServiceAction).Focus();
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            if (TargetEditor.IsVisible) TargetEditor.BringIntoView();
+        });
+    }
+
+    internal void CloseTargetEditor() => TargetEditor.Visibility = Visibility.Collapsed;
+
+    private void RefreshEmpty()
+    {
+        var hasOrdinary = ordinary.Collection is RuleRow[] { Length: > 0 };
+        var hasPinned = pinned.Collection is ServiceRouteRow[] { Length: > 0 };
+        EmptyRules.Visibility = hasOrdinary || hasPinned ? Visibility.Collapsed : Visibility.Visible;
+        RuleHint.Visibility = hasOrdinary ? Visibility.Visible : Visibility.Collapsed;
     }
 }

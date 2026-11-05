@@ -6,8 +6,11 @@ public partial class MainWindow
 {
     private void CheckClientBlocks(ICollection<string> checks)
     {
+        ShowRulesSection();
         Routes.RuleDomain.Text = "https://Example.COM/path?tab=1#section";
-        Routes.AddRuleButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+        UpdateLayout();
+        Descendants<System.Windows.Controls.Button>(Routes.Quick.Results).Single(b => b.Tag is "vpn")
+            .RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
         if (siteRules.Count != 1 || siteRules[0].Domain != "example.com" || siteRules[0].Action != SiteAction.Tunnel)
             throw new InvalidOperationException("Rule editor did not normalize the draft");
         // Метка действия меняется по кругу: через VPN → напрямую → блок.
@@ -24,6 +27,7 @@ public partial class MainWindow
         if (programRules.Count != 1 || programRules[0].Action != SiteAction.Direct) throw new InvalidOperationException("Program draft editor failed");
         RemoveRule(programRules[0]);
         if (programRules.Count != 0) throw new InvalidOperationException("Program draft removal failed");
+        CheckUnifiedRouting(checks);
         CheckRuleSetDraft(checks);
         CheckAppPicker(checks);
         // «Сейчас в сети»: процесс с необычным именем файла (claude.exe.old.123) не роняет окно, а
@@ -36,6 +40,43 @@ public partial class MainWindow
         if (!Diagnostics.ValidateRulesButton.IsEnabled || backgroundWorkEnabled)
             throw new InvalidOperationException("Client block actions or fixture network isolation incorrect");
         checks.Add("Rule editor normalizes domains, cycles actions, answers «Куда пойдёт сайт?» and removes rules; background requests disabled in fixtures");
+    }
+
+    private void CheckUnifiedRouting(ICollection<string> checks)
+    {
+        var catalog = appCatalog;
+        var node = profile ?? throw new InvalidOperationException("Routing fixture has no server");
+        var pin = new ServiceRoute("claude", ClientServerCatalog.Id(node)!, ["claude.ai"], []);
+        var app = new Views.AppRow(new("Codex", "Codex.exe", @"C:\Apps\Codex\Codex.exe", false), null);
+        try
+        {
+            appCatalog = [app];
+            siteRules.Add(RoutingPlan.Create("example.invalid", SiteAction.Direct));
+            runtime.TunnelPolicy.ServiceRoutes.Add(pin);
+            ShowRulesSection();
+            Routes.RuleDomain.Text = "Codex";
+            UpdateLayout();
+            var edit = Descendants<System.Windows.Controls.Button>(Routes.Quick.Results).Single(b => b.Tag is "edit");
+            edit.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+            if (Routes.TargetEditor.Visibility != Visibility.Visible || Routes.EditorTitle.Text != app.Name)
+                throw new InvalidOperationException("Clicking the search target did not open its inline editor");
+            Routes.ServiceAction.SelectedIndex = 3;
+            Routes.ServiceSave.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+            if (Routes.TargetEditor.Visibility != Visibility.Collapsed ||
+                !Routes.RuleList.Items.OfType<RuleRow>().Any(row => row.Rule is SiteRule) ||
+                !Routes.RuleList.Items.OfType<RuleRow>().Any(row => row.Rule is ProgramRule { Action: SiteAction.Block }) ||
+                !Routes.RuleList.Items.OfType<ServiceRouteRow>().Any(row => row.Id == pin.Id))
+                throw new InvalidOperationException("Site, program, and server rules were not shown together after saving");
+            checks.Add("Clicking a search result opens the inline editor, and all three rule types share the saved list");
+        }
+        finally
+        {
+            appCatalog = catalog;
+            siteRules.RemoveAll(rule => rule.Domain == "example.invalid");
+            programRules.RemoveAll(rule => string.Equals(rule.Executable, "Codex.exe", StringComparison.OrdinalIgnoreCase));
+            runtime.TunnelPolicy.ServiceRoutes.Remove(pin);
+            RefreshRules(); RefreshServiceRoutes();
+        }
     }
 
     private void CheckRuleSetDraft(ICollection<string> checks)
@@ -99,7 +140,7 @@ public partial class MainWindow
         Picker.AddButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
         if (programRules.Count != 2 || programRules.Any(r => r.Action != SiteAction.Direct) || Picker.Visibility == Visibility.Visible)
             throw new InvalidOperationException("Picked programs were not added as direct rules");
-        var listed = Routes.ProgramList.Items.OfType<RuleRow>().Select(r => r.Text + "|" + r.Sub).ToArray();
+        var listed = Routes.RuleList.Items.OfType<RuleRow>().Where(r => r.Rule is ProgramRule).Select(r => r.Text + "|" + r.Sub).ToArray();
         if (!listed.Contains(@"Telegram Desktop|вся папка · C:\Apps\Telegram Desktop")) throw new InvalidOperationException("Rule list does not show program names: " + string.Join(", ", listed));
         OpenAppPicker();
         if (!appCatalog.Single(r => r.App.Executable == "Telegram.exe").Added) throw new InvalidOperationException("Added program is selectable again");

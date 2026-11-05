@@ -13,24 +13,20 @@ public partial class MainWindow
     private void WireQuickRouting()
     {
         var quick = Routes.Quick;
-        quick.Query.GotKeyboardFocus += (_, _) => { LoadAppCatalog(); RefreshQuickRouting(); };
-        quick.Query.TextChanged += (_, _) => RefreshQuickRouting();
+        quick.Query.TextChanged += (_, _) =>
+        {
+            CloseRouteEditor();
+            RefreshQuickRouting();
+            if (!string.IsNullOrWhiteSpace(quick.Query.Text) && QuickSite() is null) LoadAppCatalog();
+        };
         quick.Query.KeyDown += (_, e) =>
         {
             if (e.Key != Key.Enter || QuickSite() is null) return;
             e.Handled = true;
             AddQuickSite(SiteAction.Tunnel);
         };
-        quick.AddVpn.Click += (_, _) => AddQuickSite(SiteAction.Tunnel);
-        quick.AddDirect.Click += (_, _) => AddQuickSite(SiteAction.Direct);
-        quick.SiteMore.Click += (_, _) =>
-        {
-            if (QuickSite() is not { } site) return;
-            ShowQuickActions(quick.SiteMore, () => AddQuickSite(SiteAction.Block),
-                SiteTarget.Kind(site) == SiteTargetKind.Domain ? () => OpenQuickServer(site, null) : null);
-        };
         quick.Browse.Click += (_, _) => OpenAppPicker();
-        quick.Templates.Click += (_, _) => Routes.ShowServices();
+        quick.Templates.Click += (_, _) => OpenRouteTemplates();
         quick.SuggestionAdd.Click += (_, _) =>
         {
             var add = quickSuggestionSet == ruleSetName ? quickSuggestion : null;
@@ -38,11 +34,14 @@ public partial class MainWindow
             add?.Invoke();
         };
         quick.SuggestionDismiss.Click += (_, _) => ClearQuickSuggestion();
-        quick.Apps.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler((_, e) =>
+        quick.Results.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler((_, e) =>
         {
-            if (e.OriginalSource is not Button { DataContext: AppRow row, Tag: string tag } button) return;
-            if (tag == "more") ShowQuickActions(button, () => AddQuickApp(row.App, SiteAction.Block), () => OpenQuickServer(null, row.App));
-            else AddQuickApp(row.App, tag == "direct" ? SiteAction.Direct : SiteAction.Tunnel);
+            if (e.OriginalSource is not Button { DataContext: QuickRouteTarget row, Tag: string tag }) return;
+            if (tag == "edit") { OpenQuickTarget(row); return; }
+            if (tag is not ("direct" or "vpn")) return;
+            var action = tag == "direct" ? SiteAction.Direct : SiteAction.Tunnel;
+            if (row.Application is { } app) AddQuickApp(app.App, action);
+            else AddQuickSite(action);
         }));
     }
 
@@ -59,20 +58,18 @@ public partial class MainWindow
         var quick = Routes.Quick;
         var query = quick.Query.Text.Trim();
         var site = QuickSite();
-        quick.SiteResult.Visibility = site is null ? Visibility.Collapsed : Visibility.Visible;
-        quick.SiteName.Text = site is null ? "" : "Сайт · " + site;
-        AppRow[] matches = site is not null || query.Length == 0 || appCatalog is null ? [] :
+        QuickRouteTarget[] matches = site is not null ? [new(site)] : query.Length == 0 || appCatalog is null ? [] :
             InstalledApps.Search(appCatalog.Select(r => r.App).ToArray(), query).Take(8)
-                .Join(appCatalog, a => a, r => r.App, (_, row) => row).ToArray();
-        quick.Apps.ItemsSource = matches;
-        quick.ResultNote.Text = site is not null || query.Length == 0 || matches.Length > 0 ? "" :
-            appCatalog is null ? "Ищем программы на компьютере…" : "Совпадений нет. Можно открыть список программ и выбрать файл вручную.";
-        quick.ResultNote.Visibility = quick.ResultNote.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+                .Join(appCatalog, a => a, r => r.App, (_, row) => new QuickRouteTarget(row.Name, row)).ToArray();
+        quick.Results.ItemsSource = matches;
+        quick.Results.Visibility = matches.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        quick.ResultCard.Visibility = query.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        quick.ResultNote.Text = site is not null ? "Результат поиска" : matches.Length > 0 ? "Найденные программы" :
+            appCatalog is null ? "Ищем программы на компьютере…" : "Совпадений нет. Откройте «Все программы», чтобы выбрать файл вручную.";
     }
 
     private void AddQuickSite(SiteAction action)
     {
-        Routes.ShowSites(true);
         var site = QuickSite();
         AddSiteRule(Routes.RuleDomain.Text, action);
         ClearQuickSuggestion();
@@ -86,7 +83,6 @@ public partial class MainWindow
         try
         {
             if (!AddProgramRules(AppRuleScope.For(app, action), editor: true)) return;
-            Routes.ShowSites(false);
             Routes.RuleDomain.Clear();
             ClearQuickSuggestion();
             DetailText.Text = "Правило для «" + app.Name + "» сохранено.";
@@ -95,7 +91,6 @@ public partial class MainWindow
                 if (EditedSites.All(r => r.Domain != site))
                     ShowQuickSuggestion("Добавить сайт " + site + " с тем же маршрутом?", () =>
                     {
-                        Routes.ShowSites(true);
                         AddSiteRule(site, action);
                     });
             });
@@ -103,31 +98,19 @@ public partial class MainWindow
         catch (UserError error) { DetailText.Text = error.Message; }
     }
 
-    private static void ShowQuickActions(Button anchor, Action block, Action? server)
+    private void OpenQuickTarget(QuickRouteTarget target)
     {
-        var menu = new ContextMenu { PlacementTarget = anchor, Placement = PlacementMode.Bottom };
-        if (server is not null)
-        {
-            var pinned = new MenuItem { Header = "Конкретный сервер" };
-            pinned.Click += (_, _) => server();
-            menu.Items.Add(pinned);
-        }
-        var reject = new MenuItem { Header = "Заблокировать" };
-        reject.Click += (_, _) => block();
-        menu.Items.Add(reject);
-        menu.IsOpen = true;
-    }
-
-    private void OpenQuickServer(string? domain, InstalledApp? app)
-    {
-        if (ruleSetDraft is not null) { DetailText.Text = "Сначала сохраните новый набор."; return; }
+        var app = target.Application?.App;
+        var domain = app is null ? target.Name : null;
         try
         {
             var file = app is null ? null : ProgramRoutingPlan.Create(app.Path, SiteAction.Tunnel, allInFolder: false);
             var key = domain ?? file!.TargetKey.ToLowerInvariant();
             var id = "custom-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)))[..16].ToLowerInvariant();
-            Routes.ShowServices();
-            LoadCustomServiceDraft(id, domain is null ? [] : [domain], file is null ? [] : [file]);
+            var existing = domain is not null ? EditedSites.FirstOrDefault(rule => rule.Domain == domain)?.Action
+                : EditedPrograms.FirstOrDefault(rule => string.Equals(rule.Key, file!.Key, StringComparison.OrdinalIgnoreCase))?.Action;
+            LoadCustomServiceDraft(id, domain is null ? [] : [domain], file is null ? [] : [file], existing);
+            Routes.ShowTargetEditor(target.Name, templates: false);
             if (domain is not null && RelatedApp(domain) is { } related && file is null && serviceFiles.Length == 0)
                 ShowServiceSuggestion("Найдена связанная программа «" + related.Name + "».", () =>
                 {
@@ -139,37 +122,38 @@ public partial class MainWindow
                 var draft = customServiceDraft;
                 _ = OfferObservedSiteAsync(app, site =>
                 {
-                    if (!ReferenceEquals(draft, customServiceDraft)) return;
+                    if (!ReferenceEquals(draft, customServiceDraft) || !Routes.TargetEditor.IsVisible) return;
                     ShowServiceSuggestion("Добавить связанный сайт " + site + "?", () =>
                     {
                         customServiceDraft = draft! with { Domains = [site] };
-                        Routes.ServiceDraftTargets.Text = site;
+                        ShowRouteDomains([site]);
                     });
                 });
             }
         }
         catch (UserError error) { DetailText.Text = error.Message; }
     }
-    private void SaveTemplateRules(ServicePreset preset, SiteAction action)
+    private bool SaveTargetRules(string name, string[] domains, SiteAction action)
     {
         try
         {
-            var sites = EditedSites.Where(r => !preset.Domains.Contains(r.Domain))
-                .Concat(preset.Domains.Select(domain => RoutingPlan.Create(domain, action))).ToArray();
+            if (domains.Length == 0 && serviceFiles.Length == 0) throw new UserError("Добавьте сайт или программу.");
+            var sites = EditedSites.Where(r => !domains.Contains(r.Domain))
+                .Concat(domains.Select(domain => RoutingPlan.Create(domain, action))).ToArray();
             var programs = EditedPrograms.Where(r => !serviceFiles.Any(f => string.Equals(r.Key, f.Key, StringComparison.OrdinalIgnoreCase)))
                 .Concat(serviceFiles.Select(f => f with { Action = action })).ToArray();
             RoutingPlan.Validate(sites);
             ProgramRoutingPlan.Validate(programs);
-            if ((EditedSites.Any(r => preset.Domains.Contains(r.Domain) && r.Action != action) ||
+            if ((EditedSites.Any(r => domains.Contains(r.Domain) && r.Action != action) ||
                  EditedPrograms.Any(r => r.Action != action && serviceFiles.Any(f => string.Equals(r.Key, f.Key, StringComparison.OrdinalIgnoreCase)))) &&
-                !AppDialog.Confirm(this, "Изменить действующие правила?", "Для целей шаблона будет установлено выбранное действие.", "Изменить")) return;
+                !AppDialog.Confirm(this, "Изменить действующие правила?", "Для выбранных сайтов и программ будет установлено новое действие.", "Изменить")) return false;
             EditedSites.Clear(); EditedSites.AddRange(sites);
             EditedPrograms.Clear(); EditedPrograms.AddRange(programs);
             RulesEdited();
-            Routes.ShowSites(true);
-            DetailText.Text = "Правила для «" + preset.Name + "» добавлены.";
+            DetailText.Text = "Правило для «" + name + "» сохранено.";
+            return true;
         }
-        catch (UserError error) { MessageBox.Show(this, error.Message, "Маршрутизация"); }
+        catch (UserError error) { MessageBox.Show(this, error.Message, "Маршрутизация"); return false; }
     }
 
 }

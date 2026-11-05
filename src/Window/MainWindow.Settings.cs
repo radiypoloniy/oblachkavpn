@@ -26,7 +26,6 @@ public partial class MainWindow
         Settings.Subscription.RenewButton.Click += (_, _) => OpenLink(RenewUrl, "страницу продления");
         Settings.Subscription.SupportButton.Click += (_, _) => OpenLink(CurrentSubscription?.SupportUrl, "страницу поддержки");
         Routes.RuleList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(RuleRowClick));
-        Routes.ProgramList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(RuleRowClick));
     }
 
     // Сегмент переключателя из нескольких кнопок (тема, обход DPI).

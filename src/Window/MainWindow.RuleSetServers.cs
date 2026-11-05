@@ -41,10 +41,7 @@ public partial class MainWindow
         var items = Routes.RuleSetServerItems.Children;
         items.Clear();
         items.Add(ServerMenuRow("Любые серверы", null, ruleSetServers is null, () => SetRuleSetServers(null)));
-        var note = new TextBlock { Text = ruleSetServers is null ? "Нажмите страну, чтобы ходить только через неё" : "Нажмите, чтобы добавить или убрать",
-            FontSize = (double)FindResource("FsSmall"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 6, 2, 4) };
-        note.SetResourceReference(TextBlock.ForegroundProperty, "Mu2");
-        items.Add(note);
+        Routes.RuleSetServerNote.Text = ruleSetServers is null ? "Выберите сервер, чтобы ограничить набор." : "Нажмите на сервер, чтобы добавить или убрать его.";
         foreach (var machine in RuleSetMachines())
         {
             var key = ServerMachines.Hash(machine[0]);
@@ -60,7 +57,7 @@ public partial class MainWindow
     private Button ServerMenuRow(string text, Profile? sample, bool on, Action act)
     {
         var check = new System.Windows.Shapes.Path { Data = (System.Windows.Media.Geometry)FindResource("IcoCheck"), Style = (Style)FindResource("Icon"), Width = 14, Height = 14, StrokeThickness = 2.4,
-            Visibility = on ? Visibility.Visible : Visibility.Hidden };
+            Visibility = on ? Visibility.Visible : Visibility.Hidden, Margin = new Thickness(8, 0, 0, 0) };
         check.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "Ac");
         DockPanel.SetDock(check, Dock.Right);
         var row = new DockPanel { Children = { check } };
@@ -75,8 +72,9 @@ public partial class MainWindow
             }
             row.Children.Add(ring);
         }
-        row.Children.Add(new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal });
-        var button = new Button { Content = row, Style = (Style)FindResource("MenuRow") };
+        row.Children.Add(new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap, FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal });
+        var button = new Button { Content = row, Style = (Style)Routes.FindResource("RuleMenuRow") };
+        System.Windows.Automation.AutomationProperties.SetName(button, text);
         // Выбранное — сиренью, как выбранная строка «Серверов».
         if (on) button.SetResourceReference(BackgroundProperty, "Lilac");
         button.Click += (_, _) => act();

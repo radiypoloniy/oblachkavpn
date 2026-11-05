@@ -32,7 +32,7 @@ public static class DesignPreview
             }
             if (page is "ruleset-servers" or "ruleset-servers-any")
             {
-                popup = new Window { Width = 340, Height = 460, Content = main.RuleSetServersPreview(page.EndsWith("-any", StringComparison.Ordinal)) };
+                popup = new Window { Width = 368, Height = 460, Content = main.RuleSetServersPreview(page.EndsWith("-any", StringComparison.Ordinal)) };
                 popup.SetResourceReference(System.Windows.Controls.Control.BackgroundProperty, "Page");
                 target = popup;
             }

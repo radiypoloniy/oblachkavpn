@@ -116,6 +116,7 @@ public partial class MainWindow
         else if (analytics?.Visibility == Visibility.Visible) CloseAnalytics();
         else if (doctor?.Visibility == Visibility.Visible) HidePage(doctor);
         else if (siteCheck?.Visibility == Visibility.Visible) HidePage(siteCheck);
+        else if (RulesPage.Visibility == Visibility.Visible && Routes.TargetEditor.IsVisible) { CloseRouteEditor(); Routes.RuleDomain.Focus(); }
         else if (Settings.Visibility == Visibility.Visible) { if (!Settings.Back()) CloseSettings(); }
         else if (RulesPage.Visibility == Visibility.Visible) CloseRulesSection();
         else if (Servers.Visibility == Visibility.Visible) Navigate("Connection");

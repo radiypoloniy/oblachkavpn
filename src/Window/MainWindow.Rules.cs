@@ -7,7 +7,6 @@ public partial class MainWindow
     private List<SiteRule> siteRules => runtime.TunnelPolicy.Sites;
     private void WireRules()
     {
-        WireProgramRules();
         WireRuleApplyStatus();
         WireFree();
         WireAdvanced(); RestoreAdvanced(advanced); WireRulesFile(); WireRuleSets();
@@ -54,11 +53,11 @@ public partial class MainWindow
 
     private void RefreshRules()
     {
-        Routes.RuleList.ItemsSource = EditedSites.Select(r => new RuleRow { Rule = r, Text = r.Domain, Action = r.Action }).ToArray();
         var paths = KnownProgramPaths();
         var conflicts = ProgramRuleConflicts.Find(programRules, paths);
         var editorConflicts = ruleSetDraft is null ? conflicts : ProgramRuleConflicts.Find(EditedPrograms, paths);
-        Routes.ProgramList.ItemsSource = EditedPrograms.Select(r => ProgramRow(r, editorConflicts)).ToArray();
+        Routes.SetRules(EditedSites.Select(r => new RuleRow { Rule = r, Text = r.Domain, Action = r.Action })
+            .Concat(EditedPrograms.Select(r => ProgramRow(r, editorConflicts))).ToArray());
         // Тот же спор — плашкой в «Программах и сайтах»: там его видно раньше, чем в правилах.
         Live.ConflictBanner.Visibility = conflicts.Count > 0 ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         if (conflicts.Count > 0)
