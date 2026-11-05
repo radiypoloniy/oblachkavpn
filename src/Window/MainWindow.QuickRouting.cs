@@ -150,4 +150,26 @@ public partial class MainWindow
         }
         catch (UserError error) { DetailText.Text = error.Message; }
     }
+    private void SaveTemplateRules(ServicePreset preset, SiteAction action)
+    {
+        try
+        {
+            var sites = EditedSites.Where(r => !preset.Domains.Contains(r.Domain))
+                .Concat(preset.Domains.Select(domain => RoutingPlan.Create(domain, action))).ToArray();
+            var programs = EditedPrograms.Where(r => !serviceFiles.Any(f => string.Equals(r.Key, f.Key, StringComparison.OrdinalIgnoreCase)))
+                .Concat(serviceFiles.Select(f => f with { Action = action })).ToArray();
+            RoutingPlan.Validate(sites);
+            ProgramRoutingPlan.Validate(programs);
+            if ((EditedSites.Any(r => preset.Domains.Contains(r.Domain) && r.Action != action) ||
+                 EditedPrograms.Any(r => r.Action != action && serviceFiles.Any(f => string.Equals(r.Key, f.Key, StringComparison.OrdinalIgnoreCase)))) &&
+                !AppDialog.Confirm(this, "Изменить действующие правила?", "Для целей шаблона будет установлено выбранное действие.", "Изменить")) return;
+            EditedSites.Clear(); EditedSites.AddRange(sites);
+            EditedPrograms.Clear(); EditedPrograms.AddRange(programs);
+            RulesEdited();
+            Routes.ShowSites(true);
+            DetailText.Text = "Правила для «" + preset.Name + "» добавлены.";
+        }
+        catch (UserError error) { MessageBox.Show(this, error.Message, "Маршрутизация"); }
+    }
+
 }

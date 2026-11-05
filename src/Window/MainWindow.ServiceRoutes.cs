@@ -14,7 +14,10 @@ public partial class MainWindow
     private ServiceRoute[] displayedServiceRoutes = [];
     private (string Text, bool Warning)[] displayedServiceStatus = [];
     private IReadOnlyList<Profile>? displayedServiceProfiles;
-    private sealed record ServiceServer(string Name, Profile Profile);
+    private sealed record ServiceServer(string Name, Profile Profile)
+    {
+        public override string ToString() => Name;
+    }
     private ProgramRule[] serviceFiles = [];
     private bool serviceEditorOpened;
     private ServiceRoute? customServiceDraft;
@@ -176,7 +179,11 @@ public partial class MainWindow
         catch (UserError error) { MessageBox.Show(this, error.Message, "Маршрутизация"); }
     }
 
-    private void ShowServiceFiles() => Routes.ServiceFileNames.Text = string.Join(", ", serviceFiles.Select(f => f.Executable));
+    private void ShowServiceFiles()
+    {
+        Routes.ServiceFileNames.Text = string.Join(", ", serviceFiles.Select(f => f.Executable));
+        Routes.ServiceClearFiles.Visibility = serviceFiles.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+    }
 
     private void SaveServiceRoute()
     {
@@ -212,28 +219,6 @@ public partial class MainWindow
             runtime.ServiceRoutes.Save(draft);
             RefreshServiceRoutes();
             Routes.ServiceList.SelectedValue = draft.Id;
-        }
-        catch (UserError error) { MessageBox.Show(this, error.Message, "Маршрутизация"); }
-    }
-
-    private void SaveTemplateRules(ServicePreset preset, SiteAction action)
-    {
-        try
-        {
-            var sites = EditedSites.Where(r => !preset.Domains.Contains(r.Domain))
-                .Concat(preset.Domains.Select(domain => RoutingPlan.Create(domain, action))).ToArray();
-            var programs = EditedPrograms.Where(r => !serviceFiles.Any(f => string.Equals(r.Key, f.Key, StringComparison.OrdinalIgnoreCase)))
-                .Concat(serviceFiles.Select(f => f with { Action = action })).ToArray();
-            RoutingPlan.Validate(sites);
-            ProgramRoutingPlan.Validate(programs);
-            if ((EditedSites.Any(r => preset.Domains.Contains(r.Domain) && r.Action != action) ||
-                 EditedPrograms.Any(r => r.Action != action && serviceFiles.Any(f => string.Equals(r.Key, f.Key, StringComparison.OrdinalIgnoreCase)))) &&
-                !AppDialog.Confirm(this, "Изменить действующие правила?", "Для целей шаблона будет установлено выбранное действие.", "Изменить")) return;
-            EditedSites.Clear(); EditedSites.AddRange(sites);
-            EditedPrograms.Clear(); EditedPrograms.AddRange(programs);
-            RulesEdited();
-            Routes.ShowSites(true);
-            DetailText.Text = "Правила для «" + preset.Name + "» добавлены.";
         }
         catch (UserError error) { MessageBox.Show(this, error.Message, "Маршрутизация"); }
     }

@@ -159,10 +159,10 @@
           <TextBlock x:Name="ServiceServerLabel" Text="VPN-сервер" Style="{StaticResource Small}"/>
           <ComboBox x:Name="ServiceServerPicker" DisplayMemberPath="Name" AutomationProperties.Name="Сервер сервиса" Margin="0,0,0,6"/>
           <WrapPanel Margin="0,0,0,6">
-            <Button x:Name="ServiceFiles" Content="Выбрать программы" Style="{StaticResource Plain}" Margin="0,0,8,0"/>
-            <Button x:Name="ServiceClearFiles" Content="Очистить программы" Style="{StaticResource Plain}" Margin="0,0,8,0"/>
-            <Button x:Name="ServiceSave" Content="Сохранить" Style="{StaticResource Plain}" Margin="0,0,8,0"/>
-            <Button x:Name="ServiceDelete" Content="Удалить" Style="{StaticResource Plain}"/>
+            <Button x:Name="ServiceSave" Content="Сохранить" Style="{StaticResource BtnPrimary}" Height="34" Margin="0,0,6,4"/>
+            <Button x:Name="ServiceFiles" Content="Выбрать программы" Style="{StaticResource BtnOutline}" Height="34" Margin="0,0,6,4"/>
+            <Button x:Name="ServiceClearFiles" Content="Очистить программы" Style="{StaticResource BtnGhost}" Height="34" Margin="0,0,6,4"/>
+            <Button x:Name="ServiceDelete" Content="Удалить" Style="{StaticResource BtnGhost}" Height="34" Margin="0,0,0,4"/>
           </WrapPanel>
           <TextBlock x:Name="ServiceFileNames" Style="{StaticResource Small}" TextWrapping="Wrap"/>
           <StackPanel x:Name="ServiceSuggestion" Visibility="Collapsed" Margin="0,4,0,0">

@@ -1,6 +1,9 @@
 namespace Oblachka;
 
-internal sealed record ServicePreset(string Id, string Name, string[] Domains);
+internal sealed record ServicePreset(string Id, string Name, string[] Domains)
+{
+    public override string ToString() => Name;
+}
 
 internal sealed partial class ClientServiceRoutes(ClientRuntime owner)
 {
