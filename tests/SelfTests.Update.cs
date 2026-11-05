@@ -7,6 +7,32 @@ public static partial class SelfTests
 {
     private static async Task UpdateChecksAsync(Func<string, Func<Task>, Task> check)
     {
+        await check("Updates: public release metadata stays scoped to the repository and tag", () => Sync(() =>
+        {
+            const string tag = "v9.1.0-rc.2";
+            const string name = "Oblachka-setup-9.1.0-abc1234.exe";
+            const string host = "https://github.com/radiypoloniy/oblachkavpn/releases/";
+            const string path = "/radiypoloniy/oblachkavpn/releases/download/" + tag + "/";
+            var tags = AppUpdate.ReadPublicTags($"""
+                <feed xmlns="http://www.w3.org/2005/Atom">
+                  <entry><link href="{host}tag/{tag}" /></entry>
+                  <entry><link href="{host}tag/{tag}/extra" /></entry>
+                  <entry><link href="https://other.invalid/releases/tag/v10.0.0" /></entry>
+                </feed>
+                """);
+            Assert(tags.SequenceEqual([tag]));
+            var digest = new string('a', 64);
+            var html = $"""
+                <a href="{path}{name}">Installer</a>
+                <clipboard-copy aria-label="Copy to clipboard digest for {name}" type="button" value="sha256:{digest}" />
+                """;
+            var pending = AppUpdate.ReadPublicAssets(tag, html);
+            Assert(pending is { Prerelease: true, Signature: null, Revision: "abc1234" } && pending.Installer.AbsoluteUri == host + "download/" + tag + "/" + name);
+            var signed = AppUpdate.ReadPublicAssets(tag, html + $"""<a href="{path}{name}.sig">Signature</a>""");
+            Assert(signed?.Signature?.AbsoluteUri == pending!.Installer.AbsoluteUri + ".sig" && signed?.Sha256 == digest.ToUpperInvariant());
+            Assert(AppUpdate.ReadPublicAssets("v9.1.0-rc.3", html) is null);
+            Assert(AppUpdate.ReadPublicAssets(tag, html.Replace(digest, "broken", StringComparison.Ordinal)) is null);
+        }));
         await check("Updates: a release is accepted only with this repository's installer, matching version and SHA256 digest", () => Sync(() =>
         {
             const string digest = "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";

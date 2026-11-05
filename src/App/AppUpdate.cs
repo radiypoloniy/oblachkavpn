@@ -25,7 +25,7 @@ public sealed record AppRelease(Version Version, string Tag, Uri Installer, long
 // В сеть уходит только запрос к api.github.com и скачивание установщика по нажатию:
 // без идентификатора устройства и сведений о подписках. Ставит установщик, запущенный
 // с запросом прав администратора: служба SYSTEM ничего скачанного не запускает.
-public static class AppUpdate
+public static partial class AppUpdate
 {
     public const string Repository = "radiypoloniy/oblachkavpn";
     public static readonly Uri LatestApi = new("https://api.github.com/repos/" + Repository + "/releases/latest");
@@ -105,6 +105,8 @@ public static class AppUpdate
         request.Headers.UserAgent.ParseAdd(ServiceBrand.UserAgent);
         request.Headers.Accept.ParseAdd("application/vnd.github+json");
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+        if (response.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests)
+            return await CheckPublicReleaseAsync(client, prerelease, token);
         // 404 — релизов ещё нет.
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         if (!response.IsSuccessStatusCode) throw new UserError("GitHub не ответил (HTTP " + (int)response.StatusCode + "). Проверим позже.");
@@ -172,11 +174,11 @@ public static class AppUpdate
     private const string Unsigned = "Обновление не подписано ключом Облачки, ставить его нельзя. Сообщите нам об этом, пожалуйста.";
 
     // GET с переходами только на HTTPS-хосты GitHub: со страницы релиза файл отдаёт его хранилище.
-    private static async Task<HttpResponseMessage> GetAsync(HttpClient client, Uri uri, CancellationToken token)
+    private static async Task<HttpResponseMessage> GetAsync(HttpClient client, Uri uri, CancellationToken token, HttpMethod? method = null)
     {
         for (var hop = 0; ; hop++)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            using var request = new HttpRequestMessage(method ?? HttpMethod.Get, uri);
             request.Headers.UserAgent.ParseAdd(ServiceBrand.UserAgent);
             var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
             if ((int)response.StatusCode is < 300 or >= 400) return response;
