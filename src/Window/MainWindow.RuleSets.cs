@@ -86,6 +86,8 @@ public partial class MainWindow
     {
         if (ruleSetDraft is not null) return;
         if (SavedRuleSets().Length >= MaxRuleSets) { DetailText.Text = "Наборов не больше " + MaxRuleSets + ". Удалите лишний."; return; }
+        ClearQuickSuggestion();
+        ClearServiceSuggestion();
         ruleSetDraft = new();
         RefreshRules(); RefreshRuleSetButton();
         DetailText.Text = "Новый набор: добавьте сайты и программы. Действующий набор — «" + ruleSetName + "».";
@@ -125,6 +127,8 @@ public partial class MainWindow
     private void CancelDraft()
     {
         if (ruleSetDraft is null) return;
+        ClearQuickSuggestion();
+        ClearServiceSuggestion();
         ruleSetDraft = null;
         RefreshRules(); RefreshRuleSetButton();
         DetailText.Text = "Новый набор отменён. Действующий набор — «" + ruleSetName + "».";
