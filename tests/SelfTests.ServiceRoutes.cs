@@ -99,10 +99,13 @@ public static partial class SelfTests
             }
             using var client = new HttpClient(new SocketsHttpHandler { Proxy = new WebProxy($"socks5://127.0.0.1:{ingress}") });
             await Task.WhenAll(Verify("claude", claude), Verify("codex", codex), Verify("ordinary", ordinary));
-            var probe = new Uri("http://probe.fixture.invalid/");
-            var probeResponse = ServeServiceExitAsync(claude, "probe", token);
-            Assert(await CoreSelector.DelayAsync(stats, "direct-0", probe, token) is > 0);
-            await probeResponse;
+            // The loopback fixture terminates after the SOCKS handshake, before TLS.
+            // It still proves the API dials the pinned exit, while the selector points elsewhere.
+            var probe = new Uri("https://probe.fixture.invalid/");
+            var dial = ServeServiceExitAsync(claude, null, token);
+            var delay = CoreSelector.DelayAsync(stats, "direct-0", probe, token);
+            await dial;
+            Assert(await delay is null);
             claude.Stop();
             Assert(await CoreSelector.DelayAsync(stats, "direct-0", probe, token) is null);
             await Task.WhenAll(Verify("codex", codex), Verify("ordinary", ordinary), Blocked("claude"), Blocked("missing"));
@@ -139,7 +142,7 @@ public static partial class SelfTests
         return listener;
     }
 
-    private static async Task ServeServiceExitAsync(TcpListener listener, string response, CancellationToken token)
+    private static async Task ServeServiceExitAsync(TcpListener listener, string? response, CancellationToken token)
     {
         using var client = await listener.AcceptTcpClientAsync(token);
         using var stream = client.GetStream();
@@ -152,6 +155,7 @@ public static partial class SelfTests
         var length = header[3] switch { 1 => 4, 4 => 16, _ => stream.ReadByte() };
         await stream.ReadExactlyAsync(new byte[length + 2], token);
         await stream.WriteAsync(new byte[] { 5, 0, 0, 1, 127, 0, 0, 1, 0, 0 }, token);
+        if (response is null) return;
         using var reader = new StreamReader(stream);
         while (await reader.ReadLineAsync(token) is { Length: > 0 }) { }
         await stream.WriteAsync(Encoding.ASCII.GetBytes(
