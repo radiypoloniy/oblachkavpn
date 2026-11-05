@@ -6,7 +6,7 @@ public partial class MainWindow
 {
     private void CheckClientBlocks(ICollection<string> checks)
     {
-        Routes.RuleDomain.Text = "Example.COM";
+        Routes.RuleDomain.Text = "https://Example.COM/path?tab=1#section";
         Routes.AddRuleButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
         if (siteRules.Count != 1 || siteRules[0].Domain != "example.com" || siteRules[0].Action != SiteAction.Tunnel)
             throw new InvalidOperationException("Rule editor did not normalize the draft");

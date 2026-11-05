@@ -59,6 +59,7 @@ public partial class MainWindow
             if (closed) return;
             appCatalog = rows;
             picker?.Load(rows, AddedPrograms());
+            if (RulesPage.IsVisible) RefreshQuickRouting();
             RefreshRules();
         }
         catch (OperationCanceledException) when (closed) { }

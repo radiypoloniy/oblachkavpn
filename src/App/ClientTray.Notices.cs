@@ -137,6 +137,10 @@ internal sealed partial class ClientTray
     private void PauseResuming() => Notify(Notice.PauseEnded, "Пауза кончилась", "VPN снова включается.");
     private void NetworkSecuring(string message) => Notify(Notice.NetworkSecured, "VPN включается", message);
     private void BypassBroken(string message) => Notify(Notice.BypassBroken, "Обход перестал работать", message);
-    private void ServiceRouteBlocked(string id, string message) =>
-        Notify(Notice.ServiceRouteBlocked, ClientServiceRoutes.Title(id), message, warning: true, scope: id);
+    private void ServiceRouteBlocked(string id, string message)
+    {
+        var route = owner.TunnelPolicy.ServiceRoutes.FirstOrDefault(r => r.Id == id);
+        var title = route is null ? ClientServiceRoutes.Title(id) : ClientServiceRoutes.Title(route);
+        Notify(Notice.ServiceRouteBlocked, title, message, warning: true, scope: id);
+    }
 }

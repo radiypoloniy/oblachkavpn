@@ -17,6 +17,7 @@ public partial class MainWindow
     private sealed record ServiceServer(string Name, Profile Profile);
     private ProgramRule[] serviceFiles = [];
     private bool serviceEditorOpened;
+    private ServiceRoute? customServiceDraft;
 
     private void WireServiceRoutes()
     {
@@ -33,11 +34,19 @@ public partial class MainWindow
             if (Routes.ServiceList.SelectedItem is { } selected) Routes.ServiceList.ScrollIntoView(selected);
         }));
         Routes.ServicePresetPicker.ItemsSource = ClientServiceRoutes.Presets;
-        Routes.ServicePresetPicker.SelectionChanged += (_, _) => LoadServiceDraft();
+        Routes.ServicePresetPicker.SelectionChanged += (_, _) =>
+        {
+            if (Routes.ServicePresetPicker.SelectedItem is not ServicePreset) return;
+            customServiceDraft = null;
+            LoadServiceDraft();
+        };
         Routes.ServiceList.SelectionChanged += (_, _) =>
         {
-            if (Routes.ServiceList.SelectedItem is ServiceRouteRow row)
-                Routes.ServicePresetPicker.SelectedItem = ClientServiceRoutes.Presets.FirstOrDefault(p => p.Id == row.Id);
+            if (Routes.ServiceList.SelectedItem is not ServiceRouteRow row) return;
+            if (ClientServiceRoutes.Presets.FirstOrDefault(p => p.Id == row.Id) is { } preset)
+                Routes.ServicePresetPicker.SelectedItem = preset;
+            else if (customServiceDraft?.Id != row.Id && runtime.TunnelPolicy.ServiceRoutes.FirstOrDefault(r => r.Id == row.Id) is { } route)
+                LoadCustomServiceDraft(route.Id, route.Domains, route.Files);
         };
         Routes.ServiceServerPicker.DropDownOpened += (_, _) => LoadServiceServers();
         Routes.ServiceFiles.Click += (_, _) => PickServiceFiles();
@@ -45,13 +54,25 @@ public partial class MainWindow
         Routes.ServiceSave.Click += (_, _) => SaveServiceRoute();
         Routes.ServiceDelete.Click += (_, _) =>
         {
-            var id = (Routes.ServicePresetPicker.SelectedItem as ServicePreset)?.Id ?? (Routes.ServiceList.SelectedItem as ServiceRouteRow)?.Id;
+            var id = customServiceDraft?.Id ?? (Routes.ServicePresetPicker.SelectedItem as ServicePreset)?.Id;
             if (id is null) return;
             runtime.ServiceRoutes.Remove(id);
+            customServiceDraft = null;
+            Routes.ServicePresetPicker.SelectedIndex = 0;
             LoadServiceDraft();
             RefreshServiceRoutes();
         };
         Routes.ServiceApply.Click += async (_, _) => await ApplyServiceRoutesAsync();
+        Routes.ServiceSuggestionAdd.Click += (_, _) =>
+        {
+            var add = serviceSuggestion;
+            ClearServiceSuggestion();
+            try { add?.Invoke(); }
+            catch (UserError error) { DetailText.Text = error.Message; }
+        };
+        Routes.ServiceSuggestionDismiss.Click += (_, _) => ClearServiceSuggestion();
+        Routes.ServiceAction.SelectionChanged += (_, _) => UpdateServiceAction();
+        UpdateServiceAction();
     }
 
     private void OpenServiceEditor()
@@ -79,7 +100,7 @@ public partial class MainWindow
         var rows = routes.Select((route, index) =>
         {
             var server = ClientServerCatalog.Find(runtime, route.ProfileId);
-            return new ServiceRouteRow(route.Id, ClientServiceRoutes.Title(route.Id),
+            return new ServiceRouteRow(route.Id, ClientServiceRoutes.Title(route),
                 server is null ? "Сервер отсутствует" : ClientServerCatalog.Title(server),
                 string.Join(", ", route.Domains.Concat(route.Files.Select(file => file.Executable))), status[index].Text, status[index].Warning);
         }).ToArray();
@@ -93,19 +114,49 @@ public partial class MainWindow
 
     private void LoadServiceDraft()
     {
+        ClearServiceSuggestion();
         var preset = Routes.ServicePresetPicker.SelectedItem as ServicePreset;
         var saved = runtime.TunnelPolicy.ServiceRoutes.FirstOrDefault(r => r.Id == preset?.Id);
         serviceFiles = saved?.Files ?? [];
+        Routes.ServiceDraftTargets.Text = string.Join(", ", preset?.Domains ?? []);
+        Routes.ServiceAction.SelectedIndex = 0;
+        UpdateServiceAction();
         LoadServiceServers(saved?.ProfileId, preserveSelection: false);
         ShowServiceFiles();
+    }
+
+    private void LoadCustomServiceDraft(string id, string[] domains, ProgramRule[] files)
+    {
+        ClearServiceSuggestion();
+        var saved = runtime.TunnelPolicy.ServiceRoutes.FirstOrDefault(r => r.Id == id);
+        domains = saved?.Domains ?? domains;
+        files = saved?.Files ?? files;
+        Routes.ServicePresetPicker.SelectedIndex = -1;
+        customServiceDraft = new(id, "", domains, files);
+        serviceFiles = files;
+        Routes.ServiceDraftTargets.Text = string.Join(", ", domains);
+        Routes.ServiceAction.SelectedIndex = 0;
+        UpdateServiceAction();
+        LoadServiceServers(saved?.ProfileId, preserveSelection: false);
+        ShowServiceFiles();
+    }
+
+    private void UpdateServiceAction()
+    {
+        var pinned = Routes.ServiceAction.SelectedIndex == 0 || customServiceDraft is not null;
+        Routes.ServiceServerPicker.Visibility = Routes.ServiceServerLabel.Visibility = pinned ? Visibility.Visible : Visibility.Collapsed;
+        Routes.ServiceAction.IsEnabled = customServiceDraft is null;
     }
 
     private void LoadServiceServers(string? id = null, bool preserveSelection = true)
     {
         if (preserveSelection && Routes.ServiceServerPicker.SelectedItem is ServiceServer selected)
             id = ClientServerCatalog.Id(selected.Profile);
-        else if (preserveSelection && Routes.ServicePresetPicker.SelectedItem is ServicePreset preset)
-            id = runtime.TunnelPolicy.ServiceRoutes.FirstOrDefault(r => r.Id == preset.Id)?.ProfileId;
+        else if (preserveSelection)
+        {
+            var routeId = customServiceDraft?.Id ?? (Routes.ServicePresetPicker.SelectedItem as ServicePreset)?.Id;
+            id = runtime.TunnelPolicy.ServiceRoutes.FirstOrDefault(r => r.Id == routeId)?.ProfileId;
+        }
         var servers = importedProfiles.Where(runtime.Tunnels.ServiceProfileAllowed)
             .Select(p => new ServiceServer(ClientServerCatalog.Title(p), p)).ToArray();
         Routes.ServiceServerPicker.ItemsSource = servers;
@@ -129,15 +180,30 @@ public partial class MainWindow
 
     private void SaveServiceRoute()
     {
-        if (Routes.ServicePresetPicker.SelectedItem is not ServicePreset preset ||
-            Routes.ServiceServerPicker.SelectedItem is not ServiceServer server)
+        var preset = Routes.ServicePresetPicker.SelectedItem as ServicePreset;
+        if (ruleSetDraft is not null && Routes.ServiceAction.SelectedIndex == 0)
+        {
+            MessageBox.Show(this, "Сначала сохраните новый набор.", "Маршрутизация");
+            return;
+        }
+        if (preset is null && customServiceDraft is null)
+        {
+            MessageBox.Show(this, "Выберите шаблон.", "Маршрутизация");
+            return;
+        }
+        if (preset is not null && Routes.ServiceAction.SelectedIndex is > 0 and var index)
+        {
+            SaveTemplateRules(preset, index switch { 2 => SiteAction.Direct, 3 => SiteAction.Block, _ => SiteAction.Tunnel });
+            return;
+        }
+        if (Routes.ServiceServerPicker.SelectedItem is not ServiceServer server)
         {
             MessageBox.Show(this, "Выберите сервис и VPN-сервер.", "Маршрутизация");
             return;
         }
         try
         {
-            var draft = runtime.ServiceRoutes.Draft(preset, server.Profile, serviceFiles);
+            var draft = runtime.ServiceRoutes.Draft(preset ?? new(customServiceDraft!.Id, "", customServiceDraft.Domains), server.Profile, serviceFiles);
             var conflicts = runtime.ServiceRoutes.Conflicts(draft);
             if (conflicts.Length > 0 && MessageBox.Show(this,
                 "Эти правила могут иметь приоритет над маршрутом сервиса:\n\n" +
@@ -146,6 +212,28 @@ public partial class MainWindow
             runtime.ServiceRoutes.Save(draft);
             RefreshServiceRoutes();
             Routes.ServiceList.SelectedValue = draft.Id;
+        }
+        catch (UserError error) { MessageBox.Show(this, error.Message, "Маршрутизация"); }
+    }
+
+    private void SaveTemplateRules(ServicePreset preset, SiteAction action)
+    {
+        try
+        {
+            var sites = EditedSites.Where(r => !preset.Domains.Contains(r.Domain))
+                .Concat(preset.Domains.Select(domain => RoutingPlan.Create(domain, action))).ToArray();
+            var programs = EditedPrograms.Where(r => !serviceFiles.Any(f => string.Equals(r.Key, f.Key, StringComparison.OrdinalIgnoreCase)))
+                .Concat(serviceFiles.Select(f => f with { Action = action })).ToArray();
+            RoutingPlan.Validate(sites);
+            ProgramRoutingPlan.Validate(programs);
+            if ((EditedSites.Any(r => preset.Domains.Contains(r.Domain) && r.Action != action) ||
+                 EditedPrograms.Any(r => r.Action != action && serviceFiles.Any(f => string.Equals(r.Key, f.Key, StringComparison.OrdinalIgnoreCase)))) &&
+                !AppDialog.Confirm(this, "Изменить действующие правила?", "Для целей шаблона будет установлено выбранное действие.", "Изменить")) return;
+            EditedSites.Clear(); EditedSites.AddRange(sites);
+            EditedPrograms.Clear(); EditedPrograms.AddRange(programs);
+            RulesEdited();
+            Routes.ShowSites(true);
+            DetailText.Text = "Правила для «" + preset.Name + "» добавлены.";
         }
         catch (UserError error) { MessageBox.Show(this, error.Message, "Маршрутизация"); }
     }

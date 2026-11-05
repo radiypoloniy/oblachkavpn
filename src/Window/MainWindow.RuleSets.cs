@@ -28,7 +28,7 @@ public partial class MainWindow
     private void WireRuleSets()
     {
         Routes.RuleSetButton.Click += (_, _) => { FillRuleSetMenu(); Routes.RuleSetPopup.IsOpen = true; };
-        Routes.NewRuleSet.Click += (_, _) => StartDraft();
+        Routes.NewRuleSet.Click += (_, _) => { Routes.RuleSetPopup.IsOpen = false; Routes.ShowSites(true); StartDraft(); Routes.RuleDomain.Focus(); };
         Routes.DeleteRuleSet.Click += (_, _) => DeleteRuleSet();
         Routes.SaveRuleSet.Click += (_, _) => SaveDraft();
         Routes.CancelRuleSet.Click += (_, _) => CancelDraft();
@@ -60,6 +60,8 @@ public partial class MainWindow
     private void SwitchRuleSet(string name)
     {
         Routes.RuleSetPopup.IsOpen = false;
+        ClearQuickSuggestion();
+        ClearServiceSuggestion();
         if (ruleSetDraft is not null) CancelDraft();
         if (name == ruleSetName) return;
         var all = SavedRuleSets();
@@ -144,7 +146,7 @@ public partial class MainWindow
         var draft = ruleSetDraft is not null;
         Routes.RuleSetBar.Visibility = draft ? Visibility.Collapsed : Visibility.Visible;
         Routes.RuleSetDraft.Visibility = draft ? Visibility.Visible : Visibility.Collapsed;
-        Routes.RuleSetText.Text = "Набор: " + ruleSetName;
+        Routes.RuleSetText.Text = ruleSetName;
         Routes.DeleteRuleSet.Visibility = ruleSetName == MainRuleSet ? Visibility.Collapsed : Visibility.Visible;
         RefreshRuleSetServersText();
     }
@@ -159,8 +161,11 @@ public partial class MainWindow
             var check = new System.Windows.Shapes.Path { Data = (Geometry)FindResource("IcoCheck"), Style = (Style)FindResource("Icon"), Width = 14, Height = 14, StrokeThickness = 2.4,
                 Visibility = name == ruleSetName ? Visibility.Visible : Visibility.Hidden };
             DockPanel.SetDock(check, Dock.Right);
-            var row = new DockPanel { Children = { check, new TextBlock { Text = name + "  ·  правил " + (set.Sites.Length + set.Programs.Length), VerticalAlignment = VerticalAlignment.Center } } };
+            var label = new TextBlock { Text = name, TextTrimming = TextTrimming.CharacterEllipsis, FontWeight = FontWeights.SemiBold };
+            var count = new TextBlock { Text = "Правил: " + (set.Sites.Length + set.Programs.Length), Style = (Style)FindResource("Small") };
+            var row = new DockPanel { Children = { check, new StackPanel { Children = { label, count } } } };
             var button = new Button { Content = row, Style = (Style)FindResource("MenuRow") };
+            if (name == ruleSetName) button.SetResourceReference(Control.BackgroundProperty, "Lilac");
             button.Click += (_, _) => SwitchRuleSet(name);
             items.Add(button);
         }

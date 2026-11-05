@@ -7,10 +7,18 @@ internal sealed partial class ClientServiceRoutes(ClientRuntime owner)
     internal static IReadOnlyList<ServicePreset> Presets { get; } = Array.AsReadOnly<ServicePreset>(
     [
         new("claude", "Claude и Claude Code", ["claude.ai", "claude.com", "api.anthropic.com", "console.anthropic.com"]),
-        new("openai", "ChatGPT и Codex", ["chatgpt.com", "auth.openai.com", "chat.openai.com", "api.openai.com", "oaistatic.com", "oaiusercontent.com"])
+        new("openai", "ChatGPT и Codex", ["chatgpt.com", "auth.openai.com", "chat.openai.com", "api.openai.com", "oaistatic.com", "oaiusercontent.com"]),
+        new("discord", "Discord", ["discord.com", "discord.gg", "discordapp.com", "discordapp.net", "discord.media", "discordcdn.com"]),
+        new("github", "GitHub", ["github.com", "githubusercontent.com", "githubassets.com", "ghcr.io"]),
+        new("steam", "Steam", ["steampowered.com", "steamcommunity.com", "steamstatic.com", "steamcontent.com"]),
+        new("spotify", "Spotify", ["spotify.com", "scdn.co", "spotifycdn.com"]),
+        new("telegram", "Telegram", ["telegram.org", "t.me", "telegra.ph"]),
+        new("youtube", "YouTube", ["youtube.com", "youtu.be", "googlevideo.com", "ytimg.com", "youtube-nocookie.com"])
     ]);
 
     internal static string Title(string id) => Presets.FirstOrDefault(p => p.Id == id)?.Name ?? id;
+    internal static string Title(ServiceRoute route) => route.Id.StartsWith("custom-", StringComparison.Ordinal)
+        ? string.Join(", ", route.Domains.Concat(route.Files.Select(f => f.Executable))) : Title(route.Id);
 
     internal bool HasPendingChanges => owner.Tunnel is { State: SystemTunnelState.Running } &&
         owner.Tunnels.Applied is { } applied &&

@@ -14,9 +14,7 @@ public partial class MainWindow
         WireConnections();
         WireSelective();
         WireRouting();
-        // Новое правило идёт «через VPN»; действие меняется нажатием на метку в списке.
-        Routes.AddRuleButton.Click += (_, _) => AddSiteRule(Routes.RuleDomain.Text, SiteAction.Tunnel);
-        Routes.RuleDomain.KeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Enter) AddSiteRule(Routes.RuleDomain.Text, SiteAction.Tunnel); };
+        WireQuickRouting();
         Diagnostics.ValidateRulesButton.Click += async (_, _) =>
         {
             if (operation is not null || profile is null) return;
@@ -47,7 +45,7 @@ public partial class MainWindow
         try
         {
             if (EditedSites.Count >= 100) throw new UserError("Достигнут предел 100 правил.");
-            var rule = RoutingPlan.Create(domain, action);
+            var rule = RoutingPlan.Create(SiteRuleInput.Target(domain), action);
             if (EditedSites.Any(r => r.Domain == rule.Domain)) throw new UserError("Этот домен уже добавлен: нажмите на его метку, чтобы сменить действие.");
             EditedSites.Add(rule); Routes.RuleDomain.Clear(); RulesEdited();
         }

@@ -7,6 +7,8 @@ public partial class RulesTab : UserControl
 {
     public bool ServicesActive => ServicePanel.Visibility == Visibility.Visible;
     public event Action? SectionChanged;
+    internal TextBox RuleDomain => Quick.Query;
+    internal Button AddRuleButton => Quick.AddVpn;
     private Button activeTab = null!;
 
     public RulesTab()
@@ -39,7 +41,7 @@ public partial class RulesTab : UserControl
         ServicePanel.Visibility = Visibility.Collapsed;
         ImportActions.Visibility = RuleEditor.Visibility = Visibility.Visible;
         Mark(ServicesTab, false);
-        SiteInput.Visibility = RuleList.Visibility = sites ? Visibility.Visible : Visibility.Collapsed;
+        RuleList.Visibility = sites ? Visibility.Visible : Visibility.Collapsed;
         ProgramInput.Visibility = ProgramList.Visibility = sites ? Visibility.Collapsed : Visibility.Visible;
         Mark(SitesTab, sites);
         Mark(AppsTab, !sites);
