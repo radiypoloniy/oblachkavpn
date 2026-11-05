@@ -14,7 +14,7 @@ public partial class MainWindow
         Home.ServerCard.Click += (_, _) => Navigate("Servers");
         Home.HelpNav.Click += (_, _) => OpenSettings(Views.SettingsPanel.HelpPage);
         Home.RulesNav.Click += (_, _) => ShowRulesSection();
-        Home.ServicesNav.Click += (_, _) => ShowRulesSection(services: true);
+        Home.ServicesNav.Click += (_, _) => { ShowRulesSection(); Routes.RuleDomain.Focus(); };
         WireServiceRoutes();
         Routes.SectionChanged += () =>
         {
