@@ -14,7 +14,7 @@ namespace Oblachka.Views;
 public partial class SettingsPanel : UserControl
 {
     public const int ConnectionPage = 0, BypassPage = 1, SubscriptionPage = 2, AppPage = 3, HelpPage = 4, AutoPoolPage = 5, AdvancedPage = 6;
-    private static readonly string[] Titles = { "Приложение", "Обход блокировок", "Подписки и ключ", "Приложение", "Помощь", "Серверы автовыбора", "Для продвинутых" };
+    private static readonly string[] Titles = { "Настройки", "Обход блокировок", "Подписки и ключ", "Настройки", "Помощь", "Серверы автовыбора", "Для продвинутых" };
 
     public SettingsPanel() => InitializeComponent();
 

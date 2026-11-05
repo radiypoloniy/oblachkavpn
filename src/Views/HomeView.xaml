@@ -194,10 +194,10 @@
               <TextBlock Text="Серверы" VerticalAlignment="Center"/>
             </DockPanel>
           </Button>
-          <Button x:Name="ServicesNav" Style="{StaticResource SideNav}" AutomationProperties.Name="Сервисы">
+          <Button x:Name="ServicesNav" Style="{StaticResource SideNav}" AutomationProperties.Name="Маршрутизация">
             <DockPanel>
               <Path Data="{StaticResource IcoNavServices}" Style="{StaticResource SideIcon}"/>
-              <TextBlock Text="Сервисы" VerticalAlignment="Center"/>
+              <TextBlock Text="Маршрутизация" VerticalAlignment="Center"/>
             </DockPanel>
           </Button>
           <Button x:Name="HelpNav" Style="{StaticResource SideNav}" AutomationProperties.Name="Помощь">
@@ -206,10 +206,10 @@
               <TextBlock Text="Помощь" VerticalAlignment="Center"/>
             </DockPanel>
           </Button>
-          <Button x:Name="SettingsButton" Style="{StaticResource SideNav}" AutomationProperties.Name="Приложение">
+          <Button x:Name="SettingsButton" Style="{StaticResource SideNav}" AutomationProperties.Name="Настройки">
             <DockPanel>
               <Path Data="{StaticResource IcoNavSettings}" Style="{StaticResource SideIcon}"/>
-              <TextBlock Text="Приложение" VerticalAlignment="Center"/>
+              <TextBlock Text="Настройки" VerticalAlignment="Center"/>
             </DockPanel>
           </Button>
           <!-- Правила переехали в «Программы и сайты»; кнопка осталась для кода раздела. -->
@@ -222,8 +222,6 @@
     <Button x:Name="TodayCard" Grid.Row="2" Style="{StaticResource SideTraffic}" o:Ui.CornerRadius="{StaticResource RadiusLg}" Padding="12,10" Margin="12,0,12,12" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Трафик и подписка. Открыть аналитику" ToolTip="Открыть аналитику">
       <StackPanel>
         <DockPanel x:Name="TrafficRow">
-          <Path DockPanel.Dock="Right" Data="{StaticResource IcoChevronRight}" Style="{StaticResource Icon}" Width="8" Height="12" StrokeThickness="1.5"
-                Stroke="{DynamicResource Mu2}" Margin="9,0,0,0" VerticalAlignment="Center"/>
           <v:PixelBars x:Name="TrafficBars" DockPanel.Dock="Right" Kind="Columns" Width="74" Height="24" VerticalAlignment="Bottom" Fill="{DynamicResource RouteVpn}" Empty="{DynamicResource Field}" Accent="{DynamicResource Sun}"/>
           <StackPanel VerticalAlignment="Bottom">
             <TextBlock Text="Трафик сегодня" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource Mu2}"/>
