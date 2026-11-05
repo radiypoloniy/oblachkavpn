@@ -16,7 +16,11 @@ public partial class MainWindow
         Home.RulesNav.Click += (_, _) => ShowRulesSection();
         Home.ServicesNav.Click += (_, _) => ShowRulesSection(services: true);
         WireServiceRoutes();
-        Routes.SectionChanged += () => { if (Routes.ServicesActive) RefreshServiceRoutes(); RefreshSideSelection(); };
+        Routes.SectionChanged += () =>
+        {
+            if (Routes.ServicesActive) { OpenServiceEditor(); RefreshServiceRoutes(); }
+            RefreshSideSelection();
+        };
         Home.BypassOpen.Click += (_, _) => OpenSettings(Views.SettingsPanel.BypassPage);
         RulesPage.BackButton.Click += (_, _) => CloseRulesSection();
         Settings.Bypass.OpenRules.Click += (_, _) => ShowRulesSection();

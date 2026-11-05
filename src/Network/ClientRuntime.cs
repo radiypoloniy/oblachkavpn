@@ -19,6 +19,7 @@ public sealed class ClientRuntime : IDisposable
     public ClientMeasurements Measurements { get; }
     public ClientNetworks Networks { get; }
     public ClientRules Rules { get; }
+    internal ClientServiceRoutes ServiceRoutes { get; }
     public ClientTraffic Traffic { get; }
     internal ClientZapret Zapret { get; }
     internal ClientTray? Tray { get; private set; }
@@ -55,7 +56,7 @@ public sealed class ClientRuntime : IDisposable
         Connections = new(this);
         Selection = new(this); Pause = new(this, pauseNow); Imports = new(this, importFetch, importNow);
         Measurements = new(this, measurementBackend, measurementNow);
-        Networks = new(this, networkEnvironment); Rules = new(this);
+        Networks = new(this, networkEnvironment); Rules = new(this); ServiceRoutes = new(this);
         Traffic = new(this);
         Preferences.PropertyChanged += PreferencesChanged;
         tunnelHost = host; TunnelPolicy = new(this); Tunnels = new(this, host); Zapret = new(this);
@@ -91,6 +92,7 @@ public sealed class ClientRuntime : IDisposable
         if (Tunnel is null && TunnelLink is null) return stopping.IsCompleted ? Task.CompletedTask : stopping;
         var session = Tunnel; var link = TunnelLink;
         Tunnel = null; Helper = null; TunnelLink = null; RoutingLists = null; Tunnels.SentLists = null; Tunnels.SentZapretDomains = [];
+        ServiceRoutes.Reset();
         return stopping = ReleaseAsync(session, link);
     }
 
@@ -107,6 +109,7 @@ public sealed class ClientRuntime : IDisposable
         disposed = true;
         Preferences.PropertyChanged -= PreferencesChanged;
         Tray?.Dispose(); Tray = null;
+        ServiceRoutes.Reset();
         Zapret.Dispose();
         Recovery.Dispose();
         Networks.Dispose(); Rules.Dispose();

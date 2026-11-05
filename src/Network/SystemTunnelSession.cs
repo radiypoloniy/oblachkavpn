@@ -116,6 +116,7 @@ public sealed partial class SystemTunnelSession : IAsyncDisposable
                     { ServiceRoutes = pinned }, CancellationToken.None).ConfigureAwait(false);
                 DirectActive = direct?[0] is not null;
                 token.ThrowIfCancellationRequested();
+                PinnedServices = pinned ?? [];
                 Set(SystemTunnelState.Running);
             }
             catch

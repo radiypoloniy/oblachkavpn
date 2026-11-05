@@ -83,8 +83,8 @@ public partial class MainWindow
             Settings.BeginAnimation(OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)));
         }
         RefreshSettings();
-        Settings.CloseButton.Focus();
         OpenSection();
+        if (Settings.CloseButton.IsVisible) Settings.CloseButton.Focus();
     }
 
     private void CloseSettings()

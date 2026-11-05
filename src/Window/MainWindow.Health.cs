@@ -15,6 +15,7 @@ public partial class MainWindow
         backgroundWorkEnabled = true;
         runtime.Monitor.StateChanged += HealthStateChanged;
         runtime.Monitor.Completed += HealthCompleted;
+        runtime.ServiceRoutes.StatusChanged += ServiceRoutesStatusChanged;
         runtime.Recovery.StateChanged += RecoveryStateChanged;
         runtime.Recovery.Completed += RecoveryCompleted;
         runtime.Monitor.Start(new DispatcherSynchronizationContext(Dispatcher));
@@ -32,11 +33,13 @@ public partial class MainWindow
     {
         runtime.Monitor.StateChanged -= HealthStateChanged;
         runtime.Monitor.Completed -= HealthCompleted;
+        runtime.ServiceRoutes.StatusChanged -= ServiceRoutesStatusChanged;
         runtime.Recovery.StateChanged -= RecoveryStateChanged;
         runtime.Recovery.Completed -= RecoveryCompleted;
         backgroundWorkEnabled = false;
     }
     private void HealthStateChanged() { if (!closed) UpdateControls(); }
+    private void ServiceRoutesStatusChanged() { if (!closed) RefreshServiceRoutes(); }
     private bool AutoSwitching => (autoSelect || preferences.AutoRecover) && (runningProfile ?? profile)?.IsFree != true;
     private async void HealthCompleted(HealthObservation observation)
     {

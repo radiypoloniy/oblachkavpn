@@ -24,11 +24,14 @@ public static class CoreSelector
     }
 
     // Запрос к адресу через текущий выход переключателя — силами самого ядра туннеля. Время в мс или null.
-    public static async Task<long?> DelayAsync(CoreStatsEntry entry, Uri target, CancellationToken token)
+    public static Task<long?> DelayAsync(CoreStatsEntry entry, Uri target, CancellationToken token) =>
+        DelayAsync(entry, SingBoxTunConfig.ServerSelector, target, token);
+
+    internal static async Task<long?> DelayAsync(CoreStatsEntry entry, string outbound, Uri target, CancellationToken token)
     {
         try
         {
-            var url = $"http://127.0.0.1:{entry.Port}/proxies/{SingBoxTunConfig.ServerSelector}/delay?timeout=10000&url={Uri.EscapeDataString(target.AbsoluteUri)}";
+            var url = $"http://127.0.0.1:{entry.Port}/proxies/{Uri.EscapeDataString(outbound)}/delay?timeout=10000&url={Uri.EscapeDataString(target.AbsoluteUri)}";
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Authorization = new("Bearer", entry.Secret);
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token); timeout.CancelAfter(TimeSpan.FromSeconds(12));

@@ -94,6 +94,10 @@ public sealed partial class ClientHealthMonitor : IDisposable
             { activity.Operation = null; activity.EngineOperation = activity.BackgroundCheck = false; }
             if (!disposed) StateChanged?.Invoke();
         }
-        if (observation is not null && !disposed && !activity.ManualStop) Completed?.Invoke(observation);
+        if (observation is not null && !disposed && !activity.ManualStop)
+        {
+            Completed?.Invoke(observation);
+            _ = owner.ServiceRoutes.CheckAsync();
+        }
     }
 }

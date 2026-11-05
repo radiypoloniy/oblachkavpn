@@ -16,8 +16,8 @@
         <ItemsControl.ItemTemplate>
           <DataTemplate>
             <Button Style="{StaticResource Row}" Height="27" Padding="6,0" o:Ui.CornerRadius="{StaticResource RadiusSm}"
-                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ItemsControl}}" ToolTip="{Binding Server}"
-                    AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding Server}">
+                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ItemsControl}}" ToolTip="{Binding Status}"
+                    AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding Status}">
               <DockPanel>
                 <Ellipse x:Name="MissingMark" DockPanel.Dock="Right" Width="6" Height="6" Fill="{DynamicResource Alert}"
                          VerticalAlignment="Center" Margin="6,0,2,0" Visibility="Collapsed"/>
@@ -25,7 +25,7 @@
               </DockPanel>
             </Button>
             <DataTemplate.Triggers>
-              <DataTrigger Binding="{Binding Missing}" Value="True">
+              <DataTrigger Binding="{Binding Warning}" Value="True">
                 <Setter TargetName="MissingMark" Property="Visibility" Value="Visible"/>
               </DataTrigger>
             </DataTemplate.Triggers>

@@ -2,6 +2,8 @@ namespace Oblachka;
 
 public sealed partial class SystemTunnelSession
 {
+    internal IReadOnlyList<PinnedServiceRoute> PinnedServices { get; private set; } = [];
+
     internal TrafficSource? TrafficSourceAt(int index)
     {
         var candidates = plans;

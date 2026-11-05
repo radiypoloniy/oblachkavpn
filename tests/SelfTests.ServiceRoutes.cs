@@ -24,6 +24,26 @@ public static partial class SelfTests
         var pinned = ServiceRoutePlan.Bind(routes, plans, exits, null);
         var request = new NetworkLeaseRequest(1, Guid.NewGuid(), NetworkLeaseAction.Acquire, 10808, peers,
             Stats: CoreStatsEntry.Create(Engine.FreePort()), Direct: exits) { ServiceRoutes = pinned };
+        await check("Service preset saves a scoped rule and reports overlapping user rules", () =>
+        {
+            using var owner = new ClientRuntime(new ConnectionCore());
+            owner.Persistence.Configure(null, isolated: true);
+            owner.Profiles.Imported = profiles;
+            var preset = ClientServiceRoutes.Presets.Single(p => p.Id == "claude");
+            var file = ProgramRoutingPlan.Create(@"C:\Tools\Claude\Claude.exe", SiteAction.Tunnel, allInFolder: false);
+            var draft = owner.ServiceRoutes.Draft(preset, profiles[0], [file]);
+            owner.TunnelPolicy.Sites.Add(RoutingPlan.Create("api.anthropic.com", SiteAction.Direct));
+            owner.TunnelPolicy.Programs.Add(ProgramRoutingPlan.Create("chrome.exe", SiteAction.Tunnel));
+            Assert(owner.ServiceRoutes.Conflicts(draft).Length == 2);
+            owner.ServiceRoutes.Save(draft);
+            Assert(owner.TunnelPolicy.ServiceRoutes.Single() == draft);
+            var changed = owner.ServiceRoutes.Draft(preset, profiles[1], []);
+            owner.ServiceRoutes.Save(changed);
+            Assert(owner.TunnelPolicy.ServiceRoutes.Single() == changed);
+            owner.ServiceRoutes.Remove(draft.Id);
+            Assert(owner.TunnelPolicy.ServiceRoutes.Count == 0);
+            return Task.CompletedTask;
+        });
         await check("Service routes bind by profile identity and cross the helper boundary", async () =>
         {
             Assert(pinned.Select(r => r.ExitIndex).SequenceEqual(new int?[] { 0, 1, null }));
@@ -34,7 +54,11 @@ public static partial class SelfTests
             Assert(SingBoxTunnelProcess.RequestFor(lease).ServiceRoutes!.SequenceEqual(pinned));
             ExpectUserError(() => NetworkHelperContracts.Validate(request with { ServiceRoutes = [pinned[0] with { ExitIndex = 2 }] }));
             ExpectUserError(() => NetworkHelperContracts.Validate(request with { ServiceRoutes = [pinned[0], pinned[1] with { Domains = pinned[0].Domains }] }));
-            await CoreConfigurationCheck.ValidateTunAsync(request, CancellationToken.None);
+            var file = ProgramRoutingPlan.Create(@"C:\Tools\Claude\Claude.exe", SiteAction.Tunnel, allInFolder: false);
+            await CoreConfigurationCheck.ValidateTunAsync(request with
+            {
+                ServiceRoutes = [pinned[0] with { Files = [file] }, pinned[1], pinned[2]]
+            }, CancellationToken.None);
         });
         await check("Two pinned exits work concurrently and a dead exit cannot fall back", async () =>
         {
@@ -75,7 +99,12 @@ public static partial class SelfTests
             }
             using var client = new HttpClient(new SocketsHttpHandler { Proxy = new WebProxy($"socks5://127.0.0.1:{ingress}") });
             await Task.WhenAll(Verify("claude", claude), Verify("codex", codex), Verify("ordinary", ordinary));
+            var probe = new Uri("http://probe.fixture.invalid/");
+            var probeResponse = ServeServiceExitAsync(claude, "probe", token);
+            Assert(await CoreSelector.DelayAsync(stats, "direct-0", probe, token) is > 0);
+            await probeResponse;
             claude.Stop();
+            Assert(await CoreSelector.DelayAsync(stats, "direct-0", probe, token) is null);
             await Task.WhenAll(Verify("codex", codex), Verify("ordinary", ordinary), Blocked("claude"), Blocked("missing"));
 
             void ReplaceExit(string tag, TcpListener endpoint)

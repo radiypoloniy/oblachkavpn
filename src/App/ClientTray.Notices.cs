@@ -4,7 +4,7 @@ namespace Oblachka;
 
 internal sealed partial class ClientTray
 {
-    private enum Notice { ServerSwitched, NetworkClosed, Expiring, BypassBroken, ProtectionRepaired, ProxyRepaired, ProxyLost, PauseEnded, Update, NetworkSecured }
+    private enum Notice { ServerSwitched, NetworkClosed, Expiring, BypassBroken, ProtectionRepaired, ProxyRepaired, ProxyLost, PauseEnded, Update, NetworkSecured, ServiceRouteBlocked }
 
     private static readonly TimeSpan Quiet = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan ExpiryInterval = TimeSpan.FromMinutes(1);
@@ -23,6 +23,7 @@ internal sealed partial class ClientTray
         owner.Updates.AvailableInBackground += UpdateAvailable;
         owner.Networks.Securing += NetworkSecuring;
         owner.Zapret.BypassBroken += BypassBroken;
+        owner.ServiceRoutes.RouteBlocked += ServiceRouteBlocked;
         expiryTimer = new Timer(_ =>
         {
             if (Interlocked.Exchange(ref expiryPosted, 1) != 0) return;
@@ -45,6 +46,7 @@ internal sealed partial class ClientTray
         owner.Updates.AvailableInBackground -= UpdateAvailable;
         owner.Networks.Securing -= NetworkSecuring;
         owner.Zapret.BypassBroken -= BypassBroken;
+        owner.ServiceRoutes.RouteBlocked -= ServiceRouteBlocked;
         shown.Clear(); noticeTarget = (TrayCommand.Notice, null);
     }
 
@@ -135,4 +137,6 @@ internal sealed partial class ClientTray
     private void PauseResuming() => Notify(Notice.PauseEnded, "Пауза кончилась", "VPN снова включается.");
     private void NetworkSecuring(string message) => Notify(Notice.NetworkSecured, "VPN включается", message);
     private void BypassBroken(string message) => Notify(Notice.BypassBroken, "Обход перестал работать", message);
+    private void ServiceRouteBlocked(string id, string message) =>
+        Notify(Notice.ServiceRouteBlocked, ClientServiceRoutes.Title(id), message, warning: true, scope: id);
 }

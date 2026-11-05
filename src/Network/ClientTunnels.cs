@@ -104,7 +104,7 @@ public sealed class ClientTunnels
         return new[] { selected }.Concat(reserved).Concat(ordinary).DistinctBy(ProfileSelection.Identity).ToArray();
     }
 
-    private bool ServiceProfileAllowed(Profile profile) => !profile.IsFree &&
+    internal bool ServiceProfileAllowed(Profile profile) => !profile.IsFree &&
         (owner.Profiles.RuleSetServers is not { } servers || servers.Contains(ServerMachines.Hash(profile)));
 
     private Profile[] OrdinaryCandidates(Profile selected)

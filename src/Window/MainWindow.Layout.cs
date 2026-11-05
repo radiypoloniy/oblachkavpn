@@ -67,7 +67,7 @@ public partial class MainWindow
         Live.BackButton.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
         Servers.BackButton.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
         RulesPage.BackButton.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
-        Settings.CloseButton.Visibility = narrow || Settings.CurrentPage is not (SettingsPanel.AppPage or SettingsPanel.ConnectionPage or SettingsPanel.HelpPage)
+        Settings.CloseButton.Visibility = narrow || Settings.CurrentPage is not (Views.SettingsPanel.AppPage or Views.SettingsPanel.ConnectionPage or Views.SettingsPanel.HelpPage)
             ? Visibility.Visible : Visibility.Collapsed;
         if (analytics is not null) analytics.BackButton.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
         // Окно расширили: пустой остров заполняется «Сейчас в сети».

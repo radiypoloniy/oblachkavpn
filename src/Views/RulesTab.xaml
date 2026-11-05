@@ -151,8 +151,21 @@
       <ScrollViewer x:Name="ServicePanel" Visibility="Collapsed" Margin="10,12,0,0" VerticalScrollBarVisibility="Auto">
         <StackPanel>
           <TextBlock Text="Для каждого сервиса закреплён один VPN-сервер." Style="{StaticResource Small}" Margin="0,0,0,8"/>
+          <TextBlock Text="Сервис" Style="{StaticResource Small}"/>
+          <ComboBox x:Name="ServicePresetPicker" DisplayMemberPath="Name" AutomationProperties.Name="Сервис" Margin="0,0,0,6"/>
+          <TextBlock Text="VPN-сервер" Style="{StaticResource Small}"/>
+          <ComboBox x:Name="ServiceServerPicker" DisplayMemberPath="Name" AutomationProperties.Name="Сервер сервиса" Margin="0,0,0,6"/>
+          <WrapPanel Margin="0,0,0,6">
+            <Button x:Name="ServiceFiles" Content="Выбрать программы" Style="{StaticResource Plain}" Margin="0,0,8,0"/>
+            <Button x:Name="ServiceClearFiles" Content="Очистить программы" Style="{StaticResource Plain}" Margin="0,0,8,0"/>
+            <Button x:Name="ServiceSave" Content="Сохранить" Style="{StaticResource Plain}" Margin="0,0,8,0"/>
+            <Button x:Name="ServiceDelete" Content="Удалить" Style="{StaticResource Plain}"/>
+          </WrapPanel>
+          <TextBlock x:Name="ServiceFileNames" Style="{StaticResource Small}" TextWrapping="Wrap"/>
+          <TextBlock x:Name="ServiceApplyNote" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="0,4,0,4"/>
+          <Button x:Name="ServiceApply" Content="Переподключить VPN" Style="{StaticResource Plain}" HorizontalAlignment="Left" Visibility="Collapsed"/>
           <TextBlock x:Name="ServiceEmpty" Text="Сохранённых маршрутов пока нет" FontSize="{StaticResource FsBody}" FontWeight="SemiBold" Margin="0,10,0,4"/>
-          <ListBox x:Name="ServiceList" SelectedValuePath="Name" Foreground="{DynamicResource Tx}" Background="Transparent" BorderThickness="0" Padding="0"
+          <ListBox x:Name="ServiceList" SelectedValuePath="Id" Foreground="{DynamicResource Tx}" Background="Transparent" BorderThickness="0" Padding="0"
                    AutomationProperties.Name="Маршруты сервисов">
             <ListBox.Template><ControlTemplate TargetType="ListBox"><ItemsPresenter/></ControlTemplate></ListBox.Template>
             <ListBox.ItemContainerStyle>
@@ -186,6 +199,7 @@
                     <Path x:Name="RouteChevron" Grid.Column="2" Data="{StaticResource IcoChevronRight}" Style="{StaticResource Icon}" Width="8" Height="11"
                           Stroke="{DynamicResource Mu2}" StrokeThickness="1.5" Margin="8,0,0,0"/>
                   </Grid>
+                  <TextBlock Text="{Binding Status}" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="8,0,8,6"/>
                   <StackPanel x:Name="RouteDetails" Visibility="Collapsed" Margin="8,0,8,9">
                     <TextBlock Text="{Binding Targets}" Style="{StaticResource Small}"/>
                     <TextBlock Text="В режиме «Весь компьютер» трафик блокируется, если назначенный сервер недоступен. При совпадении правила сайтов и программ имеют приоритет."
