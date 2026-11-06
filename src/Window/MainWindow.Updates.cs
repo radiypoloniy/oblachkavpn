@@ -2,7 +2,7 @@ using System.Windows;
 
 namespace Oblachka;
 
-// «Помощь → Обновления»: проверка релизов GitHub (AppUpdate) сама раз в 12 часов и по кнопке,
+// «Обновления и перенос»: проверка релизов GitHub (AppUpdate) раз в 12 часов и по кнопке,
 // установка по нажатию. О найденной версии сообщаем один раз за запуск.
 public partial class MainWindow
 {
@@ -33,7 +33,7 @@ public partial class MainWindow
     private void BackgroundUpdateAvailable(AppRelease release)
     {
         if (closed) return;
-        DetailText.Text = $"Доступна {release.DisplayName}. Обновить: «Приложение → Обновления».";
+        DetailText.Text = $"Доступна {release.DisplayName}. Откройте «Настройки → Обновления и перенос».";
     }
 
     private void RefreshUpdate()

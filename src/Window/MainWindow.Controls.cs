@@ -74,10 +74,10 @@ public partial class MainWindow
         Settings.StayInTray.Click += (_, _) => QueueStateSave();
         AutoRecover.Click += (_, _) => QueueStateSave();
         Settings.AutoRefresh.Click += (_, _) => QueueStateSave();
-        Settings.CloseButton.Click += (_, _) => { if (!Settings.Back()) CloseSettings(); };
+        Settings.CloseButton.Click += (_, _) => BackFromSettings();
         WireSettingsHome();
         Settings.AddExternalButton.Click += AddExternalClick;
         Settings.Subscription.GroupList.AddHandler(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, new System.Windows.RoutedEventHandler(GroupRowClick));
-        Servers.GroupTabs.SelectionChanged += (_, _) => FilterProfiles();
+        Servers.GroupTabs.SelectionChanged += (_, _) => { FilterProfiles(); RefreshSubscriptionActions(); };
     }
 }

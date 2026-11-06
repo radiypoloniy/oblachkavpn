@@ -80,9 +80,9 @@ public partial class MainWindow
     }
 
     // Превью в узком окне: открытый раздел — островом поверх панели, как после щелчка по пункту.
-    internal void NarrowPreview(double width)
+    internal void NarrowPreview(double width, bool openSection = true)
     {
-        Width = width; UpdateLayout(); narrowOpen = true; ApplyLayout(); UpdateLayout();
+        Width = width; UpdateLayout(); narrowOpen = openSection; ApplyLayout(); UpdateLayout();
     }
 
     internal void PrepareDesignPreview(string page)
@@ -108,11 +108,11 @@ public partial class MainWindow
         if (page is "servers" or "servers-machine" or "servers-now" or "servers-pinned") { LoadServerPreview(); LoadPingPreview(); }
         if (page is "servers-machine" or "servers-now" or "servers-pinned") page = MachinePreview(page);
         if (page is "foreign" or "closed" or "recovery" or "subscription") PrepareStatePreview(page);
-        if (page is "groups" or "servers-groups")
+        if (page is "groups" or "servers-groups" or "servers-subscription")
         {
             LoadGroupsPreview();
             if (page == "groups") { SettingsClick(this, new RoutedEventArgs()); Settings.ShowTab(2); }
-            else { Navigate("Servers"); Servers.GroupTabs.SelectedIndex = 0; }
+            else { Navigate("Servers"); Servers.GroupTabs.SelectedIndex = page == "servers-subscription" ? 2 : 0; }
             return;
         }
         if (page == "doctor")

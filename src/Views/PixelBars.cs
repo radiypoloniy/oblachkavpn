@@ -5,9 +5,7 @@ namespace Oblachka.Views;
 
 public enum PixelKind { Steps, Columns, Segments }
 
-// Индикаторы из квадратов (облик 0.20): пинг сервера ступенями, трафик по часам столбиками из
-// квадратов, израсходованное по подписке — полосой из сегментов. Рисуются сами (OnRender): в
-// столбиках за день сотня квадратов, отдельными элементами это лишняя работа раскладке.
+// Индикаторы рисуются одним элементом: столбики трафика и сегменты расхода подписки.
 public sealed class PixelBars : FrameworkElement
 {
     public static readonly DependencyProperty KindProperty = Register(nameof(Kind), PixelKind.Steps);
@@ -61,15 +59,15 @@ public sealed class PixelBars : FrameworkElement
             {
                 var values = Values ?? [];
                 if (values.Length == 0) return;
-                var cell = Math.Min(w / (values.Length + (values.Length - 1) * 0.4), h / (Rows + (Rows - 1) * 0.33));
-                var gapX = values.Length > 1 ? (w - cell * values.Length) / (values.Length - 1) : 0;
-                var gapY = (h - cell * Rows) / (Rows - 1);
-                for (var c = 0; c < values.Length; c++)
+                var slot = w / values.Length;
+                var barWidth = slot * 0.64;
+                var radius = Math.Min(2, barWidth / 2);
+                for (var i = 0; i < values.Length; i++)
                 {
-                    var lit = values[c] <= 0 ? 0 : Math.Clamp((int)Math.Ceiling(values[c] * Rows), 1, Rows);
-                    var brush = c == values.Length - 1 ? Accent ?? Fill : Fill;
-                    for (var r = 0; r < Rows; r++)
-                        dc.DrawRectangle(r < lit ? brush : Empty, null, new Rect(c * (cell + gapX), h - (r + 1) * cell - r * gapY, cell, cell));
+                    var x = (i + 0.18) * slot;
+                    var height = Math.Clamp(values[i] * h, Math.Min(2, h), h);
+                    var brush = values[i] <= 0 ? Empty : i == values.Length - 1 ? Accent ?? Fill : Fill;
+                    dc.DrawRoundedRectangle(brush, null, new Rect(x, h - height, barWidth, height), radius, radius);
                 }
                 break;
             }

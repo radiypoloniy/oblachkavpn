@@ -17,7 +17,8 @@
     </DockPanel>
 
     <Grid Grid.Row="1" x:Name="Pages">
-      <v:GeneralTab x:Name="General"/>
+      <v:SettingsHub x:Name="Hub"/>
+      <v:GeneralTab x:Name="General" Visibility="Collapsed"/>
       <v:BypassPage x:Name="Bypass" Visibility="Collapsed"/>
       <v:SubscriptionTab x:Name="Subscription" Visibility="Collapsed"/>
       <v:HelpTab x:Name="Help" Visibility="Collapsed"/>

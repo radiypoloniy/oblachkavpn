@@ -33,7 +33,34 @@ public partial class MainWindow
         Servers.GroupTabs.SelectedIndex = 2;
         if (ProfilePicker.Items.Count != 1 || ((Profile)ProfilePicker.Items[0]).Name != "Швеция")
             throw new InvalidOperationException("Group tab does not filter servers");
+        var originalMain = groups[0];
+        var otherId = groups[1].Id;
+        Servers.SearchBox.Text = "Шв";
+        var reply = new TaskCompletionSource<MirrorResult>();
+        var loading = RefreshVisibleSubscriptionsAsync((sources, _, _) =>
+        {
+            if (!sources.SequenceEqual(new[] { "https://other.invalid/s/b" }))
+                throw new InvalidOperationException("Refresh loaded a subscription outside the visible tab");
+            return reply.Task;
+        });
+        if (RefreshButton.IsEnabled || Servers.RefreshScopeText.Text != "other.invalid" || runtime.Imports.LoadingId != otherId)
+            throw new InvalidOperationException("Refresh did not display the selected subscription's progress");
+        reply.SetResult(new MirrorResult(new ImportResult(new[] { Node("Швеция", 3) }, 0, 0), 0, 1));
+        await loading;
+        if (!ReferenceEquals(groups[0], originalMain) || Servers.SearchBox.Text != "Шв" ||
+            SelectedServerGroupId != otherId || !RefreshButton.IsEnabled)
+            throw new InvalidOperationException("Refreshing the visible subscription changed another group, the tab, or the query");
+        await RefreshVisibleSubscriptionsAsync((_, _, _) => Task.FromException<MirrorResult>(new IOException()));
+        if (Servers.RefreshStatusText.Text != "Не удалось загрузить список. Попробуйте ещё раз." || ProfilesOf(otherId).Count != 1)
+            throw new InvalidOperationException("A failed refresh should keep the old server list and show a local error");
+        Servers.GroupTabs.SelectedIndex = 3;
+        if (RefreshButton.IsEnabled || Servers.SubscriptionRefreshCard.Visibility != System.Windows.Visibility.Collapsed)
+            throw new InvalidOperationException("The manual tab offers subscription refresh");
+        Servers.SearchBox.Clear();
         Servers.GroupTabs.SelectedIndex = 0;
+        if (!Equals(RefreshButton.Content, "Обновить все"))
+            throw new InvalidOperationException("The all-subscriptions action is not explicit");
+        checks.Add("Refresh targets the visible subscription, preserves search and the active tab, and shows errors inline");
         if (ProfilePicker.Items.Count != 4) throw new InvalidOperationException("«Все» tab does not show every server");
         checks.Add("Server sheet shows a tab per subscription and filters by it");
 

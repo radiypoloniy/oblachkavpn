@@ -45,7 +45,13 @@ public partial class MainWindow
             serviceProfiles = importedProfiles.Select(p => p with { Source = ProfileSource.Service }).ToArray();
             subscriptionSources = new[] { "https://fixture.invalid/sub" };
             profile = serviceProfiles[0];
-            subscriptionMetadata = new SubscriptionMetadata(0, 3_000_000_000, 6_400_000_000, DateTimeOffset.UtcNow.AddDays(5));
+            subscriptionMetadata = new SubscriptionMetadata(0, 3_000_000_000, 6_400_000_000, DateTimeOffset.UtcNow.AddHours(42))
+            { WebPageUrl = "https://fixture.invalid/renew" };
+            var now = DateTime.Now;
+            trafficDay = now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+            for (var i = 0; i <= now.Hour; i++) trafficHours[i] = (25L + i * 37 % 190) * 1024 * 1024;
+            trafficToday = trafficHours.Sum();
+            RefreshTodayCard();
             UpdateSubscriptionSummary();
         }
         RefreshHome();

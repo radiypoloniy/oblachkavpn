@@ -16,8 +16,6 @@
             </Border>
           </Grid>
           <TextBlock DockPanel.Dock="Right" Text="{Binding Latency}" FontSize="{StaticResource FsNote}" FontWeight="Bold" VerticalAlignment="Center" Margin="8,0,0,0"/>
-          <v:PixelBars DockPanel.Dock="Right" Kind="Steps" Width="20" Height="9" VerticalAlignment="Center" Filled="{Binding PingSteps}" Fill="{Binding LatencyDot}" Empty="{DynamicResource Pixel}"
-                       Visibility="{Binding LatencyVisibility}"/>
           <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsLabel}" FontWeight="{Binding NameWeight}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
         </DockPanel>
       </Button>

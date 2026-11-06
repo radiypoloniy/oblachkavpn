@@ -1,19 +1,13 @@
 <UserControl x:Class="Oblachka.Views.GeneralTab" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:o="clr-namespace:Oblachka">
-  <!-- «Приложение» (облик 0.20): только сама программа — запуск, вид, обновления, перенос
-       настроек. Всё про сеть — в «Программах и сайтах», «Серверах» и «Помощи». -->
-  <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <StackPanel Margin="24,0,24,20">
-      <!-- Одна колонка: в две «Вид» выходил узким, а в узком окне строки «Запуска» ломались
-           по слову в строке. Плитки темы — рядом, не шире, чем нужно. -->
-      <StackPanel>
-        <StackPanel>
-        <TextBlock Text="Запуск" Style="{StaticResource SecHead}" Margin="0,0,0,4"/>
+  <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto">
+    <Grid>
+    <StackPanel x:Name="LaunchSection" Margin="20,0,20,20">
         <Border Style="{StaticResource OptRow}">
           <DockPanel>
             <CheckBox x:Name="StartWithWindows" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Запускать вместе с Windows"/>
             <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-              <TextBlock Text="Вместе с Windows" Style="{StaticResource OptTitle}"/>
+              <TextBlock Text="Запускать вместе с Windows" Style="{StaticResource OptTitle}"/>
               <TextBlock Text="В трее, без окна" Style="{StaticResource OptSub}"/>
             </StackPanel>
           </DockPanel>
@@ -22,11 +16,13 @@
           <DockPanel>
             <CheckBox x:Name="ConnectOnLaunch" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Подключаться при запуске"/>
             <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-              <TextBlock Text="Сразу подключаться" Style="{StaticResource OptTitle}"/>
+              <TextBlock Text="Восстанавливать VPN при запуске" Style="{StaticResource OptTitle}"/>
               <TextBlock Text="Если VPN был включён, когда вы выключили компьютер или закрыли Облачку" Style="{StaticResource OptSub}"/>
             </StackPanel>
           </DockPanel>
         </Border>
+    </StackPanel>
+    <StackPanel x:Name="NetworkSection" Margin="20,0,20,20">
         <!-- Поведение в сети (MainWindow.Networks): «Всегда VPN» — включается сам, «Доверенная» — сам не включается. -->
         <Border Style="{StaticResource OptRow}">
           <StackPanel>
@@ -34,11 +30,11 @@
             <TextBlock x:Name="NetNote" Style="{StaticResource OptSub}" TextWrapping="Wrap"/>
             <!-- Отдельной строкой: справа от текста три сегмента не помещались в узком окне. -->
             <Border Style="{StaticResource SegTrack}" HorizontalAlignment="Left" Margin="0,8,0,0">
-              <StackPanel Orientation="Horizontal">
+              <WrapPanel>
                 <Button x:Name="NetUsual" Content="Обычная" Style="{StaticResource SegButton}" AutomationProperties.Name="Эта сеть: обычная"/>
                 <Button x:Name="NetVpn" Content="Всегда VPN" Style="{StaticResource SegButton}" AutomationProperties.Name="Эта сеть: всегда VPN"/>
                 <Button x:Name="NetTrusted" Content="Доверенная" Style="{StaticResource SegButton}" AutomationProperties.Name="Эта сеть: доверенная"/>
-              </StackPanel>
+              </WrapPanel>
             </Border>
             <Button x:Name="NetRuleSet" Style="{StaticResource BtnGhost}" Height="28" Padding="10,0" Margin="-10,6,0,0" HorizontalAlignment="Left" FontSize="{StaticResource FsNote}" Visibility="Collapsed" AutomationProperties.Name="Набор правил этой сети"/>
             <Popup x:Name="NetRuleSetPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=NetRuleSet}">
@@ -69,37 +65,9 @@
             </StackPanel>
           </DockPanel>
         </Border>
-        <Border Style="{StaticResource OptRow}">
-          <DockPanel>
-            <CheckBox x:Name="StayInTray" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Крестик сворачивает в трей"/>
-            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-              <TextBlock Text="Крестик прячет в трей" Style="{StaticResource OptTitle}"/>
-              <TextBlock Text="VPN продолжает работать, Облачка — у часов" Style="{StaticResource OptSub}"/>
-            </StackPanel>
-          </DockPanel>
-        </Border>
-        <Border Style="{StaticResource OptRow}">
-          <DockPanel>
-            <CheckBox x:Name="Notices" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Уведомления"/>
-            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-              <TextBlock Text="Уведомления" Style="{StaticResource OptTitle}"/>
-              <TextBlock Text="Когда окно свёрнуто: сменился сервер, кончается подписка, обход перестал работать" Style="{StaticResource OptSub}" TextWrapping="Wrap"/>
-            </StackPanel>
-          </DockPanel>
-        </Border>
-        <Border Style="{StaticResource OptRow}" BorderThickness="0">
-          <DockPanel>
-            <CheckBox x:Name="Hotkey" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Ctrl+Alt+O показывает окно"/>
-            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-              <TextBlock Text="Ctrl+Alt+O" Style="{StaticResource OptTitle}"/>
-              <TextBlock x:Name="HotkeyNote" Text="Показать окно из любой программы; ещё раз — спрятать в трей" Style="{StaticResource OptSub}"/>
-            </StackPanel>
-          </DockPanel>
-        </Border>
-
-        </StackPanel>
-        <StackPanel>
-          <TextBlock Text="Вид" Style="{StaticResource SecHead}"/>
+    </StackPanel>
+    <StackPanel x:Name="AppearanceSection" Margin="20,0,20,20">
+          <TextBlock Text="Тема оформления" Style="{StaticResource SecHead}"/>
           <!-- Столбец до 420: плитки тянутся в узком окне и не расползаются в широком. -->
           <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" MaxWidth="420"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
           <UniformGrid Columns="3">
@@ -129,9 +97,37 @@
             </Button>
           </UniformGrid>
           </Grid>
-        </StackPanel>
-      </StackPanel>
+          <TextBlock Text="Когда окно скрыто" Style="{StaticResource SecHead}"/>
+        <Border Style="{StaticResource OptRow}">
+          <DockPanel>
+            <CheckBox x:Name="StayInTray" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Крестик сворачивает в трей"/>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+              <TextBlock Text="Крестик прячет в трей" Style="{StaticResource OptTitle}"/>
+              <TextBlock Text="VPN продолжает работать, Облачка — у часов" Style="{StaticResource OptSub}"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+        <Border Style="{StaticResource OptRow}">
+          <DockPanel>
+            <CheckBox x:Name="Notices" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Уведомления"/>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+              <TextBlock Text="Уведомления" Style="{StaticResource OptTitle}"/>
+              <TextBlock Text="Когда окно свёрнуто: сменился сервер, кончается подписка, обход перестал работать" Style="{StaticResource OptSub}" TextWrapping="Wrap"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+        <Border Style="{StaticResource OptRow}" BorderThickness="0">
+          <DockPanel>
+            <CheckBox x:Name="Hotkey" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" AutomationProperties.Name="Ctrl+Alt+O показывает окно"/>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+              <TextBlock Text="Ctrl+Alt+O" Style="{StaticResource OptTitle}"/>
+              <TextBlock x:Name="HotkeyNote" Text="Показать окно из любой программы; ещё раз — спрятать в трей" Style="{StaticResource OptSub}"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
 
+    </StackPanel>
+    <StackPanel x:Name="TransferSection" Margin="20,0,20,20">
       <!-- Обновление без переустановки (AppUpdate): релизы GitHub, установщик по нажатию. -->
       <TextBlock Text="Обновления" Style="{StaticResource SecHead}"/>
       <Border Style="{StaticResource Plate}">
@@ -156,37 +152,22 @@
 
       <!-- Резервная копия настроек (ClientBackup): переезд на другой компьютер, переустановка. -->
       <TextBlock Text="Перенос на другой компьютер" Style="{StaticResource SecHead}"/>
+      <TextBlock Text="Копия содержит подписки, серверы, правила и ключи доступа. Храните файл в надёжном месте." Style="{StaticResource OptSub}" Margin="0,0,0,8"/>
       <Border Style="{StaticResource Plate}">
-        <DockPanel>
+        <DockPanel LastChildFill="False">
           <Button x:Name="BackupRestore" DockPanel.Dock="Right" Style="{StaticResource BtnOutline}" Height="36" Padding="12,0,16,0" Margin="8,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="Восстановить из файла">
             <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IcoUpload}" Style="{StaticResource Icon}" Width="15" Height="15" StrokeThickness="2.2" Margin="0,0,8,0"/><TextBlock Text="Из файла" VerticalAlignment="Center"/></StackPanel>
           </Button>
           <Button x:Name="BackupSave" DockPanel.Dock="Right" Style="{StaticResource BtnOutline}" Height="36" Padding="12,0,16,0" VerticalAlignment="Center" AutomationProperties.Name="Сохранить настройки в файл">
             <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IcoTray}" Style="{StaticResource Icon}" Width="15" Height="15" StrokeThickness="2.2" Margin="0,0,8,0"/><TextBlock Text="В файл" VerticalAlignment="Center"/></StackPanel>
           </Button>
-          <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-            <TextBlock Text="Подписки, серверы и правила" Style="{StaticResource OptTitle}"/>
-            <TextBlock Text="В файле ваши ключи — никому его не пересылайте" Style="{StaticResource OptSub}"/>
-          </StackPanel>
-        </DockPanel>
-      </Border>
-      <!-- Тонкая настройка (AdvancedPage): тем, кто пришёл из Throne, v2rayN или Happ. -->
-      <TextBlock Text="Для продвинутых" Style="{StaticResource SecHead}"/>
-      <Border Style="{StaticResource Plate}">
-        <DockPanel>
-          <Button x:Name="AdvancedOpen" DockPanel.Dock="Right" Content="Открыть" Style="{StaticResource BtnOutline}" Height="36" Padding="16,0" Margin="8,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="Открыть настройки для продвинутых"/>
-          <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-            <TextBlock x:Name="AdvancedTitle" Text="Тонкая настройка" Style="{StaticResource OptTitle}"/>
-            <TextBlock x:Name="AdvancedNote" Text="Стек и MTU туннеля, свой DNS, подсети мимо VPN, фрагментация, порт прокси, журнал ядра" Style="{StaticResource OptSub}"/>
-          </StackPanel>
         </DockPanel>
       </Border>
       <TextBlock x:Name="VersionText" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Fa}" HorizontalAlignment="Center" Margin="0,16,0,0"/>
 
-      <!-- Выбор режима хранится в этих флажках: от них зависит вся логика подключения.
-           Сам режим переключается в «Программах и сайтах». -->
+    </StackPanel>
       <CheckBox x:Name="SystemTunnel" Visibility="Collapsed"/>
       <CheckBox x:Name="SystemProxy" Visibility="Collapsed"/>
-    </StackPanel>
+    </Grid>
   </ScrollViewer>
 </UserControl>

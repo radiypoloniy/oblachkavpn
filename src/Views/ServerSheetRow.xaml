@@ -17,7 +17,6 @@
           <Button x:Name="RowButton" Style="{StaticResource Row}" Height="44" Padding="10,0,6,0" o:Ui.CornerRadius="{StaticResource RadiusMd}" AutomationProperties.Name="{Binding Name}">
             <DockPanel>
               <TextBlock DockPanel.Dock="Right" Text="{Binding Latency}" FontSize="{StaticResource FsBody}" FontWeight="Bold" MinWidth="50" TextAlignment="Right" VerticalAlignment="Center" ToolTip="{Binding LatencyHint}"/>
-              <v:PixelBars x:Name="RowBars" DockPanel.Dock="Right" Kind="Steps" Width="22" Height="10" Margin="10,0,8,0" VerticalAlignment="Center" Filled="{Binding PingSteps}" Fill="{Binding LatencyDot}" Empty="{DynamicResource Pixel}" Visibility="{Binding LatencyVisibility}" ToolTip="{Binding LatencyHint}"/>
               <Grid Width="22" Height="22" Margin="0,0,12,0" VerticalAlignment="Center">
                 <Ellipse Visibility="{Binding FlagVisibility}" Stroke="{DynamicResource FlagRing}" StrokeThickness="1">
                   <Ellipse.Fill><ImageBrush ImageSource="{Binding Flag}" Stretch="UniformToFill"/></Ellipse.Fill>
@@ -62,7 +61,6 @@
           <Button x:Name="MemberButton" Style="{StaticResource Row}" Height="44" Margin="6,0,0,0" Padding="38,0,6,0" o:Ui.CornerRadius="{StaticResource RadiusInner}" AutomationProperties.Name="{Binding Name}">
             <DockPanel>
               <TextBlock DockPanel.Dock="Right" Text="{Binding Latency}" FontSize="{StaticResource FsBody}" FontWeight="Bold" MinWidth="50" TextAlignment="Right" VerticalAlignment="Center" ToolTip="{Binding LatencyHint}"/>
-              <v:PixelBars x:Name="MemberBars" DockPanel.Dock="Right" Kind="Steps" Width="22" Height="10" Margin="10,0,8,0" VerticalAlignment="Center" Filled="{Binding PingSteps}" Fill="{Binding LatencyDot}" Empty="{DynamicResource Pixel}" Visibility="{Binding LatencyVisibility}"/>
               <Ellipse Width="8" Height="8" Margin="0,0,10,0" VerticalAlignment="Center" Fill="{Binding LatencyDot}" Stroke="{DynamicResource Ring}" StrokeThickness="1"/>
               <!-- Метка «сейчас»/«закреплён» и имя — всегда целиком; подпись уступает место первой. -->
               <DockPanel HorizontalAlignment="Left" VerticalAlignment="Center">
@@ -122,8 +120,6 @@
       <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="narrow">
         <Setter TargetName="ExpandWord" Property="Visibility" Value="Collapsed"/>
         <Setter TargetName="DetailLine" Property="Visibility" Value="Collapsed"/>
-        <Setter TargetName="RowBars" Property="Visibility" Value="Collapsed"/>
-        <Setter TargetName="MemberBars" Property="Visibility" Value="Collapsed"/>
       </DataTrigger>
       <DataTrigger Binding="{Binding CanFavorite}" Value="False">
         <Setter TargetName="StarButton" Property="Visibility" Value="Collapsed"/>

@@ -35,11 +35,10 @@ public partial class MainWindow
         Home.RecoveryStop.Click += StopClick;
         Home.ClosedPick.Click += (_, _) => Navigate("Servers");
         Home.ClosedOff.Click += (_, _) => { networkClosed = false; StopClick(this, new RoutedEventArgs()); };
-        Home.SubWarnRenew.Click += (_, _) => OpenLink(RenewUrl, "страницу продления");
-        Home.SubWarnPick.Click += (_, _) => Navigate("Servers");
-        Home.SubWarnRefresh.Click += async (_, _) =>
+        Home.SubWarnAction.Click += (_, _) =>
         {
-            if (CurrentGroup is { } group && operation is null) await LoadSubscriptionAsync(group.Sources, group.PreferredSource);
+            if (RenewUrl is { } url) OpenLink(url, "страницу продления");
+            else OpenSettings(Views.SettingsPanel.SubscriptionPage);
         };
         Home.SubWarnHide.Click += (_, _) =>
         {
@@ -113,21 +112,22 @@ public partial class MainWindow
             on ? new DoubleAnimation(0, 360, TimeSpan.FromSeconds(1)) { RepeatBehavior = RepeatBehavior.Forever } : null);
     }
 
-    // Полоса «Подписка заканчивается»: меньше 14 дней или меньше 5 ГБ.
+    // Напоминание в окне показывается в последние двое суток или когда заканчивается трафик.
     private void ApplySubscriptionWarning()
     {
         var state = CurrentSubscription;
-        var warn = state is { HasWarning: true } && state.WarningKey != state.Group.DismissedWarning;
+        var warn = state is { HasWarning: true } && state.WarningKey != state.Group.DismissedWarning &&
+            (state.Term == SubscriptionTerm.Expired || state.Days is < 2 || state.Traffic is SubscriptionTraffic.Low or SubscriptionTraffic.Exhausted);
         Home.SubWarn.Visibility = warn ? Visibility.Visible : Visibility.Collapsed;
-        Home.SubWarnText.Text = state?.WarningText ?? "";
-        Home.SubWarn.BorderThickness = state?.Critical == true ? new Thickness(2) : new Thickness(0);
-        Home.SubWarn.SetResourceReference(Border.BorderBrushProperty, "EI");
-        Home.SubWarnText.SetResourceReference(TextBlock.ForegroundProperty, state?.Critical == true ? "EI" : "SF");
-        Home.SubWarnRenew.Visibility = state?.RenewUrl is not null ? Visibility.Visible : Visibility.Collapsed;
-        Home.SubWarnRefresh.IsEnabled = operation is null;
-        Home.SubWarnPick.Visibility = groups.Any(g => g.Id != state?.Group.Id && ProfilesOf(g.Id).Any(p => !HiddenServer(p)))
-            ? Visibility.Visible : Visibility.Collapsed;
-        Home.PlanText.SetResourceReference(TextBlock.ForegroundProperty, state?.HasWarning == true ? "FootWarn" : "Mu2");
-        Home.PlanText.FontWeight = state?.HasWarning == true ? FontWeights.SemiBold : FontWeights.Normal;
+        Home.PlanSummary.Visibility = warn ? Visibility.Collapsed : Visibility.Visible;
+        if (!warn || state is null) return;
+        Home.SubWarnTitle.Text = state.Traffic == SubscriptionTraffic.Exhausted || state.Term is not (SubscriptionTerm.Expiring or SubscriptionTerm.Expired)
+            ? state.TrafficText : state.Term == SubscriptionTerm.Expiring && state.Group.Metadata?.Expires is { } expiry
+                ? "Подписка до " + expiry.ToLocalTime().ToString("d MMMM", System.Globalization.CultureInfo.GetCultureInfo("ru-RU"))
+                : state.TermText;
+        Home.SubWarnCloud.Mood = state.Critical ? CloudMood.Worried : CloudMood.Happy;
+        Home.SubWarnTitle.SetResourceReference(TextBlock.ForegroundProperty, state.Critical ? "RF" : "FootWarn");
+        Home.SubWarnLabel.Text = state.RenewUrl is not null ? "Продлить подписку" : "Открыть подписку";
+        Home.SubWarnAction.ToolTip = state.Group.Name + "\n" + state.WarningText;
     }
 }

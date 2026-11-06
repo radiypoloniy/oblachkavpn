@@ -27,7 +27,7 @@ public partial class MainWindow
         if (measurementBusyShown != measuring)
         {
             measurementBusyShown = measuring;
-            var title = measuring ? "Остановить замер" : "Обновить пинг";
+            var title = measuring ? "Остановить замер" : "Обновить пинг на вкладке";
             Servers.MeasureButton.ToolTip = title;
             System.Windows.Automation.AutomationProperties.SetName(Servers.MeasureButton, title);
             UpdateControls();

@@ -59,7 +59,7 @@ public partial class MainWindow
         if (shown is null)
         {
             Home.ServerName.Text = "Сервер не выбран"; Home.ServerNote.Text = "Выберите в «Серверах»";
-            Home.ServerFlag.Source = null; Home.ServerPing.Text = ""; Home.ServerBars.Filled = 0;
+            Home.ServerFlag.Source = null; Home.ServerPing.Text = ""; Home.ServerPing.ToolTip = null;
         }
         else
         {
@@ -70,10 +70,7 @@ public partial class MainWindow
             if (!ReferenceEquals(Home.ServerFlag.Source, row.Flag)) Home.ServerFlag.Source = row.Flag;
             Home.ServerFlag.Visibility = row.Flag is null ? Visibility.Collapsed : Visibility.Visible;
             Home.ServerPing.Text = row.Latency;
-            // Ступени пинга: три — до 160 мс, две — до 250, одна — медленнее, ни одной — не ответил.
-            Home.ServerBars.Filled = LatestMeasurement(shown) is { Success: true } m ? m.Milliseconds < 160 ? 3 : m.Milliseconds < 250 ? 2 : 1 : 0;
-            // Ступени — только рядом с числом: у «нет ответа» и «давно» пустые ступени лишь теснили слова.
-            Home.ServerBars.Visibility = row.Latency.EndsWith(" мс", StringComparison.Ordinal) ? Visibility.Visible : Visibility.Collapsed;
+            Home.ServerPing.ToolTip = row.LatencyHint;
         }
         var rules = siteRules.Count + programRules.Count;
         Home.RulesCount.Text = rules > 0 ? rules.ToString() : "";
@@ -102,8 +99,6 @@ public partial class MainWindow
         Home.ServerCard.SetResourceReference(Control.BackgroundProperty, off ? "GlassNight" : "Glass");
         Home.PauseButton.SetResourceReference(Control.ForegroundProperty, off ? "CloudWhite" : "Tx");
         Home.PauseButton.SetResourceReference(Control.BackgroundProperty, off ? "GlassNight" : "Glass");
-        Home.ServerBars.SetResourceReference(PixelBars.FillProperty, off ? "CloudWhite" : "Tx");
-        Home.ServerBars.SetResourceReference(PixelBars.EmptyProperty, off ? "NightCloud" : "Pixel");
     }
 
     // Остальные группы в VPN: «Discord работает · YouTube через VPN».

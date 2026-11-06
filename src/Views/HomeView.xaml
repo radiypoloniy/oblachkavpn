@@ -2,10 +2,6 @@
              xmlns:v="clr-namespace:Oblachka.Views" xmlns:o="clr-namespace:Oblachka" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
              FontFamily="{StaticResource UiFont}" Foreground="{DynamicResource Tx}" Background="Transparent">
 
-  <!-- Боковая колонка окна (облик 0.20, «облачная погода»): карточка статуса — облачко с лицом по
-       состоянию, статус, кнопка подключения и строка сервера; цвет карточки — погода (ночь,
-       ясно, закат). Ниже особые состояния, обход блокировок, разделы и карточка «сегодня и
-       подписка». Содержимое разделов — на острове справа (MainWindow). -->
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="40"/>
@@ -49,7 +45,6 @@
                 <DockPanel>
                   <Path DockPanel.Dock="Right" Data="{StaticResource IcoChevronRight}" Style="{StaticResource Icon}" Width="9" Height="12" StrokeThickness="1.5" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Margin="6,0,0,0"/>
                   <TextBlock x:Name="ServerPing" DockPanel.Dock="Right" FontSize="{StaticResource FsBody}" FontWeight="Bold" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                  <v:PixelBars x:Name="ServerBars" DockPanel.Dock="Right" Kind="Steps" Width="13" Height="8" VerticalAlignment="Center" Fill="{DynamicResource Tx}" Empty="{DynamicResource Pixel}"/>
                   <Border Visibility="Collapsed"><Image x:Name="ServerFlag"/></Border>
                   <StackPanel VerticalAlignment="Center">
                     <TextBlock x:Name="ServerName" FontSize="{StaticResource FsBody}" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
@@ -89,17 +84,25 @@
           <Button x:Name="ModeButton"><TextBlock x:Name="ModeText" Text="Весь компьютер"/></Button>
         </StackPanel>
 
-        <!-- Особые состояния: пока ситуация не разрешится, вместо карточки сервера. -->
-        <Border x:Name="SubWarn" Margin="0,10,0,0" Padding="12,10,8,10" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource SB}" Visibility="Collapsed">
-          <StackPanel>
-            <TextBlock x:Name="SubWarnText" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource SF}" TextWrapping="Wrap"/>
-            <WrapPanel Margin="0,6,0,0">
-              <Button x:Name="SubWarnRenew" Content="Продлить" Style="{StaticResource BtnGhost}"/>
-              <Button x:Name="SubWarnRefresh" Content="Обновить данные" Style="{StaticResource BtnGhost}"/>
-              <Button x:Name="SubWarnPick" Content="Выбрать другой сервер" Style="{StaticResource BtnGhost}"/>
-              <Button x:Name="SubWarnHide" Content="Скрыть" Style="{StaticResource BtnGhost}"/>
-            </WrapPanel>
-          </StackPanel>
+        <Border x:Name="SubWarn" Margin="0,8,0,0" Padding="6" Background="{DynamicResource Bg}" CornerRadius="{StaticResource RadiusLg}" Visibility="Collapsed">
+          <DockPanel>
+            <Button x:Name="SubWarnHide" DockPanel.Dock="Right" Style="{StaticResource SmallIconButton}" Width="28" Height="30"
+                    VerticalAlignment="Center" Foreground="{DynamicResource Mu2}" ToolTip="Скрыть напоминание" AutomationProperties.Name="Скрыть напоминание">
+              <Path Data="{StaticResource IcoClose}" Style="{StaticResource Icon}" Width="11" Height="11" StrokeThickness="2"/>
+            </Button>
+            <Border DockPanel.Dock="Left" Width="44" Height="40" Margin="2,0,4,0" Background="{DynamicResource Clear}" CornerRadius="{StaticResource RadiusMd}" VerticalAlignment="Center">
+              <v:CloudFace x:Name="SubWarnCloud" Width="34" Height="24"/>
+            </Border>
+            <Button x:Name="SubWarnAction" Style="{StaticResource Row}" o:Ui.CornerRadius="{StaticResource RadiusMd}" Padding="8,6">
+              <DockPanel>
+                <Path DockPanel.Dock="Right" Data="{StaticResource IcoChevronRight}" Style="{StaticResource Icon}" Width="8" Height="10" Margin="8,0,0,0"/>
+                <StackPanel>
+                  <TextBlock x:Name="SubWarnTitle" FontSize="{StaticResource FsSmall}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock x:Name="SubWarnLabel" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+              </DockPanel>
+            </Button>
+          </DockPanel>
         </Border>
         <Border x:Name="FreeWarn" Margin="0,10,0,0" Padding="12,10" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource WB}" Visibility="Collapsed">
           <TextBlock Text="Чужой сервер. Его владелец видит, какие сайты вы открываете." FontSize="{StaticResource FsNote}" Foreground="{DynamicResource WF}" TextWrapping="Wrap"/>
@@ -218,27 +221,30 @@
       </StackPanel>
     </ScrollViewer>
 
-    <!-- Сегодня и подписка: трафик за день по часам и срок с остатком. Нажатие — «Аналитика». -->
-    <Button x:Name="TodayCard" Grid.Row="2" Style="{StaticResource SideTraffic}" o:Ui.CornerRadius="{StaticResource RadiusLg}" Padding="12,10" Margin="12,0,12,12" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Трафик и подписка. Открыть аналитику" ToolTip="Открыть аналитику">
+    <Border Grid.Row="2" Background="{DynamicResource Bg}" CornerRadius="{StaticResource RadiusLg}" Margin="12,0,12,12">
       <StackPanel>
-        <DockPanel x:Name="TrafficRow">
-          <v:PixelBars x:Name="TrafficBars" DockPanel.Dock="Right" Kind="Columns" Width="74" Height="24" VerticalAlignment="Bottom" Fill="{DynamicResource RouteVpn}" Empty="{DynamicResource Field}" Accent="{DynamicResource Sun}"/>
-          <StackPanel VerticalAlignment="Bottom">
-            <TextBlock Text="Трафик сегодня" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource Mu2}"/>
-            <TextBlock x:Name="TrafficToday" Text="0 Б" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FsDisplayStatus}" FontWeight="ExtraBold" Margin="0,3,0,0"/>
-          </StackPanel>
-        </DockPanel>
+        <Button x:Name="TodayCard" Style="{StaticResource SideTraffic}" o:Ui.CornerRadius="{StaticResource RadiusLg}" Padding="12,9"
+                HorizontalContentAlignment="Stretch" AutomationProperties.Name="Трафик сегодня. Открыть аналитику">
+          <DockPanel x:Name="TrafficRow">
+            <v:PixelBars x:Name="TrafficBars" DockPanel.Dock="Right" Kind="Columns" Width="82" Height="33" VerticalAlignment="Center" Fill="{DynamicResource RouteVpn}" Empty="{DynamicResource Lilac}" Accent="{DynamicResource Sun}"/>
+            <StackPanel VerticalAlignment="Bottom">
+              <TextBlock Text="Трафик сегодня" FontSize="{StaticResource FsNote}" FontWeight="SemiBold" Foreground="{DynamicResource Mu2}"/>
+              <TextBlock x:Name="TrafficToday" Text="0 Б" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FsDisplayStatus}" FontWeight="ExtraBold" Margin="0,3,0,0"/>
+              <TextBlock Text="Аналитика ›" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Ac}" Margin="0,2,0,0"/>
+            </StackPanel>
+          </DockPanel>
+        </Button>
         <StackPanel x:Name="PlanRow">
-          <Border Height="1" Background="{DynamicResource Divider}" Margin="0,8"/>
-          <DockPanel>
+          <Border Height="1" Background="{DynamicResource Divider}" Margin="12,0"/>
+          <DockPanel x:Name="PlanSummary" Margin="12,8">
             <v:PixelBars x:Name="PlanBars" DockPanel.Dock="Right" Kind="Segments" Count="6" Width="48" Height="8" VerticalAlignment="Center" Fill="{DynamicResource RouteVpn}" Empty="{DynamicResource Lilac}"/>
-            <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
-              <TextBlock x:Name="PlanText" FontSize="{StaticResource FsSmall}" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+            <StackPanel Margin="0,0,10,0">
+              <TextBlock x:Name="PlanText" FontSize="{StaticResource FsSmall}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
               <TextBlock x:Name="PlanSub" FontSize="{StaticResource FsNote}" Foreground="{DynamicResource Mu2}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
             </StackPanel>
           </DockPanel>
         </StackPanel>
       </StackPanel>
-    </Button>
+    </Border>
   </Grid>
 </UserControl>

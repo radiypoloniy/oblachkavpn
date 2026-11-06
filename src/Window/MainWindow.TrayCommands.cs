@@ -21,7 +21,7 @@ public partial class MainWindow : IClientTrayView
                 if (renewUrl is null) ShowWindow();
                 else OpenLink(renewUrl, "страницу продления");
                 break;
-            case TrayCommand.Update: ShowWindow(); OpenSettings(Views.SettingsPanel.AppPage); break;
+            case TrayCommand.Update: ShowWindow(); OpenSettings(Views.SettingsPanel.TransferPage, fromHub: true); break;
         }
     }
 }

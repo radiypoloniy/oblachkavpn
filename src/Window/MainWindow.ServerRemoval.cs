@@ -93,7 +93,6 @@ public partial class MainWindow
         if (operation is not null || groups.FirstOrDefault(g => g.Id == header.GroupId) is not { } group) return;
         switch (action)
         {
-            case "group-refresh": await LoadSubscriptionAsync(group.Sources, group.PreferredSource); break;
             case "group-unhide": UnhideServers(group.Id); break;
             case "group-hide-junk": HideJunk(group.Id); break;
             // «Убрать» у бесплатных — выключить их: иначе включённая настройка тут же загружала список снова.

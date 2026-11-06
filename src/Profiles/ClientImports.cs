@@ -90,6 +90,7 @@ public sealed partial class ClientImports : IDisposable
             while (owner.Workspace.RemovedSubscriptions.Count > 32) owner.Workspace.RemovedSubscriptions.Remove(owner.Workspace.RemovedSubscriptions.First());
         }
         Invalidate(id);
+        refreshStatuses.Remove(id);
         if (Pending?.Group.Id == id) Pending = null;
         var selected = data.Selected?.Group == id;
         data.Groups.RemoveAll(g => g.Id == id); data.GroupProfiles.Remove(id); schedules.Remove(id); Revision++;
@@ -102,7 +103,7 @@ public sealed partial class ClientImports : IDisposable
         Pending = null;
         if (!owner.Workspace.RemovedSubscriptions.Contains(pending.Group.Id))
         {
-            try { Apply(pending.Group, pending.Result, true); }
+            try { refreshStatuses.Remove(pending.Group.Id); Apply(pending.Group, pending.Result, true); }
             catch (UserError error) { Message = error.Message; Changed?.Invoke(); }
         }
     }

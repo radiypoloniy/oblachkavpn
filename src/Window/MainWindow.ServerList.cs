@@ -70,10 +70,10 @@ public partial class MainWindow
         var items = new List<object>();
         // Автовыбор — закреплённая карточка над списком (AutoCard), выбранный — чернильной рамкой.
         Servers.AutoCard.BorderThickness = new System.Windows.Thickness(autoSelect ? 2 : 0);
-        Servers.AutoNote.Text = autoSelect && profile is not null ? "сейчас: " + profile.DisplayName : "самый быстрый из отмеченных";
+        Servers.AutoNote.Text = autoSelect && profile is not null ? "Сейчас: " + profile.DisplayName : "Самый быстрый из отмеченных";
         // Заголовок подписки виден и без строк (всё скрыто, подписка пустая): с него её убирают
         // и возвращают скрытые. Но не при поиске и не на вкладке другой подписки.
-        var tab = Servers.GroupTabs.SelectedIndex > 0 && Servers.GroupTabs.Tag is string[] ids && Servers.GroupTabs.SelectedIndex - 1 < ids.Length ? ids[Servers.GroupTabs.SelectedIndex - 1] : null;
+        var tab = SelectedServerGroupId;
         void Group(SheetHeader header, IEnumerable<Profile> members, bool note = false)
         {
             var list = members.ToArray();
@@ -86,7 +86,7 @@ public partial class MainWindow
         var starred = shown.Where(p => favorites.Contains(FavoriteKey(p))).Select(ServerMachines.Key).ToHashSet();
         Group(new SheetHeader("Избранное"), shown.Where(p => starred.Contains(ServerMachines.Key(p))), note: true);
         foreach (var group in groups)
-            Group(new SheetHeader(group.Name, group.Id, group.IsSubscription, HiddenIn(group.Id), group.IsSubscription ? Junk(group.Id).Length : 0) { Updated = UpdatedText(group) },
+            Group(new SheetHeader(group.Name, group.Id, HiddenIn(group.Id), group.IsSubscription ? Junk(group.Id).Length : 0) { Updated = UpdatedText(group) },
                 shown.Where(p => p.Group == group.Id && !starred.Contains(ServerMachines.Key(p))));
         Servers.SheetList.ItemsSource = items;
         RefreshMeasurement();

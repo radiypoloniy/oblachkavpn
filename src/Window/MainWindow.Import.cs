@@ -35,7 +35,7 @@ public partial class MainWindow
     private void ImportApplied(ClientImportChange change)
     {
         if (closed) return;
-        ApplyProfiles(true);
+        ApplyProfiles(true, resetSearch: change.NewSubscription || !change.Group.IsSubscription);
         if (change.Result.Metadata?.Routing is not null) RefreshRouting();
         if (change.NewSubscription && Servers.GroupTabs.Tag is string[] ids && Array.IndexOf(ids, change.Group.Id) is var tab && tab >= 0)
             Servers.GroupTabs.SelectedIndex = tab + 1;
@@ -45,10 +45,11 @@ public partial class MainWindow
     {
         if (closed) return;
         DetailText.Text = runtime.Imports.Message;
+        RefreshSubscriptionRows();
         UpdateControls();
     }
 
-    private void ApplyProfiles(bool preserveSelection)
+    private void ApplyProfiles(bool preserveSelection, bool resetSearch = true)
     {
         // Скрытые серверы подписок в список не попадают (MainWindow.ServerRemoval).
         var combined = groups.SelectMany(g => ProfilesOf(g.Id)).Where(p => !HiddenServer(p)).ToArray();
@@ -71,7 +72,7 @@ public partial class MainWindow
         ProfilePicker.ItemsSource = combined;
         importedProfiles = combined;
         machineProfiles = null; machineIndex.Clear();
-        Servers.SearchBox.Clear();
+        if (resetSearch) Servers.SearchBox.Clear();
         UpdateSubscriptionSummary();
         ProfilePicker.SelectedIndex = selection;
         profile = combined[selection];
@@ -100,10 +101,14 @@ public partial class MainWindow
         try { await LoadSubscriptionAsync(SubscriptionMirrors.ParseSources(url), 0); }
         catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }
     }
-    // Обновляем все подписки: сервиса и сторонние.
-    private async void RefreshClick(object sender, RoutedEventArgs args)
+    private async void RefreshClick(object sender, RoutedEventArgs args) => await RefreshVisibleSubscriptionsAsync();
+
+    private async Task RefreshVisibleSubscriptionsAsync(
+        Func<IReadOnlyList<string>, int, CancellationToken, Task<MirrorResult>>? loader = null)
     {
-        if (operation is null) await RefreshAllAsync();
+        if (operation is not null || runtime.Imports.RefreshingAll) return;
+        if (VisibleSubscription() is { } group) await runtime.Imports.RefreshAsync(group.Id, loader);
+        else if (SelectedServerGroupId is null) await runtime.Imports.RefreshAllAsync();
     }
     private Task LoadSubscriptionAsync(IReadOnlyList<string> sources, int preferred,
         Func<IReadOnlyList<string>, int, CancellationToken, Task<MirrorResult>>? loader = null) => runtime.Imports.LoadAsync(sources, preferred, loader);

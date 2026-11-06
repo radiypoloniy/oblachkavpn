@@ -7,9 +7,22 @@ namespace Oblachka.Views;
 
 public partial class ServersSheet : UserControl
 {
+    private bool refreshAll;
+
     public ServersSheet()
     {
         InitializeComponent();
+        GroupTabsScroll.PreviewMouseWheel += (_, args) =>
+        {
+            if (GroupTabsScroll.ScrollableWidth <= 0 || args.Delta == 0) return;
+            GroupTabsScroll.ScrollToHorizontalOffset(GroupTabsScroll.HorizontalOffset - args.Delta * 0.6);
+            args.Handled = true;
+        };
+        GroupTabs.SelectionChanged += (_, _) => Dispatcher.BeginInvoke(() =>
+        {
+            if (GroupTabs.ItemContainerGenerator.ContainerFromIndex(GroupTabs.SelectedIndex) is FrameworkElement tab)
+                tab.BringIntoView();
+        }, System.Windows.Threading.DispatcherPriority.Loaded);
         SubscriptionsButton.Click += (_, _) => ShowAdd(SubscriptionsButton);
         // Поле ввода — сразу в фокусе: можно вставить ссылку, не целясь мышью.
         // Всплывающие окна не переживают уход со страницы и не лежат друг на друге.
@@ -21,16 +34,28 @@ public partial class ServersSheet : UserControl
         RenderTransform = new TranslateTransform();
         SizeChanged += (_, args) =>
         {
-            var narrow = args.NewSize.Width < 600;
-            var host = narrow ? NarrowSearchSlot : HeaderSearchSlot;
-            if (SearchField.Parent is Panel from && from != host) { from.Children.Remove(SearchField); host.Children.Add(SearchField); }
-            NarrowSearchSlot.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
             // Строкам (ServerSheetRow.xaml): в узком окне плашка вариантов — только число.
             var compact = args.NewSize.Width < 480;
+            SetRefreshScope(refreshAll);
             SheetList.Tag = compact ? "narrow" : null;
-            DockPanel.SetDock(AutoRecoverActions, compact ? Dock.Bottom : Dock.Right);
-            AutoRecoverActions.HorizontalAlignment = compact ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+            var sortHost = compact ? HeaderTools : GroupTools;
+            if (SortButton.Parent is Panel oldSortHost && oldSortHost != sortHost)
+            {
+                oldSortHost.Children.Remove(SortButton);
+                sortHost.Children.Insert(compact ? 2 : 0, SortButton);
+            }
+            SortText.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
+            AutoRecoverLabel.Visibility = AutoNote.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
         };
+    }
+
+    internal void SetRefreshScope(bool all)
+    {
+        refreshAll = all;
+        var label = all ? "Обновить все подписки" : "Обновить список подписки";
+        RefreshButton.Content = all ? "Обновить все" : ActualWidth is > 0 and < 480 ? "Обновить" : "Обновить список";
+        RefreshButton.ToolTip = label;
+        System.Windows.Automation.AutomationProperties.SetName(RefreshButton, label);
     }
 
     // «+» в шапке — окно под ним справа.

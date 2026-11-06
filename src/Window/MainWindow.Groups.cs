@@ -104,12 +104,6 @@ public partial class MainWindow
         QueueStateSave(); FlushStateSave();
     }
 
-    // Обновить все подписки: сервис первым, затем сторонние. «Вручную» не обновляется.
-    private async Task RefreshAllAsync()
-    {
-        await runtime.Imports.RefreshAllAsync();
-    }
-
     // Подпись узла в списке: у сторонних — имя его подписки.
     private string? GroupNote(Profile item) => item.IsService ? null : GroupOf(item) is { IsManual: false } group ? group.Name : "вручную";
 }

@@ -3,7 +3,35 @@
   <!-- Настройки → Подписка (0.16): срок и трафик, обновление списка, устройство, все подписки и ключ. -->
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="20,4,20,16">
-      <Border x:Name="ActiveCard" CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource CardBg}" Padding="14">
+      <TextBlock Text="Списки серверов" Style="{StaticResource SetCaption}"/>
+      <!-- Группы (ProfileGroup): у подписки — «Обновить» и «Убрать», у «Вручную» — только «Убрать». -->
+      <ItemsControl x:Name="GroupList" Focusable="False">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate DataType="{x:Type o:GroupRow}">
+            <Border CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource CardBg}" Padding="12,8,6,8" Margin="0,0,0,6">
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Tag="remove" Style="{StaticResource SmallIconButton}" Width="30" Height="30" Foreground="{DynamicResource Fa}" ToolTip="Убрать" AutomationProperties.Name="{Binding RemoveName}">
+                  <Path Data="{StaticResource IcoClose}" Style="{StaticResource Icon}" Width="13" Height="13" StrokeThickness="2.4"/>
+                </Button>
+                <Button DockPanel.Dock="Right" Tag="refresh" Content="Обновить" Style="{StaticResource BtnOutline}" Height="32" Padding="9,0" Margin="8,0,4,0" VerticalAlignment="Center" Visibility="{Binding RefreshVisibility}" AutomationProperties.Name="{Binding RefreshName}"/>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{Binding Title}" FontSize="{StaticResource FsRow}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Text="{Binding Sub}" Style="{StaticResource Small}" TextWrapping="Wrap"/>
+                  <TextBlock Text="{Binding Plan}" Style="{StaticResource Small}" TextWrapping="Wrap" Visibility="{Binding PlanVisibility}"/>
+                </StackPanel>
+              </DockPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <Button x:Name="AddExternalButton" Style="{StaticResource Row}" Height="40" Padding="6,0" Foreground="{DynamicResource Ac}" AutomationProperties.Name="Добавить подписку">
+        <StackPanel Orientation="Horizontal">
+          <Path Data="{StaticResource IcoPlus}" Width="16" Height="16" Stretch="Uniform" Stroke="{DynamicResource Ac}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+          <TextBlock Text="Добавить подписку" FontSize="{StaticResource FsLabel}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+        </StackPanel>
+      </Button>
+
+      <Border x:Name="ActiveCard" CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource CardBg}" Padding="14" Margin="0,10,0,0">
         <StackPanel>
           <TextBlock x:Name="SubscriptionTitle" Text="Подписка" TextWrapping="Wrap" FontSize="{StaticResource FsLead}" FontWeight="SemiBold"/>
           <TextBlock x:Name="UpdatedText" TextWrapping="Wrap" FontSize="{StaticResource FsSmall}" Foreground="{DynamicResource Mu2}" Margin="0,4,0,0"/>
@@ -26,16 +54,8 @@
               </StackPanel>
             </Border>
           </Grid>
-          <Grid Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition x:Name="RenewColumn" Width="*"/>
-              <ColumnDefinition Width="Auto"/>
-              <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <Button x:Name="RenewButton" Content="Продлить" Style="{StaticResource BtnPrimary}" Height="36" o:Ui.CornerRadius="{StaticResource RadiusMd}" FontSize="{StaticResource FsBody}" Margin="0,0,8,0"/>
-            <Button x:Name="RefreshListButton" Grid.Column="2" Content="Обновить список" Style="{StaticResource BtnOutline}" Height="36" o:Ui.CornerRadius="{StaticResource RadiusMd}"/>
-          </Grid>
-          <TextBlock x:Name="SubscriptionDetails" Style="{StaticResource Small}" Margin="0,10,0,0"/>
+          <Button x:Name="RenewButton" Content="Продлить" Style="{StaticResource BtnPrimary}" Height="36"
+                  HorizontalAlignment="Left" Padding="16,0" o:Ui.CornerRadius="{StaticResource RadiusMd}" Margin="0,10,0,0"/>
           <!-- Ссылка support-url от панели; без неё кнопки нет. -->
           <Button x:Name="SupportButton" Content="Написать в поддержку" Style="{StaticResource BtnGhost}" Foreground="{DynamicResource Ac}" HorizontalAlignment="Left" Margin="-12,4,0,-6" Visibility="Collapsed"/>
         </StackPanel>
@@ -47,7 +67,7 @@
             <CheckBox x:Name="AutoRefresh" DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="True" VerticalAlignment="Center" AutomationProperties.Name="Обновлять список автоматически"/>
             <Border Style="{StaticResource SetIcon}" Background="{DynamicResource IcGreen}"><Path Data="{StaticResource IcoRefresh}" Style="{StaticResource SetGlyph}"/></Border>
             <StackPanel VerticalAlignment="Center">
-              <TextBlock Text="Обновлять список сам" Style="{StaticResource SetTitle}"/>
+              <TextBlock Text="Автообновление подписок" Style="{StaticResource SetTitle}"/>
               <TextBlock Text="Не рвёт текущее подключение" Style="{StaticResource SetSub}"/>
             </StackPanel>
           </DockPanel>
@@ -61,35 +81,6 @@
           </DockPanel>
         </StackPanel>
       </Border>
-
-      <TextBlock Text="Подписки и подключения" Style="{StaticResource SetCaption}"/>
-      <!-- Группы (ProfileGroup): у подписки — «Обновить» и «Убрать», у «Вручную» — только «Убрать». -->
-      <ItemsControl x:Name="GroupList" Focusable="False">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate DataType="{x:Type o:GroupRow}">
-            <Border CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource CardBg}" Padding="12,8,6,8" Margin="0,0,0,6">
-              <DockPanel>
-                <Button DockPanel.Dock="Right" Tag="remove" Style="{StaticResource SmallIconButton}" Width="30" Height="30" Foreground="{DynamicResource Fa}" ToolTip="Убрать" AutomationProperties.Name="{Binding RemoveName}">
-                  <Path Data="{StaticResource IcoClose}" Style="{StaticResource Icon}" Width="13" Height="13" StrokeThickness="2.4"/>
-                </Button>
-                <Button DockPanel.Dock="Right" Tag="refresh" Style="{StaticResource SmallIconButton}" Width="30" Height="30" Visibility="{Binding RefreshVisibility}" ToolTip="Обновить" AutomationProperties.Name="{Binding RefreshName}">
-                  <Path Data="{StaticResource IcoRefresh}" Style="{StaticResource Icon}" Width="15" Height="15"/>
-                </Button>
-                <StackPanel VerticalAlignment="Center">
-                  <TextBlock Text="{Binding Title}" FontSize="{StaticResource FsRow}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                  <TextBlock Text="{Binding Sub}" Style="{StaticResource Small}" TextWrapping="Wrap"/>
-                </StackPanel>
-              </DockPanel>
-            </Border>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-      <Button x:Name="AddExternalButton" Style="{StaticResource Row}" Height="40" Padding="6,0" Foreground="{DynamicResource Ac}" AutomationProperties.Name="Добавить подписку">
-        <StackPanel Orientation="Horizontal">
-          <Path Data="{StaticResource IcoPlus}" Width="16" Height="16" Stretch="Uniform" Stroke="{DynamicResource Ac}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
-          <TextBlock Text="Добавить подписку" FontSize="{StaticResource FsLabel}" Margin="10,0,0,0" VerticalAlignment="Center"/>
-        </StackPanel>
-      </Button>
 
       <!-- Бесплатные серверы «на свой риск» (FreeServers): здесь и в меню «Добавить сервер» в «Серверах». -->
       <Border Style="{StaticResource SetGroup}" Margin="0,10,0,0">

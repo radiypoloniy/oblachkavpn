@@ -10,7 +10,33 @@ public partial class MainWindow
         var checks = new List<string>();
         await CheckGroupsAsync(checks);
         CheckAnalytics(checks);
+        CheckSettingsTopics(checks);
         return checks;
+    }
+
+    private void CheckSettingsTopics(List<string> checks)
+    {
+        SettingsClick(this, new RoutedEventArgs());
+        var topics = new (ButtonBase Button, int Page, FrameworkElement Panel)[]
+        {
+            (Settings.Hub.LaunchOpen, Views.SettingsPanel.LaunchPage, Settings.General.LaunchSection),
+            (Settings.Hub.NetworkOpen, Views.SettingsPanel.NetworkPage, Settings.General.NetworkSection),
+            (Settings.Hub.AppearanceOpen, Views.SettingsPanel.AppearancePage, Settings.General.AppearanceSection),
+            (Settings.Hub.SubscriptionOpen, Views.SettingsPanel.SubscriptionPage, Settings.Subscription),
+            (Settings.Hub.TransferOpen, Views.SettingsPanel.TransferPage, Settings.General.TransferSection),
+            (Settings.Hub.AdvancedOpen, Views.SettingsPanel.AdvancedPage, Settings.Advanced)
+        };
+        foreach (var (button, page, panel) in topics)
+        {
+            button.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            if (Settings.CurrentPage != page || !Settings.FromHub || panel.Visibility != Visibility.Visible)
+                throw new InvalidOperationException("Settings topic did not open its own section: " + page);
+            BackFromSettings();
+            if (Settings.CurrentPage != Views.SettingsPanel.AppPage || Settings.Hub.Visibility != Visibility.Visible)
+                throw new InvalidOperationException("Back did not return to settings home");
+        }
+        CloseSettings();
+        checks.Add("Settings hub opens six topics with their original controls and Back returns to the hub");
     }
 
     private void CheckIndependentSubscriptions(List<string> checks)
@@ -40,6 +66,12 @@ public partial class MainWindow
             var now = DateTimeOffset.UtcNow;
             Replace(CurrentGroup! with { Metadata = new(0, 0, 10L * 1073741824, now.AddDays(5)) });
             RefreshHome();
+            if (Home.SubWarn.Visibility != Visibility.Collapsed)
+                throw new InvalidOperationException("Renewal reminder is visible more than two days early");
+            Replace(CurrentGroup! with { Metadata = new(0, 0, 10L * 1073741824, now.AddHours(36)) });
+            RefreshHome();
+            if (Home.SubWarn.Visibility != Visibility.Visible || Home.TodayCard.Visibility != Visibility.Visible)
+                throw new InvalidOperationException("Renewal reminder or analytics entry is missing");
             Home.SubWarnHide.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             if (Home.SubWarn.Visibility != Visibility.Collapsed) throw new InvalidOperationException("Dismissal did not hide warning");
             var store = new ClientStateStore(Path.Combine(AppContext.BaseDirectory, "test-data", Guid.NewGuid().ToString("N"), "dismissal.bin"));
@@ -57,7 +89,7 @@ public partial class MainWindow
             RefreshHome();
             if (Home.SubWarn.Visibility != Visibility.Visible) throw new InvalidOperationException("Critical threshold did not show warning again");
             Home.SubWarnHide.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
-            Replace(CurrentGroup! with { Metadata = CurrentGroup!.Metadata! with { Expires = now.AddDays(7) } });
+            Replace(CurrentGroup! with { Metadata = CurrentGroup!.Metadata! with { Expires = now.AddHours(42) } });
             RefreshHome();
             if (Home.SubWarn.Visibility != Visibility.Visible) throw new InvalidOperationException("Renewal did not reset dismissal");
             Replace(CurrentGroup! with { Metadata = new(0, 4L * 1073741824, 6L * 1073741824, null) });

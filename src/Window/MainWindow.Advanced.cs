@@ -16,7 +16,7 @@ public partial class MainWindow
 
     private void WireAdvanced()
     {
-        Settings.General.AdvancedOpen.Click += (_, _) => OpenSettings(SettingsPanel.AdvancedPage);
+        Settings.Hub.AdvancedOpen.Click += (_, _) => OpenSettings(SettingsPanel.AdvancedPage, fromHub: true);
         Advanced.StackAuto.Click += (_, _) => SetAdvanced(advanced with { Stack = TunnelStack.Auto });
         Advanced.StackGvisor.Click += (_, _) => SetAdvanced(advanced with { Stack = TunnelStack.Gvisor });
         Advanced.StackMixed.Click += (_, _) => SetAdvanced(advanced with { Stack = TunnelStack.Mixed });
@@ -138,7 +138,7 @@ public partial class MainWindow
         TunnelHealth.Custom = advanced.ProbeUrl is { } probe ? new Uri(probe) : null;
         if (engine is Engine core && advanced.ProxyPort is { } port) core.PreferredPort = port;
         MarkStack();
-        Settings.General.AdvancedTitle.Text = advanced.IsDefault ? "Тонкая настройка" : "Тонкая настройка — изменена";
+        Settings.Hub.SetAdvanced(!advanced.IsDefault);
     }
 
     private void MarkStack()

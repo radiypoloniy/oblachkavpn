@@ -52,7 +52,6 @@ public partial class MainWindow
         var free = header.GroupId == FreeServers.GroupId;
         var manual = header.GroupId == ProfileGroup.ManualId;
         var items = new List<(string, bool, Action)>();
-        if (header.CanRefresh) items.Add(("Обновить подписку", false, () => GroupAction("group-refresh", header)));
         if (header.Junk > 0) items.Add(($"Скрыть неотвечающие и повторы ({header.Junk})", false, () => GroupAction("group-hide-junk", header)));
         if (header.Hidden > 0) items.Add(($"Вернуть скрытые ({header.Hidden})", false, () => GroupAction("group-unhide", header)));
         items.Add((free ? "Выключить бесплатные" : manual ? "Удалить все добавленные вручную" : "Убрать подписку", true, () => GroupAction("group-remove", header)));

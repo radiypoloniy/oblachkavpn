@@ -10,7 +10,6 @@ public partial class MainWindow
         var key = (state, groupRevision, operation is not null, rememberConnections, dismissedAnnounce);
         if (subscriptionShown == key) return;
         subscriptionShown = key;
-        Settings.SubscriptionDetails.Text = state?.Summary ?? "Выбран сервер без подписки.";
         Home.PlanText.Text = state?.TermText ?? "";
         Home.PlanSub.Text = state?.TrafficText ?? "";
         var used = state?.Used;

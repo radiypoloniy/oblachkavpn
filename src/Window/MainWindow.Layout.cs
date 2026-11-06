@@ -90,9 +90,10 @@ public partial class MainWindow
         Ui.SetSelected(Home.ServicesNav, rules);
         // Подписки и серверы автовыбора открываются из «Серверов» — подсвечены они; обход блокировок — ничего.
         var shown = settings ? Settings.CurrentPage : -1;
-        Ui.SetSelected(Home.AllServersButton, island && (Servers.Visibility == Visibility.Visible && !settings || shown is Views.SettingsPanel.SubscriptionPage or Views.SettingsPanel.AutoPoolPage));
+        Ui.SetSelected(Home.AllServersButton, island && (Servers.Visibility == Visibility.Visible && !settings ||
+            !Settings.FromHub && shown is Views.SettingsPanel.SubscriptionPage or Views.SettingsPanel.AutoPoolPage));
         Ui.SetSelected(Home.RulesNav, rules);
         Ui.SetSelected(Home.HelpNav, shown == Views.SettingsPanel.HelpPage);
-        Ui.SetSelected(Home.SettingsButton, shown is Views.SettingsPanel.AppPage or Views.SettingsPanel.ConnectionPage or Views.SettingsPanel.AdvancedPage);
+        Ui.SetSelected(Home.SettingsButton, settings && (Settings.FromHub || shown is Views.SettingsPanel.AppPage or Views.SettingsPanel.ConnectionPage));
     }
 }

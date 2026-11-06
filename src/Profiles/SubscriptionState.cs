@@ -33,11 +33,11 @@ public sealed record SubscriptionState
     public string Summary => TermText + " · " + TrafficText;
     public string UpdatedText => "Данные провайдера · " + (Group.Updated is { } at
         ? "обновлено " + at.ToLocalTime().ToString("dd.MM.yyyy HH:mm") : "время обновления не сообщено");
-    public string WarningText => Group.Name + ": " + string.Join(" · ", new[]
+    public string WarningText => string.Join("\n", new[]
     {
         Term is SubscriptionTerm.Expiring or SubscriptionTerm.Expired ? TermText : null,
         Traffic is SubscriptionTraffic.Low or SubscriptionTraffic.Exhausted ? TrafficText : null
-    }.Where(p => p is not null)) + (Critical ? ". Обновите данные подписки." : "");
+    }.Where(p => p is not null));
 
     // Порог + оплаченный срок/лимит: обновление счётчиков не отменяет скрытие,
     // а продление, пополнение и переход к более критичному порогу отменяют.

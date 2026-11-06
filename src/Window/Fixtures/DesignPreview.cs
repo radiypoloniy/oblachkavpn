@@ -21,7 +21,7 @@ public static class DesignPreview
         {
             if (compact) { main.Width = 960; main.Height = 660; }
             main.PrepareDesignPreview(page);
-            if (width is { } narrow) main.NarrowPreview(narrow);
+            if (width is { } narrow) main.NarrowPreview(narrow, openSection: page != "subscription");
             Window target = main;
             if (page == "tray") { popup = main.CreateTrayPreview(); popup.Height = 420; target = popup; }
             if (page == "add")

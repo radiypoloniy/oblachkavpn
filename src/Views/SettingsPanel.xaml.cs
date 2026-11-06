@@ -5,16 +5,12 @@ using System.Windows.Media.Animation;
 
 namespace Oblachka.Views;
 
-// Страницы острова облика 0.20. Свойства ниже — прежние имена элементов настроек: логика окна
-// обращается к ним как раньше (Settings.SystemTunnel и т. п.), а живут они там, где их ищут:
-// режим и локальная сеть — в «Программах и сайтах» (LiveView), переключение при обрыве — в
-// «Серверах» (ServersView), средства от бед — в «Помощи», запуск — в «Приложении».
-// Номера страниц прежние: 0 и 3 — «Приложение», 1 — «Обход блокировок», 2 — «Подписки и ключ»,
-// 4 — «Помощь», 5 — «Серверы автовыбора», 6 — «Для продвинутых».
 public partial class SettingsPanel : UserControl
 {
     public const int ConnectionPage = 0, BypassPage = 1, SubscriptionPage = 2, AppPage = 3, HelpPage = 4, AutoPoolPage = 5, AdvancedPage = 6;
-    private static readonly string[] Titles = { "Настройки", "Обход блокировок", "Подписки и ключ", "Настройки", "Помощь", "Серверы автовыбора", "Для продвинутых" };
+    public const int LaunchPage = 7, NetworkPage = 8, AppearancePage = 9, TransferPage = 10;
+    private static readonly string[] Titles = ["Настройки", "Обход блокировок", "Подписки и ключ", "Настройки", "Помощь",
+        "Серверы автовыбора", "Тонкая настройка", "Запуск", "Сети и защита", "Вид и уведомления", "Обновления и перенос"];
 
     public SettingsPanel() => InitializeComponent();
 
@@ -23,6 +19,7 @@ public partial class SettingsPanel : UserControl
     public ServersSheet ServersView { get; set; } = null!;
 
     public int CurrentPage { get; private set; } = AppPage;
+    public bool FromHub { get; private set; }
 
     public CheckBox SystemTunnel => General.SystemTunnel;
     public CheckBox SystemProxy => General.SystemProxy;
@@ -46,28 +43,41 @@ public partial class SettingsPanel : UserControl
     public AccessibleItems AutoPoolList => AutoPool.AutoPoolList;
     public CheckBox AutoRefresh => Subscription.AutoRefresh;
     public TextBlock StorageStatus => Subscription.StorageStatus;
-    public TextBlock SubscriptionDetails => Subscription.SubscriptionDetails;
     public TextBlock DeviceIdText => Subscription.DeviceIdText;
     public Button AddExternalButton => Subscription.AddExternalButton;
     public TextBlock VersionText => General.VersionText;
 
-    // Открытие без выбранной страницы — «Приложение».
     public void ShowHome() => ShowTab(AppPage);
 
-    // Списка разделов нет: «Назад» всегда закрывает страницу.
-    public bool Back() => false;
-
-    // Смена страницы: сдвиг 4 → 0 и проявление за 200 мс.
-    public void ShowTab(int index)
+    public bool Back()
     {
-        UIElement[] pages = { General, Bypass, Subscription, General, Help, AutoPool, Advanced };
-        index = Math.Clamp(index, 0, pages.Length - 1);
+        if (!FromHub) return false;
+        ShowHome();
+        return true;
+    }
+
+    public void ShowTab(int index, bool fromHub = false)
+    {
+        UIElement[] pages = [Hub, Bypass, Subscription, Hub, Help, AutoPool, Advanced, General, General, General, General];
+        index = Math.Clamp(index, 0, Titles.Length - 1);
         CurrentPage = index;
+        FromHub = fromHub;
         var page = pages[index];
+        if (ReferenceEquals(page, General)) General.ShowSection(index);
+        if (ReferenceEquals(page, Hub)) RefreshLaunchSummary();
         foreach (var each in pages.Distinct()) each.Visibility = ReferenceEquals(each, page) ? Visibility.Visible : Visibility.Collapsed;
         PageTitle.Text = Titles[index];
         page.RenderTransform = new TranslateTransform();
         page.RenderTransform.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(4, 0, TimeSpan.FromMilliseconds(200)));
         page.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)));
+    }
+
+    internal void RefreshLaunchSummary()
+    {
+        var launch = StartWithWindows.IsChecked == true
+            ? "Облачка запускается вместе с Windows." : "Вы открываете Облачку вручную.";
+        var resume = ConnectOnLaunch.IsChecked == true
+            ? " VPN восстановится, если был включён." : " VPN подключается вручную.";
+        Hub.LaunchSummary.Text = launch + resume;
     }
 }

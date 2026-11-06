@@ -12,6 +12,11 @@ public partial class MainWindow
 {
     private void WireSettings()
     {
+        Settings.Hub.LaunchOpen.Click += (_, _) => OpenSettings(Views.SettingsPanel.LaunchPage, fromHub: true);
+        Settings.Hub.NetworkOpen.Click += (_, _) => OpenSettings(Views.SettingsPanel.NetworkPage, fromHub: true);
+        Settings.Hub.AppearanceOpen.Click += (_, _) => OpenSettings(Views.SettingsPanel.AppearancePage, fromHub: true);
+        Settings.Hub.SubscriptionOpen.Click += (_, _) => OpenSettings(Views.SettingsPanel.SubscriptionPage, fromHub: true);
+        Settings.Hub.TransferOpen.Click += (_, _) => OpenSettings(Views.SettingsPanel.TransferPage, fromHub: true);
         Live.ModeTun.Click += async (_, _) => await SetModeAsync(tunnel: true);
         Live.ModeProxy.Click += async (_, _) => await SetModeAsync(tunnel: false);
         Live.RulesOpen.Click += (_, _) => ShowRulesSection();
@@ -22,7 +27,6 @@ public partial class MainWindow
         Settings.Subscription.Remember.Checked += (_, _) => { rememberConnections = true; QueueStateSave(); };
         Settings.Subscription.Remember.Unchecked += (_, _) => rememberConnections = false;
         Settings.Subscription.ChangeKeyButton.Click += SubscriptionClick;
-        Settings.Subscription.RefreshListButton.Click += RefreshClick;
         Settings.Subscription.RenewButton.Click += (_, _) => OpenLink(RenewUrl, "страницу продления");
         Settings.Subscription.SupportButton.Click += (_, _) => OpenLink(CurrentSubscription?.SupportUrl, "страницу поддержки");
         Routes.RuleList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(RuleRowClick));
@@ -47,6 +51,7 @@ public partial class MainWindow
     private void RefreshSettings()
     {
         if (!viewsReady) return;
+        if (Settings.CurrentPage == Views.SettingsPanel.AppPage) Settings.RefreshLaunchSummary();
         var general = Settings.General;
         var tunnel = SystemTunnelWanted;
         MarkSegment(Live.ModeTun, tunnel);
@@ -77,8 +82,6 @@ public partial class MainWindow
         var renew = RenewUrl is not null;
         tab.SupportButton.Visibility = state?.SupportUrl is not null ? Visibility.Visible : Visibility.Collapsed;
         tab.RenewButton.Visibility = renew ? Visibility.Visible : Visibility.Collapsed;
-        tab.RenewColumn.Width = renew ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
-        tab.RefreshListButton.IsEnabled = groups.Any(g => g.IsSubscription) && operation is null;
         tab.Remember.IsChecked = rememberConnections;
 
     }

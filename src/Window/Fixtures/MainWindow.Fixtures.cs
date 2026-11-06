@@ -13,13 +13,12 @@ public partial class MainWindow
     internal void LoadPreviewProfiles() => Import("vless://11111111-1111-4111-8111-111111111111@example.com:443?security=tls&type=xhttp&path=%2Fexample&mode=stream-up#Тестовый%20XHTTP\nvless://22222222-2222-4222-8222-222222222222@example.net:443?security=tls&type=tcp#Тестовый%20TCP");
     internal void CheckPreviewControls()
     {
-        // Предпросмотр загружает сторонние профили: подключиться можно, подбирать маршрут
-        // и измерять — нет, это действия только по узлам своей подписки.
+        // Сторонние профили можно подключить и проверить. Подбор маршрута — для сервиса.
         // Подписка, загруженная по ходу проверок, живёт рядом с ручными узлами (группы), поэтому «не меньше двух».
         if (ProfilePicker.Items.Count < 2 || !ConnectButton.IsEnabled || StopButton.IsEnabled || ProbeButton.IsEnabled || !trayConnect.Enabled || trayStop.Enabled)
             throw new InvalidOperationException("Imported-profile controls have incorrect state");
-        if (FindRouteButton.IsEnabled || Servers.MeasureButton.IsEnabled)
-            throw new InvalidOperationException("Route search or measurement is offered for a third-party node");
+        if (FindRouteButton.IsEnabled || !Servers.MeasureButton.IsEnabled)
+            throw new InvalidOperationException("Third-party nodes should allow measurement but not route search");
     }
 
     // Те же профили, но как узлы сервиса: подбор и измерения должны стать доступны.

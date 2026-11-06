@@ -135,7 +135,7 @@ public partial class MainWindow
             Note = member ? null : RuleSetNote(item) ?? (note ? GroupNote(item) : null),
             Flag = icon is null && !member ? FlagImages.Local(item.Country.Code) : null, Icon = member ? null : icon, IconMuted = !item.IsService,
             Latency = latency, LatencyDot = dot, LatencyHint = hint, Speed = ServerRow.SpeedText(measured, now),
-            Protocol = ServerRow.ProtocolFor(item), Tuned = !member && serverTweaks.ContainsKey(ServerTweak.Key(item)), PingSteps = ServerRow.StepsFor(measured),
+            Protocol = ServerRow.ProtocolFor(item), Tuned = !member && serverTweaks.ContainsKey(ServerTweak.Key(item)),
             Selected = members is not null ? machineSelected
                 : current && (!machineMode || !member && MachineOf(item).Count < 2),
             Favorite = (members ?? [item]).Any(m => favorites.Contains(FavoriteKey(m))),

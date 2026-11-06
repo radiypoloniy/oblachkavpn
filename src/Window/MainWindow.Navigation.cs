@@ -68,14 +68,14 @@ public partial class MainWindow
     // «Приложение» открывает свою страницу всегда — и поверх «Помощи», которая живёт в той же панели.
     private void SettingsClick(object sender, RoutedEventArgs args) => OpenSettings(Views.SettingsPanel.AppPage);
 
-    private void OpenSettings(int? tab)
+    private void OpenSettings(int? tab, bool fromHub = false)
     {
         ShowModeMenu(false);
         CloseConnections();
         Servers.Visibility = Visibility.Collapsed;
         RulesPage.Visibility = Visibility.Collapsed;
         HidePage(analytics);
-        if (tab is int index) Settings.ShowTab(index);
+        if (tab is int index) Settings.ShowTab(index, fromHub);
         else if (Settings.Visibility != Visibility.Visible) Settings.ShowHome();
         if (Settings.Visibility != Visibility.Visible)
         {
@@ -85,6 +85,12 @@ public partial class MainWindow
         RefreshSettings();
         OpenSection();
         if (Settings.CloseButton.IsVisible) Settings.CloseButton.Focus();
+    }
+
+    private void BackFromSettings()
+    {
+        if (!Settings.Back()) CloseSettings();
+        else { RefreshSettings(); ApplyLayout(); Settings.Hub.LaunchOpen.Focus(); }
     }
 
     private void CloseSettings()
@@ -117,7 +123,7 @@ public partial class MainWindow
         else if (doctor?.Visibility == Visibility.Visible) HidePage(doctor);
         else if (siteCheck?.Visibility == Visibility.Visible) HidePage(siteCheck);
         else if (RulesPage.Visibility == Visibility.Visible && Routes.TargetEditor.IsVisible) { CloseRouteEditor(); Routes.RuleDomain.Focus(); }
-        else if (Settings.Visibility == Visibility.Visible) { if (!Settings.Back()) CloseSettings(); }
+        else if (Settings.Visibility == Visibility.Visible) BackFromSettings();
         else if (RulesPage.Visibility == Visibility.Visible) CloseRulesSection();
         else if (Servers.Visibility == Visibility.Visible) Navigate("Connection");
         else return;
@@ -132,7 +138,7 @@ public partial class MainWindow
         var query = Servers.SearchBox.Text.Trim();
         var selected = profile;
         RefreshServerLabels();
-        var tab = Servers.GroupTabs.SelectedIndex > 0 && Servers.GroupTabs.SelectedIndex <= groups.Count ? groups[Servers.GroupTabs.SelectedIndex - 1].Id : null;
+        var tab = SelectedServerGroupId;
         var visible = importedProfiles.Where(p => (tab is null || p.Group == tab) &&
             (p.Country.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || p.Name.Contains(query, StringComparison.OrdinalIgnoreCase)));
         visible = Servers.SortOrder.SelectedIndex switch

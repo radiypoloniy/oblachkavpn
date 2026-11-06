@@ -112,7 +112,7 @@ public partial class MainWindow : Window
         // ключ попадёт во «Вручную» и сразу выбран — как и после QR-кода.
         ImportFileButton.IsEnabled = Servers.Add.AddKeyButton.IsEnabled = operation is null;
         Servers.Add.AddKeyButton.IsEnabled &= Servers.Add.KeyInput.Text.Trim().Length > 0;
-        RefreshButton.IsEnabled = (groups.Any(g => g.IsSubscription) || pendingImport is not null) && operation is null;
+        RefreshSubscriptionActions();
         // Подбор переключает узел, поэтому доступен только внутри своего сервиса.
         FindRouteButton.IsEnabled = profile is { IsService: true } && operation is null;
         // Сервер можно сменить и при работающем подключении: выбор сразу переключает на него.
@@ -123,10 +123,8 @@ public partial class MainWindow : Window
         ProbeUrl.IsEnabled = operation is null;
         CopyEndpointButton.IsEnabled = engine.ProcessId is not null;
         ReconnectButton.IsEnabled = profile is not null && operation is null;
-        Servers.MeasureButton.IsEnabled = profile is not null && operation is null && importedProfiles.Any(p => p.IsService);
         // Во время подбора его кнопка — «Остановить», а отдельный замер ждёт.
         Servers.BestButton.IsEnabled = tuning is not null || operation is null && importedProfiles.Count > 0;
-        if (tuning is not null) Servers.MeasureButton.IsEnabled = false;
         Diagnostics.ValidateRulesButton.IsEnabled = profile is not null && operation is null;
         trayConnect.Enabled = ConnectButton.IsEnabled;
         trayStop.Enabled = StopButton.IsEnabled;

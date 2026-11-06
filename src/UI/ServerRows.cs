@@ -48,7 +48,6 @@ public sealed class ServerRow
     // Протокол словами («XHTTP, REALITY») и ступени пинга 0…3. В строке «Серверов» протокол не
     // показывается (облик 0.21): он в меню «⋯» (MenuDetail) и в раскрытой машине.
     public string Protocol { get; init; } = "";
-    public int PingSteps { get; init; }
     // Протокол машины закреплён руками: «только XHTTP» у названия.
     public string? Pinned { get; init; }
     public string Detail => Note ?? Pinned ?? "";
@@ -82,7 +81,7 @@ public sealed class ServerRow
             return ("давно", Faint, (measured is { Success: true, Handshake: false } ? $"Последний замер — {measured.Milliseconds} мс" : measured.Success ? "Отвечал" : "В последний раз не ответил") +
                 ", " + at.ToString(at.Date == now.ToLocalTime().Date ? "HH:mm" : "dd.MM HH:mm") + ". Проверьте снова.");
         if (measured is { Success: true, Handshake: true })
-            return ("", null, $"Сервер отвечает ({at:HH:mm}). Задержку через него покажет «Обновить пинг».");
+            return ("", null, $"Сервер отвечает ({at:HH:mm}). Задержку через него покажет «Обновить пинг на вкладке».");
         return measured.Success
             ? (measured.Milliseconds + " мс", DotFor(measured.Milliseconds), $"Ответил за {measured.Milliseconds} мс в {at:HH:mm}" +
                 (measured.Throughput > 0 ? $", скорость {measured.Throughput / 1_000_000.0:0.#} МБ/с" : ""))
@@ -121,9 +120,6 @@ public sealed class ServerRow
         return key is null ? null : Application.Current?.TryFindResource(key) as Geometry;
     }
 
-    // Ступени пинга: три — до 160 мс, две — до 250, одна — медленнее, ни одной — не ответил.
-    public static int StepsFor(ServerMeasurement? measured) =>
-        measured is { Success: true } m ? m.Milliseconds < 160 ? 3 : m.Milliseconds < 250 ? 2 : 1 : 0;
 
     // «XHTTP / REALITY» → «XHTTP, REALITY»; Hysteria2 и TUIC — одним словом.
     public static string ProtocolFor(Profile profile) =>
@@ -140,23 +136,23 @@ public sealed class GroupRow
     public required ProfileGroup Group { get; init; }
     public required string Title { get; init; }
     public required string Sub { get; init; }
+    public string Plan { get; init; } = "";
+    public Visibility PlanVisibility => Plan.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
     public Visibility RefreshVisibility => Group.IsSubscription ? Visibility.Visible : Visibility.Collapsed;
     public string RefreshName => "Обновить «" + Title + "»";
     public string RemoveName => "Убрать «" + Title + "»";
 }
 
 // Заголовок группы в панели «Все серверы»: «Избранное», затем подписки по именам.
-// Действия подписки — в меню «⋯» (MainWindow.SheetMenus); точка на нём — есть что скрыть.
-public sealed record SheetHeader(string Title, string? GroupId = null, bool CanRefresh = false, int Hidden = 0, int Junk = 0)
+// Действия подписки — в меню «⋯» (MainWindow.SheetMenus).
+public sealed record SheetHeader(string Title, string? GroupId = null, int Hidden = 0, int Junk = 0)
 {
     // Сколько серверов (машин) под заголовком и когда подписка обновлялась — для меню «⋯».
     public int Count { get; init; }
     public string CountText => Count > 0 ? Count.ToString() : "";
     public string? Updated { get; init; }
-    public string MenuName => "«" + Title + "»: обновить, скрыть, убрать";
+    public string MenuName => "«" + Title + "»: управление списком";
     public Visibility ActionsVisibility => GroupId is null ? Visibility.Collapsed : Visibility.Visible;
-    // Серверы без ответа на свежей проверке и повторы (MainWindow.Junk).
-    public Visibility JunkVisibility => Junk > 0 ? Visibility.Visible : Visibility.Collapsed;
 }
 
 // Строка правила во вкладке «Правила»: адрес или программа и метка действия.
