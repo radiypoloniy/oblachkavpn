@@ -95,6 +95,9 @@
   --mint: #CFF0DC;
   --peach: #FFDCC8;
   --sky-tint: #D6EBFF;
+  --analytics-vpn: #A88ADD;
+  --analytics-direct: #75C9B5;
+  --analytics-unknown: #B9B1C5;
   --route-vpn: #6346BB;
   --route-direct: #237549;
   --route-block: #B24322;
@@ -107,9 +110,9 @@
   --glass-night: rgba(255, 255, 255, 0.102);
   --orb: #272039;
   --status-sheen: rgba(255, 255, 255, 0.122);
-  --ui-font: "pack://application:", "", "", "/Assets/Fonts/#Onest", "Segoe UI", system-ui, sans-serif;
+  --ui-font: "pack://application:", "", "", "/Assets/Fonts/#Golos Text", "Segoe UI", system-ui, sans-serif;
   --mono-font: "Cascadia Mono", "Consolas", system-ui, sans-serif;
-  --display-font: "pack://application:", "", "", "/Assets/Fonts/#Unbounded", "Segoe UI", system-ui, sans-serif;
+  --display-font: "pack://application:", "", "", "/Assets/Fonts/#Onest", "Segoe UI", system-ui, sans-serif;
   --fs-caption: 11.5px;
   --fs-small: 12px;
   --fs-note: 12.5px;
@@ -235,6 +238,9 @@
   --mint: #173A2A;
   --peach: #3A2533;
   --sky-tint: #1E3352;
+  --analytics-vpn: #AE92EC;
+  --analytics-direct: #70C4B1;
+  --analytics-unknown: #9C90AD;
   --route-vpn: #7558C2;
   --route-direct: #297D53;
   --route-block: #B64B2D;
@@ -344,6 +350,9 @@
   --mint: #173A2A;
   --peach: #3A2533;
   --sky-tint: #1E3352;
+  --analytics-vpn: #AE92EC;
+  --analytics-direct: #70C4B1;
+  --analytics-unknown: #9C90AD;
   --route-vpn: #7558C2;
   --route-direct: #297D53;
   --route-block: #B64B2D;

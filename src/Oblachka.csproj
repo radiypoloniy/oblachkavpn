@@ -36,8 +36,9 @@
     <Resource Include="Assets/app.ico"/>
     <!-- Трей читает обычный ресурс: запуск фонового владельца не требует WPF Application. -->
     <EmbeddedResource Include="Assets/app.ico" LogicalName="Oblachka.TrayIcon"/>
-    <!-- Шрифты интерфейса (OFL): Onest — текст, Unbounded — заголовки и цифры. Срез: латиница, кириллица, знаки. -->
+    <!-- Шрифты интерфейса (OFL): Golos Text — текст, Onest — заголовки и цифры. -->
     <Resource Include="Assets/Fonts/*.ttf"/>
+    <None Update="Assets/Fonts/OFL-*.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/>
     <!-- Манифест zapret из репозитория: запасной, если GitHub недоступен. -->
     <EmbeddedResource Include="../zapret/manifest.json" LogicalName="Oblachka.zapret.manifest.json" Condition="Exists('../zapret/manifest.json')"/>
   </ItemGroup>

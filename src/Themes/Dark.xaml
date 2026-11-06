@@ -94,6 +94,9 @@
   <SolidColorBrush x:Key="Mint" Color="#173A2A"/>  <!-- плашка: мята -->
   <SolidColorBrush x:Key="Peach" Color="#3A2533"/>  <!-- плашка: персик — споры и предупреждения -->
   <SolidColorBrush x:Key="SkyTint" Color="#1E3352"/>  <!-- плашка: голубая -->
+  <SolidColorBrush x:Key="AnalyticsVpn" Color="#AE92EC"/>  <!-- графики VPN -->
+  <SolidColorBrush x:Key="AnalyticsDirect" Color="#70C4B1"/>  <!-- графики прямого трафика -->
+  <SolidColorBrush x:Key="AnalyticsUnknown" Color="#9C90AD"/>  <!-- графики трафика без разбивки -->
   <SolidColorBrush x:Key="RouteVpn" Color="#7558C2"/>  <!-- путь программы: через VPN -->
   <SolidColorBrush x:Key="RouteDirect" Color="#297D53"/>  <!-- путь программы: напрямую -->
   <SolidColorBrush x:Key="RouteBlock" Color="#B64B2D"/>  <!-- путь программы: блок -->
