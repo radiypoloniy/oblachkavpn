@@ -2,12 +2,12 @@ using Forms = System.Windows.Forms;
 
 namespace Oblachka;
 
-internal enum TrayCommand { Open, Connect, Stop, Exit, Popup, Notice, Update }
+internal enum TrayCommand { Open, Connect, Stop, Exit, Popup, Notice, Update, ServiceRoute }
 internal interface IClientTrayView
 {
     bool Closed { get; }
     bool Foreground { get; }
-    void Handle(TrayCommand command, string? renewUrl);
+    void Handle(TrayCommand command, string? argument);
 }
 
 // Значок принадлежит приложению. Слабая ссылка не удерживает закрытое представление.
@@ -52,7 +52,7 @@ internal sealed partial class ClientTray : IDisposable
     public void Detach(IClientTrayView current)
     { if (view?.TryGetTarget(out var target) == true && ReferenceEquals(target, current)) view = null; }
     private IClientTrayView? CurrentView() => view?.TryGetTarget(out var target) == true && !target.Closed ? target : null;
-    internal void Request(TrayCommand command, string? renewUrl = null) => context.Post(_ =>
+    internal void Request(TrayCommand command, string? argument = null) => context.Post(_ =>
     {
         if (disposed) return;
         var target = CurrentView();
@@ -61,7 +61,7 @@ internal sealed partial class ClientTray : IDisposable
             ViewRequested?.Invoke();
             target = CurrentView();
         }
-        target?.Handle(command, renewUrl);
+        target?.Handle(command, argument);
     }, null);
     private void EngineChanged(ConnectionState state, string message) => context.Post(_ => Refresh(), null);
     private void Refresh()

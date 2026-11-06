@@ -20,7 +20,7 @@ public static partial class SingBoxTunConfig
         return reject;
     }
 
-    private static void AddServiceRoutes(JsonObject config, IReadOnlyList<PinnedServiceRoute> services)
+    private static void AddServiceRoutes(JsonObject config, ValidatedNetworkLease lease)
     {
         var rules = config["route"]!["rules"]!.AsArray();
         static JsonObject Pin(JsonObject match, int? exit)
@@ -30,15 +30,29 @@ public static partial class SingBoxTunConfig
         }
         // An exact executable can claim all its connections. For traffic
         // from shared hosts (browsers, IDEs) the most specific domain wins.
-        foreach (var service in services)
+        foreach (var service in lease.ServiceRoutes)
             foreach (var file in service.Files)
-                rules.Add(Pin(ProgramRoutingPlan.Match(file), service.ExitIndex));
-        foreach (var target in services.SelectMany(s => s.Domains.Select(d => (Domain: d, s.ExitIndex)))
+            {
+                var match = ProgramRoutingPlan.Match(file);
+                if (lease.CanPauseMain && service.ExitIndex is int index)
+                {
+                    var resolve = match.DeepClone().AsObject();
+                    resolve["inbound"] = new JsonArray("system-tun");
+                    resolve["action"] = "resolve";
+                    resolve["server"] = PinnedDnsTag(index);
+                    rules.Add(resolve);
+                }
+                rules.Add(Pin(match, service.ExitIndex));
+            }
+        foreach (var target in lease.ServiceRoutes.SelectMany(s => s.Domains.Select(d => (Domain: d, s.ExitIndex)))
                      .OrderByDescending(d => SiteTarget.Order(d.Domain)))
             rules.Add(Pin(SiteTarget.SingBox(target.Domain), target.ExitIndex));
     }
 
-    private static void AddPinnedDns(JsonObject config, IReadOnlyList<PinnedServiceRoute> services, bool canPauseMain)
+    private static string PinnedDnsTag(int index) => "pinned-dns-" + index;
+
+    private static void AddPinnedDns(JsonObject config, IReadOnlyList<PinnedServiceRoute> services, bool canPauseMain, bool ipv6,
+        string? strictDnsStatePath)
     {
         if (services.Count == 0) return;
         var dns = config["dns"]!.AsObject();
@@ -61,26 +75,46 @@ public static partial class SingBoxTunConfig
         }
         void Pin(JsonObject match, int? exit)
         {
-            if (exit is int index) match["server"] = AddResolver("pinned-dns-" + index, DirectTag(index));
+            if (exit is int index) match["server"] = AddResolver(PinnedDnsTag(index), DirectTag(index));
             else match["action"] = "reject";
             rules.Add(match);
         }
-        foreach (var route in services)
-            if (route.Files.Length > 0)
-                Pin(ExactPrograms(route.Files), route.ExitIndex);
-        foreach (var target in services.SelectMany(s => s.Domains.Select(d => (Domain: d, s.ExitIndex)))
-                     .OrderByDescending(d => SiteTarget.Order(d.Domain)))
-            Pin(new() { ["domain_suffix"] = new JsonArray(target.Domain) }, target.ExitIndex);
         if (canPauseMain)
         {
+            // Windows может прислать DNS от имени общего резолвера. Имя остаётся локальным,
+            // пока ядро не увидит соединение и не выберет выход по пути программы.
+            var synthetic = new JsonObject { ["type"] = "fakeip", ["tag"] = "strict-address", ["inet4_range"] = "198.18.0.0/15" };
+            if (ipv6) synthetic["inet6_range"] = "2001:2::/48";
+            if (strictDnsStatePath is not null) synthetic["state_path"] = strictDnsStatePath;
+            servers.Add(synthetic);
+            rules.Add(new JsonObject
+            {
+                ["query_type"] = new JsonArray("A", "AAAA"),
+                ["server"] = "strict-address", ["rewrite_ttl"] = 0
+            });
+            rules.Add(new JsonObject
+            {
+                ["query_type"] = new JsonArray("A", "AAAA"), ["invert"] = true,
+                ["action"] = "predefined", ["rcode"] = "NOERROR"
+            });
             var ordinary = AddResolver("ordinary-dns", UserDirect);
             config["outbounds"]!.AsArray().OfType<JsonObject>()
-                .Single(outbound => (string?)outbound["tag"] == UserDirect)["domain_resolver"] = ordinary;
-            rules.Add(new JsonObject { ["clash_mode"] = MainBlocked, ["action"] = "reject" });
-            rules.Add(new JsonObject { ["clash_mode"] = MainOff, ["server"] = ordinary });
+                .Single(outbound => (string?)outbound["tag"] == UserDirect)["domain_resolver"] =
+                ipv6 ? JsonValue.Create(ordinary) : new JsonObject { ["server"] = ordinary, ["strategy"] = "ipv4_only" };
+            foreach (var route in services)
+                if (route.ExitIndex is int index) AddResolver(PinnedDnsTag(index), DirectTag(index));
         }
-        if (dns["rules"] is JsonArray existing)
-            foreach (var rule in existing) rules.Add(rule!.DeepClone());
+        else
+        {
+            foreach (var route in services)
+                if (route.Files.Length > 0)
+                    Pin(ExactPrograms(route.Files), route.ExitIndex);
+            foreach (var target in services.SelectMany(s => s.Domains.Select(d => (Domain: d, s.ExitIndex)))
+                         .OrderByDescending(d => SiteTarget.Order(d.Domain)))
+                Pin(new() { ["domain_suffix"] = new JsonArray(target.Domain) }, target.ExitIndex);
+            if (dns["rules"] is JsonArray existing)
+                foreach (var rule in existing) rules.Add(rule!.DeepClone());
+        }
         dns["rules"] = rules;
     }
     private static void AddRules(JsonObject config, ValidatedNetworkLease lease, string? programSets, string tunnel)
@@ -112,7 +146,7 @@ public static partial class SingBoxTunConfig
         // поэтому имя нужно всегда, а не только когда правила сайтов были при подключении.
         if (lease.SiteRules.Count > 0 || lease.ServiceRoutes.Any(r => r.Domains.Length > 0) || lease.Lists is not null || programSets is not null)
             rules.Add(new JsonObject { ["action"] = "sniff" });
-        AddServiceRoutes(config, lease.ServiceRoutes);
+        AddServiceRoutes(config, lease);
         if (lease.ServiceRoutes.Any(route => route.Files.Length > 0))
             rules.Add(new JsonObject { ["type"] = "logical", ["mode"] = "and", ["rules"] = new JsonArray(
                     new JsonObject { ["inbound"] = new JsonArray("system-tun") },

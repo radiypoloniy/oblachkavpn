@@ -53,7 +53,9 @@ internal sealed class SingBoxTunnelProcess : ITunnelProcess
         SiteRuleSets.Write(SiteRuleSets.NextTo(ProgramRuleSets.Folder), lease.SiteRules);
         // Списки маршрутизации — в файлах, которые окно передало до запуска и меняет на ходу (RoutingLists).
         RoutingLists.EnsureFiles(RoutingLists.Folder);
-        var config = SingBoxTunConfig.Create(request, ipv6, localDns, DirectDns.RuleSetPath, ProgramRuleSets.Folder, RoutingLists.Folder).ToJsonString();
+        var strictDnsState = lease.CanPauseMain ? NetworkHelperHost.DataPath("strict-dns.db") : null;
+        var config = SingBoxTunConfig.Create(request, ipv6, localDns, DirectDns.RuleSetPath, ProgramRuleSets.Folder,
+            RoutingLists.Folder, strictDnsState).ToJsonString();
         NetworkHelperHost.RecordStep(DateTime.UtcNow.ToString("HH:mm:ss.fff") + " DNS прямых сайтов: " + (localDns is null ? "через туннель" : "сеть"));
         // Только число: сами выходы содержат ключи и в след не пишутся.
         NetworkHelperHost.RecordStep(DateTime.UtcNow.ToString("HH:mm:ss.fff") + " выходов прямо на сервер: " +

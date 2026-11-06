@@ -53,6 +53,7 @@ public partial class MainWindow
             appCatalog = [app];
             siteRules.Add(RoutingPlan.Create("example.invalid", SiteAction.Direct));
             runtime.TunnelPolicy.ServiceRoutes.Add(pin);
+            CheckRouteNotice(pin, checks);
             ShowRulesSection();
             Routes.RuleDomain.Text = "Codex";
             UpdateLayout();
@@ -93,6 +94,31 @@ public partial class MainWindow
             programRules.RemoveAll(rule => string.Equals(rule.Executable, "Codex.exe", StringComparison.OrdinalIgnoreCase));
             runtime.TunnelPolicy.ServiceRoutes.Remove(pin);
             RefreshRules(); RefreshServiceRoutes();
+        }
+    }
+
+    private void CheckRouteNotice(ServiceRoute pin, ICollection<string> checks)
+    {
+        var title = ClientServiceRoutes.Title(pin);
+        var notice = new Views.RouteNotice(title, "Проверка связи через выход не проходит",
+            () => ((IClientTrayView)this).Handle(TrayCommand.ServiceRoute, pin.Id));
+        var dismissed = false;
+        notice.Closed += (_, _) => dismissed = true;
+        try
+        {
+            notice.ShowAtTray();
+            if (!notice.IsVisible || notice.ShowActivated || notice.RouteName.Text != title)
+                throw new InvalidOperationException("Strict route notice did not show the affected rule without taking focus");
+            notice.OpenButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+            if (!dismissed || Routes.TargetEditor.Visibility != Visibility.Visible || Routes.EditorTitle.Text != title ||
+                !runtime.TunnelPolicy.ServiceRoutes.Contains(pin))
+                throw new InvalidOperationException("Strict route notice did not open its rule without changing it");
+            checks.Add("Strict route notice opens the affected rule without changing it");
+        }
+        finally
+        {
+            if (!dismissed) notice.Close();
+            CloseRouteEditor();
         }
     }
 

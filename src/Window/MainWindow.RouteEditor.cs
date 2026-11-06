@@ -11,21 +11,22 @@ public partial class MainWindow
         Routes.ShowTargetEditor("Готовый шаблон", templates: true);
     }
 
-    private void OpenSavedRoute(ServiceRouteRow row)
+    private void OpenSavedRoute(string id)
     {
         if (ruleSetDraft is not null)
         { DetailText.Text = "Завершите редактирование нового набора, чтобы изменить сохранённую привязку."; return; }
-        if (runtime.TunnelPolicy.ServiceRoutes.FirstOrDefault(r => r.Id == row.Id) is not { } route) return;
+        if (runtime.TunnelPolicy.ServiceRoutes.FirstOrDefault(r => r.Id == id) is not { } route) return;
+        var title = ClientServiceRoutes.Title(route);
         CloseRouteEditor();
         if (ClientServiceRoutes.Presets.FirstOrDefault(p => p.Id == route.Id) is { } preset)
         {
             Routes.ServicePresetPicker.SelectedItem = preset;
-            Routes.ShowTargetEditor(row.Name, templates: false);
+            Routes.ShowTargetEditor(title, templates: false);
         }
         else
         {
             LoadCustomServiceDraft(route.Id, route.Domains, route.Files);
-            Routes.ShowTargetEditor(row.Name, templates: false);
+            Routes.ShowTargetEditor(title, templates: false);
         }
     }
 

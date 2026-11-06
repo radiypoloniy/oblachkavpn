@@ -79,7 +79,10 @@ public static partial class SelfTests
             Assert(route.IndexOf(pin) < route.IndexOf(route.First(r => (string?)r?["outbound"] == SingBoxTunConfig.UserDirect)));
             Assert(config["inbounds"]![0]!["route_exclude_address"]!.AsArray().Count == 0);
             Assert((string?)config["experimental"]!["clash_api"]!["default_mode"] == SingBoxTunConfig.MainOff);
-            Assert(config["dns"]!["rules"]!.AsArray().First()?["server"]?.GetValue<string>() == "pinned-dns-0");
+            var dnsRules = config["dns"]!["rules"]!.AsArray();
+            Assert((string?)dnsRules[0]?["server"] == "strict-address" && (string?)dnsRules[1]?["action"] == "predefined");
+            var resolve = route.First(r => (string?)r?["action"] == "resolve");
+            Assert((string?)resolve?["server"] == "pinned-dns-0" && route.IndexOf(resolve) < route.IndexOf(pin));
             Assert(route.Any(r => (string?)r?["clash_mode"] == SingBoxTunConfig.MainOff && (string?)r?["action"] == "reject"));
             ExpectUserError(() => NetworkHelperContracts.Validate(exact with { ServiceRoutes = pinned }));
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(20));
@@ -107,6 +110,24 @@ public static partial class SelfTests
             await CoreSelector.SetModeAsync(stats, SingBoxTunConfig.MainBlocked);
             await CoreSelector.SetModeAsync(stats, SingBoxTunConfig.MainOn);
             await CoreSelector.SetModeAsync(stats, SingBoxTunConfig.MainOff);
+
+            using var http = new HttpClient(new SocketsHttpHandler { UseProxy = false });
+            async Task<JsonNode> Query(string type)
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get,
+                    $"http://127.0.0.1:{stats.Port}/dns/query?name=strict-dns-fixture.invalid&type={type}");
+                request.Headers.Authorization = new("Bearer", stats.Secret);
+                using var response = await http.SendAsync(request, deadline.Token);
+                response.EnsureSuccessStatusCode();
+                return JsonNode.Parse(await response.Content.ReadAsStringAsync(deadline.Token))!;
+            }
+            var address = (string?)(await Query("A"))["Answer"]?[0]?["data"];
+            Assert(address is not null && (address.StartsWith("198.18.", StringComparison.Ordinal) ||
+                address.StartsWith("198.19.", StringComparison.Ordinal)));
+            var service = await Query("HTTPS");
+            Assert((int?)service["Status"] == 0 && service["Answer"] is null);
+            await CoreSelector.SetModeAsync(stats, SingBoxTunConfig.MainBlocked);
+            Assert((string?)(await Query("A"))["Answer"]?[0]?["data"] == address);
         });
         await check("Two pinned exits work concurrently and a dead exit cannot fall back", async () =>
         {

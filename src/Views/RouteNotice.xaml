@@ -1,0 +1,35 @@
+<Window x:Class="Oblachka.Views.RouteNotice" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:v="clr-namespace:Oblachka.Views" Title="Сбой строгого маршрута"
+        Width="468" SizeToContent="Height" WindowStyle="None" ResizeMode="NoResize"
+        AllowsTransparency="True" Background="Transparent" ShowInTaskbar="False" ShowActivated="False"
+        Topmost="True" FontFamily="{StaticResource UiFont}" Foreground="{DynamicResource Tx}">
+  <Grid Margin="10">
+    <Border Style="{StaticResource ShadowLayer}" CornerRadius="{StaticResource RadiusXl}"/>
+    <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource Pop}"
+            BorderBrush="{DynamicResource Divider}" BorderThickness="1" Padding="16,12,16,15">
+      <StackPanel>
+        <DockPanel Margin="0,0,0,10">
+          <Button x:Name="CloseButton" DockPanel.Dock="Right" Style="{StaticResource Plain}"
+                  Content="×" Width="28" Height="28" AutomationProperties.Name="Закрыть уведомление"/>
+          <TextBlock Text="Облачка" FontWeight="Bold" VerticalAlignment="Center" FontSize="{StaticResource FsBody}"/>
+        </DockPanel>
+        <DockPanel>
+          <Border DockPanel.Dock="Left" Width="56" Height="56" Margin="0,0,10,0" VerticalAlignment="Top"
+                  Background="{DynamicResource Peach}" CornerRadius="{StaticResource RadiusLg}">
+            <v:CloudFace x:Name="Face"/>
+          </Border>
+          <StackPanel>
+            <TextBlock Text="Сбой строгого маршрута" FontWeight="Bold" FontSize="{StaticResource FsSubtitle}"/>
+            <TextBlock x:Name="RouteName" FontWeight="SemiBold" FontSize="{StaticResource FsRow}" TextWrapping="Wrap"/>
+            <TextBlock x:Name="Message" Margin="0,4,0,0" Foreground="{DynamicResource Mu}" TextWrapping="Wrap"
+                       FontSize="{StaticResource FsBody}" AutomationProperties.LiveSetting="Polite"/>
+          </StackPanel>
+        </DockPanel>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+          <Button x:Name="DismissButton" Content="Закрыть" Style="{StaticResource Plain}" Padding="12,0" Height="36" Margin="0,0,6,0"/>
+          <Button x:Name="OpenButton" Content="Открыть правило" Style="{StaticResource BtnPrimary}" Padding="12,0" Height="36"/>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

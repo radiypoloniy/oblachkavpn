@@ -28,7 +28,7 @@ public static partial class SingBoxTunConfig
     // переподключения. null — правила программ прямо в конфигурации (проверка черновика).
     // listsFolder — файлы списков маршрутизации (RoutingLists), если аренда передала их ядру туннеля.
     public static JsonObject Create(NetworkLeaseRequest request, bool ipv6 = true, System.Net.IPAddress? localDns = null, string? ruleSet = null, string? programSets = null,
-        string? listsFolder = null)
+        string? listsFolder = null, string? strictDnsStatePath = null)
     {
         var lease = NetworkHelperContracts.Validate(request);
         if (lease.Action != NetworkLeaseAction.Acquire) throw new UserError("TUN требует новую сетевую сессию.");
@@ -99,9 +99,12 @@ public static partial class SingBoxTunConfig
         TunnelTuning.Apply(config, lease.ServiceRoutes.Count > 0 && lease.Tuning is { } tuning ? tuning with { Bypass = null, LanPort = null, LanPassword = null } : lease.Tuning, tunnel);
         AddRules(config, lease, programSets, tunnel);
         AddLists(config, lease, listsFolder, tunnel);
-        if (lease.HasDirect && localDns is not null && ruleSet is not null) AddDirectDns(config, localDns, ruleSet);
-        if (lease.DirectByDefault && localDns is not null && ruleSet is not null) DnsByDefaultDirect(config, lease);
-        AddPinnedDns(config, lease.ServiceRoutes, lease.CanPauseMain);
+        if (!lease.CanPauseMain && localDns is not null && ruleSet is not null)
+        {
+            if (lease.HasDirect) AddDirectDns(config, localDns, ruleSet);
+            if (lease.DirectByDefault) DnsByDefaultDirect(config, lease);
+        }
+        AddPinnedDns(config, lease.ServiceRoutes, lease.CanPauseMain, ipv6, strictDnsStatePath);
         if (lease.InitialMainMode is { } initial) config["experimental"]!["clash_api"]!["default_mode"] = initial;
         if (lease.CanPauseMain)
         {

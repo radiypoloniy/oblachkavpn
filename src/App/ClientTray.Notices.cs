@@ -1,4 +1,5 @@
 using Forms = System.Windows.Forms;
+using Oblachka.Views;
 
 namespace Oblachka;
 
@@ -12,6 +13,7 @@ internal sealed partial class ClientTray
     private (TrayCommand Command, string? RenewUrl) noticeTarget = (TrayCommand.Notice, null);
     private Timer? expiryTimer;
     private int expiryPosted;
+    private RouteNotice? routeNotice;
 
     internal void StartNotices()
     {
@@ -47,19 +49,25 @@ internal sealed partial class ClientTray
         owner.Networks.Securing -= NetworkSecuring;
         owner.Zapret.BypassBroken -= BypassBroken;
         owner.ServiceRoutes.RouteBlocked -= ServiceRouteBlocked;
+        routeNotice?.Close();
         shown.Clear(); noticeTarget = (TrayCommand.Notice, null);
     }
 
     private bool CanNotify => !disposed && Icon.Visible && !owner.Activity.VmTestActive &&
         owner.Preferences.Notices && CurrentView()?.Foreground != true;
 
-    private bool Notify(Notice kind, string title, string text, bool warning = false, string? scope = null,
-        TrayCommand command = TrayCommand.Notice, string? renewUrl = null)
+    private bool BeginNotice(Notice kind, string? scope)
     {
         if (!CanNotify) return false;
         var now = DateTimeOffset.UtcNow;
         foreach (var expired in shown.Where(p => now - p.Value >= Quiet).Select(p => p.Key).ToArray()) shown.Remove(expired);
-        if (!shown.TryAdd((kind, scope), now)) return false;
+        return shown.TryAdd((kind, scope), now);
+    }
+
+    private bool Notify(Notice kind, string title, string text, bool warning = false, string? scope = null,
+        TrayCommand command = TrayCommand.Notice, string? renewUrl = null)
+    {
+        if (!BeginNotice(kind, scope)) return false;
         noticeTarget = (command, renewUrl);
         Icon.ShowBalloonTip(8000, title, text, warning ? Forms.ToolTipIcon.Warning : Forms.ToolTipIcon.Info);
         return true;
@@ -139,8 +147,13 @@ internal sealed partial class ClientTray
     private void BypassBroken(string message) => Notify(Notice.BypassBroken, "Обход перестал работать", message);
     private void ServiceRouteBlocked(string id, string message)
     {
+        if (!BeginNotice(Notice.ServiceRouteBlocked, id)) return;
         var route = owner.TunnelPolicy.ServiceRoutes.FirstOrDefault(r => r.Id == id);
         var title = route is null ? ClientServiceRoutes.Title(id) : ClientServiceRoutes.Title(route);
-        Notify(Notice.ServiceRouteBlocked, title, message, warning: true, scope: id);
+        routeNotice?.Close();
+        var notice = new RouteNotice(title, message, () => Request(TrayCommand.ServiceRoute, id));
+        notice.Closed += (_, _) => routeNotice = null;
+        routeNotice = notice;
+        notice.ShowAtTray();
     }
 }

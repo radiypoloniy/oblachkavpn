@@ -66,8 +66,10 @@ func globalContext() context.Context {
 	ctx := service.ContextWith(context.Background(), deprecated.NewStderrManager(log.StdLogger()))
 	services := include.ServiceRegistry()
 	registerProgramService(services)
+	dnsTransports := include.DNSTransportRegistry()
+	registerStrictFakeIP(dnsTransports)
 	return box.Context(ctx, include.InboundRegistry(), outbounds, include.EndpointRegistry(),
-		include.DNSTransportRegistry(), services, include.CertificateProviderRegistry())
+		dnsTransports, services, include.CertificateProviderRegistry())
 }
 
 func readOptions(ctx context.Context) (option.Options, error) {

@@ -28,7 +28,7 @@ public partial class MainWindow
         {
             if (args.OriginalSource is not Button { DataContext: ServiceRouteRow route }) return;
             ShowRulesSection();
-            OpenSavedRoute(route);
+            OpenSavedRoute(route.Id);
         }));
         Routes.ServicePresetPicker.ItemsSource = ClientServiceRoutes.Presets;
         Routes.ServicePresetPicker.SelectionChanged += (_, _) =>
@@ -39,7 +39,7 @@ public partial class MainWindow
         };
         Routes.RuleList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler((_, args) =>
         {
-            if (args.OriginalSource is Button { Tag: "pinned", DataContext: ServiceRouteRow row }) OpenSavedRoute(row);
+            if (args.OriginalSource is Button { Tag: "pinned", DataContext: ServiceRouteRow row }) OpenSavedRoute(row.Id);
         }));
         Routes.ServiceServerPicker.DropDownOpened += (_, _) => LoadServiceServers();
         Routes.ServiceFiles.Click += (_, _) => PickServiceFiles();
