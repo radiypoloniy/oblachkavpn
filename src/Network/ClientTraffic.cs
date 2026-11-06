@@ -38,7 +38,12 @@ public sealed partial class ClientTraffic(ClientRuntime owner) : IDisposable
             if (sample?.Summary is { } summary)
             {
                 Journal.Record(summary, DateTime.UtcNow);
-                Programs.Record(summary, trafficHistory, DateTime.Now, session is null ? null : session.TrafficSourceAt);
+                Programs.Record(summary, trafficHistory, DateTime.Now, index =>
+                {
+                    if (session?.TrafficSourceAt(index) is not { } source) return null;
+                    var group = owner.Profiles.Groups.FirstOrDefault(group => group.Id == source.GroupId);
+                    return source with { GroupName = group?.Name };
+                });
             }
             else if (sample?.Connections is { } core) RecordCoreConnections(core);
         }

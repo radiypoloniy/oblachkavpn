@@ -12,6 +12,8 @@ public sealed record TrafficDayStats(string Day, long Upload, long Download, lon
 {
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public TrafficSourceStats[]? Sources { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public TrafficRouteSample[]? RouteHours { get; init; }
 }
 public sealed record AnalyticsPoint(string Label, long Upload, long Download)
 {
@@ -24,6 +26,7 @@ public sealed record AnalyticsProgram(string Path, long Upload, long Download, T
 public sealed record AnalyticsReport(AnalyticsPoint[] Points, AnalyticsProgram[] Programs, long Upload, long Download)
 {
     public TrafficSourceStats[] Sources { get; init; } = [];
+    public TrafficRouteSample[] RoutePoints { get; init; } = [];
     public long Total => Upload + Download;
     public bool Empty => Total == 0 && Programs.Length == 0;
 }
@@ -46,7 +49,7 @@ public sealed partial class TrafficHistory
         public TrafficDayStats Snapshot(string day) => new(day, Upload, Download, UploadHours.ToArray(), DownloadHours.ToArray(),
             Programs.Select(p => new TrafficProgramStats(p.Key, p.Value.Upload, p.Value.Download) { Routes = p.Value.Routes })
                 .OrderByDescending(p => p.Upload + p.Download).ThenBy(p => p.Path, StringComparer.OrdinalIgnoreCase).Take(MaxPrograms).ToArray())
-            { Sources = Sources.Count == 0 ? null : Sources.Values.ToArray() };
+            { Sources = Sources.Count == 0 ? null : Sources.Values.ToArray(), RouteHours = RouteHours?.ToArray() };
     }
 
     public void Restore(TrafficDayStats[]? saved, string? legacyDay, long legacyBytes, long[]? legacyHours, DateTime now)
@@ -59,6 +62,7 @@ public sealed partial class TrafficHistory
             Array.Copy(day.UploadHours, state.UploadHours, 24); Array.Copy(day.DownloadHours, state.DownloadHours, 24);
             foreach (var program in day.Programs) AddProgram(state.Programs, program.Path, program.Upload, program.Download, program.Routes);
             foreach (var source in day.Sources ?? []) state.Sources[source.Id] = source;
+            state.RouteHours = day.RouteHours is { Length: 24 } ? day.RouteHours.ToArray() : null;
             days[day.Day] = state;
         }
         if (days.Count == 0 && legacyDay == Key(now) && legacyBytes > 0)
@@ -89,7 +93,9 @@ public sealed partial class TrafficHistory
 
     internal void AddProgram(string path, long upload, long download, DateTime now, TrafficRouteBytes routes = default)
     {
-        AddProgram(Day(now).Programs, path, upload, download, routes);
+        var state = Day(now);
+        AddProgram(state.Programs, path, upload, download, routes);
+        (state.RouteHours ??= new TrafficRouteSample[24])[now.Hour] += TrafficRouteSample.From(upload + download, routes);
     }
 
     // Предел действует и в памяти. Редкие новые программы сверх него учитываются вместе,
@@ -139,14 +145,14 @@ public sealed partial class TrafficHistory
         }
         return new(points.ToArray(), programs.Select(p => new AnalyticsProgram(p.Key, p.Value.Upload, p.Value.Download, p.Value.Routes))
             .OrderByDescending(p => p.Total).ThenBy(p => p.Path, StringComparer.OrdinalIgnoreCase).ToArray(), upload, download)
-            { Sources = ReportSources(now, periodDays) };
+            { Sources = ReportSources(now, periodDays), RoutePoints = ReportRoutePoints(now, periodDays) };
     }
 
     internal static bool Valid(TrafficDayStats[] history) => history.Length <= MaxDays &&
         history.All(d => d is not null && d.Upload >= 0 && d.Download >= 0 &&
             DateTime.TryParseExact(d.Day, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _) &&
             d.UploadHours is { Length: 24 } && d.DownloadHours is { Length: 24 } && d.UploadHours.All(n => n >= 0) && d.DownloadHours.All(n => n >= 0) &&
-            ValidSources(d.Sources) && d.Programs is not null && d.Programs.Length <= MaxPrograms && d.Programs.All(p => p is not null && !string.IsNullOrWhiteSpace(p.Path) &&
+            ValidSources(d.Sources) && ValidRouteHours(d.RouteHours) && d.Programs is not null && d.Programs.Length <= MaxPrograms && d.Programs.All(p => p is not null && !string.IsNullOrWhiteSpace(p.Path) &&
                 p.Path.Length <= 1024 && !p.Path.Any(char.IsControl) && p.Upload >= 0 && p.Download >= 0 && p.Routes.Fits(p.Upload, p.Download))) &&
         history.Select(d => d.Day).Distinct(StringComparer.Ordinal).Count() == history.Length;
 

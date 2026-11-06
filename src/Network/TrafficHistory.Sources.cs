@@ -1,9 +1,12 @@
 namespace Oblachka;
 
-internal readonly record struct TrafficSource(string Id, string Name);
+internal readonly record struct TrafficSource(string Id, string Name, string? GroupId = null, string? GroupName = null, string? MachineId = null);
 
 public sealed record TrafficSourceStats(string Id, string Name, long Upload, long Download)
 {
+    public string? GroupId { get; init; }
+    public string? GroupName { get; init; }
+    public string? MachineId { get; init; }
     [System.Text.Json.Serialization.JsonIgnore]
     public long Total => Upload + Download;
 }
@@ -24,8 +27,10 @@ public sealed partial class TrafficHistory
         if (!counts.ContainsKey(source.Id) && counts.Count >= MaxTrafficSources - 1)
             source = new(OtherSource, "Другие VPN-профили");
         counts.TryGetValue(source.Id, out var old);
-        var name = new string(source.Name.Where(c => !char.IsControl(c)).Take(256).ToArray()).Trim();
-        counts[source.Id] = new(source.Id, name.Length == 0 ? "VPN-профиль" : name, (old?.Upload ?? 0) + upload, (old?.Download ?? 0) + download);
+        var name = SafeLabel(source.Name);
+        counts[source.Id] = new(source.Id, name ?? "VPN-профиль", (old?.Upload ?? 0) + upload, (old?.Download ?? 0) + download)
+        { GroupId = SafeLabel(source.GroupId) ?? old?.GroupId, GroupName = SafeLabel(source.GroupName) ?? old?.GroupName,
+            MachineId = source.MachineId ?? old?.MachineId };
     }
 
     private TrafficSourceStats[] ReportSources(DateTime now, int periodDays)
@@ -37,14 +42,21 @@ public sealed partial class TrafficHistory
             foreach (var source in day.Sources.Values)
             {
                 sources.TryGetValue(source.Id, out var old);
-                sources[source.Id] = source with { Upload = source.Upload + (old?.Upload ?? 0), Download = source.Download + (old?.Download ?? 0) };
+                sources[source.Id] = source with { Upload = source.Upload + (old?.Upload ?? 0), Download = source.Download + (old?.Download ?? 0),
+                    GroupId = source.GroupId ?? old?.GroupId, GroupName = source.GroupName ?? old?.GroupName,
+                    MachineId = source.MachineId ?? old?.MachineId };
             }
         }
         return sources.Values.OrderByDescending(s => s.Total).ThenBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase).ToArray();
     }
 
+    private static string? SafeLabel(string? value) =>
+        value is null ? null : new string(value.Where(c => !char.IsControl(c)).Take(256).ToArray()).Trim() is { Length: > 0 } label ? label : null;
+
     private static bool ValidSources(TrafficSourceStats[]? sources) => sources is null || sources.Length <= MaxTrafficSources &&
         sources.All(s => s is not null && (s.Id == OtherSource || ClientServerCatalog.ValidId(s.Id)) &&
-            s.Name is { Length: > 0 and <= 256 } && !s.Name.Any(char.IsControl) && s.Upload >= 0 && s.Download >= 0) &&
+            s.Name is { Length: > 0 and <= 256 } && !s.Name.Any(char.IsControl) && s.Upload >= 0 && s.Download >= 0 &&
+            (s.GroupId is null || SafeLabel(s.GroupId) == s.GroupId) && (s.GroupName is null || SafeLabel(s.GroupName) == s.GroupName) &&
+            (s.MachineId is null || s.MachineId is { Length: 16 } id && id.All(Uri.IsHexDigit))) &&
         sources.Select(s => s.Id).Distinct(StringComparer.Ordinal).Count() == sources.Length;
 }

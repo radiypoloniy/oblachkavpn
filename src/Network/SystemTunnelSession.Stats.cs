@@ -10,7 +10,7 @@ public sealed partial class SystemTunnelSession
         var exits = direct;
         if (index < 0 || index >= candidates.Count || exits is null || index >= exits.Length || exits[index] is null) return null;
         var profile = candidates[index].Source;
-        return new(ClientServerCatalog.Id(profile)!, ClientServerCatalog.Title(profile));
+        return new(ClientServerCatalog.Id(profile)!, ServerMachines.Title([profile]), profile.Group, MachineId: ServerMachines.Hash(profile));
     }
 
     private async Task StartCoreWithStatsAsync(TunnelEndpointPlan plan, CoreDirectEntry? coreDirect, CancellationToken token)

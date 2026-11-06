@@ -13,21 +13,34 @@ public partial class MainWindow
             trafficHistory.Reset(); speedHistory.Reset();
             trafficHistory.Add(100, 900, DateTime.Now);
             trafficHistory.AddProgram(Environment.ProcessPath!, 100, 400, DateTime.Now, new(60, 240, 40, 160));
-            trafficHistory.AddSource(new(new string('A', 64), "Тестовый VPN"), 60, 240, DateTime.Now);
+            trafficHistory.AddSource(new(new string('A', 64), "Тестовый VPN", "fixture", "Резерв", new string('C', 16)), 40, 160, DateTime.Now);
+            trafficHistory.AddSource(new(new string('B', 64), "Тестовый VPN", "fixture", "Резерв", new string('C', 16)), 20, 80, DateTime.Now);
+            var persisted = trafficHistory.Snapshot(DateTime.Now);
+            var restored = new TrafficHistory();
+            restored.Restore(persisted, null, 0, null, DateTime.Now);
+            var today = restored.Report(DateTime.Now, 1);
+            if (!TrafficHistory.Valid(persisted) || today.RoutePoints.Sum(p => p.Direct) != 200 ||
+                !today.Sources.All(source => source.GroupName == "Резерв" && source.MachineId == new string('C', 16)))
+                throw new InvalidOperationException("Saved analytics lost hourly routes or server attribution");
             speedHistory.Record(DateTime.Now, 100, 1000);
             Home.TodayCard.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             UpdateLayout();
             if (Analytics.Visibility != Visibility.Visible || Live.Visibility == Visibility.Visible || currentPage != "Analytics" ||
                 Analytics.TotalText.Text != TrafficMeter.Size(1000) || !Ui.GetSelected(Home.TodayCard))
                 throw new InvalidOperationException("Analytics did not open from the traffic card with current data");
-            Analytics.Periods.SelectedIndex = 1;
+            Analytics.PeriodButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            var week = Analytics.PeriodItems.Children.OfType<System.Windows.Controls.Button>().Single(button => Equals(button.Tag, 7));
+            week.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             if (Analytics.PeriodDays != 7 || Analytics.Chart.Download?.Length != 7 || Analytics.ProgramList.Items.Count != 1)
                 throw new InvalidOperationException("Analytics period or program report did not render");
             var program = (Views.AnalyticsProgramRow)Analytics.ProgramList.Items[0];
             if (program.Icon is null || program.PlaceholderVisibility != Visibility.Collapsed)
                 throw new InvalidOperationException("Analytics did not load the program icon");
-            if (!Analytics.RouteTotalsText.Text.Contains("VPN") || Analytics.TrafficSources.Items.Count != 1 ||
-                !Analytics.SourceTrafficText.Text.StartsWith(TrafficMeter.Size(300), StringComparison.Ordinal))
+            if (Analytics.PeriodPopup.IsOpen || Analytics.RouteRing.Sample != new TrafficRouteSample(300, 200, 0) ||
+                Analytics.Chart.Download?.Sum() != 300 ||
+                Analytics.ServersChart.Items.Count != 1 ||
+                Analytics.ServersChart.Items[0] is not Views.AnalyticsRank { Name: "Тестовый VPN" } ||
+                Analytics.SubscriptionsChart.Items[0] is not Views.AnalyticsRank { Name: "Резерв" })
                 throw new InvalidOperationException("Analytics did not render route and VPN-profile bytes");
             for (var i = 0; i < 26; i++) trafficHistory.AddProgram($@"C:\Fixture\test-{i:00}.exe", 1, 2, DateTime.Now);
             RefreshAnalytics();
