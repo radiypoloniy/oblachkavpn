@@ -53,6 +53,11 @@ public static partial class SelfTests
                 Assert(manifest.Files.ContainsKey("bin/winws.exe") && manifest.Files.ContainsKey("lists/list-google.txt") && !manifest.Files.ContainsKey("lists/list-general-user.txt"));
                 Assert(ZapretManifest.Parse(manifest.ToJson()).Sha256 == manifest.Sha256);
                 ExpectUserError(() => ZapretManifest.Parse(manifest.ToJson().Replace(ZapretManifest.Source, "https://evil.invalid/")));
+                foreach (var suffix in new[] { "../../../../../other/project/releases/download/v1/payload.zip",
+                             "%2e%2e/payload.zip", "nested/payload.zip", "set.zip?other=.zip", "set.zip#other.zip" })
+                    ExpectUserError(() => (manifest with { Url = ZapretManifest.Source + "1.0/" + suffix }).Validate());
+                foreach (var tag in new[] { ".", "..", "1.0." })
+                    ExpectUserError(() => (manifest with { Tag = tag, Url = ZapretManifest.Source + tag + "/set.zip" }).Validate());
                 ExpectUserError(() => (manifest with { Files = manifest.Files.Where(f => f.Key != "bin/quic.bin").ToDictionary(f => f.Key, f => f.Value) }).Validate());
                 ExpectUserError(() => (manifest with { Files = new(manifest.Files) { ["bin/../x.exe"] = manifest.Sha256 } }).Validate());
             }

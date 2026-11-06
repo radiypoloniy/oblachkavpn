@@ -48,9 +48,9 @@ public static class ZapretRunner
             {
                 case ZapretAction.Prepare:
                     Stop();
-                    var fresh = await ZapretInstaller.ManifestAsync(token).ConfigureAwait(false);
-                    await ZapretInstaller.InstallAsync(fresh, token).ConfigureAwait(false);
-                    manifest = fresh;
+                    var embedded = ZapretManifest.Embedded();
+                    await ZapretInstaller.InstallAsync(embedded, token).ConfigureAwait(false);
+                    manifest = embedded;
                     break;
                 case ZapretAction.Start: Start(request); break;
                 case ZapretAction.Stop: Stop(); break;
@@ -95,8 +95,8 @@ public static class ZapretRunner
     {
         var current = (manifest ??= Installed()) ?? throw new UserError("zapret: набор ещё не подготовлен.");
         var strategy = current.Find(request.Strategy) ?? throw new UserError("zapret: такой стратегии нет в наборе.");
-        if (ZapretInstaller.Damaged(current) is { Length: > 0 })
-            throw new UserError("Файлы zapret повреждены или удалены — чаще всего это делает антивирус. Добавьте папку " + ZapretInstaller.Folder(current) + " в исключения и подготовьте набор заново.");
+        if (!ZapretInstaller.Ready(current))
+            throw new UserError("Файлы zapret повреждены или удалены. Проверьте журнал антивируса и подготовьте набор заново.");
         if (ForeignBypass() is { } foreign) throw new UserError("Уже работает другой обход блокировок (" + foreign + "). Остановите его — например, через «Помощь → Сеть Windows».");
         Stop();
         var folder = ZapretInstaller.Folder(current);

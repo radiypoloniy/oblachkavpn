@@ -20,7 +20,6 @@ public sealed record ZapretManifest(
     [property: JsonRequired] ZapretStrategy[] Strategies)
 {
     public const string Source = "https://github.com/Flowseal/zapret-discord-youtube/releases/download/";
-    public const string RepositoryUrl = "https://raw.githubusercontent.com/" + AppUpdate.Repository + "/main/zapret/manifest.json";
     // Исполняемые файлы: их смена проходит через одобрение, остальное (стратегии, списки, подмены) — само.
     public static readonly string[] Executables = { "bin/winws.exe", "bin/WinDivert.dll", "bin/WinDivert64.sys", "bin/cygwin1.dll" };
     // Списки пользователя, на которые ссылаются стратегии Flowseal: их пишет служба, в архиве их нет.
@@ -42,8 +41,13 @@ public sealed record ZapretManifest(
     public void Validate()
     {
         if (Version != 1) throw new UserError("zapret: неизвестная версия манифеста.");
-        if (Tag.Length is 0 or > 40 || !Tag.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '-' or '_')) throw new UserError("zapret: неверная версия набора.");
-        if (!Url.StartsWith(Source + Tag + "/", StringComparison.Ordinal) || !Url.EndsWith(".zip", StringComparison.Ordinal)) throw new UserError("zapret: архив не из релизов Flowseal.");
+        if (Tag.Length is 0 or > 40 || !char.IsAsciiLetterOrDigit(Tag[0]) || Tag.EndsWith('.') ||
+            !Tag.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '-' or '_')) throw new UserError("zapret: неверная версия набора.");
+        var prefix = Source + Tag + "/";
+        if (!Uri.TryCreate(Url, UriKind.Absolute, out var archive) || archive.AbsoluteUri != Url ||
+            !Url.StartsWith(prefix, StringComparison.Ordinal) || !Url.EndsWith(".zip", StringComparison.Ordinal) ||
+            !Url[prefix.Length..].All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '-' or '_'))
+            throw new UserError("zapret: архив не из релизов Flowseal.");
         if (!IsHash(Sha256) || Root.Length is 0 or > 80 || Root.Contains("..") || Root.Contains('\\') || Root.Contains('/')) throw new UserError("zapret: неверные сведения об архиве.");
         if (Files.Count is 0 or > 200 || Files.Any(f => !SafePath(f.Key) || !IsHash(f.Value))) throw new UserError("zapret: неверный список файлов.");
         if (Executables.Any(e => !Files.ContainsKey(e))) throw new UserError("zapret: в наборе нет winws и драйвера.");
@@ -82,7 +86,7 @@ public sealed record ZapretManifest(
 
     private static bool IsHash(string value) => value.Length == 64 && value.All(char.IsAsciiHexDigit);
 
-    // Встроенный в сборку манифест — на случай, если GitHub недоступен.
+    // Служба доверяет только манифесту, встроенному в сборку.
     public static ZapretManifest Embedded()
     {
         using var stream = typeof(ZapretManifest).Assembly.GetManifestResourceStream("Oblachka.zapret.manifest.json") ?? throw new UserError("zapret: нет встроенного манифеста.");

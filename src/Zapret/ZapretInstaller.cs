@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 
 namespace Oblachka;
 
-// Подготовка набора zapret службой: манифест (встроенный или более свежий из нашего репозитория),
+// Подготовка набора zapret службой по встроенному манифесту:
 // архив Flowseal с GitHub, сверка архива и каждого нужного файла. Файлы ложатся в
 // ProgramData\Oblachka\zapret\<версия> — туда пишут только SYSTEM и администраторы.
 public static class ZapretInstaller
@@ -13,28 +13,8 @@ public static class ZapretInstaller
     public static string Root => Path.Combine(NetworkService.DataRoot, "zapret");
     public static string Folder(ZapretManifest manifest) => Path.Combine(Root, manifest.Tag);
 
-    // Более свежий манифест из репозитория принимается, только если он целиком проходит проверку.
-    public static async Task<ZapretManifest> ManifestAsync(CancellationToken token)
-    {
-        var embedded = ZapretManifest.Embedded();
-        try
-        {
-            using var client = Client();
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token); timeout.CancelAfter(TimeSpan.FromSeconds(15));
-            using var response = await client.GetAsync(ZapretManifest.RepositoryUrl, timeout.Token).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode || response.Content.Headers.ContentLength > 1024 * 1024) return embedded;
-            var fetched = ZapretManifest.Parse(await response.Content.ReadAsStringAsync(timeout.Token).ConfigureAwait(false));
-            return fetched.Updated > embedded.Updated ? fetched : embedded;
-        }
-        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or UserError or IOException) { return embedded; }
-    }
-
     // Готов ли набор на диске: все файлы манифеста на месте и совпадают по хешу.
     public static bool Ready(ZapretManifest manifest) => manifest.Files.All(f => Matches(Path.Combine(Folder(manifest), f.Key), f.Value));
-
-    // Какие исполняемые файлы не совпали — обычно их удалил или подменил антивирус.
-    public static string[] Damaged(ZapretManifest manifest) =>
-        ZapretManifest.Executables.Where(e => !Matches(Path.Combine(Folder(manifest), e), manifest.Files[e])).ToArray();
 
     public static async Task InstallAsync(ZapretManifest manifest, CancellationToken token)
     {
