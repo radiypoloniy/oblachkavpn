@@ -9,7 +9,7 @@ namespace Oblachka;
 public static class TunCore
 {
     public const string FileName = "oblachka-core.exe";
-    public const string Sha256 = "01C3C9E5F152A6494A10BFD9AA8788962A0D1DD4A2D727971A95A5C0F88A8C63";
+    public const string Sha256 = "FBEDE3D5302F89044B8C475B002BA61E85949795AA1A50B41CCB84FC023563A1";
 
     public static string Program(string? tools = null) => Path.Combine(tools ?? Path.Combine(AppContext.BaseDirectory, "tools"), FileName);
 

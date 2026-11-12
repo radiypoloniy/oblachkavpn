@@ -27,6 +27,8 @@
 
 В то же ядро входит [amneziawg-go](https://github.com/amnezia-vpn/amneziawg-go) (выход AmneziaWG, версия закреплена в `core/go.mod`) — MIT, © WireGuard LLC и Amnezia; код не изменяется.
 
+С пробы 0.24.0-rc.6 ядро собирается Go 1.27.4; транзитивные зависимости brotli закреплены на 1.2.7, klauspost/compress — на 1.20.2. Это исправляет срабатывания GO-2026-6888, GO-2026-6865 и GO-2026-6859 при проверке ядра. Точные версии и контрольные суммы модулей — в `core/go.mod` и `core/go.sum`.
+
 ## zapret и набор Flowseal
 
 Не входят в установщик: сетевая служба скачивает их по включению «YouTube и Discord без VPN» с официальных релизов и сверяет SHA256 по манифесту `zapret/manifest.json` (см. [docs/zapret.md](docs/zapret.md)).

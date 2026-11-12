@@ -24,6 +24,9 @@ $asset = $asset[0]
 if ($release.assets | Where-Object { $_.name -eq ($asset.name + '.sig') }) { Write-Host ('Релиз ' + $Tag + ' уже подписан.'); return }
 
 $work = Join-Path ([IO.Path]::GetTempPath()) ('oblachka-sign-' + [guid]::NewGuid().ToString('N'))
+$work = [IO.Path]::GetFullPath($work)
+$signingTempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+if (-not $work.StartsWith($signingTempRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Неверная временная папка подписи.' }
 New-Item -ItemType Directory $work | Out-Null
 try {
     $file = Join-Path $work $asset.name
