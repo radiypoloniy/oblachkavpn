@@ -20,14 +20,15 @@ public partial class MainWindow
                 throw new InvalidOperationException($"Synthetic country case {code}: resolved {parsed.Country.Code}/{parsed.Country.Name}, name={parsed.Name}");
             // Имя отдельно от результата проверки: он не заменяет название подписки.
             var labels = RenderRow(parsed);
-            // Без замера строка показывает только имя (облик 0.21): протокол — в меню «⋯», «не проверен» не загромождает список.
-            if (labels.Length != 1 || labels[0].Text != parsed.DisplayName || labels[0].Text == countryName || Row(parsed).MenuDetail != ServerRow.ProtocolFor(parsed))
+            if (labels.Length != 2 || labels.All(l => l.Text != parsed.DisplayName) || labels.All(l => l.Text != "не проверен") ||
+                labels.Any(l => l.Text == countryName) || Row(parsed).MenuDetail != ServerRow.ProtocolFor(parsed))
                 throw new InvalidOperationException("Server row replaces its subscription name with a country or includes extra labels: " + string.Join(" | ", labels.Select(l => l.Text)) + " (всего " + labels.Length + ")");
             // Сторонний узел: то же имя плюс видимая пометка источника.
             var foreignLabels = RenderRow(parsed with { Source = ProfileSource.External });
             // Пометка — имя подписки узла; узел без подписки — «вручную».
             // Порядок в дереве не важен: подпись прижата справа и объявлена раньше имени (узкое окно, 0.21).
-            if (foreignLabels.Length != 2 || foreignLabels.All(l => l.Text != parsed.DisplayName) || foreignLabels.All(l => l.Text != "вручную"))
+            if (foreignLabels.Length != 3 || foreignLabels.All(l => l.Text != parsed.DisplayName) ||
+                foreignLabels.All(l => l.Text != "вручную") || foreignLabels.All(l => l.Text != "не проверен"))
                 throw new InvalidOperationException("External node is not marked in the server list: " + string.Join(" | ", foreignLabels.Select(l => l.Text)));
             if (Row(parsed with { Source = ProfileSource.External }).Flag is null)
                 throw new InvalidOperationException("External subscription flag was replaced by the generic external icon: " + code);

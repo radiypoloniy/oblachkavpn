@@ -41,6 +41,7 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
         TimeSpan? heartbeatTimeout, TimeSpan? sessionTimeout, Action<Exception>? report, CancellationToken token)
     {
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token);
+        using var probes = new WfpProbeAccess();
         var watcher = WatchOwnerAsync(owner, lifetime);
         try
         {
@@ -79,14 +80,38 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                         if (record.State == NetworkSessionState.Applied) { SyncReinjection(); SyncDirectApps(force: true); }
                         state = record.State;
                         blocking = SystemNetworkBackend.Blocks(record);
+                        // Снимаем только после установки и подтверждения защиты новой аренды.
+                        // Это также восстанавливает переключение после аварии старого окна.
+                        if (state == NetworkSessionState.Applied && blocking == true)
+                        { using var guardEngine = WfpEngine.Open(); WfpHandover.Remove(guardEngine); }
                         activeLease = request.Lease!.LeaseId;
                     }
                     else if (request.Operation == HelperOperation.Release)
                     {
                         if (request.Lease!.LeaseId != activeLease) throw new UserError("Сессия принадлежит другому владельцу.");
+                        probes.Dispose();
                         state = session.Release(activeLease.Value).State;
                         if (state == NetworkSessionState.Released) { WfpReinjection.Forget(); WfpDirectApps.Forget(); }
                         if (state == NetworkSessionState.Released) activeLease = null;
+                    }
+                    else if (request.Operation == HelperOperation.Handover)
+                    {
+                        using var engine = WfpEngine.Open();
+                        if (request.Lockdown!.On)
+                        {
+                            if (activeLease is null || state != NetworkSessionState.Applied)
+                                throw new UserError("Для переключения нужна действующая сессия.");
+                            WfpHandover.Apply(engine);
+                        }
+                        else WfpHandover.Remove(engine);
+                    }
+                    else if (request.Operation == HelperOperation.Probe)
+                    {
+                        var probe = request.Probe!;
+                        if (probe.Endpoint is null) probes.Close(probe.Id);
+                        else if (activeLease is null || state != NetworkSessionState.Applied)
+                            throw new UserError("Для проверки нужна действующая сетевая сессия.");
+                        else probes.Open(probe);
                     }
                     else if (request.Operation == HelperOperation.Repair)
                     {
@@ -135,9 +160,11 @@ public sealed class HelperPipeServer(NetworkSession session, string pipeName, Pr
                             throw new UserError("Сначала остановите системный туннель.");
                         using var engine = WfpEngine.Open();
                         WfpLockdown.Remove(engine, strict: true);
+                        WfpHandover.Remove(engine);
                     }
                     else if (request.Operation == HelperOperation.Heartbeat && activeLease is not null && session.StrictTunnelLost())
                         throw new IOException("Ядро системного туннеля остановилось при действующей строгой защите.");
+                    if (request.Version == 2) blocking = true; // Поддерживается защищённая замена аренды.
                     response = new(1, request.RequestId, state == NetworkSessionState.RecoveryRequired ? HelperFailure.RecoveryRequired : HelperFailure.None, state, blocking, zapret,
                         request.Operation == HelperOperation.Heartbeat ? session.Repairs : null);
                 }

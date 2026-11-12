@@ -44,6 +44,9 @@ public partial class MainWindow
                 throw new InvalidOperationException("Analytics did not render route and VPN-profile bytes");
             for (var i = 0; i < 26; i++) trafficHistory.AddProgram($@"C:\Fixture\test-{i:00}.exe", 1, 2, DateTime.Now);
             RefreshAnalytics();
+            if (!Analytics.UnknownText.Text.StartsWith("Маршрут не определён", StringComparison.Ordinal) ||
+                !Analytics.RouteCoverage.Text.StartsWith("Маршрут известен для", StringComparison.Ordinal) || Analytics.UnknownText.ToolTip is null)
+                throw new InvalidOperationException("Analytics does not explain unclassified bytes and route coverage");
             if (Analytics.ProgramList.Items.Count != 5)
                 throw new InvalidOperationException("Analytics preview lost its five-row limit");
             Analytics.MorePrograms.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
@@ -57,6 +60,13 @@ public partial class MainWindow
                 throw new InvalidOperationException("Analytics search did not search the full report");
             Analytics.ProgramSearch.Text = "";
             DesignPreview.Render(this, Path.Combine(AppContext.BaseDirectory, "preview-analytics.png"));
+            var originalTheme = ThemeManager.Choice;
+            try
+            {
+                ThemeManager.Apply(ThemeChoice.Dark);
+                DesignPreview.Render(this, Path.Combine(AppContext.BaseDirectory, "preview-analytics-dark.png"));
+            }
+            finally { ThemeManager.Apply(originalTheme); }
             Navigate("Servers");
             if (Analytics.Visibility != Visibility.Collapsed || Servers.Visibility != Visibility.Visible)
                 throw new InvalidOperationException("Servers did not replace analytics");

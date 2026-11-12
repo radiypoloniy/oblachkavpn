@@ -8,7 +8,7 @@ namespace Oblachka;
 // Число справа — свежий замер через сервер (ServerMeasurements). Отклик входа (ServerPing,
 // TCP-рукопожатие) числом не показывается: у каскадов он единицы мс при настоящих сотнях.
 // Цвет точки (токены LatFast/LatMid/LatSlow/LatFail): < 160 мс, < 250 мс, дольше; нет ответа;
-// результат старше 20 минут — «давно» с бледной точкой, подробности в подсказке.
+// Устаревший результат скрывается: возраст замера не означает отказ сервера.
 public sealed class ServerRow
 {
     public Profile? Profile { get; init; }
@@ -75,17 +75,25 @@ public sealed class ServerRow
     public static (string Text, Brush? Dot, string? Hint) Status(ServerMeasurement? measured, DateTimeOffset now, bool checking = false)
     {
         if (checking) return ("проверяем…", Faint, "Запрос через этот сервер отдельным ядром");
-        if (measured is null) return ("", null, null);
+        if (measured is null) return ("не проверен", Faint, null);
         var at = measured.Time.ToLocalTime();
         if (!ServerMeasurements.Fresh(measured, now))
-            return ("давно", Faint, (measured is { Success: true, Handshake: false } ? $"Последний замер — {measured.Milliseconds} мс" : measured.Success ? "Отвечал" : "В последний раз не ответил") +
-                ", " + at.ToString(at.Date == now.ToLocalTime().Date ? "HH:mm" : "dd.MM HH:mm") + ". Проверьте снова.");
+            return ("", null, null);
         if (measured is { Success: true, Handshake: true })
-            return ("", null, $"Сервер отвечает ({at:HH:mm}). Задержку через него покажет «Обновить пинг на вкладке».");
+            return ("порт отвечает", Faint, $"Отклик порта в {at:HH:mm}. Полную задержку покажет проверка через сервер.");
+        if (!measured.Success && measured.Handshake)
+            return ("нет отклика порта", Faint, "Проверка через профиль ещё не выполнена.");
         return measured.Success
             ? (measured.Milliseconds + " мс", DotFor(measured.Milliseconds), $"Ответил за {measured.Milliseconds} мс в {at:HH:mm}" +
                 (measured.Throughput > 0 ? $", скорость {measured.Throughput / 1_000_000.0:0.#} МБ/с" : ""))
-            : ("нет ответа", Failed, $"Не ответил при проверке в {at:HH:mm}");
+            : measured.Failure switch
+            {
+                MeasurementFailure.Access => ("не проверен", Faint, "Не удалось подготовить маршрут проверки."),
+                MeasurementFailure.Profile => ("ошибка запуска", Failed, "Ядро не запустило профиль."),
+                MeasurementFailure.Timeout => ("тайм-аут", Failed, $"Время проверки истекло в {at:HH:mm}."),
+                MeasurementFailure.Target => ("ошибка сайта", Faint, "Контрольный сайт ответил ошибкой."),
+                _ => ("нет ответа", Failed, $"Запрос через профиль не прошёл в {at:HH:mm}.")
+            };
     }
 
     // Скорость свежего замера: «6,2 МБ/с», «850 КБ/с»; пусто — не мерили или замер старый.

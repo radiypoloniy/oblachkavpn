@@ -42,7 +42,8 @@ public static partial class SelfTests
             var old = new CoreProgramSampler((_, _) => { legacyCalls++; return Task.FromResult<IReadOnlyList<CoreConnection>?>([]); },
                 (_, _) => { compactCalls++; return Task.FromResult<CoreProgramSnapshot?>(null); });
             await old.ReadAsync(stats, CancellationToken.None); await old.ReadAsync(stats, CancellationToken.None);
-            Assert(compactCalls == 1 && legacyCalls == 2);
+            await old.ReadAsync(stats, CancellationToken.None); await old.ReadAsync(stats, CancellationToken.None);
+            Assert(compactCalls == 3 && legacyCalls == 2);
             compactCalls = legacyCalls = 0;
             var current = new CoreProgramSampler((_, _) => { legacyCalls++; return Task.FromResult<IReadOnlyList<CoreConnection>?>([]); },
                 (_, _) => Task.FromResult<CoreProgramSnapshot?>(++compactCalls == 2 ? null : new(Guid.NewGuid().ToString(), [])));
@@ -139,6 +140,8 @@ public static partial class SelfTests
                     {
                         Assert(summary is null && !occupied.Pending()); // Different PID: no secret reaches this listener.
                         var sampler = new CoreProgramSampler(CoreConnections.ReadAsync);
+                        Assert(await sampler.ReadAsync(stats, CancellationToken.None) is null);
+                        Assert(await sampler.ReadAsync(stats, CancellationToken.None) is null);
                         Assert((await sampler.ReadAsync(stats, CancellationToken.None))?.Connections is { Count: 0 });
                     }
                     else

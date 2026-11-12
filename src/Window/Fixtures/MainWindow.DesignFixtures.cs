@@ -24,6 +24,7 @@ public partial class MainWindow
         Navigate("Connection");
         checks.Add("Navigation selects one working page at a time and preserves the imported profile");
         CheckAnalytics(checks);
+        CheckMeasurementPolicy(checks);
         SettingsClick(this, new RoutedEventArgs());
         if (Settings.Visibility != Visibility.Visible) throw new InvalidOperationException("Settings did not open");
         // Каждая вкладка реально отрисовывается: ключ ресурса, совпавший со стилем, ронял окно
@@ -202,7 +203,7 @@ public partial class MainWindow
         SetGroup(new ProfileGroup("sub-ba9876543210", "Резерв", ProfileSource.External, new[] { "https://reserve.invalid/t" }) { Updated = now.AddHours(-30) }, new[] { Node("🇫🇮 Финляндия", 21) });
         SetGroup(ProfileGroup.Manual, new[] { Node("Мой сервер", 31) });
         ApplyProfiles(true);
-        // Последний узел проверяли давно: видно отметку «давно».
+        // У последнего узла старый результат: место задержки остаётся пустым.
         foreach (var (item, i) in importedProfiles.Select((p, i) => (p, i)))
             pings[Profiles.Fingerprint(item)] = new(Profiles.Fingerprint(item), i == 4 ? now.AddHours(-3) : now, i != 2, new long[] { 84, 61, 142, 97, 38 }[i % 5]);
         FilterProfiles(); RefreshHome();

@@ -8,6 +8,7 @@ public partial class MainWindow
 {
     private void WireSettingsHome()
     {
+        WireMeasurementOptions();
         Servers.OpenAutoPool.Click += (_, _) => { RenderAutoPool(); OpenSettings(Views.SettingsPanel.AutoPoolPage); };
         Settings.AutoPoolList.AddHandler(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, new RoutedEventHandler((_, args) =>
         {

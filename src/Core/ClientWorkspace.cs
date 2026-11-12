@@ -17,6 +17,7 @@ public sealed class ClientWorkspace
     public long TrafficToday { get; set; }
     public long[] TrafficHours { get; } = new long[24];
     public TrafficHistory TrafficHistory { get; } = new();
+    public MeasurementOptions Measurements { get; set; } = new();
     public bool WasConnected { get; set; }
     public int FreeConsent { get; set; }
     public FreeList? FreeList { get; set; }

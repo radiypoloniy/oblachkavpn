@@ -60,17 +60,17 @@ public static partial class SelfTests
             Assert(ReferenceEquals(session, owner.Tunnel) && owner.Tunnel?.BlocksBypass == true && host.Connects == 1 && host.Disposes == 0);
             await owner.Connections.StopAsync(); Assert(owner.Tunnel is null && core.State == ConnectionState.Idle && host.Disposes == 1);
         });
-        await check("Switching outside a TUN lease requires explicit permission to rebuild it", async () =>
+        await check("Switching outside a TUN lease replaces it automatically under an independent guard", async () =>
         {
             var core = new RecoveryCore { Working = a }; var host = new TunnelHostFixture();
             using var owner = new ClientRuntime(core, host); owner.Profiles.Imported = [a]; owner.Preferences.SystemTunnel = true;
             await owner.Connections.StartAsync(a); var session = owner.Tunnel;
             var free = b with { Source = ProfileSource.Free, Group = FreeServers.GroupId };
             owner.Profiles.Imported = [a, free]; owner.Workspace.FreeConsent = FreeServers.ConsentVersion;
-            await ExpectUserErrorAsync(() => owner.Connections.StartAsync(free));
-            Assert(ReferenceEquals(session, owner.Tunnel) && host.Connects == 1);
-            await owner.Connections.StartAsync(free, allowReconnect: true);
+            await owner.Connections.SelectAsync(free);
             Assert(!ReferenceEquals(session, owner.Tunnel) && host.Connects == 2 && owner.Tunnels.ForeignSession && owner.Profiles.Running == free);
+            var guarded = host.Calls.IndexOf("guard-on"); var released = host.Calls.IndexOf("release"); var cleared = host.Calls.IndexOf("guard-off");
+            Assert(guarded >= 0 && guarded < released && cleared > released && !owner.Tunnels.HandoverPending);
             await owner.Connections.StopAsync();
         });
         await check("A hot routing update timeout preserves the lease and the last acknowledged lists", async () =>

@@ -13,7 +13,9 @@ public static partial class SelfTests
             foreach (var text in new[] { "{}", "{\"Version\":1,\"Version\":1}", new string('x', 8193),
                 "{\"Version\":1,\"RequestId\":\"00000000-0000-0000-0000-000000000001\",\"Operation\":\"Heartbeat\",\"Lease\":null,\"Run\":\"cmd\"}" })
                 ExpectUserError(() => HelperProtocol.Parse<HelperRequest>(Encoding.UTF8.GetBytes(text)));
-            ExpectUserError(() => HelperProtocol.Validate(new(2, Guid.NewGuid(), HelperOperation.Heartbeat, null)));
+            ExpectUserError(() => HelperProtocol.Validate(new(3, Guid.NewGuid(), HelperOperation.Heartbeat, null)));
+            HelperProtocol.Validate(new(2, Guid.NewGuid(), HelperOperation.Heartbeat, null));
+            ExpectUserError(() => HelperProtocol.Validate(new(2, Guid.NewGuid(), HelperOperation.Recover, null)));
             ExpectUserError(() => HelperProtocol.Validate(new(1, Guid.NewGuid(), HelperOperation.Heartbeat, NetworkAcquire())));
             ExpectUserError(() => HelperPipeIdentity.ValidateName("../pipe"));
             using var shortFrame = new MemoryStream(new byte[] { 0, 32, 0, 0, 1 });
@@ -30,6 +32,9 @@ public static partial class SelfTests
                 var request = NetworkAcquire();
                 Assert((await client.SendAsync(HelperOperation.Acquire, request, timeout.Token)).State == NetworkSessionState.Applied);
                 Assert((await client.SendAsync(HelperOperation.Heartbeat, null, timeout.Token)).State == NetworkSessionState.Applied);
+                var capabilities = await client.SendAsync(HelperOperation.Heartbeat, null, timeout.Token, version: 2);
+                Assert(capabilities.Failure == HelperFailure.None && capabilities.Blocking == true && capabilities.State == NetworkSessionState.Applied);
+                Assert((await client.SendAsync(HelperOperation.Heartbeat, null, timeout.Token)).Blocking is null);
                 var foreign = new NetworkLeaseRequest(1, Guid.NewGuid(), NetworkLeaseAction.Release, 0, Array.Empty<string>());
                 Assert((await client.SendAsync(HelperOperation.Release, foreign, timeout.Token)).Failure == HelperFailure.InvalidRequest);
                 Assert(backend.RestoreCalls == 0);

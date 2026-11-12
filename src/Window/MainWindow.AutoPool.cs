@@ -27,7 +27,7 @@ public partial class MainWindow
         if (measurementBusyShown != measuring)
         {
             measurementBusyShown = measuring;
-            var title = measuring ? "Остановить замер" : "Обновить пинг на вкладке";
+            var title = measuring ? "Остановить замер" : "Проверить задержку на вкладке";
             Servers.MeasureButton.ToolTip = title;
             System.Windows.Automation.AutomationProperties.SetName(Servers.MeasureButton, title);
             UpdateControls();
@@ -45,6 +45,7 @@ public partial class MainWindow
     {
         if (!viewsReady) return;
         var list = Settings.AutoPoolList;
+        FillMeasurementOptions();
         RefreshSettingsSummary();
         // Бесплатные чужие узлы в пул не входят никогда — и в списке пула их нет.
         list.ItemsSource = importedProfiles.Where(p => !p.IsFree).Select(p => new Views.AutoPoolRow(p, autoPool.Contains(p))).ToArray();

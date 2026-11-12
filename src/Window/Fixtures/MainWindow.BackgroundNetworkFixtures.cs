@@ -1,4 +1,4 @@
-using System.Windows.Threading;
+﻿using System.Windows.Threading;
 
 namespace Oblachka;
 
@@ -70,6 +70,8 @@ public partial class MainWindow
         public string? Network() => "Fixture";
         public bool Metered() => true;
         public Task PingAsync(IReadOnlyList<Profile> targets, Action<Profile, long?> result, CancellationToken token) => Task.CompletedTask;
+        public Task MeasureManualAsync(IReadOnlyList<Profile> targets, SystemTunnelSession? session, Action<ServerMeasurement> result,
+            bool speed, CancellationToken token, int parallelism = ServerMeasurements.Parallel) => MeasureAsync(targets, session is not null, result, p => p, speed, token);
         public async Task MeasureAsync(IReadOnlyList<Profile> targets, bool physical, Action<ServerMeasurement> result,
             Func<Profile, Profile?> route, bool throughput, CancellationToken token, int parallelism = ServerMeasurements.Parallel, Action<Profile>? starting = null)
         {

@@ -8,13 +8,15 @@ public static partial class SelfTests
         {
             var calls = new List<string>(); var core = new SessionCore(calls); var samples = new List<ServerMeasurement>();
             using var cancel = new CancellationTokenSource();
+            var access = new FixtureProbeAccess();
             try
             {
                 await ServerMeasurements.MeasureAsync([Profiles.Parse(link), Profiles.Parse(link.Replace("example.com", "example.net"))],
-                    () => core, sample => { samples.Add(sample); cancel.Cancel(); }, cancel.Token);
+                    () => core, sample => { samples.Add(sample); cancel.Cancel(); }, cancel.Token,
+                    prepare: (profile, _) => Task.FromResult<(Profile, IAsyncDisposable?)>((profile, access)));
                 throw new InvalidOperationException("Expected cancellation");
             }
-            catch (OperationCanceledException) { Assert(samples.Count == 1 && samples[0].Success && core.ProcessId is null && calls.Count(c => c == "core:start") == 1); }
+            catch (OperationCanceledException) { Assert(samples.Count == 1 && samples[0].Success && core.ProcessId is null && calls.Count(c => c == "core:start") == 1 && access.Closed); }
         });
         await check("Program routing rejects paths and duplicate names; pinned sing-box validates TUN draft", async () =>
         {
@@ -73,5 +75,11 @@ public static partial class SelfTests
             Assert(loaded.Favorites.SequenceEqual(new[] { key }));
             var bytes = System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(root, "blocks-state.bin"))); Assert(!bytes.Contains("SECRET-token") && !bytes.Contains("secret-domain"));
         }));
+    }
+
+    private sealed class FixtureProbeAccess : IAsyncDisposable
+    {
+        public bool Closed { get; private set; }
+        public ValueTask DisposeAsync() { Closed = true; return ValueTask.CompletedTask; }
     }
 }

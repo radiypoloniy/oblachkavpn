@@ -2,7 +2,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-
 namespace Oblachka;
 
 public sealed record SavedProfile(string Name, JsonObject Outbound)
@@ -23,6 +22,7 @@ public sealed partial record ClientSnapshot(int Version, SavedProfile[] Profiles
     // Адреса сторонней подписки. Адреса сервиса остались в SubscriptionSources.
     public string[] ExternalSources { get; init; } = Array.Empty<string>();
     public bool AutoRefresh { get; init; } = true;
+    public MeasurementOptions? MeasurementOptions { get; init; }
     public bool SystemProxy { get; init; }
     // Сворачивание в трей при закрытии. Появилось в 0.9.2 и по умолчанию включено; прежний
     // StayInTray по умолчанию был выключен, и крестик закрывал приложение вместе с VPN.

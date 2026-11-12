@@ -8,10 +8,12 @@ public interface INetworkHelperClient : IAsyncDisposable
     // Возвращает признак того, блокируется ли трафик мимо туннеля.
     Task<bool> AcquireAsync(NetworkLeaseRequest request, CancellationToken token);
     Task<NetworkSessionState> ReleaseAsync(CancellationToken token);
+    Task SetHandoverAsync(bool on, CancellationToken token) => Task.FromException(new UserError("Обновите сетевую службу для переключения сервера."));
+    Task<bool> SupportsHandoverAsync(CancellationToken token) => Task.FromResult(false);
 }
 
 // Maintains the lease independently of UI timers. Losing the pipe causes server-side recovery.
-public sealed class NetworkHelperClient : INetworkHelperClient
+public sealed partial class NetworkHelperClient : INetworkHelperClient
 {
     private readonly HelperPipeClient pipe;
     private readonly SemaphoreSlim operations = new(1);
@@ -56,6 +58,24 @@ public sealed class NetworkHelperClient : INetworkHelperClient
     {
         await operations.WaitAsync(token).ConfigureAwait(false);
         try { return await ReleaseCoreAsync(token).ConfigureAwait(false); }
+        finally { operations.Release(); }
+    }
+
+    internal async Task SetProbeAccessAsync(ProbeAccessRequest request, CancellationToken token)
+    {
+        await operations.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            if (lease is null)
+            {
+                if (request.Endpoint is null) return;
+                throw new UserError("Сетевая сессия закончилась.");
+            }
+            token.ThrowIfCancellationRequested();
+            // Отмена замера не должна обрывать канал действующего туннеля.
+            var response = await pipe.SendAsync(HelperOperation.Probe, null, CancellationToken.None, probe: request).ConfigureAwait(false);
+            if (response.Failure != HelperFailure.None) throw new UserError("Служба не разрешила проверку сервера.");
+        }
         finally { operations.Release(); }
     }
 

@@ -11,8 +11,7 @@ public sealed partial class ClientConnections
         if (!mode && session is not null) { await owner.StopTunnelAsync(); runningTunnel = false; }
         if (mode && runningTunnel && (request.RebuildTunnel || !session!.CanSwitchTo(target)))
         {
-            if (!request.AllowReconnect) throw new UserError("Подтвердите переподключение со снятием защиты.");
-            await owner.Tunnels.StartAsync(target, token, preserveMainPause: request.RebuildTunnel); return;
+            await owner.Tunnels.StartAsync(target, token, preserveMainPause: request.RebuildTunnel, recoverAppliedPins: true); return;
         }
         if (owner.Engine is Engine core)
         {

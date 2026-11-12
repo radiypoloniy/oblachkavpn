@@ -119,8 +119,9 @@ public partial class MainWindow
         var now = DateTimeOffset.UtcNow;
         var measured = LatestMeasurement(item);
         // У работающего подключения свежее всего — последняя проверка связи через него.
-        if ((measured is null || !ServerMeasurements.Fresh(measured, now)) && runningProfile is not null && ReferenceEquals(item, runningProfile) && lastProbe is { Success: true })
-            measured = new(Profiles.Fingerprint(item), now, true, lastProbe.Milliseconds);
+        if ((measured is null || !ServerMeasurements.Fresh(measured, now)) && runningProfile is not null && ReferenceEquals(item, runningProfile) &&
+            lastProbe is { Success: true } && lastCheck is { } checkedAt && checkedAt <= now && now - checkedAt < TimeSpan.FromMinutes(20))
+            measured = new(Profiles.Fingerprint(item), checkedAt, true, lastProbe.Milliseconds);
         var (latency, dot, hint) = ServerRow.Status(measured, now, checkingServer is not null && ReferenceEquals(item, checkingServer));
         var icon = ServerRow.IconFor(item);
         var member = siblings is not null;
@@ -165,16 +166,6 @@ public partial class MainWindow
     {
         machineMode = true;
         PickServer(MachineBest(note.Members));
-    }
-
-    // «Проверить» у машины — все её протоколы по очереди.
-    private async Task CheckMachineAsync(ServerRow row)
-    {
-        foreach (var item in row.IsMachine ? row.Members! : [row.Profile!])
-        {
-            await CheckServerAsync(item);
-            if (closed) return;
-        }
     }
 
     private void ToggleMachine(ServerRow row)

@@ -15,25 +15,14 @@ public partial class MainWindow
         WireTune();
     }
 
-    // «Проверить этот сервер»: настоящий HTTPS-запрос через выбранный сервер отдельным ядром,
-    // как у «Проверить все», но для одного и любого источника. Подключение не трогает.
     private Profile? checkingServer;
-    private async Task CheckServerAsync(Profile item)
+    private async Task CheckServersAsync(IReadOnlyList<Profile> targets, bool speed = false)
     {
-        if (checkingServer is not null || measuring) { DetailText.Text = "Дождитесь окончания текущей проверки."; return; }
-        // Под «Весь компьютер» — через адрес, который защита разрешила ядрам.
-        if (MeasureRoute(item) is null) { DetailText.Text = item.DisplayName + ": при «Весь компьютер» его адрес закрыт защитой. Переподключитесь, чтобы проверить."; return; }
-        checkingServer = item; RenderSheet();
-        try
-        {
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
-            ServerMeasurement? result = null;
-            await ServerMeasurements.MeasureAsync(new[] { item }, RouteEngine, measured => result = measured, timeout.Token, MeasureRoute);
-            if (result is not null) { measurements[result.Fingerprint] = result; QueueStateSave(); }
-            if (!closed) DetailText.Text = result is { Success: true } ? $"{item.DisplayName}: работает, {result.Milliseconds} мс." : $"{item.DisplayName}: не ответил.";
-        }
-        catch (OperationCanceledException) { if (!closed) DetailText.Text = item.DisplayName + ": проверка не уложилась в 45 секунд."; }
-        finally { checkingServer = null; TrimMeasurements(); if (!closed) { RenderSheet(); RefreshHome(); } }
+        if (measuring || tuning is not null || operation is not null)
+        { DetailText.Text = "Дождитесь окончания текущей операции."; return; }
+        checkingServer = targets.Count == 1 ? targets[0] : null;
+        try { await runtime.Measurements.MeasureAsync(targets, quiet: false, speed: speed); }
+        finally { checkingServer = null; if (!closed) PingsChanged(); }
     }
 
     // Отклики серверов (ServerPing) живут только в этом запуске: они дешёвые и делаются заново
@@ -88,6 +77,7 @@ public partial class MainWindow
     {
         var last = measurements.Values.Concat(pings.Values).Select(m => (DateTimeOffset?)m.Time).Max();
         var age = last is null ? (TimeSpan?)null : DateTimeOffset.UtcNow - last.Value;
-        Servers.MeasuredAgo.Text = age is null ? "" : "Пинг обновлён " + (age < TimeSpan.FromMinutes(1) ? "только что" : age < TimeSpan.FromHours(1) ? (int)age.Value.TotalMinutes + " мин назад" : "в " + last!.Value.ToLocalTime().ToString("HH:mm"));
+        Servers.MeasuredAgo.Text = !runtime.Measurements.CanMeasure ? "Проверка серверов — при выключенном VPN"
+            : age is null || age >= TimeSpan.FromMinutes(20) ? "" : "Проверка " + (age < TimeSpan.FromMinutes(1) ? "только что" : (int)age.Value.TotalMinutes + " мин назад");
     }
 }

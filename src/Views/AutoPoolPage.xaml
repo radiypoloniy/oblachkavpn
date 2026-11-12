@@ -2,8 +2,36 @@
              xmlns:o="clr-namespace:Oblachka">
   <!-- Пул «Автовыбора» (AutoPool): строки — серверы, переключатель — участвует ли. -->
   <DockPanel Margin="20,6,20,16">
+      <StackPanel DockPanel.Dock="Top" Margin="6,0,6,14">
+        <TextBlock Text="Проверка серверов" Style="{StaticResource OptTitle}"/>
+        <DockPanel Margin="0,8,0,8">
+          <CheckBox x:Name="ManualMeasurements" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Проверять только вручную"/>
+          <TextBlock Text="Проверять только вручную" Style="{StaticResource OptTitle}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0"/>
+        </DockPanel>
+        <DockPanel Margin="0,0,0,8" ToolTip="Отдельные тестовые подключения к серверам. По умолчанию выключено; проверка здоровья текущего VPN работает всегда.">
+          <CheckBox x:Name="ConnectedMeasurements" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Разрешить проверки при включённом VPN"/>
+          <TextBlock Text="Проверять при включённом VPN" Style="{StaticResource OptTitle}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0"/>
+        </DockPanel>
+        <DockPanel Margin="0,0,0,10">
+          <CheckBox x:Name="SpeedMeasurements" DockPanel.Dock="Right" Style="{StaticResource Toggle}" AutomationProperties.Name="Измерять скорость в фоне"/>
+          <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+            <TextBlock Text="Измерять скорость в фоне" Style="{StaticResource OptTitle}"/>
+            <TextBlock Text="Расходует трафик. В лимитной сети отключено." Style="{StaticResource Small}" TextWrapping="Wrap"/>
+          </StackPanel>
+        </DockPanel>
+        <WrapPanel>
+          <TextBlock Text="Интервал" Style="{StaticResource Small}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+          <ComboBox x:Name="MeasurementInterval" Width="100" AutomationProperties.Name="Интервал проверки серверов">
+            <ComboBoxItem Content="5 минут"/><ComboBoxItem Content="10 минут"/><ComboBoxItem Content="30 минут"/>
+          </ComboBox>
+          <TextBlock Text="Одновременно" Style="{StaticResource Small}" VerticalAlignment="Center" Margin="14,0,8,0"/>
+          <ComboBox x:Name="MeasurementParallelism" Width="60" AutomationProperties.Name="Количество одновременных проверок">
+            <ComboBoxItem Content="1"/><ComboBoxItem Content="2"/><ComboBoxItem Content="3"/><ComboBoxItem Content="4"/>
+          </ComboBox>
+        </WrapPanel>
+      </StackPanel>
       <DockPanel DockPanel.Dock="Top" Margin="6,0,0,8">
-        <Button x:Name="AutoPoolMeasure" DockPanel.Dock="Right" Content="Обновить пинг" Style="{StaticResource BtnOutline}" Height="32" Padding="12,0" o:Ui.CornerRadius="{StaticResource RadiusSm}" FontSize="{StaticResource FsBody}" VerticalAlignment="Top"/>
+        <Button x:Name="AutoPoolMeasure" DockPanel.Dock="Right" Content="Проверить задержку" Style="{StaticResource BtnOutline}" Height="32" Padding="12,0" o:Ui.CornerRadius="{StaticResource RadiusSm}" FontSize="{StaticResource FsBody}" VerticalAlignment="Top"/>
         <TextBlock x:Name="AutoPoolNote" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="0,0,10,0"
                    Text="Автовыбор берёт самый быстрый из отмеченных серверов и на них переключается при обрыве. Пинг — задержка через сам сервер. Обход белых списков по умолчанию выключен: эти серверы нужны для своей задачи."/>
       </DockPanel>

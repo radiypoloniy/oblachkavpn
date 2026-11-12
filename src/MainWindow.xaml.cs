@@ -107,7 +107,7 @@ public partial class MainWindow : Window
         var active = engine.State is not ConnectionState.Idle && !runtime.Connections.MainPaused;
         ConnectButton.IsEnabled = profile is not null && !active && operation is null && !runtime.Connections.IsStopping;
         // Пока системный режим снимается, повторное нажатие ничего не ускорит.
-        StopButton.IsEnabled = (active || operation is not null) && !systemStopping && !runtime.Connections.IsStopping;
+        StopButton.IsEnabled = (active || operation is not null || runtime.Tunnels.HandoverPending) && !systemStopping && !runtime.Connections.IsStopping;
         // Добавлять можно и при подключении: подписка применится после остановки (pendingImport),
         // ключ попадёт во «Вручную» и сразу выбран — как и после QR-кода.
         ImportFileButton.IsEnabled = Servers.Add.AddKeyButton.IsEnabled = operation is null;
@@ -210,7 +210,7 @@ public partial class MainWindow : Window
         { args.Cancel = true; HideToTray(); return; }
         // Штатный выход возвращает обычную сеть: служба потерю окна считает аварией и держит защиту.
         // При выходе из сеанса Windows ждать некогда — тогда сессию снимает служба (NetworkService).
-        if (!exitTunnelClosing && !Application.Current.Dispatcher.HasShutdownStarted && (systemTunnel is not null || helperLifetime is not null))
+        if (!exitTunnelClosing && !Application.Current.Dispatcher.HasShutdownStarted && (systemTunnel is not null || helperLifetime is not null || ownsRuntime && (runtime.Tunnels.HandoverPending || runtime.Connections.IsActive)))
         { args.Cancel = true; exitTunnelClosing = true; _ = CloseAfterTunnelAsync(); return; }
         closed = true;
         runtime.Zapret.Changed -= ZapretChanged;

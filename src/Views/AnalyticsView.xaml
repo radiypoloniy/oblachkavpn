@@ -119,7 +119,8 @@
               </Grid>
               <DockPanel Margin="0,0,0,4"><Ellipse Width="8" Height="8" Fill="{DynamicResource AnalyticsVpn}" Margin="0,0,7,0"/><TextBlock x:Name="VpnText"/></DockPanel>
               <DockPanel Margin="0,0,0,4"><Ellipse Width="8" Height="8" Fill="{DynamicResource AnalyticsDirect}" Margin="0,0,7,0"/><TextBlock x:Name="DirectText"/></DockPanel>
-              <DockPanel><Ellipse Width="8" Height="8" Fill="{DynamicResource AnalyticsUnknown}" Margin="0,0,7,0"/><TextBlock x:Name="UnknownText"/></DockPanel>
+              <DockPanel><Ellipse Width="8" Height="8" Fill="{DynamicResource AnalyticsUnknown}" Margin="0,0,7,0"/><TextBlock x:Name="UnknownText" TextWrapping="Wrap"/></DockPanel>
+              <TextBlock x:Name="RouteCoverage" Style="{StaticResource Small}" TextWrapping="Wrap" Margin="0,8,0,0"/>
             </StackPanel>
           </Border>
         </UniformGrid>

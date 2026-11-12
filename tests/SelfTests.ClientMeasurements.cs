@@ -1,9 +1,29 @@
-namespace Oblachka;
+﻿namespace Oblachka;
 
 public static partial class SelfTests
 {
     private static async Task ClientMeasurementChecksAsync(Func<string, Func<Task>, Task> check)
     {
+        await ClientFeaturePolicyChecksAsync(check);
+        await check("A test permit matches only the dedicated core and a single IP, port and transport", () => Sync(() =>
+        {
+            var id = Guid.NewGuid();
+            var endpoint = new ProbeEndpoint(ProbeCore.SingBox, "2001:db8::1", 443, true);
+            var request = new HelperRequest(1, Guid.NewGuid(), HelperOperation.Probe, null, Probe: new(id, endpoint));
+            HelperProtocol.Validate(request);
+            var filter = WfpProbeAccess.Filter(id, endpoint);
+            Assert(filter.Key == id && filter.Permit && filter.V6 && !filter.Persistent && !filter.Packet);
+            Assert(filter.Conditions.SequenceEqual(new WfpCondition[]
+            {
+                new(WfpConditionKind.Application, Program: Path.Combine(WfpProbeAccess.CoreDirectory, "sing-box.exe")),
+                new(WfpConditionKind.RemoteAddress, System.Net.IPAddress.Parse(endpoint.Address)),
+                new(WfpConditionKind.RemotePort, Number: 443),
+                new(WfpConditionKind.Protocol, Number: 17)
+            }));
+            foreach (var address in new[] { "198.18.0.1", "2001:2::1", "127.0.0.1", "2001:db8::/32", "example.com" })
+                ExpectUserError(() => (endpoint with { Address = address }).Validate());
+            ExpectUserError(() => HelperProtocol.Validate(request with { Operation = HelperOperation.Heartbeat }));
+        }));
         await check("Background batches use one worker and continue through every server before sleeping", async () =>
         {
             var time = DateTimeOffset.UtcNow; var backend = new MeasurementBackend { IsMetered = true };
@@ -37,7 +57,7 @@ public static partial class SelfTests
         await check("Background measurement retains speed between latency rounds and measures throughput only every three hours", async () =>
         {
             var now = DateTimeOffset.UtcNow; var backend = new MeasurementBackend();
-            using var owner = MeasurementOwner(backend, a, b, () => now); owner.Measurements.Enabled = true;
+            using var owner = MeasurementOwner(backend, a, b, () => now); owner.Measurements.Enabled = true; owner.Workspace.Measurements = new() { BackgroundSpeed = true };
             await owner.Measurements.PollAsync(); Assert(backend.Rounds.Count(r => r.Speed) == 1);
             now = now.AddMinutes(11); await owner.Measurements.PollAsync();
             Assert(backend.Rounds.Count(r => r.Speed) == 1 && owner.Profiles.Measurements.Values.All(m => m.Throughput == 5000));
@@ -48,7 +68,9 @@ public static partial class SelfTests
             var backend = new MeasurementBackend { IsMetered = true };
             using var owner = MeasurementOwner(backend, a); owner.Measurements.Enabled = true;
             await owner.Measurements.PollAsync(); Assert(backend.Rounds.All(r => !r.Speed));
-            await owner.Measurements.MeasureAsync([a], false); Assert(backend.Rounds.Any(r => r.Speed) && backend.Parallelism.Last() == ServerMeasurements.Parallel);
+            await owner.Measurements.MeasureAsync([a], false); Assert(backend.Rounds.All(r => !r.Speed));
+            await owner.Measurements.MeasureAsync([a], false, speed: true);
+            Assert(backend.Rounds.Count(r => r.Speed) == 1);
         });
         await check("A cancelled measurement rejects late results even if its backend ignores cancellation", async () =>
         {
@@ -67,16 +89,20 @@ public static partial class SelfTests
             owner.Measurements.InvalidateNetwork(); backend.PingGate.SetResult(); await ping;
             Assert(owner.Profiles.Pings.Count == 0);
             backend.PingGate = null; await owner.Measurements.MeasureAsync([a], true);
-            owner.Measurements.InvalidateNetwork(); Assert(owner.Measurements.LastMeasure == DateTimeOffset.MinValue);
+            Assert(owner.Profiles.Measurements.Count == 1);
+            owner.Measurements.InvalidateNetwork();
+            Assert(owner.Measurements.LastMeasure == DateTimeOffset.MinValue && owner.Profiles.Measurements.Count == 0);
         });
-        await check("TUN measurement uses physical pinned routes and skips nodes outside the protected lease", async () =>
+        await check("Manual TUN measurement passes every target to the live session, including an unpinned node", async () =>
         {
             var backend = new MeasurementBackend(); var core = new RecoveryCore { Working = a };
             using var owner = new ClientRuntime(core, new TunnelHostFixture(), measurementBackend: backend);
             owner.Profiles.Imported = [a, b]; owner.Profiles.GroupProfiles["fixture"] = [a, b]; owner.Preferences.SystemTunnel = true;
+            owner.Workspace.Measurements = new() { AllowConnected = true };
             await owner.Connections.StartAsync(a); var session = owner.Tunnel;
+            Assert(session is not null && session.PinnedFor(b) is null);
             await owner.Measurements.MeasureAsync([a, b], true);
-            Assert(backend.Rounds.All(r => r.Physical) && backend.Measured.All(p => Profiles.Fingerprint(p) == Profiles.Fingerprint(a)));
+            Assert(ReferenceEquals(backend.ManualSession, session) && backend.Measured.SequenceEqual(new[] { a, b }));
             Assert(ReferenceEquals(session, owner.Tunnel) && owner.Tunnel?.BlocksBypass == true);
             await owner.Connections.StopAsync();
         });
@@ -116,10 +142,17 @@ public static partial class SelfTests
         public List<Profile> Measured { get; } = new();
         public Func<DateTimeOffset> Now = () => DateTimeOffset.UtcNow;
         public Action<Profile>? Starting;
+        public SystemTunnelSession? ManualSession;
         public string? Network() => "fixture-network";
         public bool Metered() => IsMetered;
         public async Task PingAsync(IReadOnlyList<Profile> targets, Action<Profile, long?> result, CancellationToken token)
         { if (PingGate is not null) await PingGate.Task; foreach (var p in targets) result(p, 1); }
+        public Task MeasureManualAsync(IReadOnlyList<Profile> targets, SystemTunnelSession? session, Action<ServerMeasurement> result,
+            bool speed, CancellationToken token, int parallelism = ServerMeasurements.Parallel)
+        {
+            ManualSession = session;
+            return MeasureAsync(targets, session is not null, result, p => p, speed, token, parallelism);
+        }
         public async Task MeasureAsync(IReadOnlyList<Profile> targets, bool physical, Action<ServerMeasurement> result,
             Func<Profile, Profile?> route, bool throughput, CancellationToken token, int parallelism = ServerMeasurements.Parallel, Action<Profile>? starting = null)
         {

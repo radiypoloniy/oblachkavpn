@@ -207,13 +207,13 @@ public sealed partial class ProgramTrafficHistory
             var upload = old is null || connection.Upload < old.Upload || !string.Equals(path, old.Path, StringComparison.OrdinalIgnoreCase) ? connection.Upload : connection.Upload - old.Upload;
             var download = old is null || connection.Download < old.Download || !string.Equals(path, old.Path, StringComparison.OrdinalIgnoreCase) ? connection.Download : connection.Download - old.Download;
             active[id] = new(path, Math.Max(0, connection.Upload), Math.Max(0, connection.Download));
-            if (!baselineOnly && (upload > 0 || download > 0)) Add(history, path, Math.Max(0, upload), Math.Max(0, download), now);
+            if (!baselineOnly && (upload > 0 || download > 0))
+                history.AddProgram(path, Math.Max(0, upload), Math.Max(0, download), now,
+                    connection.RouteBytes(Math.Max(0, upload), Math.Max(0, download)));
         }
         foreach (var id in active.Keys.Where(id => !seen.Contains(id)).ToArray()) active.Remove(id);
     }
 
-    private static void Add(TrafficHistory history, string path, long upload, long download, DateTime now) =>
-        history.AddProgram(path, upload, download, now);
 }
 
 public sealed class SpeedHistory

@@ -7,9 +7,12 @@ namespace Oblachka;
 public sealed record ServerMeasurement(string Fingerprint, DateTimeOffset Time, bool Success, long Milliseconds)
 {
     public bool Handshake { get; init; }
+    public MeasurementFailure Failure { get; init; }
     // Скорость скачивания через сервер, байт в секунду; 0 — не мерили. Меряется реже задержки.
     public long Throughput { get; init; }
 }
+
+public enum MeasurementFailure { None, Access, Profile, Timeout, Target }
 
 public static class ServerMeasurements
 {
@@ -69,7 +72,9 @@ public static class ServerMeasurements
     // route — чем подключаться к серверу: под «Весь компьютер» это профиль с адресом, который
     // защита разрешила ядрам; null — сейчас не проверить, сервер пропускается.
     public static async Task MeasureAsync(IReadOnlyList<Profile> profiles, Func<ITunnelController> factory,
-        Action<ServerMeasurement> measured, CancellationToken token, Func<Profile, Profile?>? route = null, bool throughput = false, int parallelism = Parallel, Action<Profile>? starting = null)
+        Action<ServerMeasurement> measured, CancellationToken token, Func<Profile, Profile?>? route = null, bool throughput = false,
+        int parallelism = Parallel, Action<Profile>? starting = null, Uri? latencyTarget = null,
+        Func<Profile, CancellationToken, Task<(Profile Profile, IAsyncDisposable? Access)>>? prepare = null)
     {
         if (parallelism is < 1 or > Parallel) throw new ArgumentOutOfRangeException(nameof(parallelism));
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(token); budget.CancelAfter(TimeSpan.FromMinutes(5));
@@ -84,17 +89,38 @@ public static class ServerMeasurements
                 lock (gate) { if (queue.Count == 0) return; profile = queue.Dequeue(); }
                 budget.Token.ThrowIfCancellationRequested();
                 starting?.Invoke(profile);
-                if ((route is null ? profile : route(profile)) is not { } target) continue;
+                var target = route is null ? profile : route(profile);
+                if (target is null && prepare is null) continue;
+                IAsyncDisposable? access = null;
+                var failure = prepare is null ? MeasurementFailure.Profile : MeasurementFailure.Access;
+                using var attempt = CancellationTokenSource.CreateLinkedTokenSource(budget.Token);
+                if (latencyTarget is not null) attempt.CancelAfter(TimeSpan.FromSeconds(20));
+                ServerMeasurement Result(bool success, long milliseconds = 0) =>
+                    new(Profiles.Fingerprint(profile), DateTimeOffset.UtcNow, success, milliseconds)
+                    { Failure = success ? MeasurementFailure.None : failure };
                 try
                 {
-                    await controller.StartAsync(target, budget.Token);
-                    var round = await new TunnelHealth().CheckAsync(controller.ProbeAsync, TunnelHealth.Targets, budget.Token);
-                    var success = round.Results.FirstOrDefault(r => r.Success);
-                    var speed = success is not null && throughput ? await ThroughputAsync(controller.Port, budget.Token) : 0;
-                    measured(new(Profiles.Fingerprint(profile), DateTimeOffset.UtcNow, success is not null, success?.Milliseconds ?? 0) { Throughput = speed });
+                    if (prepare is not null) (target, access) = await prepare(profile, attempt.Token);
+                    failure = MeasurementFailure.Profile;
+                    await controller.StartAsync(target!, attempt.Token);
+                    failure = MeasurementFailure.None;
+                    var result = latencyTarget is not null
+                        ? await controller.ProbeAsync(latencyTarget, attempt.Token)
+                        : (await new TunnelHealth().CheckAsync(controller.ProbeAsync, TunnelHealth.Targets, attempt.Token)).Results.FirstOrDefault(r => r.Success);
+                    if (result is { Failure: ProbeFailure.TargetResponse }) failure = MeasurementFailure.Target;
+                    if (result is { Failure: ProbeFailure.Timeout }) failure = MeasurementFailure.Timeout;
+                    var speed = result is { Success: true } && throughput ? await ThroughputAsync(controller.Port, attempt.Token) : 0;
+                    measured(Result(result is { Success: true }, result is { Success: true } ? result.Milliseconds : 0) with { Throughput = speed });
                 }
-                catch (UserError) { measured(new(Profiles.Fingerprint(profile), DateTimeOffset.UtcNow, false, 0)); }
-                finally { controller.Stop(); }
+                catch (OperationCanceledException) when (!budget.IsCancellationRequested)
+                { failure = MeasurementFailure.Timeout; measured(Result(false)); }
+                catch (Exception ex) when (ex is UserError or IOException or System.Net.Sockets.SocketException)
+                { measured(Result(false)); }
+                finally
+                {
+                    try { controller.Stop(); }
+                    finally { if (access is not null) await access.DisposeAsync(); }
+                }
             }
         }
         // Скорость — по одному серверу: одновременные загрузки делят канал, и Hysteria2 (QUIC, а с

@@ -7,9 +7,8 @@ using System.Text.Json.Nodes;
 namespace Oblachka;
 
 public enum ConnectionState { Idle, Validating, Starting, Running, Verified, Failed }
-public enum ProbeFailure { None, Reachability, TargetResponse }
+public enum ProbeFailure { None, Reachability, TargetResponse, Timeout }
 public sealed record ProbeResult(bool Success, long Milliseconds, string Message, ProbeFailure Failure = ProbeFailure.None);
-
 public sealed partial class Engine : ITunnelController
 {
     private CoreAdapter adapter;
@@ -194,7 +193,8 @@ public sealed partial class Engine : ITunnelController
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
             if (Alive(process, pid) is not null) Set(ConnectionState.Running, "Ядро работает, но запрос через туннель не выполнен.");
-            return new(false, watch.ElapsedMilliseconds, "Запрос не прошёл. Причина может быть в профиле, сервере, сети или выбранном сайте.", ProbeFailure.Reachability);
+            return new(false, watch.ElapsedMilliseconds, "Запрос не прошёл. Причина может быть в профиле, сервере, сети или выбранном сайте.",
+                ex is TaskCanceledException ? ProbeFailure.Timeout : ProbeFailure.Reachability);
         }
     }
 

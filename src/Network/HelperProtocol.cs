@@ -10,7 +10,7 @@ namespace Oblachka;
 // ProgramRules — новые правила программ для работающего туннеля (ProgramRuleSets), без переподключения.
 // RoutingLists — списки маршрутизации для ядра туннеля (RoutingLists), частями, тоже на ходу.
 // Lockdown — включить или снять запрет «без VPN — без интернета» (WfpLockdown); в ответе Blocking — стоит ли он.
-public enum HelperOperation { Acquire, Release, Heartbeat, Recover, Repair, Zapret, DirectDns, ProgramRules, RoutingLists, Lockdown, ArmStrictGuard, ClearStrictGuard }
+public enum HelperOperation { Acquire, Release, Heartbeat, Recover, Repair, Zapret, DirectDns, ProgramRules, RoutingLists, Lockdown, ArmStrictGuard, ClearStrictGuard, Probe, Handover }
 // SystemRefused — отказ самой системы, а не ошибка в запросе. Без него такой отказ
 // вылетал мимо ответа и завершал помощника: клиент видел обрыв канала вместо причины.
 public enum HelperFailure { None, InvalidRequest, Busy, RecoveryRequired, SystemRefused }
@@ -24,7 +24,8 @@ public sealed record HelperRequest(
     DirectDnsRequest? DirectDns = null,
     ProgramRulesRequest? Programs = null,
     RoutingListsRequest? Lists = null,
-    LockdownRequest? Lockdown = null);
+    LockdownRequest? Lockdown = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ProbeAccessRequest? Probe = null);
 // Blocking говорит, встала ли блокировка трафика мимо туннеля. Поле нужно затем,
 // что помощник решает это сам: при выключенном брандмауэре блокировки не будет, и
 // окно обязано сообщить пользователю то, что есть, а не то, на что мы рассчитывали.
@@ -79,12 +80,26 @@ public static class HelperProtocol
 
     public static void Validate(HelperRequest request)
     {
-        if (request.Version != 1 || request.RequestId == Guid.Empty || !Enum.IsDefined(request.Operation))
+        // v2 Heartbeat — запрос возможностей без новых JSON-полей/команд.
+        // Старый helper отвергает версию внутри обработчика, сохраняя канал и аренду.
+        if (request.Version != 1 && !(request.Version == 2 && request.Operation == HelperOperation.Heartbeat) || request.RequestId == Guid.Empty || !Enum.IsDefined(request.Operation))
             throw new UserError("Неизвестная команда helper.");
-        if (request.Operation == HelperOperation.Lockdown)
+        if (request.Operation == HelperOperation.Probe)
+        {
+            if (request.Lease is not null || request.Repair is not null || request.Zapret is not null ||
+                request.DirectDns is not null || request.Programs is not null || request.Lists is not null ||
+                request.Lockdown is not null || request.Probe is null)
+                throw new UserError("Неверная команда проверки сервера.");
+            request.Probe.Validate();
+            return;
+        }
+        if (request.Probe is not null) throw new UserError("Параметры проверки передаются только командой Probe.");
+        if (request.Operation is HelperOperation.Lockdown or HelperOperation.Handover)
         {
             if (request.Lease is not null || request.Repair is not null || request.Zapret is not null || request.DirectDns is not null || request.Programs is not null || request.Lists is not null || request.Lockdown is null)
                 throw new UserError("Неверная команда запрета без VPN.");
+            if (request.Operation == HelperOperation.Handover && request.Lockdown.Lan)
+                throw new UserError("Переключение не разрешает локальные исключения.");
             return;
         }
         if (request.Lockdown is not null) throw new UserError("Запрет без VPN передаётся только командой Lockdown.");

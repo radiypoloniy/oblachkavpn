@@ -1,4 +1,4 @@
-namespace Oblachka;
+﻿namespace Oblachka;
 
 public static partial class SelfTests
 {
@@ -7,6 +7,8 @@ public static partial class SelfTests
         public bool IsService { get; set; } = true;
         public bool Foreign, FailLists, FailAcquire, FailRecover, DisposeLostChannel;
         public int Connects, Disposes;
+        public bool Handover;
+        public bool SupportsHandover = true;
         public Func<CancellationToken, Task>? Preparing, Listing, Dns, Ruling;
         public readonly List<string> Calls = new();
         public readonly List<NetworkLeaseRequest> Requests = new();
@@ -50,6 +52,9 @@ public static partial class SelfTests
         public sealed class FixtureClient(TunnelHostFixture host) : INetworkHelperClient
         {
             public bool Lost;
+            public Task<bool> SupportsHandoverAsync(CancellationToken token) => Task.FromResult(host.SupportsHandover);
+            public Task SetHandoverAsync(bool on, CancellationToken token)
+            { host.Calls.Add(on ? "guard-on" : "guard-off"); host.Handover = on; return Task.CompletedTask; }
             public int Subscribers => (ConnectionLost?.GetInvocationList().Length ?? 0) + (ProtectionRepaired?.GetInvocationList().Length ?? 0);
             public event Action? ConnectionLost;
             public event Action? ProtectionRepaired;
@@ -58,6 +63,7 @@ public static partial class SelfTests
             {
                 NetworkHelperContracts.Validate(request); host.Calls.Add("acquire"); host.Requests.Add(request);
                 if (host.FailAcquire) throw new UserError("fixture acquire failure");
+                if (host.Handover) { host.Handover = false; host.Calls.Add("guard-off"); }
                 return Task.FromResult(true);
             }
             public Task<NetworkSessionState> ReleaseAsync(CancellationToken token)

@@ -21,6 +21,15 @@ public static class DohResolver
 
     public static Task<IPAddress[]> ResolveAsync(string host, CancellationToken token) => ResolveAsync(host, false, token);
 
+    internal static async Task<IPAddress[]> ResolveProbeAsync(string host, bool service, CancellationToken token)
+    {
+        // Под строгими правилами системный DNS может вернуть синтетический IP для TUN.
+        var preferred = service ? Preferred : null;
+        foreach (var doh in new[] { preferred, Cloudflare, Google }.OfType<ServerResolve>().Distinct())
+            if (await TryDohAsync(doh, host, token).ConfigureAwait(false) is { Length: > 0 } found) return found;
+        throw new UserError("Не удалось разрешить адрес сервера через DoH.");
+    }
+
     // service — узел подписки сервиса. DoH сервиса спрашивают только о его узлах: имена серверов
     // сторонних подписок ему знать незачем (аудит 19.10, Р-5).
     public static async Task<IPAddress[]> ResolveAsync(string host, bool service, CancellationToken token)

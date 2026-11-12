@@ -30,7 +30,11 @@ public partial class MainWindow
     private void ShowRowMenu(FrameworkElement anchor, ServerRow row)
     {
         var members = row.IsMachine ? row.Members! : [row.Profile!];
-        var items = new List<(string, bool, Action)> { (row.IsMachine ? "Проверить все варианты" : "Проверить", false, () => _ = CheckMachineAsync(row)) };
+        var items = new List<(string, bool, Action)>
+        {
+            (row.IsMachine ? "Проверить задержку всех вариантов" : "Проверить задержку", false, () => _ = CheckServersAsync(members)),
+            ("Проверить скорость", false, () => _ = CheckServersAsync([row.Profile!], speed: true))
+        };
         if (row.IsManual && !row.IsMachine) items.Add(("Изменить настройку", false, () => _ = EditServerAsync(row.Profile!)));
         items.Add(row.IsManual ? ("Удалить", true, () => RemoveServers(members)) : ("Скрыть из списка", false, () => RemoveServers(members)));
         ShowSheetMenu(anchor, row.MenuDetail, items.ToArray());

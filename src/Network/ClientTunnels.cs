@@ -13,6 +13,7 @@ public sealed class ClientTunnels
     internal string[] SentZapretDomains { get; set; } = [];
     public bool DirectAllowed { get; private set; }
     public bool ForeignSession { get; set; }
+    public bool HandoverPending { get; private set; }
     internal ClientTunnels(ClientRuntime owner, IClientTunnelHost host) { this.owner = owner; this.host = host; }
 
     public async Task StartAsync(Profile selected, CancellationToken token, bool preserveMainPause = false, bool recoverAppliedPins = false, bool mainWasPaused = false)
@@ -27,6 +28,16 @@ public sealed class ClientTunnels
             IReadOnlyList<ServiceRoute> plannedPins = appliedPins ?? (IReadOnlyList<ServiceRoute>)owner.TunnelPolicy.ServiceRoutes;
             if (initialMode is not null && (plannedPins.Count == 0 || plannedPins.Any(r => r.Domains.Length > 0)))
                 throw new UserError("Сначала включите основной VPN, чтобы применить такой состав привязок.");
+            // Подготовка нового профиля не должна разрушать рабочую сессию.
+            var plans = await host.PrepareAsync(Candidates(selected, plannedPins), token);
+            token.ThrowIfCancellationRequested();
+            if (owner.Tunnel is { State: SystemTunnelState.Running or SystemTunnelState.Holding } && owner.TunnelLink is { } previous)
+            {
+                if (!await previous.Client.SupportsHandoverAsync(token))
+                    throw new UserError("Обновите сетевую службу для переключения на этот сервер. Текущее подключение сохранено.");
+                HandoverPending = true;
+                await previous.Client.SetHandoverAsync(true, token);
+            }
             if (owner.Tunnel is { State: SystemTunnelState.Running, PinnedServices.Count: 0 } &&
                 plannedPins.Count > 0 && owner.Helper?.Client is { } currentHelper)
                 await currentHelper.SetStrictGuardAsync(arm: true, CancellationToken.None);
@@ -35,7 +46,6 @@ public sealed class ClientTunnels
             catch (Exception error) when (error is IOException || lost && error is ObjectDisposedException or OperationCanceledException)
             { /* Потерянный канал восстанавливается отдельным подключением ниже. */ }
             await host.RecoverIfNeededAsync(token);
-            var plans = await host.PrepareAsync(Candidates(selected, plannedPins), token);
             token.ThrowIfCancellationRequested();
             try
             {
@@ -45,6 +55,12 @@ public sealed class ClientTunnels
                 await session.StartWithSparesAsync(plans, token, settings.Sites, settings.Programs, (owner.Engine as Engine)?.DirectEntry,
                     settings.DirectByDefault, owner.RoutingLists, settings.LocalNetwork, settings.QuicOverTcp, settings.CompatibleStack, settings.ForeignNode,
                     settings.ServiceRoutes, ServiceProfileAllowed, initialMode);
+                if (HandoverPending)
+                {
+                    if (!session.BlocksBypass) throw new UserError("Новый туннель не подтвердил защиту. Блокировка переключения сохранена.");
+                    // Новая служба снимает временный запрет только после защищённого Acquire.
+                    HandoverPending = false;
+                }
                 ForeignSession = settings.ForeignNode;
                 DirectAllowed = session.CanPauseMain || settings.DirectByDefault || (owner.Engine as Engine)?.DirectEntry is not null ||
                     settings.Sites.Any(r => r.Action == SiteAction.Direct) || settings.Programs.Any(r => r.Action == SiteAction.Direct);
@@ -109,6 +125,14 @@ public sealed class ClientTunnels
         throw new UserError("Настройки меняются во время запуска. Повторите подключение после изменения правил.");
     }
     public Profile[] Candidates(Profile selected) => Candidates(selected, owner.TunnelPolicy.ServiceRoutes);
+
+    internal async Task ClearHandoverAsync()
+    {
+        if (!HandoverPending) return;
+        await using var link = await host.ConnectAsync(CancellationToken.None);
+        await link.Client.SetHandoverAsync(false, CancellationToken.None);
+        HandoverPending = false;
+    }
 
     private Profile[] Candidates(Profile selected, IReadOnlyList<ServiceRoute> services)
     {

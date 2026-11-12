@@ -28,6 +28,11 @@ New-Item -ItemType Directory -Force (Join-Path $stage 'tools') | Out-Null
 foreach ($file in 'xray.exe', 'sing-box.exe', 'libcronet.dll', 'oblachka-core.exe', 'LICENSE-Xray', 'LICENSE-sing-box', 'COPYING-GPL-3.0') {
     Copy-Item -LiteralPath (Join-Path $verified ('tools\' + $file)) -Destination (Join-Path $stage 'tools')
 }
+$probeTools = Join-Path $stage 'tools\probe'
+New-Item -ItemType Directory -Force $probeTools | Out-Null
+foreach ($core in 'xray.exe', 'sing-box.exe', 'libcronet.dll', 'oblachka-core.exe') {
+    Copy-Item -LiteralPath (Join-Path $stage ('tools\' + $core)) -Destination $probeTools
+}
 Copy-Item -LiteralPath (Join-Path $root 'THIRD-PARTY.md') -Destination $stage
 Write-ClientBuildInfo $stage $revision
 

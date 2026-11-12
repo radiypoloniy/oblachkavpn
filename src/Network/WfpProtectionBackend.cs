@@ -71,6 +71,14 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
 
     public NetworkWriteResult Apply(Guid leaseId, NetworkChange change)
     {
+        lock (WfpProbeAccess.PolicyGate)
+        {
+            WfpProbeAccess.CloseAll();
+            return ApplyPolicy(change);
+        }
+    }
+    private NetworkWriteResult ApplyPolicy(NetworkChange change)
+    {
         var filters = FiltersOf(change);
         using var engine = open();
         var strictPrograms = WfpLockdown.StrictPrograms(AppContext.BaseDirectory);
@@ -118,6 +126,15 @@ public sealed class WfpProtectionBackend : INetworkSessionBackend
     }
 
     public NetworkWriteResult Restore(Guid leaseId, NetworkChange change)
+    {
+        lock (WfpProbeAccess.PolicyGate)
+        {
+            WfpProbeAccess.CloseAll();
+            return RestorePolicy(change);
+        }
+    }
+
+    private NetworkWriteResult RestorePolicy(NetworkChange change)
     {
         Peers(change);
         using var engine = open();

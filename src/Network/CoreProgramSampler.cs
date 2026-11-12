@@ -10,6 +10,7 @@ internal sealed class CoreProgramSampler(
     Func<CoreStatsEntry, CancellationToken, Task<CoreProgramSnapshot?>>? compact = null)
 {
     private bool? supported;
+    private int initialFailures;
     internal bool UsesLegacy => supported == false;
     internal async Task<CoreProgramSample?> ReadAsync(CoreStatsEntry stats, CancellationToken token)
     {
@@ -19,6 +20,9 @@ internal sealed class CoreProgramSampler(
             token.ThrowIfCancellationRequested();
             if (summary is not null) { supported = true; return new(summary, null); }
             if (supported == true) return null;
+            // Ядро может ещё запускать компактный listener. Первый тайм-аут не
+            // должен навсегда переводить новую сессию на неполный старый сборщик.
+            if (++initialFailures < 3) return null;
             supported = false;
         }
         var connections = await legacy(stats, token).ConfigureAwait(false);

@@ -79,8 +79,6 @@ public sealed class ClientViewServer(ClientRuntime owner, SynchronizationContext
                 return Fail(ClientViewFailure.Busy);
             var connects = request.Operation == ClientViewOperation.Connect || owner.Connections.IsActive || owner.Engine.State != ConnectionState.Idle || owner.Tunnel is not null;
             if (connects && target.IsFree && owner.Workspace.FreeConsent != FreeServers.ConsentVersion) return Fail(ClientViewFailure.ConsentRequired);
-            if (connects && owner.Preferences.SystemTunnel && owner.Tunnel is { State: not (SystemTunnelState.Idle or SystemTunnelState.Failed) } tunnel &&
-                !tunnel.CanSwitchTo(target) && !request.AllowReconnect) return Fail(ClientViewFailure.RequiresReconnect);
             _ = ObserveProbeAsync(request.Operation == ClientViewOperation.Connect
                 ? owner.Connections.StartAsync(target, request.AllowReconnect) : owner.Connections.SelectAsync(target, request.AllowReconnect));
         }

@@ -85,7 +85,7 @@ public partial class AnalyticsView : UserControl
             {
                 var name = Path.GetFileNameWithoutExtension(p.Path);
                 var directions = "↓ " + TrafficMeter.Size(p.Download) + " · ↑ " + TrafficMeter.Size(p.Upload);
-                if (p.Routes != default) directions += "\n" + RoutesText(p.Routes, p.Total);
+                directions += "\n" + RoutesText(p.Routes, p.Total);
                 return new AnalyticsProgramRow(name, name.Length == 0 ? "?" : char.ToUpperInvariant(name[0]).ToString(),
                     directions, TrafficMeter.Size(p.Total), AppIcons.For(p.Path));
             }).ToArray();

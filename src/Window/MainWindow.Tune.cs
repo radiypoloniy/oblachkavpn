@@ -29,6 +29,7 @@ public partial class MainWindow
 
     private async Task TuneAsync()
     {
+        if (!runtime.Measurements.CanMeasure) { DetailText.Text = "Подбор доступен при выключенном VPN. Политику проверки можно изменить в настройках автовыбора."; return; }
         if (operation is not null || measuring || checkingServer is not null) { DetailText.Text = "Дождитесь окончания текущей проверки."; return; }
         var pool = autoPool.Members(importedProfiles.ToArray()).Where(p => MeasureRoute(p) is not null).ToArray();
         if (pool.Length == 0) { DetailText.Text = "Подбирать не из чего: в автовыборе нет серверов, которые сейчас можно проверить."; return; }

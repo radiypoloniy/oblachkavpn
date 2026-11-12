@@ -154,7 +154,7 @@
         </DockPanel>
         <DockPanel>
           <Button x:Name="BestButton" DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Content="Подобрать лучшее" Padding="22,0" ToolTip="Проверит лучшие серверы с разными настройками и подключит самый быстрый и стабильный"/>
-          <Button x:Name="MeasureButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="32" Height="32" Background="{DynamicResource Field}" o:Ui.CornerRadius="{StaticResource RadiusMd}" Margin="0,0,6,0" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Обновить пинг на вкладке" ToolTip="Обновить пинг на вкладке">
+          <Button x:Name="MeasureButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="32" Height="32" Background="{DynamicResource Field}" o:Ui.CornerRadius="{StaticResource RadiusMd}" Margin="0,0,6,0" WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Проверить задержку на вкладке" ToolTip="Проверить задержку на вкладке">
             <Path Data="M2,12 L6,12 L9,5 L13,19 L16,12 L22,12" Style="{StaticResource Icon}" Width="16" Height="16" StrokeThickness="2"/>
           </Button>
           <TextBlock x:Name="MeasuredAgo" FontSize="{StaticResource FsSmall}" TextWrapping="Wrap" Margin="0,0,8,0" Foreground="{DynamicResource Fa}" VerticalAlignment="Center"/>

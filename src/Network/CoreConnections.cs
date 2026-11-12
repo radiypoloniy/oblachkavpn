@@ -13,6 +13,16 @@ public sealed record CoreConnection(string? ProcessPath, bool Udp, string? Host,
     long Upload = 0, long Download = 0)
 {
     public bool Direct => Chains.Contains(SingBoxTunConfig.UserDirect);
+    public string? Inbound { get; init; }
+    // Только наблюдённый конечный выход. local-core/SOCKS не доказывает VPN.
+    public TrafficRouteBytes RouteBytes(long upload, long download)
+    {
+        if (Inbound is not null && Inbound != "system-tun") return default;
+        if (Direct) return new(0, 0, upload, download);
+        var integrated = Chains.Any(tag => tag.StartsWith("direct-", StringComparison.Ordinal) &&
+            int.TryParse(tag.AsSpan(7), out var index) && index is >= 0 and < DirectOutboundPolicy.MaxOutbounds && tag == SingBoxTunConfig.DirectTag(index));
+        return integrated ? new(upload, download, 0, 0) : default;
+    }
 }
 
 public static class CoreConnections
@@ -112,7 +122,8 @@ public static class CoreConnections
             int.TryParse(portValue.ValueKind is JsonValueKind.Number or JsonValueKind.String ? portValue.ToString() : null, out var port);
             result.Add(new(Text(Property(meta, "processPath")), string.Equals(Text(Property(meta, "network")), "udp", StringComparison.OrdinalIgnoreCase),
                 Text(Property(meta, "host")), Text(Property(meta, "destinationIP")), port, chains, Text(Property(node, "id")),
-                Bytes(Property(node, "upload")), Bytes(Property(node, "download"))));
+                Bytes(Property(node, "upload")), Bytes(Property(node, "download")))
+                { Inbound = Text(Property(meta, "inbound")) });
         }
         return result;
     }

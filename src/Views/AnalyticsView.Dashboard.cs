@@ -91,7 +91,12 @@ public partial class AnalyticsView
         VpnShare.Text = routes.Total == 0 ? "—" : $"{(double)routes.Vpn / routes.Total:P0}";
         VpnText.Text = "Через VPN  " + Amount(routes.Vpn);
         DirectText.Text = "Напрямую  " + Amount(routes.Direct);
-        UnknownText.Text = "Не определено  " + Amount(routes.Unknown);
+        UnknownText.Text = "Маршрут не определён  " + Amount(routes.Unknown);
+        RouteCoverage.Text = routes.Total == 0 ? "" : $"Маршрут известен для {(double)(routes.Vpn + routes.Direct) / routes.Total:P0} трафика";
+        const string explanation = "Доля VPN рассчитана от всего учтённого объёма, включая неизвестный маршрут. " +
+            "В старой истории и у части источников нет разбивки. Промежуточный прокси сам по себе не подтверждает VPN. " +
+            "Неизвестный маршрут не означает утечку и не подтверждает защиту. Для проверки нового учёта выберите «Сегодня».";
+        UnknownText.ToolTip = RouteCoverage.ToolTip = VpnShare.ToolTip = explanation;
         var sameAxis = axis.Select(p => p.Label).SequenceEqual(report.Points.Select(p => p.Label));
         if (!sameAxis) { axis = report.Points; RenderAxis(axis); }
         if (!timeline.SequenceEqual(report.RoutePoints) || !sameAxis)
@@ -117,7 +122,7 @@ public partial class AnalyticsView
         var point = timeline[interval];
         var label = axis[interval].Label + (PeriodDays == 1 ? ":00" : "");
         ChartDetail.Text = label + " · " + Amount(point.Total) + " · VPN " + Amount(point.Vpn) +
-            " · напрямую " + Amount(point.Direct) + " · не определено " + Amount(point.Unknown);
+            " · напрямую " + Amount(point.Direct) + " · маршрут не определён " + Amount(point.Unknown);
     }
 
     private void RenderRankings(TrafficSourceStats[] sources)

@@ -184,6 +184,8 @@ public partial class MainWindow
 
     private async Task CloseSystemTunnelAsync()
     {
+        if (runtime.Connections.IsActive || runtime.Tunnels.HandoverPending)
+        { await runtime.Connections.StopAsync(preservePause: false, stopProtection: true); return; }
         if (systemTunnel is not null || helperLifetime is not null) await StopSystemTunnelAsync().ConfigureAwait(true);
     }
 }

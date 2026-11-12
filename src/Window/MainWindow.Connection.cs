@@ -42,11 +42,11 @@ public partial class MainWindow
             Connected();
         }
         catch (OperationCanceledException) { if (!closed) DetailText.Text = "Запуск отменён или истёк срок ожидания. Можно попробовать снова."; }
-        catch (UserError ex) { if (!closed) DetailText.Text = ex.Message; }
+        catch (UserError ex) { if (!closed) DetailText.Text = ex.Message + (runtime.Tunnels.HandoverPending ? " Блокировка сохранена. Повторите подключение или нажмите «Остановить»." : ""); }
         catch (IOException) { if (!closed) DetailText.Text = "Служба Облачки оборвала связь при запуске. Попробуйте подключиться ещё раз."; }
         finally
         {
-            if (!closed) { UpdateControls(); if (engine.State == ConnectionState.Failed) ScheduleRecovery(); else QueueServerSwitch(); }
+            if (!closed) { UpdateControls(); if (engine.State == ConnectionState.Failed) ScheduleRecovery(); else if (runtime.Connections.LastResult == ClientConnectionResult.Connected) QueueServerSwitch(); }
         }
     }
     private async Task StopOwnedConnectionAsync()
@@ -79,7 +79,7 @@ public partial class MainWindow
         recoveryWait?.Cancel();
         ResetSystemPath();
         operation?.Cancel();
-        if (runtime.Connections.IsActive) { _ = StopOwnedConnectionAsync(); return; }
+        if (runtime.Connections.IsActive || runtime.Tunnels.HandoverPending) { _ = StopOwnedConnectionAsync(); return; }
         // Системный режим снимает туннель и только потом ядро: иначе маршруты остались бы
         // указывать на мёртвый локальный порт.
         if (systemTunnel is not null) { _ = StopSystemTunnelAsync(); StatusText.Text = "Отключаемся…"; DetailText.Text = "Отключаем VPN…"; return; }

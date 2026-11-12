@@ -7,8 +7,7 @@ namespace Oblachka;
 //
 // В системном режиме узлы сервиса разрешены защитой ещё при запуске, поэтому переключение
 // идёт под защитой: перезапускается только ядро, туннель и блокировка остаются. Сторонний
-// узел в этот набор не входит — для него сессия ставится заново, и защита на это время
-// снимается; пользователь видит об этом пояснение.
+// узел вне набора требует новой сессии: её заменой и удержанием блокировки владеет ClientTunnels.
 //
 // Выбор срабатывает с задержкой: при листании списка стрелками переподключение не должно
 // идти на каждый промелькнувший сервер. Если в этот момент идёт фоновая проверка связи,
@@ -55,22 +54,7 @@ public partial class MainWindow
     {
         if (manualStop || operation is not null || closed || profile is null || !ConnectionActive || !SwitchPending) return;
         recoveryWait?.Cancel(); recovery.Reset(); health.Reset(); manualStop = false;
-        if (SystemTunnelActive && systemTunnel is { } session)
-        {
-            if (!session.CanSwitchTo(profile))
-            {
-                DetailText.Text = profile.IsService
-                    ? "Этот сервер не вошёл в набор защиты при подключении: переподключаемся, на это время защита снимается."
-                    : "Переподключаемся на сторонний сервер: на это время защита снимается.";
-                await StopSystemTunnelAsync();
-            }
-            else DetailText.Text = "Переключаемся на " + profile.DisplayName + ". Блокировка не снимается.";
-        }
-        else
-        {
-            DetailText.Text = "Переключаемся на " + profile.DisplayName + ".";
-            engine.Stop();
-        }
+        DetailText.Text = "Переключаемся на " + profile.DisplayName + ".";
         await ConnectCoreAsync();
     }
 }

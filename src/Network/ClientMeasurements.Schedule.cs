@@ -23,9 +23,9 @@ public sealed partial class ClientMeasurements
     }
     public async Task PollAsync()
     {
-        if (disposed || !Enabled || owner.Activity.VmTestActive || owner.Profiles.Imported.Count == 0) return;
+        if (disposed || !Enabled || owner.Workspace.Measurements.ManualOnly || !CanMeasure || owner.Activity.VmTestActive || owner.Profiles.Imported.Count == 0) return;
         var age = now() - LastPing;
-        if (age >= TimeSpan.FromMinutes(10) || owner.Profiles.Pings.Count == 0 && age >= TimeSpan.FromSeconds(30)) QueuePing();
+        if (age >= Interval || owner.Profiles.Pings.Count == 0 && age >= TimeSpan.FromSeconds(30)) QueuePing();
         if (IsMeasuring || owner.Activity.MeasuringTrial || owner.Activity.Operation is not null || owner.Activity.RecoveryWait is not null ||
             owner.Connections.IsActive || owner.Connections.IsStopping || now() < nextMeasurement) return;
         var pool = owner.Profiles.AutoPool.Members(owner.Profiles.Imported.ToArray()).GroupBy(Profiles.Fingerprint).ToDictionary(g => g.Key, g => g.First());
@@ -33,7 +33,7 @@ public sealed partial class ClientMeasurements
         backgroundQueue = new Queue<string>(backgroundQueue.Where(pool.ContainsKey));
         var queue = backgroundQueue; var epoch = scheduleEpoch;
         var batch = queue.Take(BackgroundBatchSize).Select(key => pool[key]).ToArray();
-        if (batch.Length == 0) { backgroundQueue = null; nextMeasurement = now().AddMinutes(10); return; }
+        if (batch.Length == 0) { backgroundQueue = null; nextMeasurement = now() + Interval; return; }
         void Starting(Profile p)
         {
             if (epoch == scheduleEpoch && queue.TryPeek(out var key) && key == Profiles.Fingerprint(p)) queue.Dequeue();
@@ -43,15 +43,15 @@ public sealed partial class ClientMeasurements
         {
             if (epoch == scheduleEpoch)
             {
-                nextMeasurement = now() + (queue.Count > 0 ? TimeSpan.FromSeconds(15) : TimeSpan.FromMinutes(10));
+                nextMeasurement = now() + (queue.Count > 0 ? TimeSpan.FromSeconds(15) : Interval);
                 if (queue.Count == 0) backgroundQueue = null;
             }
         }
     }
     internal TimeSpan NextDelay()
     {
-        if (disposed || !Enabled || owner.Profiles.Imported.Count == 0) return Timeout.InfiniteTimeSpan;
-        var pingDue = CanPing && pinging is null ? LastPing.Add(owner.Profiles.Pings.Count == 0 ? TimeSpan.FromSeconds(30) : TimeSpan.FromMinutes(10)) : DateTimeOffset.MaxValue;
+        if (disposed || !Enabled || owner.Workspace.Measurements.ManualOnly || !CanMeasure || owner.Profiles.Imported.Count == 0) return Timeout.InfiniteTimeSpan;
+        var pingDue = CanPing && pinging is null ? LastPing.Add(owner.Profiles.Pings.Count == 0 ? TimeSpan.FromSeconds(30) : Interval) : DateTimeOffset.MaxValue;
         var measureDue = IsMeasuring ? DateTimeOffset.MaxValue : nextMeasurement;
         var due = pingDue < measureDue ? pingDue : measureDue;
         if (due == DateTimeOffset.MaxValue) return Timeout.InfiniteTimeSpan;
@@ -81,5 +81,11 @@ public sealed partial class ClientMeasurements
     }
     private void TunnelChanged(SystemTunnelState state) => Schedule(TimeSpan.FromSeconds(1));
     private void CoreChanged(ConnectionState state, string message)
-    { if (state is ConnectionState.Idle or ConnectionState.Failed) Schedule(TimeSpan.FromSeconds(1)); }
+    { if (!CanMeasure) PrepareTunnel(); Schedule(TimeSpan.FromSeconds(1)); }
+    private TimeSpan Interval => TimeSpan.FromMinutes(owner.Workspace.Measurements.Normalize().IntervalMinutes);
+    public void PolicyChanged()
+    {
+        if (!CanMeasure || owner.Workspace.Measurements.ManualOnly) { pingEpoch++; pinging?.Cancel(); CancelMeasure(); }
+        nextMeasurement = now(); backgroundQueue = null; scheduleEpoch++; Schedule(TimeSpan.FromSeconds(1)); Changed?.Invoke();
+    }
 }

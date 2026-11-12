@@ -23,6 +23,7 @@ public static class ClientSnapshotBuilder
             Favorites = data.Favorites.Where(f => profiles.Imported.Any(p => AutoPool.Key(p) == f)).Take(Subscriptions.MaxProfiles).ToArray(),
             HiddenServers = data.HiddenServers.Take(Subscriptions.MaxProfiles).ToArray(), RemovedSubscriptions = data.RemovedSubscriptions.ToArray(),
             Measurements = profiles.Measurements.Values.Where(m => profiles.Imported.Any(p => !p.IsFree && Profiles.Fingerprint(p) == m.Fingerprint)).Take(200).ToArray(),
+            MeasurementOptions = data.Measurements,
             ProviderRouting = policy.ProviderRouting, UseProviderRouting = policy.UseProviderRouting, RussiaDirect = preferences.RussiaDirect, AutoSelect = profiles.AutoSelect,
             UpdateCheck = preferences.UpdateAuto, UpdatePrerelease = preferences.UpdatePrerelease, DpiBypass = profiles.FragmentMode,
             ZapretEnabled = policy.Zapret, SelectiveVpn = policy.Selective, ZapretChoices = new Dictionary<string, string>(data.ZapretChoices), ZapretVpnGroups = data.ZapretVpnGroups.Order(StringComparer.Ordinal).ToArray(),

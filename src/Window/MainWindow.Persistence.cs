@@ -62,6 +62,7 @@ public partial class MainWindow
         preferences.Notices = snapshot.Notices;
         RestoreNetworks(snapshot);
         RestoreMachines(snapshot);
+        runtime.Workspace.Measurements = (snapshot.MeasurementOptions ?? new()).Normalize();
         preferences.LocalNetwork = snapshot.LocalNetwork;
         preferences.QuicOverTcp = snapshot.QuicOverTcp;
         preferences.CompatibleStack = snapshot.CompatibleStack;

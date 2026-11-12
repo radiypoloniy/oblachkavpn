@@ -50,12 +50,12 @@ public sealed class HelperPipeClient : IAsyncDisposable
     public static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(40);
     public static readonly TimeSpan SessionTimeout = TimeSpan.FromSeconds(60);
     public static TimeSpan TimeoutFor(HelperOperation operation) =>
-        operation == HelperOperation.Heartbeat ? QuickTimeout : SessionTimeout;
+        operation is HelperOperation.Heartbeat or HelperOperation.Probe ? QuickTimeout : SessionTimeout;
 
     public async Task<HelperResponse> SendAsync(HelperOperation operation, NetworkLeaseRequest? lease, CancellationToken token, RepairRequest? repair = null, ZapretRequest? zapret = null, DirectDnsRequest? directDns = null,
-        ProgramRulesRequest? programs = null, RoutingListsRequest? lists = null, LockdownRequest? lockdown = null)
+        ProgramRulesRequest? programs = null, RoutingListsRequest? lists = null, LockdownRequest? lockdown = null, ProbeAccessRequest? probe = null, int version = 1)
     {
-        var request = new HelperRequest(1, Guid.NewGuid(), operation, lease, repair, zapret, directDns, programs, lists, lockdown); HelperProtocol.Validate(request);
+        var request = new HelperRequest(version, Guid.NewGuid(), operation, lease, repair, zapret, directDns, programs, lists, lockdown, probe); HelperProtocol.Validate(request);
         await gate.WaitAsync(token);
         try
         {

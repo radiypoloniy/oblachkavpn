@@ -67,9 +67,10 @@ public sealed class WfpEngine : IWfpEngine
 
     private WfpEngine(IntPtr handle) => engine = handle;
 
-    public static WfpEngine Open()
+    public static WfpEngine Open() => Open(dynamicSession: false);
+    internal static WfpEngine Open(bool dynamicSession)
     {
-        var session = new WfpNative.Session();
+        var session = new WfpNative.Session { Flags = dynamicSession ? 1u : 0u }; // FWPM_SESSION_FLAG_DYNAMIC
         var status = WfpNative.FwpmEngineOpen0(IntPtr.Zero, RpcAuthnWinNt, IntPtr.Zero, ref session, out var handle);
         if (status != 0) throw new IOException("Служба фильтрации Windows (BFE) недоступна: 0x" + status.ToString("X8"));
         return new WfpEngine(handle);

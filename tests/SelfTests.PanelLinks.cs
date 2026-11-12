@@ -1,4 +1,4 @@
-namespace Oblachka;
+﻿namespace Oblachka;
 
 public static partial class SelfTests
 {
@@ -17,16 +17,16 @@ public static partial class SelfTests
             ExpectUserError(() => SubscriptionMetadata.Validate(good with { SupportUrl = "file:///C:/x" }));
             ExpectUserError(() => SubscriptionMetadata.Validate(good with { Upload = -1 }));
         }));
-        await check("Server marks: fresh result shows ms or «нет ответа», old one says «давно», a running check says so", () => Sync(() =>
+        await check("Server marks: fresh result shows ms or «нет ответа», old result is hidden, a running check says so", () => Sync(() =>
         {
             var now = DateTimeOffset.UtcNow;
-            Assert(ServerRow.Status(null, now).Text == "");
+            Assert(ServerRow.Status(null, now).Text == "не проверен");
             var fast = ServerRow.Status(new("a", now.AddMinutes(-2), true, 84), now);
             Assert(fast.Text == "84 мс" && fast.Hint!.Contains("84 мс") && fast.Dot == ServerRow.DotFor(84));
             Assert(ServerRow.Status(new("a", now.AddMinutes(-2), false, 0), now).Text == "нет ответа");
             var old = ServerRow.Status(new("a", now.AddHours(-3), true, 84), now);
-            Assert(old.Text == "давно" && old.Hint!.StartsWith("Последний замер — 84 мс", StringComparison.Ordinal));
-            Assert(ServerRow.Status(new("a", now.AddHours(-3), false, 0), now).Hint!.StartsWith("В последний раз не ответил", StringComparison.Ordinal));
+            Assert(old.Text.Length == 0 && old.Dot is null && old.Hint is null);
+            Assert(ServerRow.Status(new("a", now.AddHours(-3), false, 0), now) == ("", null, null));
             Assert(ServerRow.Status(new("a", now, true, 84), now, checking: true).Text == "проверяем…");
             Assert(ServerRow.SpeedText(new("a", now, true, 84) { Throughput = 6_240_000 }, now) == "6,2 МБ/с");
             Assert(ServerRow.SpeedText(new("a", now, true, 84) { Throughput = 850_000 }, now) == "850 КБ/с");

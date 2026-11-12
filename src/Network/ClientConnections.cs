@@ -68,9 +68,6 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
             throw new UserError("Сервер больше не входит в текущий список.");
         if (target.IsFree && owner.Workspace.FreeConsent != FreeServers.ConsentVersion)
             throw new UserError("Сначала подтвердите условия бесплатных серверов в приложении.");
-        if (owner.Preferences.SystemTunnel && owner.Tunnel is { State: SystemTunnelState.Running or SystemTunnelState.Holding } session &&
-            !session.CanSwitchTo(target) && !allowReconnect)
-            throw new UserError("Для этого сервера требуется переподключение со снятием защиты.");
     }
     private async Task RunAsync(CancellationTokenSource cancel, Task? checking)
     {
@@ -148,6 +145,7 @@ public sealed partial class ClientConnections(ClientRuntime owner) : IDisposable
             return;
         }
         await owner.StopTunnelAsync();
+        await owner.Tunnels.ClearHandoverAsync();
         if (owner.Engine.State is not ConnectionState.Idle && (owner.Activity.Operation is null || !owner.Activity.EngineOperation)) owner.Engine.Stop();
         if (owner.Engine.State == ConnectionState.Idle) owner.Profiles.Running = null;
         owner.Proxy.Sync(); owner.Persistence.Queue(); Changed?.Invoke();

@@ -203,7 +203,7 @@ public static partial class SelfTests
             Assert(RouteCandidates.For(nodes, nodes[1], anyNode: true, inPool.Contains).SequenceEqual(new[] { 1, 2 }));
             Assert(RouteCandidates.For(nodes, nodes[0], anyNode: true, inPool.Contains).SequenceEqual(new[] { 0, 1, 2 }));
             // Отклик рукопожатия числом не показывается.
-            Assert(ServerRow.Status(measured[Profiles.Fingerprint(nodes[0])], now).Text == "" && ServerRow.Status(measured[Profiles.Fingerprint(nodes[2])], now).Text == "90 мс");
+            Assert(ServerRow.Status(measured[Profiles.Fingerprint(nodes[0])], now).Text == "порт отвечает" && ServerRow.Status(measured[Profiles.Fingerprint(nodes[2])], now).Text == "90 мс");
         }));
     }
 
